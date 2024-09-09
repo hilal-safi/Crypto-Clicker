@@ -1,0 +1,593 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		9EC1AC3A2C8FA0850055A38D /* Crypto_ClickerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC1AC392C8FA0850055A38D /* Crypto_ClickerApp.swift */; };
+		9EC1AC3C2C8FA0850055A38D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC1AC3B2C8FA0850055A38D /* ContentView.swift */; };
+		9EC1AC3E2C8FA0860055A38D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9EC1AC3D2C8FA0860055A38D /* Assets.xcassets */; };
+		9EC1AC412C8FA0860055A38D /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9EC1AC402C8FA0860055A38D /* Preview Assets.xcassets */; };
+		9EC1AC4B2C8FA0860055A38D /* Crypto_ClickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC1AC4A2C8FA0860055A38D /* Crypto_ClickerTests.swift */; };
+		9EC1AC552C8FA0870055A38D /* Crypto_ClickerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC1AC542C8FA0870055A38D /* Crypto_ClickerUITests.swift */; };
+		9EC1AC572C8FA0870055A38D /* Crypto_ClickerUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC1AC562C8FA0870055A38D /* Crypto_ClickerUITestsLaunchTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		9EC1AC472C8FA0860055A38D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9EC1AC2E2C8FA0850055A38D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9EC1AC352C8FA0850055A38D;
+			remoteInfo = "Crypto Clicker";
+		};
+		9EC1AC512C8FA0870055A38D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9EC1AC2E2C8FA0850055A38D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9EC1AC352C8FA0850055A38D;
+			remoteInfo = "Crypto Clicker";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		9EC1AC362C8FA0850055A38D /* Crypto Clicker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Crypto Clicker.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9EC1AC392C8FA0850055A38D /* Crypto_ClickerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Crypto_ClickerApp.swift; sourceTree = "<group>"; };
+		9EC1AC3B2C8FA0850055A38D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		9EC1AC3D2C8FA0860055A38D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9EC1AC402C8FA0860055A38D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		9EC1AC462C8FA0860055A38D /* Crypto ClickerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Crypto ClickerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9EC1AC4A2C8FA0860055A38D /* Crypto_ClickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Crypto_ClickerTests.swift; sourceTree = "<group>"; };
+		9EC1AC502C8FA0870055A38D /* Crypto ClickerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Crypto ClickerUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9EC1AC542C8FA0870055A38D /* Crypto_ClickerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Crypto_ClickerUITests.swift; sourceTree = "<group>"; };
+		9EC1AC562C8FA0870055A38D /* Crypto_ClickerUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Crypto_ClickerUITestsLaunchTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9EC1AC332C8FA0850055A38D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EC1AC432C8FA0860055A38D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EC1AC4D2C8FA0870055A38D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		9EC1AC2D2C8FA0850055A38D = {
+			isa = PBXGroup;
+			children = (
+				9EC1AC382C8FA0850055A38D /* Crypto Clicker */,
+				9EC1AC492C8FA0860055A38D /* Crypto ClickerTests */,
+				9EC1AC532C8FA0870055A38D /* Crypto ClickerUITests */,
+				9EC1AC372C8FA0850055A38D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9EC1AC372C8FA0850055A38D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9EC1AC362C8FA0850055A38D /* Crypto Clicker.app */,
+				9EC1AC462C8FA0860055A38D /* Crypto ClickerTests.xctest */,
+				9EC1AC502C8FA0870055A38D /* Crypto ClickerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		9EC1AC382C8FA0850055A38D /* Crypto Clicker */ = {
+			isa = PBXGroup;
+			children = (
+				9EC1AC392C8FA0850055A38D /* Crypto_ClickerApp.swift */,
+				9EC1AC3B2C8FA0850055A38D /* ContentView.swift */,
+				9EC1AC3D2C8FA0860055A38D /* Assets.xcassets */,
+				9EC1AC3F2C8FA0860055A38D /* Preview Content */,
+			);
+			path = "Crypto Clicker";
+			sourceTree = "<group>";
+		};
+		9EC1AC3F2C8FA0860055A38D /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				9EC1AC402C8FA0860055A38D /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		9EC1AC492C8FA0860055A38D /* Crypto ClickerTests */ = {
+			isa = PBXGroup;
+			children = (
+				9EC1AC4A2C8FA0860055A38D /* Crypto_ClickerTests.swift */,
+			);
+			path = "Crypto ClickerTests";
+			sourceTree = "<group>";
+		};
+		9EC1AC532C8FA0870055A38D /* Crypto ClickerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				9EC1AC542C8FA0870055A38D /* Crypto_ClickerUITests.swift */,
+				9EC1AC562C8FA0870055A38D /* Crypto_ClickerUITestsLaunchTests.swift */,
+			);
+			path = "Crypto ClickerUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9EC1AC352C8FA0850055A38D /* Crypto Clicker */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9EC1AC5A2C8FA0870055A38D /* Build configuration list for PBXNativeTarget "Crypto Clicker" */;
+			buildPhases = (
+				9EC1AC322C8FA0850055A38D /* Sources */,
+				9EC1AC332C8FA0850055A38D /* Frameworks */,
+				9EC1AC342C8FA0850055A38D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Crypto Clicker";
+			productName = "Crypto Clicker";
+			productReference = 9EC1AC362C8FA0850055A38D /* Crypto Clicker.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9EC1AC452C8FA0860055A38D /* Crypto ClickerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9EC1AC5D2C8FA0870055A38D /* Build configuration list for PBXNativeTarget "Crypto ClickerTests" */;
+			buildPhases = (
+				9EC1AC422C8FA0860055A38D /* Sources */,
+				9EC1AC432C8FA0860055A38D /* Frameworks */,
+				9EC1AC442C8FA0860055A38D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9EC1AC482C8FA0860055A38D /* PBXTargetDependency */,
+			);
+			name = "Crypto ClickerTests";
+			productName = "Crypto ClickerTests";
+			productReference = 9EC1AC462C8FA0860055A38D /* Crypto ClickerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		9EC1AC4F2C8FA0870055A38D /* Crypto ClickerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9EC1AC602C8FA0870055A38D /* Build configuration list for PBXNativeTarget "Crypto ClickerUITests" */;
+			buildPhases = (
+				9EC1AC4C2C8FA0870055A38D /* Sources */,
+				9EC1AC4D2C8FA0870055A38D /* Frameworks */,
+				9EC1AC4E2C8FA0870055A38D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9EC1AC522C8FA0870055A38D /* PBXTargetDependency */,
+			);
+			name = "Crypto ClickerUITests";
+			productName = "Crypto ClickerUITests";
+			productReference = 9EC1AC502C8FA0870055A38D /* Crypto ClickerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9EC1AC2E2C8FA0850055A38D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					9EC1AC352C8FA0850055A38D = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					9EC1AC452C8FA0860055A38D = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 9EC1AC352C8FA0850055A38D;
+					};
+					9EC1AC4F2C8FA0870055A38D = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 9EC1AC352C8FA0850055A38D;
+					};
+				};
+			};
+			buildConfigurationList = 9EC1AC312C8FA0850055A38D /* Build configuration list for PBXProject "Crypto Clicker" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 9EC1AC2D2C8FA0850055A38D;
+			productRefGroup = 9EC1AC372C8FA0850055A38D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9EC1AC352C8FA0850055A38D /* Crypto Clicker */,
+				9EC1AC452C8FA0860055A38D /* Crypto ClickerTests */,
+				9EC1AC4F2C8FA0870055A38D /* Crypto ClickerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9EC1AC342C8FA0850055A38D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9EC1AC412C8FA0860055A38D /* Preview Assets.xcassets in Resources */,
+				9EC1AC3E2C8FA0860055A38D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EC1AC442C8FA0860055A38D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EC1AC4E2C8FA0870055A38D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9EC1AC322C8FA0850055A38D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9EC1AC3C2C8FA0850055A38D /* ContentView.swift in Sources */,
+				9EC1AC3A2C8FA0850055A38D /* Crypto_ClickerApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EC1AC422C8FA0860055A38D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9EC1AC4B2C8FA0860055A38D /* Crypto_ClickerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EC1AC4C2C8FA0870055A38D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9EC1AC552C8FA0870055A38D /* Crypto_ClickerUITests.swift in Sources */,
+				9EC1AC572C8FA0870055A38D /* Crypto_ClickerUITestsLaunchTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9EC1AC482C8FA0860055A38D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9EC1AC352C8FA0850055A38D /* Crypto Clicker */;
+			targetProxy = 9EC1AC472C8FA0860055A38D /* PBXContainerItemProxy */;
+		};
+		9EC1AC522C8FA0870055A38D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9EC1AC352C8FA0850055A38D /* Crypto Clicker */;
+			targetProxy = 9EC1AC512C8FA0870055A38D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		9EC1AC582C8FA0870055A38D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		9EC1AC592C8FA0870055A38D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		9EC1AC5B2C8FA0870055A38D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Crypto Clicker/Preview Content\"";
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-Clicker";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9EC1AC5C2C8FA0870055A38D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Crypto Clicker/Preview Content\"";
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-Clicker";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		9EC1AC5E2C8FA0870055A38D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-ClickerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Crypto Clicker.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Crypto Clicker";
+			};
+			name = Debug;
+		};
+		9EC1AC5F2C8FA0870055A38D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-ClickerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Crypto Clicker.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Crypto Clicker";
+			};
+			name = Release;
+		};
+		9EC1AC612C8FA0870055A38D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-ClickerUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Crypto Clicker";
+			};
+			name = Debug;
+		};
+		9EC1AC622C8FA0870055A38D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-ClickerUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Crypto Clicker";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9EC1AC312C8FA0850055A38D /* Build configuration list for PBXProject "Crypto Clicker" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9EC1AC582C8FA0870055A38D /* Debug */,
+				9EC1AC592C8FA0870055A38D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9EC1AC5A2C8FA0870055A38D /* Build configuration list for PBXNativeTarget "Crypto Clicker" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9EC1AC5B2C8FA0870055A38D /* Debug */,
+				9EC1AC5C2C8FA0870055A38D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9EC1AC5D2C8FA0870055A38D /* Build configuration list for PBXNativeTarget "Crypto ClickerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9EC1AC5E2C8FA0870055A38D /* Debug */,
+				9EC1AC5F2C8FA0870055A38D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9EC1AC602C8FA0870055A38D /* Build configuration list for PBXNativeTarget "Crypto ClickerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9EC1AC612C8FA0870055A38D /* Debug */,
+				9EC1AC622C8FA0870055A38D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9EC1AC2E2C8FA0850055A38D /* Project object */;
+}
