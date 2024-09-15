@@ -5,11 +5,13 @@
 //  Created by Hilal Safi on 2024-09-09.
 //
 
+import SwiftUI
+
 @MainActor
 
-class ScrumStore: ObservableObject {
+class CryptoStore: ObservableObject {
     
-    @Published var scrums: [DailyScrum] = []
+    @Published var coins: CryptoCoin?
     
     private static func fileURL() throws -> URL {
         
@@ -18,33 +20,49 @@ class ScrumStore: ObservableObject {
                                     appropriateFor: nil,
                                     create: false)
         
-        .appendingPathComponent("scrums.data")
+        .appendingPathComponent("coins.data")
     }
     
     func load() async throws {
+                    
+        let fileURL = try Self.fileURL()
         
-        let task = Task<[DailyScrum], Error> {
-            
-            let fileURL = try Self.fileURL()
-            
-            guard let data = try? Data(contentsOf: fileURL) else {
-                return []
-            }
-            
-            let dailyScrums = try JSONDecoder().decode([DailyScrum].self, from: data)
-            return dailyScrums
+        guard let data = try? Data(contentsOf: fileURL) else {
+            // Set initial value if no data is found
+            coins = CryptoCoin(value: 0) // Set your desired initial value here
+            return
         }
-        let scrums = try await task.value
-        self.scrums = scrums
+        
+        let cryptoCoins = try JSONDecoder().decode(CryptoCoin.self, from: data)
+        coins = cryptoCoins
+
     }
     
-    func save(scrums: [DailyScrum]) async throws {
+    func save(coins: CryptoCoin?) async throws {
         
         let task = Task {
-            let data = try JSONEncoder().encode(scrums)
+            let data = try JSONEncoder().encode(coins)
             let outfile = try Self.fileURL()
             try data.write(to: outfile)
         }
         _ = try await task.value
+    }
+    
+    // This method increments the coin's value
+    func incrementCoinValue() {
+        // Check if coins is not nil and increment the value
+        if var currentCoin = coins {
+            currentCoin.value += 1
+            coins = currentCoin // Update the published property
+        }
+    }
+    
+    // This method resets the coin's value
+    func resetCoinValue() {
+        // Check if coins is not nil and reset the value
+        if var currentCoin = coins {
+            currentCoin.value = 0
+            coins = currentCoin // Update the published property
+        }
     }
 }

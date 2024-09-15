@@ -21,9 +21,5 @@ struct CryptoCoin: Identifiable, Codable {
 }
 
 extension CryptoCoin {
-    
-    static let sampleData: [CryptoCoin] = [
-        
-        CryptoCoin(value: 10)
-    ]
+    static let sampleData = CryptoCoin(value: 10)
 }
