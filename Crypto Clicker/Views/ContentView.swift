@@ -11,32 +11,20 @@ struct ContentView: View {
     
     @Binding var coins: CryptoCoin?
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) var colorScheme // Detect light or dark mode
-    @State private var showResetAlert = false // State variable to control the alert
     @ObservedObject var store: CryptoStore
-    
+    let colorScheme: ColorScheme
+    @ObservedObject var settings: SettingsModel // Accept SettingsModel as a parameter
     let saveAction: () -> Void
-    
+
     var body: some View {
         
         NavigationStack {
             
             ZStack {
                 
-                // Add your background image with 50% transparency
-                Image("Background")
-                    .resizable()
-                    .scaledToFill()
-                    .ignoresSafeArea()
-                    .opacity(0.25) // Set the transparency to 50%
+                // Use BackgroundView for consistent background
+                BackgroundView(colorScheme: colorScheme)
 
-                
-                // Apply a white tint in light mode, and a dark tint in dark mode
-                Color(colorScheme == .dark ? .black : .white)
-                    .opacity(0.45) // Adjust the opacity to make the tint subtle
-                    .ignoresSafeArea()
-
-                
                 VStack {
                     
                     Spacer() // Add some space between the title and the buttons
@@ -55,25 +43,24 @@ struct ContentView: View {
                                 .cornerRadius(10)
                         }
                     } else {
-                        // Large Coin Icon as a Button
-                        Button(action: {
-                            // Increment the coin value
-                            store.incrementCoinValue()
-                        }) {
-                            Image("bitcoin") // Your coin image
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 250, height: 250)
+                        // Use CoinView when coins is not nil
+                        if let _ = coins {
+                            CoinView(
+                                coinValue: Binding(
+                                    get: { coins?.value ?? 0 },
+                                    set: { newValue in coins?.value = newValue }
+                                ),
+                                settings: settings // Pass SettingsModel to CoinView
+                            ) {
+                                store.incrementCoinValue()
+                            }
+
+                            Text("Coin Value: \(coins?.value ?? 0)")
+                                .font(.system(size: 38, weight: .bold, design: .default))
                                 .padding()
                         }
-                        .sensoryFeedback(.increase, trigger: store.coins?.value)
-                        
-                        // Display the coin value
-                        Text("Coin Value: \(coins?.value ?? 0)")
-                            .font(.system(size: 38, weight: .bold, design: .default))
-                            .padding()
                     }
-                    
+
                     // Add the Store Button
                     NavigationLink(destination: ShopView()) {
                         Text("Store")
@@ -89,13 +76,7 @@ struct ContentView: View {
                     Spacer() // Add space at the bottom
                 }
                 .navigationBarTitle("Crypto Clicker")
-                .navigationBarItems(trailing:
-                                        NavigationLink(destination: SettingsView(coins: $coins, store: store)) {
-                    Image(systemName: "gearshape.fill")
-                        .imageScale(.large)
-                        .padding()
-                }
-                )
+
             }
         }
         .onChange(of: scenePhase) {
@@ -108,15 +89,21 @@ struct ContentView: View {
 
 
 struct ContentView_Previews: PreviewProvider {
-    
     static var previews: some View {
         
         let store = CryptoStore()
+        let settings = SettingsModel() // Initialize SettingsModel here
+        store.coins = CryptoCoin(value: 5)
         
-        store.coins = CryptoCoin(value: 5) // Set an initial coin value for the preview
-        return ContentView(coins: .constant(store.coins), store: store, saveAction: {
-            store.incrementCoinValue() // Simulate an action
-        })
-        .previewLayout(.sizeThatFits) // Optional: set the preview layout
+        return ContentView(
+            coins: .constant(store.coins),
+            store: store,
+            colorScheme: .light,
+            settings: settings,  // Pass SettingsModel to the preview
+            saveAction: {
+                store.incrementCoinValue()
+            }
+        )
+        .previewLayout(.sizeThatFits)
     }
 }

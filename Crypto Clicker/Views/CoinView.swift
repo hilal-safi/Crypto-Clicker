@@ -6,33 +6,47 @@
 //
 
 import SwiftUI
+import AudioToolbox
 
 struct CoinView: View {
     
-    let coin: CryptoCoin
+    @Binding var coinValue: Int
+    @ObservedObject var settings: SettingsModel // Observe changes in settings
+    let incrementAction: () -> Void
     
     var body: some View {
-        
-        VStack(alignment: .leading) {
+        Button(action: {
+            incrementAction()
             
-            Text("\(coin.value)")
-                .font(.headline)
-                .accessibilityAddTraits(/*@START_MENU_TOKEN@*/.isHeader/*@END_MENU_TOKEN@*/)
-                
-            .font(/*@START_MENU_TOKEN@*/.caption/*@END_MENU_TOKEN@*/)
+            // Play sound if sounds are enabled
+            if settings.enableSounds {
+                AudioServicesPlaySystemSound(1104) // "Tock" sound
+            }
+            
+            // Trigger haptic feedback if enabled
+            if settings.enableHaptics {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            }
+            
+        }) {
+            Image("bitcoin")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 75 + (90 * CGFloat(settings.coinSize)), height: 75 + (90 * CGFloat(settings.coinSize)))
+                .padding()
         }
-        .padding()
     }
-    
 }
-
 
 struct CoinView_Previews: PreviewProvider {
     
-    static var coin = CryptoCoin.sampleData
-    
     static var previews: some View {
-        CoinView(coin: coin)
-            .previewLayout(.fixed(width: 400, height: 60))
+        
+        CoinView(
+            coinValue: .constant(10),
+            settings: SettingsModel() // Provide an instance of SettingsModel
+        ) {
+            print("Coin incremented!")
+        }
     }
 }

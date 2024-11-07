@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct Crypto_ClickerApp: App {
+    
     @StateObject private var store = CryptoStore()
     @State private var errorWrapper: ErrorWrapper?
     

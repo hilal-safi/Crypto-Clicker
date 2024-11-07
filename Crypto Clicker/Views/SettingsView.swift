@@ -8,23 +8,47 @@
 import SwiftUI
 
 struct SettingsView: View {
+    
     @Binding var coins: CryptoCoin? // Receive the coin binding
     @ObservedObject var store: CryptoStore // Receive the store instance
+    
+    @ObservedObject var settings: SettingsModel // Observe changes in settings
+
     
     @State private var showResetAlert = false // Control alert state
 
     var body: some View {
         VStack {
-
-            // Other settings controls (e.g., toggles)
-            Toggle("Enable Sounds", isOn: .constant(true))
-            Toggle("Enable Notifications", isOn: .constant(false))
-
+            VStack(alignment: .leading) {
+                Text("Coin Size")
+                    .font(.headline)
+                
+                Slider(value: $settings.coinSize, in: 1...3, step: 1)
+                    .padding(.vertical)
+                
+                HStack {
+                    Text("Small")
+                    Spacer()
+                    Text("Medium")
+                    Spacer()
+                    Text("Large")
+                }
+                .font(.subheadline)
+                .foregroundColor(.gray)
+            }
+            Divider()
+            
+            Toggle("Enable Sounds", isOn: $settings.enableSounds)
+                .padding(.vertical)
+            Divider()
+            
+            Toggle("Enable Haptics", isOn: $settings.enableHaptics)
+                .padding(.vertical)
+            
             Spacer()
-
-            // Reset coins button
+            
             Button(action: {
-                showResetAlert = true // Trigger the alert when the button is pressed
+                showResetAlert = true
             }) {
                 Text("Reset Coins")
                     .foregroundColor(.red)
@@ -33,25 +57,32 @@ struct SettingsView: View {
                     .cornerRadius(10)
             }
             .alert("Are you sure?", isPresented: $showResetAlert) {
-                
                 Button("Cancel", role: .cancel) {}
                 Button("Reset", role: .destructive) {
-                    store.resetCoinValue() // Call the reset function from CryptoStore
-                    coins?.value = 0 // Reset the amount in the coins Binding
+                    store.resetCoinValue()
+                    coins?.value = 0
                 }
             } message: {
                 Text("This will reset your coin value to 0.")
             }
-
+            
             Spacer()
         }
         .padding()
         .navigationBarTitle("Settings")
     }
+
 }
 
 struct SettingsView_Previews: PreviewProvider {
+    
     static var previews: some View {
-        SettingsView(coins: .constant(CryptoCoin(value: 10)), store: CryptoStore()) // Example preview
+        
+        SettingsView(
+            coins: .constant(CryptoCoin(value: 10)),
+            store: CryptoStore(),
+            settings: SettingsModel() // Provide an instance of SettingsModel
+        )
     }
 }
+
