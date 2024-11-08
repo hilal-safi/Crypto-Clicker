@@ -13,52 +13,74 @@ struct HomeView: View {
     var store: CryptoStore
     var saveAction: () -> Void
     
-    @Environment(\.colorScheme) var colorScheme // Variable Detect light or dark mode
-    @State private var showResetAlert = false // State variable to control the alert
-    
-    // Shared Settings Model
+    @Environment(\.colorScheme) var colorScheme
     @StateObject private var settings = SettingsModel()
 
     var body: some View {
         
         NavigationView {
-            
-            VStack {
+            ZStack {
+                // Background view
+                BackgroundView()
                 
-                Text("Welcome to Crypto Clicker!")
-                    .font(.largeTitle)
-                    .padding()
-
-                // Button to navigate to ContentView
-                NavigationLink(destination: ContentView(
-                    coins: $coins,
-                    store: store,
-                    colorScheme: colorScheme,
-                    settings: settings, // Pass settings to ContentView
-                    saveAction: saveAction
-                )) {
-                    Text("Start Game")
-                        .font(.title2)
+                VStack {
+                    
+                    Spacer()
+                    Text("Welcome to Crypto Clicker!")
+                        .font(.largeTitle)
                         .padding()
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                    
+                    // Check if the coin has been initialized, otherwise show the Start button
+                    if coins == nil {
+                        
+                        Button(action: {
+                            // Initialize the coin with a starting value if not set
+                            coins = CryptoCoin(value: 10)
+                        }) {
+                            Text("Start Game")
+                                .font(.title2)
+                                .padding()
+                                .background(Color.green)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
+                    } else {
+                        
+                        NavigationLink(destination: ContentView(
+                            coins: $coins,
+                            store: store,
+                            colorScheme: colorScheme,
+                            settings: settings,
+                            saveAction: saveAction
+                        )) {
+                            Text("Play Game")
+                                .font(.title2)
+                                .padding()
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
+                    }
+                    
+                    Spacer()
                 }
-                .padding(.top, 20)
+                .padding()
             }
+            
             .navigationTitle("Home")
+            
             .navigationBarItems(trailing:
                 NavigationLink(destination: SettingsView(
                     coins: $coins,
                     store: store,
-                    settings: settings // Pass SettingsModel to SettingsView
+                    settings: settings
                 )) {
-                Image(systemName: "gearshape.fill")
-                    .imageScale(.large)
-                    .padding()
-            })
+                    Image(systemName: "gearshape.fill")
+                        .imageScale(.large)
+                        .padding()
+                }
+            )
         }
-        .navigationTitle("Home")
     }
 }
 
@@ -69,7 +91,7 @@ struct HomeView_Previews: PreviewProvider {
         let store = CryptoStore()
         
         HomeView(
-            coins: .constant(CryptoCoin.sampleData),
+            coins: .constant(nil),
             store: store,
             saveAction: {}
         )

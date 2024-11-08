@@ -9,19 +9,25 @@ import SwiftUI
 
 struct SettingsView: View {
     
-    @Binding var coins: CryptoCoin? // Receive the coin binding
-    @ObservedObject var store: CryptoStore // Receive the store instance
+    @Binding var coins: CryptoCoin?
+    @ObservedObject var store: CryptoStore
+    @ObservedObject var settings: SettingsModel
     
-    @ObservedObject var settings: SettingsModel // Observe changes in settings
-
-    
-    @State private var showResetAlert = false // Control alert state
+    @State private var showResetAlert = false
+    @State private var selectedAppearanceMode = 0 // 0 = Auto, 1 = Light, 2 = Dark
 
     var body: some View {
-        VStack {
+        
+        VStack(spacing: 20) {
+            
+            // Coin Size Setting
             VStack(alignment: .leading) {
-                Text("Coin Size")
-                    .font(.headline)
+                
+                HStack {
+                    Image(systemName: "bitcoinsign.circle")
+                    Text("Coin Size")
+                        .font(.headline)
+                }
                 
                 Slider(value: $settings.coinSize, in: 1...3, step: 1)
                     .padding(.vertical)
@@ -36,17 +42,50 @@ struct SettingsView: View {
                 .font(.subheadline)
                 .foregroundColor(.gray)
             }
+            .padding()
             Divider()
             
-            Toggle("Enable Sounds", isOn: $settings.enableSounds)
-                .padding(.vertical)
+            // Enable Haptics Setting
+            Toggle(isOn: $settings.enableHaptics) {
+                HStack {
+                    Image(systemName: "hand.tap.fill")
+                    Text("Enable Haptics")
+                        .font(.headline)
+                }
+            }
+            .padding()
             Divider()
             
-            Toggle("Enable Haptics", isOn: $settings.enableHaptics)
-                .padding(.vertical)
+            // Enable Sounds Setting
+            Toggle(isOn: $settings.enableSounds) {
+                HStack {
+                    Image(systemName: "speaker.wave.2")
+                    Text("Enable Sounds")
+                        .font(.headline)
+                }
+            }
+            .padding()
+            Divider()
             
-            Spacer()
+            // Dark/Light/Auto Mode Setting
+            VStack(alignment: .leading) {
+                HStack {
+                    Image(systemName: "moon.circle")
+                    Text("Appearance Mode")
+                        .font(.headline)
+                }
+                
+                Picker("Appearance Mode", selection: $settings.appearanceMode) { // Bind directly to appearanceMode
+                    Text("Auto").tag(SettingsModel.AppearanceMode.auto)
+                    Text("Light").tag(SettingsModel.AppearanceMode.light)
+                    Text("Dark").tag(SettingsModel.AppearanceMode.dark)
+                }
+                .pickerStyle(SegmentedPickerStyle())
+            }
+            .padding()
+            Divider()
             
+            // Reset progress button
             Button(action: {
                 showResetAlert = true
             }) {

@@ -13,7 +13,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var store: CryptoStore
     let colorScheme: ColorScheme
-    @ObservedObject var settings: SettingsModel // Accept SettingsModel as a parameter
+    @ObservedObject var settings: SettingsModel
     let saveAction: () -> Void
 
     var body: some View {
@@ -21,47 +21,31 @@ struct ContentView: View {
         NavigationStack {
             
             ZStack {
-                
-                // Use BackgroundView for consistent background
-                BackgroundView(colorScheme: colorScheme)
+                // Background view now automatically uses the environment's color scheme
+                BackgroundView()
 
                 VStack {
+                    Spacer()
                     
-                    Spacer() // Add some space between the title and the buttons
-                    
-                    // Check if coins is nil and display Start button
-                    if coins == nil {
-                        Button(action: {
-                            // Initialize the coin value
-                            store.coins = CryptoCoin(value: 10) // Set your desired initial value here
-                        }) {
-                            Text("Start")
-                                .font(.largeTitle)
-                                .padding()
-                                .background(Color.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                    } else {
-                        // Use CoinView when coins is not nil
-                        if let _ = coins {
-                            CoinView(
-                                coinValue: Binding(
-                                    get: { coins?.value ?? 0 },
-                                    set: { newValue in coins?.value = newValue }
-                                ),
-                                settings: settings // Pass SettingsModel to CoinView
-                            ) {
-                                store.incrementCoinValue()
-                            }
+                    // Display the coin's current value
+                    Text("Coin Value: \(coins?.value ?? 0)")
+                        .font(.system(size: 38, weight: .bold, design: .default))
+                        .padding()
 
-                            Text("Coin Value: \(coins?.value ?? 0)")
-                                .font(.system(size: 38, weight: .bold, design: .default))
-                                .padding()
-                        }
+                    // CoinView handles the increment action
+                    CoinView(
+                        coinValue: Binding(
+                            get: { coins?.value ?? 0 },
+                            set: { newValue in coins?.value = newValue }
+                        ),
+                        settings: settings
+                    ) {
+                        store.incrementCoinValue()
                     }
-
-                    // Add the Store Button
+                    
+                    Spacer()
+                    
+                    // Navigation link to the shop
                     NavigationLink(destination: ShopView()) {
                         Text("Store")
                             .font(.title2)
@@ -72,11 +56,8 @@ struct ContentView: View {
                     }
                     .padding(.top, 20)
 
-
-                    Spacer() // Add space at the bottom
+                    Spacer()
                 }
-                .navigationBarTitle("Crypto Clicker")
-
             }
         }
         .onChange(of: scenePhase) {
@@ -87,19 +68,18 @@ struct ContentView: View {
     }
 }
 
-
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         
         let store = CryptoStore()
-        let settings = SettingsModel() // Initialize SettingsModel here
+        let settings = SettingsModel()
         store.coins = CryptoCoin(value: 5)
         
         return ContentView(
             coins: .constant(store.coins),
             store: store,
             colorScheme: .light,
-            settings: settings,  // Pass SettingsModel to the preview
+            settings: settings,
             saveAction: {
                 store.incrementCoinValue()
             }

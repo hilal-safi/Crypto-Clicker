@@ -5,6 +5,8 @@ struct Crypto_ClickerApp: App {
     
     @StateObject private var store = CryptoStore()
     @State private var errorWrapper: ErrorWrapper?
+    @StateObject private var settings = SettingsModel() // Shared settings
+
     
     var body: some Scene {
         WindowGroup {
@@ -21,6 +23,9 @@ struct Crypto_ClickerApp: App {
                     }
                 }
             )
+            .environmentObject(settings) // Provide settings to all views
+            .preferredColorScheme(settings.selectedColorScheme) // Apply the selected color scheme
+            
             .task {
                 do {
                     try await store.load()

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct BackgroundView: View {
-    let colorScheme: ColorScheme
+    @Environment(\.colorScheme) var colorScheme // Use environment's color scheme
     
     var body: some View {
         ZStack {
@@ -17,12 +17,12 @@ struct BackgroundView: View {
                 .resizable()
                 .scaledToFill()
                 .ignoresSafeArea()
-                .opacity(0.3) // Set the transparency to 30%
+                .opacity(0.3)
                 .blur(radius: 2)
             
-            // White or black tint based on color scheme
+            // Adaptive color overlay
             Color(colorScheme == .dark ? .black : .white)
-                .opacity(0.5) // Adjust the opacity to make the tint subtle
+                .opacity(0.5)
                 .ignoresSafeArea()
         }
     }
@@ -30,7 +30,9 @@ struct BackgroundView: View {
 
 struct BackgroundView_Previews: PreviewProvider {
     static var previews: some View {
-        BackgroundView(colorScheme: .light) // Preview for light mode
-        BackgroundView(colorScheme: .dark) // Preview for dark mode
+        Group {
+            BackgroundView().environment(\.colorScheme, .light)
+            BackgroundView().environment(\.colorScheme, .dark)
+        }
     }
 }
