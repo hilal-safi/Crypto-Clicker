@@ -15,6 +15,8 @@ struct ContentView: View {
     let colorScheme: ColorScheme
     @ObservedObject var settings: SettingsModel
     let saveAction: () -> Void
+    
+    @State private var isShopPresented = false  // State to control ShopView presentation
 
     var body: some View {
         
@@ -45,16 +47,8 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    // Navigation link to the shop
-                    NavigationLink(destination: ShopView()) {
-                        Text("Store")
-                            .font(.title2)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                    .padding(.top, 20)
+                    // Power button to display power-ups owned
+                    PowerButtonView(store: store)
 
                     Spacer()
                 }

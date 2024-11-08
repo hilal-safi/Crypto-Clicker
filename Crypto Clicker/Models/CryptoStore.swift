@@ -13,6 +13,13 @@ class CryptoStore: ObservableObject {
     
     @Published var coins: CryptoCoin?
     
+    // Track quantities of each item
+    @Published var chromebook = 0
+    @Published var desktop = 0
+    @Published var server = 0
+    @Published var mineCenter = 0
+
+    
     private static func fileURL() throws -> URL {
         
         try FileManager.default.url(for: .documentDirectory,
@@ -65,4 +72,63 @@ class CryptoStore: ObservableObject {
             coins = currentCoin // Update the published property
         }
     }
+    
+    // Purchase item and start timed increment based on item type
+    func purchaseItem(itemType: String) {
+        if var currentCoin = coins {
+            switch itemType {
+            case "Chromebook":
+                if currentCoin.value >= 50 {
+                    chromebook += 1
+                    currentCoin.value -= 50
+                    startTimedIncrement(itemType: "Chromebook", interval: 10, amount: 1)
+                }
+            case "Desktop":
+                if currentCoin.value >= 200 {
+                    desktop += 1
+                    currentCoin.value -= 200
+                    startTimedIncrement(itemType: "Desktop", interval: 5, amount: 5)
+                }
+            case "Server":
+                if currentCoin.value >= 1000 {
+                    server += 1
+                    currentCoin.value -= 1000
+                    startTimedIncrement(itemType: "Server", interval: 3, amount: 10)
+                }
+            case "MineCenter":
+                if currentCoin.value >= 10000 {
+                    mineCenter += 1
+                    currentCoin.value -= 10000
+                    startTimedIncrement(itemType: "MineCenter", interval: 1, amount: 100)
+                }
+            default:
+                break
+            }
+            coins = currentCoin
+        }
+    }
+    
+    private func startTimedIncrement(itemType: String, interval: TimeInterval, amount: Int) {
+        Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
+            Task { @MainActor in  // Ensure the code within this Task is run on the main actor
+                if var currentCoin = self.coins {
+                    // Increment based on the item purchased
+                    switch itemType {
+                    case "Chromebook":
+                        currentCoin.value += amount * self.chromebook
+                    case "Desktop":
+                        currentCoin.value += amount * self.desktop
+                    case "Server":
+                        currentCoin.value += amount * self.server
+                    case "MineCenter":
+                        currentCoin.value += amount * self.mineCenter
+                    default:
+                        break
+                    }
+                    self.coins = currentCoin
+                }
+            }
+        }
+    }
+
 }

@@ -9,59 +9,78 @@ import SwiftUI
 
 struct ShopView: View {
     
-    @State private var chromebook = 0
-    @State private var desktop = 0
-    @State private var server = 0
-    @State private var mineCenter = 0
-    @State private var balance = 0  // Example balance state
-    
-    var body: some View {
-        
-        let totalCost = (chromebook * 50) + (desktop * 200) + (server * 1000) + (mineCenter * 1000)
-        
-        VStack {
-            
-            Text("Your current balance:")
-                .font(.title)
-            
-            Text("\(balance)")
-                .font(.title)
-                .fontWeight(.bold)
-            
-            LazyVGrid(columns: [GridItem(), GridItem()], spacing: 20) {
-                
-                // Chromebook
-                itemView(title: "Chromebook", price: 50, emoji: "💻", quantity: $chromebook)
-                
-                // Desktop
-                itemView(title: "Desktop", price: 200, emoji: "🖥️", quantity: $desktop)
-                
-                // Server
-                itemView(title: "Server", price: 1000, emoji: "🖲️", quantity: $server)
-                
-                // Mine Center
-                itemView(title: "Mining Center", price: 10000, emoji: "🏭", quantity: $mineCenter)
-            }
-            .padding()
-        
-            Text("Total Cost: \(totalCost)")
-                .font(.title)
-            
-            Button(action: {
-                // Handle buy action
-            }) {
-                Text("Buy")
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.blue.opacity(0.2))
-                    .cornerRadius(10)
-            }
-            .padding(.horizontal)
-        }
-        .navigationBarTitle("Shop")
+    @Binding var coins: CryptoCoin?
+    @ObservedObject var store: CryptoStore
+
+    var totalCost: Int {
+        // Calculate total cost based on quantities and item prices
+        (store.chromebook * 50) +
+        (store.desktop * 200) +
+        (store.server * 1000) +
+        (store.mineCenter * 10000)
     }
     
-    // MARK: - Item View
+    var body: some View {
+        VStack {
+            
+            ScrollView {
+                VStack {
+                    Text("Your current balance:")
+                        .font(.title)
+                    
+                    Text("\(coins?.value ?? 0)")
+                        .font(.title)
+                        .fontWeight(.bold)
+                    
+                    LazyVGrid(columns: [GridItem(), GridItem()], spacing: 20) {
+                        // Chromebook
+                        itemView(title: "Chromebook", price: 50, emoji: "💻", quantity: $store.chromebook)
+                        
+                        // Desktop
+                        itemView(title: "Desktop", price: 200, emoji: "🖥️", quantity: $store.desktop)
+                        
+                        // Server
+                        itemView(title: "Server", price: 1000, emoji: "🖲️", quantity: $store.server)
+                        
+                        // Mine Center
+                        itemView(title: "MineCenter", price: 10000, emoji: "🏭", quantity: $store.mineCenter)
+                    }
+                    .padding()
+                    
+                    // Display total cost
+                    Text("Total Cost: \(totalCost) Coins")
+                        .font(.title2)
+                        .padding(.top, 10)
+                    
+                    // Total Buy button
+                    Button(action: {
+                        // Check if the user has enough coins to make the purchase
+                        if let coinBalance = coins?.value, coinBalance >= totalCost {
+                            coins?.value -= totalCost
+                            // Optionally reset quantities after purchase if desired
+                            store.chromebook = 0
+                            store.desktop = 0
+                            store.server = 0
+                            store.mineCenter = 0
+                        }
+                    }) {
+                        Text("Buy")
+                            .font(.title2)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    .padding(.top, 20)
+                }
+                .padding()
+            }
+        }
+        .navigationBarHidden(true)  // Hide default navigation bar
+        .navigationBarTitle("Shop", displayMode: .inline)
+    }
+
+    // Generalized item view for ShopView
     private func itemView(title: String, price: Int, emoji: String, quantity: Binding<Int>) -> some View {
         VStack {
             Text(title)
@@ -71,7 +90,9 @@ struct ShopView: View {
                 .font(.system(size: 60))
             HStack {
                 Button(action: {
-                    quantity.wrappedValue = max(quantity.wrappedValue - 1, 0)
+                    if quantity.wrappedValue > 0 {
+                        quantity.wrappedValue -= 1
+                    }
                 }) {
                     Text("-")
                         .font(.title)
@@ -86,17 +107,17 @@ struct ShopView: View {
                         .font(.title)
                 }
             }
-            Text("Price: \(quantity.wrappedValue * price)")
         }
         .padding()
-        .frame(width: 175, height: 210)
         .background(RoundedRectangle(cornerRadius: 10).stroke(Color.black, lineWidth: 1))
     }
 }
 
 struct ShopView_Previews: PreviewProvider {
+    
     static var previews: some View {
-        ShopView()
+        
+        let store = CryptoStore()
+        return ShopView(coins: .constant(CryptoCoin(value: 10000)), store: store)
     }
 }
-
