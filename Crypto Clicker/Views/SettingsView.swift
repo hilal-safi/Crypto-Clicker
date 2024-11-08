@@ -18,7 +18,7 @@ struct SettingsView: View {
 
     var body: some View {
         
-        VStack(spacing: 20) {
+        VStack() {
             
             // Coin Size Setting
             VStack(alignment: .leading) {
