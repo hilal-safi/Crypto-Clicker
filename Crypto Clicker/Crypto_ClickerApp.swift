@@ -4,6 +4,7 @@ import SwiftUI
 struct Crypto_ClickerApp: App {
     
     @StateObject private var store = CryptoStore()
+    @StateObject private var powerUps = PowerUps()
     @State private var errorWrapper: ErrorWrapper?
     @StateObject private var settings = SettingsModel() // Shared settings
 
@@ -13,6 +14,7 @@ struct Crypto_ClickerApp: App {
             HomeView(
                 coins: $store.coins,
                 store: store,
+                powerUps: powerUps,
                 saveAction: {
                     Task {
                         do {

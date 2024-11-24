@@ -2,122 +2,143 @@
 //  ShopView.swift
 //  Crypto Clicker
 //
-//  Created by Hilal Safi on 2024-11-07.
+//  Created by Hilal Safi on 2024-09-09.
 //
 
 import SwiftUI
 
 struct ShopView: View {
-    
-    @Binding var coins: CryptoCoin?
     @ObservedObject var store: CryptoStore
+    @Binding var coins: CryptoCoin?
+    @State private var selectedPowerUps: [PowerUpInfo: Int] = [:] // Tracks selected power-ups and their quantities
+    @State private var purchaseResult: String? // To display the purchase result
+    @State private var showConfirmation: Bool = false // Controls confirmation alert
 
-    var totalCost: Int {
-        // Calculate total cost based on quantities and item prices
-        (store.chromebook * 50) +
-        (store.desktop * 200) +
-        (store.server * 1000) +
-        (store.mineCenter * 10000)
-    }
-    
     var body: some View {
-        VStack {
-            
-            ScrollView {
-                VStack {
-                    Text("Your current balance:")
-                        .font(.title)
-                    
-                    Text("\(coins?.value ?? 0)")
-                        .font(.title)
-                        .fontWeight(.bold)
-                    
-                    LazyVGrid(columns: [GridItem(), GridItem()], spacing: 20) {
-                        // Chromebook
-                        itemView(title: "Chromebook", price: 50, emoji: "💻", quantity: $store.chromebook)
-                        
-                        // Desktop
-                        itemView(title: "Desktop", price: 200, emoji: "🖥️", quantity: $store.desktop)
-                        
-                        // Server
-                        itemView(title: "Server", price: 1000, emoji: "🖲️", quantity: $store.server)
-                        
-                        // Mine Center
-                        itemView(title: "MineCenter", price: 10000, emoji: "🏭", quantity: $store.mineCenter)
-                    }
-                    .padding()
-                    
-                    // Display total cost
-                    Text("Total Cost: \(totalCost) Coins")
-                        .font(.title2)
-                        .padding(.top, 10)
-                    
-                    // Total Buy button
-                    Button(action: {
-                        // Check if the user has enough coins to make the purchase
-                        if let coinBalance = coins?.value, coinBalance >= totalCost {
-                            coins?.value -= totalCost
-                            // Optionally reset quantities after purchase if desired
-                            store.chromebook = 0
-                            store.desktop = 0
-                            store.server = 0
-                            store.mineCenter = 0
+        VStack(spacing: 20) {
+            // Coins and Coins Per Second Display
+            VStack {
+                Text("Coins: \(coins?.value ?? 0)")
+                    .font(.headline)
+                Text("Coins Per Second: \(store.coinsPerSecond)")
+                    .font(.subheadline)
+                    .foregroundColor(.green)
+            }
+            .padding()
+
+            // List of Power-Ups
+            List(PowerUps.powerUps) { powerUp in
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text(powerUp.emoji)
+                            .font(.system(size: 32))
+                        VStack(alignment: .leading) {
+                            Text(powerUp.name)
+                                .font(.headline)
+                            Text(powerUp.description)
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
                         }
-                    }) {
-                        Text("Buy")
-                            .font(.title2)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
+                        Spacer()
+                        VStack(alignment: .trailing) {
+                            // Cost Breakdown
+                            Text("Cost: \(powerUp.cost) coins each")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                            Text("Selected: \(selectedPowerUps[powerUp] ?? 0)")
+                                .font(.subheadline)
+                                .foregroundColor(.purple)
+                            Text("Total: \(powerUp.cost * (selectedPowerUps[powerUp] ?? 0)) coins")
+                                .font(.subheadline)
+                                .foregroundColor(.red)
+                        }
                     }
-                    .padding(.top, 20)
+
+                    // Quantity Selector
+                    HStack {
+                        Stepper("Quantity: \(selectedPowerUps[powerUp] ?? 0)", value: Binding(
+                            get: { selectedPowerUps[powerUp] ?? 0 },
+                            set: { selectedPowerUps[powerUp] = $0 }
+                        ), in: 0...10)
+                        .labelsHidden()
+                        .frame(width: 150)
+
+                        Spacer()
+                    }
                 }
                 .padding()
             }
+
+            Spacer()
+
+            // Purchase Button
+            Button(action: {
+                showConfirmation = true
+            }) {
+                Text("Purchase")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(selectedPowerUps.values.reduce(0, +) == 0 ? Color.gray : Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+            }
+            .disabled(selectedPowerUps.values.reduce(0, +) == 0) // Disable if no items are selected
+            .padding()
+            .alert(isPresented: $showConfirmation) {
+                Alert(
+                    title: Text("Confirm Purchase"),
+                    message: Text("Confirm purchasing selected power-ups?"),
+                    primaryButton: .default(Text("Confirm")) {
+                        handlePurchase()
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
+
+            // Success or Failure Message
+            if let result = purchaseResult {
+                Text(result)
+                    .font(.caption)
+                    .foregroundColor(result.contains("success") ? .green : .red)
+                    .padding(.top)
+            }
         }
-        .navigationBarHidden(true)  // Hide default navigation bar
-        .navigationBarTitle("Shop", displayMode: .inline)
+        .navigationTitle("Shop")
     }
 
-    // Generalized item view for ShopView
-    private func itemView(title: String, price: Int, emoji: String, quantity: Binding<Int>) -> some View {
-        VStack {
-            Text(title)
-                .bold()
-            Text("\(price) Coins Each")
-            Text(emoji)
-                .font(.system(size: 60))
-            HStack {
-                Button(action: {
-                    if quantity.wrappedValue > 0 {
-                        quantity.wrappedValue -= 1
-                    }
-                }) {
-                    Text("-")
-                        .font(.title)
-                }
-                Text("\(quantity.wrappedValue)")
-                    .font(.title2)
-                    .padding(.horizontal)
-                Button(action: {
-                    quantity.wrappedValue += 1
-                }) {
-                    Text("+")
-                        .font(.title)
+    private func handlePurchase() {
+        guard let currentCoins = coins else { return }
+        var purchaseSuccessful = true
+
+        // Iterate through selected items and attempt to purchase them
+        for (powerUp, quantity) in selectedPowerUps {
+            if quantity > 0 {
+                let success = store.purchasePowerUp(powerUp: powerUp, quantity: quantity)
+                if !success {
+                    purchaseSuccessful = false
+                    purchaseResult = "Failed to purchase \(quantity) \(powerUp.name)(s). Insufficient coins."
+                    break
                 }
             }
         }
-        .padding()
-        .background(RoundedRectangle(cornerRadius: 10).stroke(Color.black, lineWidth: 1))
+
+        if purchaseSuccessful {
+            purchaseResult = "Purchase successful! Enjoy your new power-ups."
+            selectedPowerUps.removeAll() // Clear selections after a successful purchase
+        }
+
+        // Automatically clear the message after 3 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            purchaseResult = nil
+        }
     }
 }
 
 struct ShopView_Previews: PreviewProvider {
-    
     static var previews: some View {
-        
         let store = CryptoStore()
-        return ShopView(coins: .constant(CryptoCoin(value: 10000)), store: store)
+        let coins = CryptoCoin(value: 1000)
+        return ShopView(store: store, coins: .constant(coins))
     }
 }

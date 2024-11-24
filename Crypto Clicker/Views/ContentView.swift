@@ -12,6 +12,7 @@ struct ContentView: View {
     @Binding var coins: CryptoCoin?
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var store: CryptoStore
+    @ObservedObject var powerUps: PowerUps
     let colorScheme: ColorScheme
     @ObservedObject var settings: SettingsModel
     let saveAction: () -> Void
@@ -33,6 +34,10 @@ struct ContentView: View {
                     Text("Coin Value: \(coins?.value ?? 0)")
                         .font(.system(size: 38, weight: .bold, design: .default))
                         .padding()
+                    
+                    Text("Coins / Sec: \(store.coinsPerSecond)")
+                        .font(.system(size: 24, design: .default))
+
 
                     // CoinView handles the increment action
                     CoinView(
@@ -48,7 +53,7 @@ struct ContentView: View {
                     Spacer()
                     
                     // Power button to display power-ups owned
-                    PowerButtonView(store: store)
+                    PowerButtonView(store: store, coins: $coins)
 
                     Spacer()
                 }
@@ -66,12 +71,14 @@ struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         
         let store = CryptoStore()
+        let powerUps = PowerUps()
         let settings = SettingsModel()
         store.coins = CryptoCoin(value: 5)
         
         return ContentView(
             coins: .constant(store.coins),
             store: store,
+            powerUps: powerUps,
             colorScheme: .light,
             settings: settings,
             saveAction: {

@@ -12,14 +12,15 @@ struct CryptoCoin: Identifiable, Codable {
     
     let id: UUID
     var value: Int
+    var coinsPerSecond: Int // Tracks coins generated per second
     
-    init(id: UUID = UUID(), value: Int) {
-        
+    init(id: UUID = UUID(), value: Int, coinsPerSecond: Int = 0) {
         self.id = id
         self.value = value
+        self.coinsPerSecond = coinsPerSecond
     }
 }
 
 extension CryptoCoin {
-    static let sampleData = CryptoCoin(value: 10)
+    static let sampleData = CryptoCoin(value: 10, coinsPerSecond: 0)
 }

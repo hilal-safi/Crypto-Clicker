@@ -9,48 +9,49 @@ import SwiftUI
 
 struct PowerButtonView: View {
     @ObservedObject var store: CryptoStore
-    @State private var isPowerUpViewPresented = false  // Controls sheet presentation for PowerUpView
+    @Binding var coins: CryptoCoin?
+    @State private var isShopPresented = false
 
     var body: some View {
+        // Power-ups display
         Button(action: {
-            isPowerUpViewPresented = true  // Open the sheet for PowerUpView
+            isShopPresented = true
         }) {
             HStack(spacing: 20) {
-                VStack {
-                    Text("💻")
-                        .font(.system(size: 42))  // Increased icon size
-                    Text("\(store.chromebook)")
-                        .font(.system(size: 24, weight: .semibold))  // Slightly larger quantity font
-                }
-                VStack {
-                    Text("🖥️")
-                        .font(.system(size: 42))  // Increased icon size
-                    Text("\(store.desktop)")
-                        .font(.system(size: 24, weight: .semibold))  // Slightly larger quantity font
-                }
-                VStack {
-                    Text("🖲️")
-                        .font(.system(size: 42))  // Increased icon size
-                    Text("\(store.server)")
-                        .font(.system(size: 24, weight: .semibold))  // Slightly larger quantity font
-                }
-                VStack {
-                    Text("🏭")
-                        .font(.system(size: 42))  // Increased icon size
-                    Text("\(store.mineCenter)")
-                        .font(.system(size: 24, weight: .semibold))  // Slightly larger quantity font
+                ForEach(PowerUps.powerUps, id: \.name) { powerUp in
+                    VStack {
+                        Text(powerUp.emoji)
+                            .font(.system(size: 42)) // Increased icon size
+                        Text("\(quantity(for: powerUp.name))")
+                            .font(.system(size: 24, weight: .semibold)) // Slightly larger quantity font
+                    }
                 }
             }
             .padding()
-            .background(Color.blue.opacity(0.1))  // Light blue background tint
-            .cornerRadius(12)  // Rounded corners
+            .background(Color.blue.opacity(0.1)) // Light blue background tint
+            .cornerRadius(12) // Rounded corners
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.blue, lineWidth: 1)  // Outline for the button
+                    .stroke(Color.blue, lineWidth: 1) // Outline for the button
             )
         }
-        .sheet(isPresented: $isPowerUpViewPresented) {  // Present PowerUpView as a sheet
-            PowerUpView(store: store)
+        .sheet(isPresented: $isShopPresented) {
+            ShopView(store: store, coins: $coins)
+        }
+    }
+
+    private func quantity(for name: String) -> Int {
+        switch name {
+        case "Chromebook":
+            return store.powerUps.chromebook
+        case "Desktop":
+            return store.powerUps.desktop
+        case "Server":
+            return store.powerUps.server
+        case "Mine Center":
+            return store.powerUps.mineCenter
+        default:
+            return 0
         }
     }
 }
@@ -58,10 +59,9 @@ struct PowerButtonView: View {
 struct PowerButtonView_Previews: PreviewProvider {
     static var previews: some View {
         let store = CryptoStore()
-        store.chromebook = 1
-        store.desktop = 2
-        store.server = 3
-        store.mineCenter = 4
-        return PowerButtonView(store: store)
+        let coins = CryptoCoin(value: 1000)
+        return NavigationView {
+            PowerButtonView(store: store, coins: .constant(coins))
+        }
     }
 }

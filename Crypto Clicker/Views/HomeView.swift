@@ -11,6 +11,7 @@ struct HomeView: View {
     
     @Binding var coins: CryptoCoin?
     var store: CryptoStore
+    @ObservedObject var powerUps: PowerUps
     var saveAction: () -> Void
     
     @Environment(\.colorScheme) var colorScheme
@@ -49,6 +50,7 @@ struct HomeView: View {
                         NavigationLink(destination: ContentView(
                             coins: $coins,
                             store: store,
+                            powerUps: powerUps,
                             colorScheme: colorScheme,
                             settings: settings,
                             saveAction: saveAction
@@ -89,10 +91,12 @@ struct HomeView_Previews: PreviewProvider {
     static var previews: some View {
         
         let store = CryptoStore()
+        let powerUps = PowerUps() // Updated reference
         
         HomeView(
             coins: .constant(nil),
             store: store,
+            powerUps: powerUps,
             saveAction: {}
         )
     }

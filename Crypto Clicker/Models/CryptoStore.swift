@@ -5,6 +5,7 @@
 //  Created by Hilal Safi on 2024-09-09.
 //
 
+import Foundation
 import SwiftUI
 
 @MainActor
@@ -12,14 +13,14 @@ import SwiftUI
 class CryptoStore: ObservableObject {
     
     @Published var coins: CryptoCoin?
-    
-    // Track quantities of each item
-    @Published var chromebook = 0
-    @Published var desktop = 0
-    @Published var server = 0
-    @Published var mineCenter = 0
+    @Published var powerUps = PowerUps() // Add this property to manage power-ups
+    @Published var coinsPerSecond: Int = 0
+    private var timer: Timer?
 
-    
+    init() {
+        startTimer()
+    }
+
     private static func fileURL() throws -> URL {
         
         try FileManager.default.url(for: .documentDirectory,
@@ -33,16 +34,13 @@ class CryptoStore: ObservableObject {
     func load() async throws {
                     
         let fileURL = try Self.fileURL()
-        
         guard let data = try? Data(contentsOf: fileURL) else {
-            // Set initial value if no data is found
-            coins = CryptoCoin(value: 0) // Set your desired initial value here
+            
+            coins = CryptoCoin(value: 0) // Initialize with default value
             return
         }
-        
         let cryptoCoins = try JSONDecoder().decode(CryptoCoin.self, from: data)
         coins = cryptoCoins
-
     }
     
     func save(coins: CryptoCoin?) async throws {
@@ -55,6 +53,22 @@ class CryptoStore: ObservableObject {
         _ = try await task.value
     }
     
+    // Timer to increment coins based on coinsPerSecond
+    private func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            Task { @MainActor in
+                self.incrementCoinsPerSecond()
+            }
+        }
+    }
+
+    private func incrementCoinsPerSecond() {
+        guard var currentCoin = coins else { return }
+        currentCoin.value += coinsPerSecond
+        coins = currentCoin
+    }
+
     // This method increments the coin's value
     func incrementCoinValue() {
         // Check if coins is not nil and increment the value
@@ -73,62 +87,43 @@ class CryptoStore: ObservableObject {
         }
     }
     
-    // Purchase item and start timed increment based on item type
-    func purchaseItem(itemType: String) {
-        if var currentCoin = coins {
-            switch itemType {
-            case "Chromebook":
-                if currentCoin.value >= 50 {
-                    chromebook += 1
-                    currentCoin.value -= 50
-                    startTimedIncrement(itemType: "Chromebook", interval: 10, amount: 1)
-                }
-            case "Desktop":
-                if currentCoin.value >= 200 {
-                    desktop += 1
-                    currentCoin.value -= 200
-                    startTimedIncrement(itemType: "Desktop", interval: 5, amount: 5)
-                }
-            case "Server":
-                if currentCoin.value >= 1000 {
-                    server += 1
-                    currentCoin.value -= 1000
-                    startTimedIncrement(itemType: "Server", interval: 3, amount: 10)
-                }
-            case "MineCenter":
-                if currentCoin.value >= 10000 {
-                    mineCenter += 1
-                    currentCoin.value -= 10000
-                    startTimedIncrement(itemType: "MineCenter", interval: 1, amount: 100)
-                }
-            default:
-                break
-            }
-            coins = currentCoin
+    // Purchase a power-up
+    func purchasePowerUp(powerUp: PowerUpInfo, quantity: Int) -> Bool {
+        guard let currentCoins = coins, currentCoins.value >= powerUp.cost * quantity else {
+            return false
         }
-    }
-    
-    private func startTimedIncrement(itemType: String, interval: TimeInterval, amount: Int) {
-        Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
-            Task { @MainActor in  // Ensure the code within this Task is run on the main actor
-                if var currentCoin = self.coins {
-                    // Increment based on the item purchased
-                    switch itemType {
-                    case "Chromebook":
-                        currentCoin.value += amount * self.chromebook
-                    case "Desktop":
-                        currentCoin.value += amount * self.desktop
-                    case "Server":
-                        currentCoin.value += amount * self.server
-                    case "MineCenter":
-                        currentCoin.value += amount * self.mineCenter
-                    default:
-                        break
-                    }
-                    self.coins = currentCoin
-                }
-            }
+
+        // Deduct the coins for the purchase
+        coins?.value -= powerUp.cost * quantity
+
+        // Update the specific power-up quantity in PowerUps
+        switch powerUp.name {
+        case "Chromebook":
+            powerUps.chromebook += quantity
+        case "Desktop":
+            powerUps.desktop += quantity
+        case "Server":
+            powerUps.server += quantity
+        case "Mine Center":
+            powerUps.mineCenter += quantity
+        default:
+            return false
         }
+
+        // Recalculate coinsPerSecond
+        recalculateCoinsPerSecond()
+
+        return true
     }
 
+    private func recalculateCoinsPerSecond() {
+        coinsPerSecond = (powerUps.chromebook * 1) +
+                         (powerUps.desktop * 5) +
+                         (powerUps.server * 10) +
+                         (powerUps.mineCenter * 20)
+    }
+    
+    deinit {
+        timer?.invalidate()
+    }
 }
