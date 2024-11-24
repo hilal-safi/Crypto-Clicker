@@ -1,24 +1,36 @@
+//
+//  Crypto_ClickerApp.swift
+//  Crypto Clicker
+//
+//  Created by Hilal Safi on 2024-09-09.
+//
+
 import SwiftUI
 
 @main
 struct Crypto_ClickerApp: App {
     
     @StateObject private var store = CryptoStore()
-    @StateObject private var powerUps = PowerUps()
     @State private var errorWrapper: ErrorWrapper?
     @StateObject private var settings = SettingsModel() // Shared settings
 
     
     var body: some Scene {
+        
         WindowGroup {
+    
             HomeView(
+                
                 coins: $store.coins,
                 store: store,
-                powerUps: powerUps,
+                powerUps: store.powerUps, // Access power-ups directly from the store
+                
                 saveAction: {
                     Task {
                         do {
-                            try await store.save(coins: store.coins)
+                            await store.saveCoins()
+                            await store.savePowerUps() // Save power-ups
+                            
                         } catch {
                             errorWrapper = ErrorWrapper(error: error, guidance: "Try again later.")
                         }
@@ -30,14 +42,19 @@ struct Crypto_ClickerApp: App {
             
             .task {
                 do {
-                    try await store.load()
+                    await store.loadCoins()
+                    await store.loadPowerUps() // Load power-ups
+                    
                 } catch {
                     errorWrapper = ErrorWrapper(error: error, guidance: "Crypto Clicker will load sample data and continue.")
                 }
             }
             .sheet(item: $errorWrapper) {
+                
                 store.coins = CryptoCoin.sampleData
+                
             } content: { wrapper in
+                
                 ErrorView(errorWrapper: wrapper)
             }
         }

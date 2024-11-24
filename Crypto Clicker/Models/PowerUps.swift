@@ -7,7 +7,8 @@
 
 import Foundation
 
-class PowerUps: ObservableObject {
+class PowerUps: ObservableObject, Codable {
+    
     @Published var chromebook = 0
     @Published var desktop = 0
     @Published var server = 0
@@ -19,7 +20,7 @@ class PowerUps: ObservableObject {
             cost: 50,
             coinsPerSecondIncrease: 1,
             emoji: "💻",
-            description: "A trusty Chromebook to start mining small amounts of crypto. Increases coin value by 1 every seconds."
+            description: "A trusty Chromebook to start mining small amounts of crypto. Increases coin value by 1 every second."
         ),
         PowerUpInfo(
             name: "Desktop",
@@ -64,4 +65,27 @@ class PowerUps: ObservableObject {
         }
         return true
     }
+    
+    enum CodingKeys: CodingKey {
+        case chromebook, desktop, server, mineCenter
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        chromebook = try container.decode(Int.self, forKey: .chromebook)
+        desktop = try container.decode(Int.self, forKey: .desktop)
+        server = try container.decode(Int.self, forKey: .server)
+        mineCenter = try container.decode(Int.self, forKey: .mineCenter)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(chromebook, forKey: .chromebook)
+        try container.encode(desktop, forKey: .desktop)
+        try container.encode(server, forKey: .server)
+        try container.encode(mineCenter, forKey: .mineCenter)
+    }
+
+    init() {}
+
 }

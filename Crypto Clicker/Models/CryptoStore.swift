@@ -9,94 +9,62 @@ import Foundation
 import SwiftUI
 
 @MainActor
-
 class CryptoStore: ObservableObject {
-    
     @Published var coins: CryptoCoin?
-    @Published var powerUps = PowerUps() // Add this property to manage power-ups
+    @Published var powerUps = PowerUps()
     @Published var coinsPerSecond: Int = 0
     private var timer: Timer?
 
+    // Initializer
     init() {
+        Task {
+            await loadCoins()
+            await loadPowerUps()
+        }
         startTimer()
     }
 
-    private static func fileURL() throws -> URL {
-        
-        try FileManager.default.url(for: .documentDirectory,
-                                    in: .userDomainMask,
-                                    appropriateFor: nil,
-                                    create: false)
-        
-        .appendingPathComponent("coins.data")
-    }
-    
-    func load() async throws {
-                    
-        let fileURL = try Self.fileURL()
-        guard let data = try? Data(contentsOf: fileURL) else {
-            
-            coins = CryptoCoin(value: 0) // Initialize with default value
-            return
-        }
-        let cryptoCoins = try JSONDecoder().decode(CryptoCoin.self, from: data)
-        coins = cryptoCoins
-    }
-    
-    func save(coins: CryptoCoin?) async throws {
-        
-        let task = Task {
-            let data = try JSONEncoder().encode(coins)
-            let outfile = try Self.fileURL()
-            try data.write(to: outfile)
-        }
-        _ = try await task.value
-    }
-    
     // Timer to increment coins based on coinsPerSecond
     private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             Task { @MainActor in
-                self.incrementCoinsPerSecond()
+                self.incrementCoinsPerSec()
             }
         }
     }
 
-    private func incrementCoinsPerSecond() {
-        guard var currentCoin = coins else { return }
-        currentCoin.value += coinsPerSecond
-        coins = currentCoin
+    private func incrementCoinsPerSec() {
+        if var currentCoin = coins {
+            currentCoin.value += coinsPerSecond
+            coins = currentCoin
+        }
     }
 
-    // This method increments the coin's value
+    // Increment coin value manually
     func incrementCoinValue() {
-        // Check if coins is not nil and increment the value
         if var currentCoin = coins {
             currentCoin.value += 1
-            coins = currentCoin // Update the published property
+            coins = currentCoin
         }
     }
-    
-    // This method resets the coin's value
+
+    // Reset coin value
     func resetCoinValue() {
-        // Check if coins is not nil and reset the value
         if var currentCoin = coins {
             currentCoin.value = 0
-            coins = currentCoin // Update the published property
+            coins = currentCoin
         }
     }
-    
+
     // Purchase a power-up
     func purchasePowerUp(powerUp: PowerUpInfo, quantity: Int) -> Bool {
         guard let currentCoins = coins, currentCoins.value >= powerUp.cost * quantity else {
             return false
         }
 
-        // Deduct the coins for the purchase
         coins?.value -= powerUp.cost * quantity
+        coinsPerSecond += powerUp.coinsPerSecondIncrease * quantity
 
-        // Update the specific power-up quantity in PowerUps
         switch powerUp.name {
         case "Chromebook":
             powerUps.chromebook += quantity
@@ -110,20 +78,95 @@ class CryptoStore: ObservableObject {
             return false
         }
 
-        // Recalculate coinsPerSecond
-        recalculateCoinsPerSecond()
+        Task {
+            await saveCoins()
+            await savePowerUps()
+        }
 
         return true
     }
 
+    deinit {
+        timer?.invalidate()
+    }
+}
+
+extension CryptoStore {
+    
+    // File URLs
+    private static func coinsFileURL() throws -> URL {
+        try FileManager.default.url(for: .documentDirectory,
+                                    in: .userDomainMask,
+                                    appropriateFor: nil,
+                                    create: false)
+            .appendingPathComponent("coins.data")
+    }
+    private static func powerUpsFileURL() throws -> URL {
+        try FileManager.default.url(for: .documentDirectory,
+                                    in: .userDomainMask,
+                                    appropriateFor: nil,
+                                    create: false)
+            .appendingPathComponent("powerUps.data")
+    }
+
+    // Save Coins
+    func saveCoins() async {
+        guard let coins = coins else { return }
+        do {
+            let data = try JSONEncoder().encode(coins)
+            let fileURL = try Self.coinsFileURL()
+            try data.write(to: fileURL)
+        } catch {
+            print("Failed to save coins: \(error)")
+        }
+    }
+
+    // Load Coins
+    func loadCoins() async {
+        do {
+            let fileURL = try Self.coinsFileURL()
+            guard let data = try? Data(contentsOf: fileURL) else {
+                coins = CryptoCoin(value: 0)
+                return
+            }
+            coins = try JSONDecoder().decode(CryptoCoin.self, from: data)
+        } catch {
+            print("Failed to load coins: \(error)")
+        }
+    }
+
+    // Save Power-Ups
+    func savePowerUps() async {
+        do {
+            let data = try JSONEncoder().encode(powerUps)
+            let fileURL = try Self.powerUpsFileURL()
+            try data.write(to: fileURL)
+        } catch {
+            print("Failed to save power-ups: \(error)")
+        }
+    }
+
+    // Load Power-Ups
+    func loadPowerUps() async {
+        do {
+            let fileURL = try Self.powerUpsFileURL()
+            guard let data = try? Data(contentsOf: fileURL) else {
+                powerUps = PowerUps() // Initialize with default values
+                recalculateCoinsPerSecond()
+                return
+            }
+            powerUps = try JSONDecoder().decode(PowerUps.self, from: data)
+            recalculateCoinsPerSecond() // Recalculate coinsPerSecond after loading power-ups
+        } catch {
+            print("Failed to load power-ups: \(error)")
+        }
+    }
+    
+    // Recalculate coinsPerSecond based on power-ups
     private func recalculateCoinsPerSecond() {
         coinsPerSecond = (powerUps.chromebook * 1) +
                          (powerUps.desktop * 5) +
                          (powerUps.server * 10) +
-                         (powerUps.mineCenter * 20)
-    }
-    
-    deinit {
-        timer?.invalidate()
+                         (powerUps.mineCenter * 100)
     }
 }
