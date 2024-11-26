@@ -22,7 +22,7 @@ struct HomeView: View {
         NavigationView {
             ZStack {
                 // Background view
-                BackgroundView()
+                BackgroundView(type: .default)
                 
                 VStack {
                     

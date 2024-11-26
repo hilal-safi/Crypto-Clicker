@@ -14,6 +14,9 @@
 		9E3970362CDEB3FF00E461F6 /* PowerButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */; };
 		9E3970382CDEBBD900E461F6 /* PowerUpInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970372CDEBBC900E461F6 /* PowerUpInfo.swift */; };
 		9E39703A2CDF14D100E461F6 /* PowerUps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970392CDF14C700E461F6 /* PowerUps.swift */; };
+		9E4CD0752CF5878200328F86 /* ShopPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0742CF5877000328F86 /* ShopPopupView.swift */; };
+		9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0762CF5882000328F86 /* ShopModel.swift */; };
+		9E4CD0792CF5885500328F86 /* ShopItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0782CF5884C00328F86 /* ShopItemView.swift */; };
 		9EC1AC3A2C8FA0850055A38D /* Crypto_ClickerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC1AC392C8FA0850055A38D /* Crypto_ClickerApp.swift */; };
 		9EC1AC3C2C8FA0850055A38D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC1AC3B2C8FA0850055A38D /* ContentView.swift */; };
 		9EC1AC3E2C8FA0860055A38D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9EC1AC3D2C8FA0860055A38D /* Assets.xcassets */; };
@@ -54,6 +57,9 @@
 		9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerButtonView.swift; sourceTree = "<group>"; };
 		9E3970372CDEBBC900E461F6 /* PowerUpInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerUpInfo.swift; sourceTree = "<group>"; };
 		9E3970392CDF14C700E461F6 /* PowerUps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerUps.swift; sourceTree = "<group>"; };
+		9E4CD0742CF5877000328F86 /* ShopPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopPopupView.swift; sourceTree = "<group>"; };
+		9E4CD0762CF5882000328F86 /* ShopModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopModel.swift; sourceTree = "<group>"; };
+		9E4CD0782CF5884C00328F86 /* ShopItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopItemView.swift; sourceTree = "<group>"; };
 		9EC1AC362C8FA0850055A38D /* Crypto Clicker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Crypto Clicker.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		9EC1AC392C8FA0850055A38D /* Crypto_ClickerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Crypto_ClickerApp.swift; sourceTree = "<group>"; };
 		9EC1AC3B2C8FA0850055A38D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -157,6 +163,7 @@
 		9EC1AC682C8FCA870055A38D /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				9E4CD0762CF5882000328F86 /* ShopModel.swift */,
 				9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */,
 				9EC1AC652C8FC96B0055A38D /* CryptoCoin.swift */,
 				9EC1AC632C8FC9330055A38D /* CryptoStore.swift */,
@@ -170,6 +177,8 @@
 		9EC1AC692C8FCA8D0055A38D /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				9E4CD0782CF5884C00328F86 /* ShopItemView.swift */,
+				9E4CD0742CF5877000328F86 /* ShopPopupView.swift */,
 				9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */,
 				9E39702D2CDD552200E461F6 /* BackgroundView.swift */,
 				9E3970292CDD118800E461F6 /* ShopView.swift */,
@@ -319,12 +328,15 @@
 				9EC1AC6F2C8FCE800055A38D /* CoinView.swift in Sources */,
 				9E3970382CDEBBD900E461F6 /* PowerUpInfo.swift in Sources */,
 				9E39702E2CDD552A00E461F6 /* BackgroundView.swift in Sources */,
+				9E4CD0752CF5878200328F86 /* ShopPopupView.swift in Sources */,
 				9EC1AC662C8FC96B0055A38D /* CryptoCoin.swift in Sources */,
 				9EC1AC3C2C8FA0850055A38D /* ContentView.swift in Sources */,
 				9EC1AC6B2C8FCAB60055A38D /* ErrorWrapper.swift in Sources */,
 				9E39702A2CDD118B00E461F6 /* ShopView.swift in Sources */,
+				9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */,
 				9EC1AC3A2C8FA0850055A38D /* Crypto_ClickerApp.swift in Sources */,
 				9E3970362CDEB3FF00E461F6 /* PowerButtonView.swift in Sources */,
+				9E4CD0792CF5885500328F86 /* ShopItemView.swift in Sources */,
 				9E39703A2CDF14D100E461F6 /* PowerUps.swift in Sources */,
 				9E3970322CDD7EF700E461F6 /* SettingsModel.swift in Sources */,
 			);

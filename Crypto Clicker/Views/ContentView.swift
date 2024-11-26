@@ -25,7 +25,7 @@ struct ContentView: View {
             
             ZStack {
                 // Background view now automatically uses the environment's color scheme
-                BackgroundView()
+                BackgroundView(type: .default)
 
                 VStack {
                     Spacer()
