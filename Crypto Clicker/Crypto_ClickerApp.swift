@@ -11,6 +11,7 @@ import SwiftUI
 struct Crypto_ClickerApp: App {
     
     @StateObject private var store = CryptoStore()
+    @StateObject private var exchangeModel = CoinExchangeModel()  // Add CoinExchangeModel
     @State private var errorWrapper: ErrorWrapper?
     @StateObject private var settings = SettingsModel() // Shared settings
 
@@ -19,11 +20,12 @@ struct Crypto_ClickerApp: App {
         
         WindowGroup {
     
-            HomeView(
+            ContentView(
                 
                 coins: $store.coins,
                 store: store,
                 powerUps: store.powerUps, // Access power-ups directly from the store
+                exchangeModel: exchangeModel, // Pass exchangeModel
                 
                 saveAction: {
                     Task {

@@ -10,13 +10,9 @@ import SwiftUI
 struct PowerButtonView: View {
     @ObservedObject var store: CryptoStore
     @Binding var coins: CryptoCoin?
-    @State private var isShopPresented = false
 
     var body: some View {
-        // Power-ups display
-        Button(action: {
-            isShopPresented = true
-        }) {
+        NavigationLink(destination: ShopView(store: store, coins: $coins)) {
             HStack(spacing: 20) {
                 ForEach(PowerUps.powerUps, id: \.name) { powerUp in
                     VStack {
@@ -34,9 +30,6 @@ struct PowerButtonView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.blue, lineWidth: 1) // Outline for the button
             )
-        }
-        .sheet(isPresented: $isShopPresented) {
-            ShopView(store: store, coins: $coins)
         }
     }
 
