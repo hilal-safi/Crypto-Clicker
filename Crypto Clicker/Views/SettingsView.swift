@@ -14,7 +14,7 @@ struct SettingsView: View {
     @ObservedObject var settings: SettingsModel
     
     @State private var showResetAlert = false
-    @State private var selectedAppearanceMode = 0 // 0 = Auto, 1 = Light, 2 = Dark
+    @State private var refreshID = UUID() // Unique ID to refresh the view
 
     var body: some View {
         
@@ -22,11 +22,9 @@ struct SettingsView: View {
             
             BackgroundView(type: .settings)
             
-            VStack() {
-                
+            VStack {
                 // Coin Size Setting
                 VStack(alignment: .leading) {
-                    
                     HStack {
                         Image(systemName: "bitcoinsign.circle")
                         Text("Coin Size")
@@ -71,7 +69,7 @@ struct SettingsView: View {
                 .padding()
                 Divider()
                 
-                // Dark/Light/Auto Mode Setting
+                // Appearance Mode Setting
                 VStack(alignment: .leading) {
                     HStack {
                         Image(systemName: "moon.circle")
@@ -79,17 +77,20 @@ struct SettingsView: View {
                             .font(.headline)
                     }
                     
-                    Picker("Appearance Mode", selection: $settings.appearanceMode) { // Bind directly to appearanceMode
-                        Text("Auto").tag(SettingsModel.AppearanceMode.auto)
-                        Text("Light").tag(SettingsModel.AppearanceMode.light)
-                        Text("Dark").tag(SettingsModel.AppearanceMode.dark)
+                    Picker("Appearance Mode", selection: $settings.appearanceMode) {
+                        ForEach(SettingsModel.AppearanceMode.allCases) { mode in
+                            Text(mode.rawValue.capitalized).tag(mode)
+                        }
                     }
                     .pickerStyle(SegmentedPickerStyle())
+                    .onChange(of: settings.appearanceMode) {
+                        refreshID = UUID() // Trigger a view refresh when appearanceMode changes
+                    }
                 }
                 .padding()
                 Divider()
                 
-                // Reset coin value
+                // Reset Coins
                 Button(action: {
                     showResetAlert = true
                 }) {
@@ -100,9 +101,7 @@ struct SettingsView: View {
                         .cornerRadius(10)
                 }
                 .alert("Are you sure?", isPresented: $showResetAlert) {
-                    
                     Button("Cancel", role: .cancel) {}
-                    
                     Button("Reset", role: .destructive) {
                         store.resetCoinValue()
                         coins?.value = 0
@@ -110,8 +109,8 @@ struct SettingsView: View {
                 } message: {
                     Text("This will reset your coin value to 0.")
                 }
-                                
-                // Reset powerups
+                
+                // Reset Powerups
                 Button(action: {
                     showResetAlert = true
                 }) {
@@ -122,35 +121,29 @@ struct SettingsView: View {
                         .cornerRadius(10)
                 }
                 .alert("Are you sure?", isPresented: $showResetAlert) {
-                    
                     Button("Cancel", role: .cancel) {}
-                    
                     Button("Reset", role: .destructive) {
                         store.resetPowerUps()
                     }
                 } message: {
                     Text("This will remove all your powerups.")
                 }
-                
-                Spacer()
 
+                Spacer()
             }
             .padding()
             .navigationTitle("Settings")
         }
+        .id(refreshID) // Force view to refresh by changing the ID
     }
-
 }
 
 struct SettingsView_Previews: PreviewProvider {
-    
     static var previews: some View {
-        
         SettingsView(
             coins: .constant(CryptoCoin(value: 10)),
             store: CryptoStore(),
-            settings: SettingsModel() // Provide an instance of SettingsModel
+            settings: SettingsModel()
         )
     }
 }
-

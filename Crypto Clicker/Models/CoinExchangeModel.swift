@@ -9,16 +9,37 @@ import Foundation
 
 class CoinExchangeModel: ObservableObject {
     
-    // Coin types as Ints
-    @Published var bronzeCoins: Int = 0
-    @Published var silverCoins: Int = 0
-    @Published var goldCoins: Int = 0
+    // Coin types as Ints with persistence
+    @Published var bronzeCoins: Int {
+        didSet {
+            UserDefaults.standard.set(bronzeCoins, forKey: "bronzeCoins")
+        }
+    }
     
+    @Published var silverCoins: Int {
+        didSet {
+            UserDefaults.standard.set(silverCoins, forKey: "silverCoins")
+        }
+    }
+    
+    @Published var goldCoins: Int {
+        didSet {
+            UserDefaults.standard.set(goldCoins, forKey: "goldCoins")
+        }
+    }
+
     // Exchange costs as Ints
     let bronzeCost: Int = 250
     let silverCost: Int = 10000
     let goldCost: Int = 1000000
     
+    // Initializer to load saved values
+    init() {
+        self.bronzeCoins = UserDefaults.standard.integer(forKey: "bronzeCoins")
+        self.silverCoins = UserDefaults.standard.integer(forKey: "silverCoins")
+        self.goldCoins = UserDefaults.standard.integer(forKey: "goldCoins")
+    }
+
     // Accessor methods
     func getBronzeCoins() -> Int {
         return bronzeCoins
@@ -47,9 +68,11 @@ class CoinExchangeModel: ObservableObject {
     
     // Perform the exchange based on the coin type
     func performExchange(for type: CoinType, with coins: inout CryptoCoin?) {
+        
         guard let coin = coins else { return }
         
         switch type {
+            
         case .bronze:
             if coin.value >= bronzeCost {
                 coins?.value -= bronzeCost

@@ -11,12 +11,11 @@ struct ContentView: View {
     
     @Binding var coins: CryptoCoin?
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) var colorScheme // Use environment color scheme
+    @EnvironmentObject var settings: SettingsModel // Use EnvironmentObject for shared settings
 
     @ObservedObject var store: CryptoStore
     @ObservedObject var powerUps: PowerUps
     @ObservedObject var exchangeModel: CoinExchangeModel
-    @StateObject private var settings = SettingsModel() // Use local state object for settings
 
     @State private var isInfoPresented = false // State to control Info sheet presentation
     @State private var isAchievementsPresented = false // State to control AchievementsView
@@ -128,6 +127,7 @@ struct ContentView: View {
                 }
             }
         }
+        .preferredColorScheme(settings.appearanceMode.colorScheme) // Dynamically apply appearance mode
         .onChange(of: scenePhase) {
             if scenePhase == .inactive {
                 saveAction()
@@ -138,6 +138,7 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
+        
         let store = CryptoStore()
         let powerUps = PowerUps()
         let exchangeModel = CoinExchangeModel()
@@ -152,6 +153,7 @@ struct ContentView_Previews: PreviewProvider {
                 store.incrementCoinValue()
             }
         )
+        .environmentObject(SettingsModel()) // Inject the shared SettingsModel
         .previewLayout(.sizeThatFits)
     }
 }

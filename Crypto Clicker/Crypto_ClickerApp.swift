@@ -14,7 +14,6 @@ struct Crypto_ClickerApp: App {
     @StateObject private var exchangeModel = CoinExchangeModel()  // Add CoinExchangeModel
     @State private var errorWrapper: ErrorWrapper?
     @StateObject private var settings = SettingsModel() // Shared settings
-
     
     var body: some Scene {
         
@@ -40,8 +39,7 @@ struct Crypto_ClickerApp: App {
                 }
             )
             .environmentObject(settings) // Provide settings to all views
-            .preferredColorScheme(settings.selectedColorScheme) // Apply the selected color scheme
-            
+
             .task {
                 do {
                     await store.loadCoins()
