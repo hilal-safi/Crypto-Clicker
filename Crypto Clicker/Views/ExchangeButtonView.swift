@@ -7,47 +7,30 @@ import SwiftUI
 
 struct ExchangeButtonView: View {
     @ObservedObject var exchangeModel: CoinExchangeModel
-    @Binding var coins: CryptoCoin? // Pass the coin value as a binding
+    @Binding var coins: CryptoCoin?
 
     var body: some View {
-        NavigationLink(destination: CoinExchangeView(
-            coins: $coins,
-            exchangeModel: exchangeModel
-        )) {
-            VStack {
-                HStack(spacing: 10) {
-                    // Bronze Coin
-                    VStack {
-                        Text("🥉")
-                            .font(.largeTitle)
-                        Text("\(exchangeModel.bronzeCoins)")
-                            .font(.headline)
-                    }
+        
+        NavigationLink(destination: CoinExchangeView(coins: $coins, exchangeModel: exchangeModel)) {
 
-                    // Silver Coin
+            HStack(spacing: 20) {
+                
+                ForEach(CoinType.allCases, id: \.self) { coinType in
+                    
                     VStack {
-                        Text("🥈")
-                            .font(.largeTitle)
-                        Text("\(exchangeModel.silverCoins)")
-                            .font(.headline)
-                    }
-
-                    // Gold Coin
-                    VStack {
-                        Text("🥇")
-                            .font(.largeTitle)
-                        Text("\(exchangeModel.goldCoins)")
-                            .font(.headline)
+                        Text(exchangeModel.emoji(for: coinType)) // Use emoji from the model
+                            .font(.system(size: 42)) // Emoji icon for the coin type
+                        Text("\(exchangeModel.count(for: coinType))")
+                            .font(.system(size: 24, weight: .semibold)) // Display the coin count
                     }
                 }
-                .padding()
             }
-            .frame(width: 100, height: 100) // Match PowerButtonView size
-            .background(Color.blue.opacity(0.2))
-            .cornerRadius(10)
+            .padding()
+            .background(Color.blue.opacity(0.1)) // Light blue background tint
+            .cornerRadius(12) // Rounded corners
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.blue, lineWidth: 2)
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.blue, lineWidth: 1) // Outline for the button
             )
         }
     }
@@ -56,13 +39,9 @@ struct ExchangeButtonView: View {
 struct ExchangeButtonView_Previews: PreviewProvider {
     static var previews: some View {
         let exchangeModel = CoinExchangeModel()
-        exchangeModel.bronzeCoins = 5
-        exchangeModel.silverCoins = 3
-        exchangeModel.goldCoins = 1
-
+        let coins = CryptoCoin(value: 1000)
         return NavigationView {
-            ExchangeButtonView(exchangeModel: exchangeModel, coins: .constant(CryptoCoin(value: 100)))
+            ExchangeButtonView(exchangeModel: exchangeModel, coins: .constant(coins))
         }
-        .previewLayout(.sizeThatFits)
     }
 }

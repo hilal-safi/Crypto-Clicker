@@ -19,14 +19,20 @@ struct ContentView: View {
 
     @State private var isInfoPresented = false // State to control Info sheet presentation
     @State private var isAchievementsPresented = false // State to control AchievementsView
+    @State private var showStatsPopup = false // State to control stats popup visibility
 
     let saveAction: () -> Void
 
     var body: some View {
+        
         NavigationStack {
+            
             ZStack {
+                
                 // Background view
                 BackgroundView(type: .default)
+                    .blur(radius: showStatsPopup ? 8 : 0) // Add blur when popup is open
+                    .animation(.easeInOut, value: showStatsPopup) // Smooth transition
 
                 VStack(spacing: 12) { // Reduced spacing between elements
                     Spacer(minLength: 10)
@@ -44,27 +50,34 @@ struct ContentView: View {
                                 .cornerRadius(8)
                         }
                     } else {
-                        // Display the coin's current value with dynamic layout
-                        if let coinValue = coins?.value, coinValue >= 100000 {
-                            VStack(spacing: 4) { // Coin value on a new line for large numbers
-                                Text("Coin Value")
-                                    .font(.system(size: 38, weight: .bold, design: .default))
-                                Text("\(coinValue)")
-                                    .font(.system(size: 32, weight: .medium))
-                            }
-                        } else {
-                            Text("Coin Value: \(coins?.value ?? 0)")
-                                .font(.system(size: 38, weight: .bold, design: .default))
-                                .padding(.bottom, 4) // Adjust padding for small values
-                        }
+                        // Show message if coin value is 0
+                        if coins?.value == 0 {
+                            VStack(spacing: 15) {
+                                Text("Coin Value: 0")
+                                    .font(.title2) // Larger font for emphasis
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.red)
 
-                        Text("Coins / Sec: \(store.coinsPerSecond)")
-                            .font(.system(size: 24, design: .default))
-                            .padding(.top, 4)
-                        
-                        Text("Coins / Click: \(store.coinsPerClick)")
-                            .font(.system(size: 24, design: .default))
-                            .padding(.top, 4)
+                                Text("Click the coin below to mine it and increase the value!")
+                                    .font(.headline)
+                                    .foregroundColor(.gray)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 20)
+                            }
+                            .padding(.bottom, 20)
+                        } else {
+                            // Coin Value as an invisible button to show popup
+                            Button(action: {
+                                showStatsPopup = true
+                            }) {
+                                if let coinValue = coins?.value {
+                                    Text("\(coinValue)")
+                                        .font(.system(size: 38, weight: .bold))
+                                        .padding(.bottom, 4)
+                                }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
 
                         // CoinView handles the increment action
                         CoinView(
@@ -125,6 +138,18 @@ struct ContentView: View {
                         }
                     }
                 }
+                
+                // Popup overlay for coin stats
+                if showStatsPopup {
+                    CoinStatsPopupView(
+                        coinsPerSecond: store.coinsPerSecond,
+                        coinsPerClick: store.coinsPerClick,
+                        totalCoins: coins?.value ?? 0,
+                        onClose: {
+                            showStatsPopup = false
+                        }
+                    )
+                }
             }
         }
         .preferredColorScheme(settings.appearanceMode.colorScheme) // Dynamically apply appearance mode
@@ -142,7 +167,7 @@ struct ContentView_Previews: PreviewProvider {
         let store = CryptoStore()
         let powerUps = PowerUps()
         let exchangeModel = CoinExchangeModel()
-        store.coins = CryptoCoin(value: 5)
+        store.coins = CryptoCoin(value: 100)
 
         return ContentView(
             coins: .constant(store.coins),

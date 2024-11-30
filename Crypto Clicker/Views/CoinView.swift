@@ -16,6 +16,7 @@ struct CoinView: View {
     @State private var isCoinPressed = false // State to control animation
 
     var body: some View {
+        
         Button(action: {
             // Trigger animation
             withAnimation(.spring(response: 0.3, dampingFraction: 0.5, blendDuration: 0.3)) {
@@ -39,13 +40,16 @@ struct CoinView: View {
             if settings.enableHaptics {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             }
+            
         }) {
             Image("bitcoin")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 75 + (90 * CGFloat(settings.coinSize)), height: 75 + (90 * CGFloat(settings.coinSize)))
-                .padding()
+                .frame(width: 300, height: 300)
                 .scaleEffect(isCoinPressed ? 1.2 : 1.0) // Apply scaling effect
+                .foregroundColor(.yellow)
+                .shadow(radius: 10)
+                .padding()
         }
         .buttonStyle(PlainButtonStyle()) // Prevent default button styling
     }

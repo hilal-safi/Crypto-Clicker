@@ -5,7 +5,7 @@
 //  Created by Hilal Safi on 2024-11-27.
 //
 
-import Foundation
+import SwiftUI
 
 class CoinExchangeModel: ObservableObject {
     
@@ -68,11 +68,8 @@ class CoinExchangeModel: ObservableObject {
     
     // Perform the exchange based on the coin type
     func performExchange(for type: CoinType, with coins: inout CryptoCoin?) {
-        
         guard let coin = coins else { return }
-        
         switch type {
-            
         case .bronze:
             if coin.value >= bronzeCost {
                 coins?.value -= bronzeCost
@@ -90,8 +87,54 @@ class CoinExchangeModel: ObservableObject {
             }
         }
     }
+    
+    // Methods to get coin information
+    func count(for type: CoinType) -> Int {
+        switch type {
+        case .bronze:
+            return bronzeCoins
+        case .silver:
+            return silverCoins
+        case .gold:
+            return goldCoins
+        }
+    }
+
+    func label(for type: CoinType) -> String {
+        switch type {
+        case .bronze:
+            return "Bronze"
+        case .silver:
+            return "Silver"
+        case .gold:
+            return "Gold"
+        }
+    }
+
+    func color(for type: CoinType) -> Color {
+        switch type {
+        case .bronze:
+            return .brown
+        case .silver:
+            return .gray
+        case .gold:
+            return .yellow
+        }
+    }
+    
+    // Helper to get emoji for each coin type
+    func emoji(for type: CoinType) -> String {
+        switch type {
+        case .bronze:
+            return "🥉"
+        case .silver:
+            return "🥈"
+        case .gold:
+            return "🥇"
+        }
+    }
 }
 
-enum CoinType {
+enum CoinType: CaseIterable {
     case bronze, silver, gold
 }

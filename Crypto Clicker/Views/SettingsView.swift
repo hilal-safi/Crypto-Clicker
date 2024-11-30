@@ -23,29 +23,6 @@ struct SettingsView: View {
             BackgroundView(type: .settings)
             
             VStack {
-                // Coin Size Setting
-                VStack(alignment: .leading) {
-                    HStack {
-                        Image(systemName: "bitcoinsign.circle")
-                        Text("Coin Size")
-                            .font(.headline)
-                    }
-                    
-                    Slider(value: $settings.coinSize, in: 1...3, step: 1)
-                        .padding(.vertical)
-                    
-                    HStack {
-                        Text("Small")
-                        Spacer()
-                        Text("Medium")
-                        Spacer()
-                        Text("Large")
-                    }
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                }
-                .padding()
-                Divider()
                 
                 // Enable Haptics Setting
                 Toggle(isOn: $settings.enableHaptics) {

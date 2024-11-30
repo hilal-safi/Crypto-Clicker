@@ -45,17 +45,10 @@ class SettingsModel: ObservableObject {
             UserDefaults.standard.set(enableSounds, forKey: "enableSounds")
         }
     }
-    
-    @Published var coinSize: Double {
-        didSet {
-            UserDefaults.standard.set(coinSize, forKey: "coinSize")
-        }
-    }
-    
+        
     init() {
         self.appearanceMode = AppearanceMode(rawValue: UserDefaults.standard.string(forKey: "appearanceMode") ?? "auto") ?? .auto
         self.enableHaptics = UserDefaults.standard.object(forKey: "enableHaptics") as? Bool ?? true
         self.enableSounds = UserDefaults.standard.object(forKey: "enableSounds") as? Bool ?? false
-        self.coinSize = UserDefaults.standard.object(forKey: "coinSize") as? Double ?? 2 // Default to medium size
     }
 }
