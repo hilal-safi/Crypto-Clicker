@@ -60,6 +60,7 @@ class ShopModel: ObservableObject {
     }
 
     private func calculateTotalCost() {
+        
         totalCost = PowerUps.powerUps.reduce(0) { result, powerUp in
             result + (selectedQuantities[powerUp.name] ?? 0) * powerUp.cost
         }

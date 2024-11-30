@@ -12,13 +12,17 @@ struct PowerButtonView: View {
     @Binding var coins: CryptoCoin?
 
     var body: some View {
+        
         NavigationLink(destination: ShopView(store: store, coins: $coins)) {
+            
             HStack(spacing: 20) {
+                
                 ForEach(PowerUps.powerUps, id: \.name) { powerUp in
+                    
                     VStack {
                         Text(powerUp.emoji)
                             .font(.system(size: 42)) // Increased icon size
-                        Text("\(quantity(for: powerUp.name))")
+                        Text("\(store.powerUps.quantity(for: powerUp.name))")
                             .font(.system(size: 24, weight: .semibold)) // Slightly larger quantity font
                     }
                 }
@@ -30,21 +34,6 @@ struct PowerButtonView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.blue, lineWidth: 1) // Outline for the button
             )
-        }
-    }
-
-    private func quantity(for name: String) -> Int {
-        switch name {
-        case "Chromebook":
-            return store.powerUps.chromebook
-        case "Desktop":
-            return store.powerUps.desktop
-        case "Server":
-            return store.powerUps.server
-        case "Mine Center":
-            return store.powerUps.mineCenter
-        default:
-            return 0
         }
     }
 }

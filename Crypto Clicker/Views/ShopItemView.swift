@@ -87,6 +87,7 @@ struct ShopItemView_Previews: PreviewProvider {
                 name: "Chromebook",
                 cost: 50,
                 coinsPerSecondIncrease: 1,
+                coinsPerClickIncrease: 0,
                 emoji: "💻",
                 description: "A trusty Chromebook to start mining small amounts of crypto."
             ),

@@ -172,13 +172,13 @@
 			isa = PBXGroup;
 			children = (
 				9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */,
-				9E4CD0762CF5882000328F86 /* ShopModel.swift */,
-				9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */,
 				9EC1AC652C8FC96B0055A38D /* CryptoCoin.swift */,
 				9EC1AC632C8FC9330055A38D /* CryptoStore.swift */,
-				9E3970372CDEBBC900E461F6 /* PowerUpInfo.swift */,
-				9E3970392CDF14C700E461F6 /* PowerUps.swift */,
 				9EC1AC6A2C8FCAB60055A38D /* ErrorWrapper.swift */,
+				9E3970392CDF14C700E461F6 /* PowerUps.swift */,
+				9E3970372CDEBBC900E461F6 /* PowerUpInfo.swift */,
+				9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */,
+				9E4CD0762CF5882000328F86 /* ShopModel.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -187,18 +187,18 @@
 			isa = PBXGroup;
 			children = (
 				9E4CD0822CF81D0E00328F86 /* AchievementsView.swift */,
-				9E4CD0802CF817E400328F86 /* InfoView.swift */,
-				9E4CD07E2CF80BB500328F86 /* ExchangeButtonView.swift */,
-				9E4CD07C2CF808B000328F86 /* CoinExchangeView.swift */,
-				9E4CD0782CF5884C00328F86 /* ShopItemView.swift */,
-				9E4CD0742CF5877000328F86 /* ShopPopupView.swift */,
-				9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */,
 				9E39702D2CDD552200E461F6 /* BackgroundView.swift */,
-				9E3970292CDD118800E461F6 /* ShopView.swift */,
+				9E4CD07C2CF808B000328F86 /* CoinExchangeView.swift */,
+				9EC1AC6E2C8FCE800055A38D /* CoinView.swift */,
 				9EC1AC3B2C8FA0850055A38D /* ContentView.swift */,
 				9EC1AC6C2C8FCC8C0055A38D /* ErrorView.swift */,
-				9EC1AC6E2C8FCE800055A38D /* CoinView.swift */,
+				9E4CD07E2CF80BB500328F86 /* ExchangeButtonView.swift */,
+				9E4CD0802CF817E400328F86 /* InfoView.swift */,
+				9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */,
 				9EC1AC702C97C13F0055A38D /* SettingsView.swift */,
+				9E3970292CDD118800E461F6 /* ShopView.swift */,
+				9E4CD0782CF5884C00328F86 /* ShopItemView.swift */,
+				9E4CD0742CF5877000328F86 /* ShopPopupView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";

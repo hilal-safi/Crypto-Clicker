@@ -10,10 +10,13 @@ import Foundation
 // Define PowerUpInfo struct in its own file
 
 struct PowerUpInfo: Identifiable, Hashable {
+    
     let id = UUID()
     let name: String
     let cost: Int
     let coinsPerSecondIncrease: Int
+    let coinsPerClickIncrease: Int
+
     let emoji: String
     let description: String
 

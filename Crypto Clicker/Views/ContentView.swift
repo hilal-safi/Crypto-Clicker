@@ -62,6 +62,10 @@ struct ContentView: View {
                         Text("Coins / Sec: \(store.coinsPerSecond)")
                             .font(.system(size: 24, design: .default))
                             .padding(.top, 4)
+                        
+                        Text("Coins / Click: \(store.coinsPerClick)")
+                            .font(.system(size: 24, design: .default))
+                            .padding(.top, 4)
 
                         // CoinView handles the increment action
                         CoinView(

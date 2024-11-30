@@ -89,7 +89,7 @@ struct SettingsView: View {
                 .padding()
                 Divider()
                 
-                // Reset progress button
+                // Reset coin value
                 Button(action: {
                     showResetAlert = true
                 }) {
@@ -100,7 +100,9 @@ struct SettingsView: View {
                         .cornerRadius(10)
                 }
                 .alert("Are you sure?", isPresented: $showResetAlert) {
+                    
                     Button("Cancel", role: .cancel) {}
+                    
                     Button("Reset", role: .destructive) {
                         store.resetCoinValue()
                         coins?.value = 0
@@ -108,8 +110,30 @@ struct SettingsView: View {
                 } message: {
                     Text("This will reset your coin value to 0.")
                 }
+                                
+                // Reset powerups
+                Button(action: {
+                    showResetAlert = true
+                }) {
+                    Text("Remove PowerUps")
+                        .foregroundColor(.red)
+                        .padding()
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(10)
+                }
+                .alert("Are you sure?", isPresented: $showResetAlert) {
+                    
+                    Button("Cancel", role: .cancel) {}
+                    
+                    Button("Reset", role: .destructive) {
+                        store.resetPowerUps()
+                    }
+                } message: {
+                    Text("This will remove all your powerups.")
+                }
                 
                 Spacer()
+
             }
             .padding()
             .navigationTitle("Settings")

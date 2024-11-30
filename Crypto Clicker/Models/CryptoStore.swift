@@ -10,9 +10,13 @@ import SwiftUI
 
 @MainActor
 class CryptoStore: ObservableObject {
+    
     @Published var coins: CryptoCoin?
     @Published var powerUps = PowerUps()
+    
     @Published var coinsPerSecond: Int = 0
+    @Published var coinsPerClick: Int = 1
+
     private var timer: Timer?
 
     // Initializer
@@ -26,7 +30,9 @@ class CryptoStore: ObservableObject {
 
     // Timer to increment coins based on coinsPerSecond
     private func startTimer() {
+        
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            
             Task { @MainActor in
                 self.incrementCoinsPerSec()
             }
@@ -34,7 +40,9 @@ class CryptoStore: ObservableObject {
     }
 
     private func incrementCoinsPerSec() {
+        
         if var currentCoin = coins {
+            
             currentCoin.value += coinsPerSecond
             coins = currentCoin
         }
@@ -42,42 +50,85 @@ class CryptoStore: ObservableObject {
 
     // Increment coin value manually
     func incrementCoinValue() {
+        
         if var currentCoin = coins {
-            currentCoin.value += 1
+            
+            currentCoin.value += coinsPerClick
             coins = currentCoin
         }
     }
 
     // Reset coin value
     func resetCoinValue() {
+        
         if var currentCoin = coins {
+            
             currentCoin.value = 0
             coins = currentCoin
         }
     }
+    
+    // Reset all powerups
+    func resetPowerUps() {
+        print("resetPowerUps called") // Debugging statement
+
+        // Reset all power-up counts and values
+        powerUps = PowerUps() // Reinitialize to default values
+
+        // Recalculate derived properties
+        recalculateCoinsPerSecond()
+        recalculateCoinsPerClick()
+
+        // Save the reset state
+        Task {
+            await savePowerUps()
+        }
+
+        print("Power-ups have been reset to default values.") // Debugging statement
+    }
 
     // Purchase a power-up
     func purchasePowerUp(powerUp: PowerUpInfo, quantity: Int) -> Bool {
+        
+        // Ensure enough coins are available
         guard let currentCoins = coins, currentCoins.value >= powerUp.cost * quantity else {
+            print("Not enough coins to purchase \(powerUp.name). Required: \(powerUp.cost * quantity), Available: \(coins?.value ?? 0)")
             return false
         }
 
+        // Deduct coins
         coins?.value -= powerUp.cost * quantity
-        coinsPerSecond += powerUp.coinsPerSecondIncrease * quantity
+        print("Coins deducted. New value: \(coins?.value ?? 0)")
 
-        switch powerUp.name {
-        case "Chromebook":
-            powerUps.chromebook += quantity
-        case "Desktop":
-            powerUps.desktop += quantity
-        case "Server":
-            powerUps.server += quantity
-        case "Mine Center":
-            powerUps.mineCenter += quantity
-        default:
-            return false
+        // Handle Coins Per Click Power-Up
+        if powerUp.name == "Coin Clicker" {
+            
+            coinsPerClick += powerUp.coinsPerClickIncrease * quantity
+            powerUps.coinClicker += quantity
+            print("Coins Per Click updated. New value: \(coins?.coinsPerClick ?? 1)")
+            
+        } else {
+            // Handle other power-ups
+            switch powerUp.name {
+            case "Chromebook":
+                powerUps.chromebook += quantity
+            case "Desktop":
+                powerUps.desktop += quantity
+            case "Server":
+                powerUps.server += quantity
+            case "Mine Center":
+                powerUps.mineCenter += quantity
+            default:
+                print("Unknown power-up: \(powerUp.name)")
+                return false
+            }
+
+            // Recalculate coins per second
+            recalculateCoinsPerSecond()
+            recalculateCoinsPerClick()
         }
 
+        // Save updated state
         Task {
             await saveCoins()
             await savePowerUps()
@@ -169,4 +220,10 @@ extension CryptoStore {
                          (powerUps.server * 10) +
                          (powerUps.mineCenter * 100)
     }
+    
+    // Recalculate coinsPerClick based on power-ups
+    private func recalculateCoinsPerClick() {
+        coinsPerClick = powerUps.coinClicker + 1 // +1 ensures the base click value
+    }
+
 }
