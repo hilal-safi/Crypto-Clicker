@@ -22,6 +22,8 @@ struct CoinExchangeView: View {
 
                 VStack(spacing: 16) { // Reduced spacing for a more compact layout
                     
+                    ExchangePopupView(model: exchangeModel)
+                    
                     // Display Current Coins
                     Text("Coins: \(coins?.value ?? 0)")
                         .font(.headline)

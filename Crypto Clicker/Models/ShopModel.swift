@@ -35,6 +35,7 @@ class ShopModel: ObservableObject {
     }
 
     func handlePurchase(for powerUp: PowerUpInfo) {
+        
         guard let quantity = selectedQuantities[powerUp.name], quantity > 0 else { return }
         let success = store.purchasePowerUp(powerUp: powerUp, quantity: quantity)
 

@@ -29,6 +29,11 @@ struct ExchangeItemView: View {
                 Text("Exchanged: \(exchangeModel.count(for: coinType))")
                     .font(.subheadline)
                     .foregroundColor(textColor(for: coinType).opacity(0.9)) // Slightly less opaque for distinction
+                
+                // Coin Cost
+                Text("Cost: \(exchangeModel.cost(for: coinType)) coins")
+                    .font(.subheadline)
+                    .foregroundColor(textColor(for: coinType).opacity(0.9)) // Slightly less opaque for distinction
             }
 
             Spacer()

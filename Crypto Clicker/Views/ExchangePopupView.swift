@@ -8,31 +8,29 @@
 import SwiftUI
 
 struct ExchangePopupView: View {
-    let message: String
-    let isError: Bool
+    
+    @ObservedObject var model: CoinExchangeModel
 
     var body: some View {
-        VStack {
-            Spacer()
-
+        if model.showMessage, let message = model.popupMessage {
             Text(message)
                 .font(.headline)
-                .foregroundColor(.white)
                 .padding()
-                .background(isError ? Color.red : Color.green)
-                .cornerRadius(8)
-                .padding(.horizontal, 20)
-
-            Spacer()
+                .background(message.contains("Successfully") ? Color.green.opacity(0.8) : Color.red.opacity(0.8))
+                .foregroundColor(.white)
+                .cornerRadius(10)
+                .padding(.horizontal)
+                .transition(.move(edge: .top))
+                .zIndex(1)
         }
-        .transition(.move(edge: .top))
-        .animation(.easeInOut, value: message)
     }
 }
-
 struct ExchangePopupView_Previews: PreviewProvider {
     static var previews: some View {
-        ExchangePopupView(message: "Example Message", isError: false)
+        let mockModel = CoinExchangeModel()
+        mockModel.popupMessage = "Example Message"
+        mockModel.showMessage = true
+        return ExchangePopupView(model: mockModel)
             .previewLayout(.sizeThatFits)
             .padding()
     }

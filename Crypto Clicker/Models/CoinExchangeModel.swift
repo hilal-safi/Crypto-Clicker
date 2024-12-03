@@ -66,28 +66,80 @@ class CoinExchangeModel: ObservableObject {
         goldCoins = count
     }
     
+    // Popup properties
+    @Published var popupMessage: String? = nil
+    @Published var showMessage: Bool = false
+
     // Perform the exchange based on the coin type
     func performExchange(for type: CoinType, with coins: inout CryptoCoin?) {
-        guard let coin = coins else { return }
+        
+        guard let coin = coins else {
+            popupMessage = "Invalid coin data."
+            showPopupWithAnimation()
+            return
+        }
+        
+        let totalCost: Int
+        
         switch type {
+            
         case .bronze:
-            if coin.value >= bronzeCost {
-                coins?.value -= bronzeCost
+            
+            totalCost = bronzeCost
+            
+            if coin.value >= totalCost {
+                
+                coins?.value -= totalCost
                 bronzeCoins += 1
+                popupMessage = "Successfully exchanged for Bronze Coin!"
+                
+            } else {
+                popupMessage = "Not enough coins for Bronze Coin."
             }
+            
         case .silver:
-            if coin.value >= silverCost {
-                coins?.value -= silverCost
+            
+            totalCost = silverCost
+            
+            if coin.value >= totalCost {
+                
+                coins?.value -= totalCost
                 silverCoins += 1
+                popupMessage = "Successfully exchanged for Silver Coin!"
+                
+            } else {
+                popupMessage = "Not enough coins for Silver Coin."
             }
         case .gold:
-            if coin.value >= goldCost {
-                coins?.value -= goldCost
+            
+            totalCost = goldCost
+            
+            if coin.value >= totalCost {
+                
+                coins?.value -= totalCost
                 goldCoins += 1
+                popupMessage = "Successfully exchanged for Gold Coin!"
+                
+            } else {
+                popupMessage = "Not enough coins for Gold Coin."
+            }
+        }
+        
+        showPopupWithAnimation()
+    }
+    
+    private func showPopupWithAnimation() {
+        
+        withAnimation {
+            showMessage = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            withAnimation {
+                self.showMessage = false
             }
         }
     }
-    
+
     // Methods to get coin information
     func count(for type: CoinType) -> Int {
         switch type {
@@ -133,6 +185,15 @@ class CoinExchangeModel: ObservableObject {
             return "🥇"
         }
     }
+    
+    func cost(for coinType: CoinType) -> Int {
+        switch coinType {
+            case .bronze: return bronzeCost
+            case .silver: return silverCost
+            case .gold: return goldCost
+        }
+    }
+
 }
 
 enum CoinType: CaseIterable {
