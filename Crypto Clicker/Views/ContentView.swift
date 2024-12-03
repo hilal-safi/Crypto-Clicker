@@ -94,7 +94,8 @@ struct ContentView: View {
 
                         // Power button to display power-ups owned
                         PowerButtonView(store: store, coins: $coins)
-
+                            .frame(width: UIScreen.main.bounds.width * 0.95) // Set to 95% of screen width
+                        
                         // Exchange button to display Bronze, Silver, Gold coins
                         ExchangeButtonView(exchangeModel: exchangeModel, coins: $coins)
                         

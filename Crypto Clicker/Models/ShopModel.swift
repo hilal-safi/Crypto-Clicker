@@ -10,6 +10,7 @@ import SwiftUI
 
 @MainActor
 class ShopModel: ObservableObject {
+    
     @Published var selectedQuantities: [String: Int] = [:]
     @Published var totalCost: Int = 0
     @Published var purchaseMessage: String? = nil

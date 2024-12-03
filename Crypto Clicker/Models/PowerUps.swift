@@ -9,14 +9,9 @@ import Foundation
 
 class PowerUps: ObservableObject, Codable {
     
-    @Published var coinClicker = 0
-    @Published var chromebook = 0
-    @Published var desktop = 0
-    @Published var server = 0
-    @Published var mineCenter = 0
+    @Published var quantities: [String: Int] = [:] // Store power-up quantities dynamically
 
     static let powerUps = [
-
         PowerUpInfo(
             name: "Coin Clicker",
             cost: 500,
@@ -27,116 +22,94 @@ class PowerUps: ObservableObject, Codable {
         ),
         PowerUpInfo(
             name: "Chromebook",
-            cost: 50,
+            cost: 100,
             coinsPerSecondIncrease: 1,
             coinsPerClickIncrease: 0,
             emoji: "💻",
             description: "A trusty Chromebook to start mining small amounts of crypto. Increases coin value by 1 every second."
         ),
         PowerUpInfo(
+            name: "Upgraded Clicker",
+            cost: 20000,
+            coinsPerSecondIncrease: 0,
+            coinsPerClickIncrease: 100,
+            emoji: "💪",
+            description: "Boosts clicks to generate 100 coins per click."
+        ),
+        PowerUpInfo(
             name: "Desktop",
-            cost: 200,
-            coinsPerSecondIncrease: 5,
+            cost: 2500,
+            coinsPerSecondIncrease: 25,
             coinsPerClickIncrease: 0,
             emoji: "🖥️",
-            description: "A powerful desktop for faster mining. Increases coin value by 5 every second."
+            description: "A powerful desktop for faster mining. Increases coin value by 25 every second."
         ),
         PowerUpInfo(
             name: "Server",
-            cost: 1000,
-            coinsPerSecondIncrease: 10,
+            cost: 50000,
+            coinsPerSecondIncrease: 100,
             coinsPerClickIncrease: 0,
             emoji: "📡",
-            description: "A dedicated server to mine crypto efficiently. Increases coin value by 10 every second."
+            description: "A dedicated server to mine crypto efficiently. Increases coin value by 100 every second."
+        ),
+        PowerUpInfo(
+            name: "Automated Clicker",
+            cost: 100000,
+            coinsPerSecondIncrease: 0,
+            coinsPerClickIncrease: 50000,
+            emoji: "🦾",
+            description: "Automates 50,000 clicks."
         ),
         PowerUpInfo(
             name: "Mine Center",
-            cost: 10000,
+            cost: 3000000,
             coinsPerSecondIncrease: 100,
             coinsPerClickIncrease: 0,
             emoji: "⛏️",
-            description: "A full mining center for maximum crypto output. Increases coin value by 100 every second."
+            description: "A full mining center for maximum crypto output. Increases coin value by 3000 every second."
+        ),
+        PowerUpInfo(
+            name: "Robot Assistant",
+            cost: 10000000,
+            coinsPerSecondIncrease: 10000,
+            coinsPerClickIncrease: 250000,
+            emoji: "🤖",
+            description: "Provides 250,000 clicks and 10,000 coins per second."
         )
     ]
     
-    func purchase(powerUp: inout PowerUpInfo, coins: inout CryptoCoin, quantity: Int) -> Bool {
-        
+    init() {
+        // Initialize all quantities to zero
+        for powerUp in Self.powerUps {
+            quantities[powerUp.name] = 0
+        }
+    }
+
+    func purchase(powerUp: PowerUpInfo, coins: inout CryptoCoin, quantity: Int) -> Bool {
         let totalCost = powerUp.cost * quantity
         guard coins.value >= totalCost else { return false }
 
         coins.value -= totalCost
-
-        switch powerUp.name {
-        case "Coin Clicker":
-            coinClicker += quantity
-        case "Chromebook":
-            chromebook += quantity
-        case "Desktop":
-            desktop += quantity
-        case "Server":
-            server += quantity
-        case "Mine Center":
-            mineCenter += quantity
-        default:
-            break
-        }
+        quantities[powerUp.name, default: 0] += quantity
         return true
     }
     
+    func quantity(for name: String) -> Int {
+        return quantities[name, default: 0]
+    }
+    
+    // Codable conformance for saving and loading data
     enum CodingKeys: CodingKey {
-        case coinClicker, chromebook, desktop, server, mineCenter, quantities
+        case quantities
     }
 
     required init(from decoder: Decoder) throws {
-        
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
-        coinClicker = try container.decode(Int.self, forKey: .coinClicker)
-        chromebook = try container.decode(Int.self, forKey: .chromebook)
-        desktop = try container.decode(Int.self, forKey: .desktop)
-        server = try container.decode(Int.self, forKey: .server)
-        mineCenter = try container.decode(Int.self, forKey: .mineCenter)
-        
+        quantities = try container.decode([String: Int].self, forKey: .quantities)
     }
 
     func encode(to encoder: Encoder) throws {
-        
         var container = encoder.container(keyedBy: CodingKeys.self)
-        
-        try container.encode(coinClicker, forKey: .coinClicker)
-        try container.encode(chromebook, forKey: .chromebook)
-        try container.encode(desktop, forKey: .desktop)
-        try container.encode(server, forKey: .server)
-        try container.encode(mineCenter, forKey: .mineCenter)
-        
-    }
-    
-    init() {}
-}
-
-extension PowerUps {
-    
-    func quantity(for name: String) -> Int {
-        
-        switch name {
-            
-        case "Coin Clicker":
-            return coinClicker
-            
-        case "Chromebook":
-            return chromebook
-            
-        case "Desktop":
-            return desktop
-            
-        case "Server":
-            return server
-            
-        case "Mine Center":
-            return mineCenter
-            
-        default:
-            return 0
-        }
+        try container.encode(quantities, forKey: .quantities)
     }
 }

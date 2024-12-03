@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ShopPopupView: View {
+    
     @ObservedObject var model: ShopModel
 
     var body: some View {

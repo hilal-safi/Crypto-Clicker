@@ -46,7 +46,6 @@ struct ErrorView: View {
     }
 }
 
-
 struct ErrorView_Previews: PreviewProvider {
     
     enum SampleError: Error {

@@ -2,6 +2,8 @@
 //  CoinExchangeView.swift
 //  Crypto Clicker
 //
+//  Created by Hilal Safi on 2024-11-27.
+//
 
 import SwiftUI
 

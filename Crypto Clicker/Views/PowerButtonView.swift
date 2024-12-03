@@ -15,21 +15,33 @@ struct PowerButtonView: View {
         
         NavigationLink(destination: ShopView(store: store, coins: $coins)) {
             
-            HStack(spacing: 20) {
-                
-                ForEach(PowerUps.powerUps, id: \.name) { powerUp in
+            ZStack {
+                // Static button background
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.blue.opacity(0.1))
+                    .frame(height: 100) // Fixed height for the button
+
+                // Horizontal scrolling content
+                ScrollView(.horizontal, showsIndicators: false) {
                     
-                    VStack {
-                        Text(powerUp.emoji)
-                            .font(.system(size: 42)) // Increased icon size
-                        Text("\(store.powerUps.quantity(for: powerUp.name))")
-                            .font(.system(size: 24, weight: .semibold)) // Slightly larger quantity font
+                    HStack(spacing: 20) {
+                        
+                        ForEach(PowerUps.powerUps, id: \.name) { powerUp in
+                            
+                            VStack {
+                                Text(powerUp.emoji)
+                                    .font(.system(size: 42)) // Icon size remains the same
+                                Text("\(store.powerUps.quantity(for: powerUp.name))")
+                                    .font(.system(size: 24, weight: .semibold)) // Quantity font remains the same
+                            }
+                        }
                     }
+                    .padding(.horizontal) // Add padding inside the scroll view
                 }
+                .frame(height: 100) // Match the height of the button background
+                .clipShape(RoundedRectangle(cornerRadius: 12)) // Ensure scrolling content respects the button shape
             }
-            .padding()
-            .background(Color.blue.opacity(0.1)) // Light blue background tint
-            .cornerRadius(12) // Rounded corners
+            .frame(width: UIScreen.main.bounds.width * 0.8, height: 100) // Button dimensions remain constant
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.blue, lineWidth: 1) // Outline for the button
