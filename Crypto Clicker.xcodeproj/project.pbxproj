@@ -11,7 +11,6 @@
 		9E39702E2CDD552A00E461F6 /* BackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E39702D2CDD552200E461F6 /* BackgroundView.swift */; };
 		9E3970322CDD7EF700E461F6 /* SettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */; };
 		9E3970362CDEB3FF00E461F6 /* PowerButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */; };
-		9E3970382CDEBBD900E461F6 /* PowerUpInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970372CDEBBC900E461F6 /* PowerUpInfo.swift */; };
 		9E39703A2CDF14D100E461F6 /* PowerUps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970392CDF14C700E461F6 /* PowerUps.swift */; };
 		9E4CD0752CF5878200328F86 /* ShopPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0742CF5877000328F86 /* ShopPopupView.swift */; };
 		9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0762CF5882000328F86 /* ShopModel.swift */; };
@@ -24,6 +23,7 @@
 		9E4CD0892CFBC3FE00328F86 /* CoinStatsPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0882CFBC3F600328F86 /* CoinStatsPopupView.swift */; };
 		9E4CD08B2CFBD21900328F86 /* ExchangeItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD08A2CFBD21200328F86 /* ExchangeItemView.swift */; };
 		9EB1D9B12CFEC92E00924994 /* ExchangePopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EB1D9B02CFEC92B00924994 /* ExchangePopupView.swift */; };
+		9EB1D9B32D08FB8F00924994 /* PowerUpScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EB1D9B22D08FB8600924994 /* PowerUpScrollView.swift */; };
 		9EC1AC3A2C8FA0850055A38D /* Crypto_ClickerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC1AC392C8FA0850055A38D /* Crypto_ClickerApp.swift */; };
 		9EC1AC3C2C8FA0850055A38D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC1AC3B2C8FA0850055A38D /* ContentView.swift */; };
 		9EC1AC3E2C8FA0860055A38D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9EC1AC3D2C8FA0860055A38D /* Assets.xcassets */; };
@@ -61,7 +61,6 @@
 		9E39702D2CDD552200E461F6 /* BackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundView.swift; sourceTree = "<group>"; };
 		9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsModel.swift; sourceTree = "<group>"; };
 		9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerButtonView.swift; sourceTree = "<group>"; };
-		9E3970372CDEBBC900E461F6 /* PowerUpInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerUpInfo.swift; sourceTree = "<group>"; };
 		9E3970392CDF14C700E461F6 /* PowerUps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerUps.swift; sourceTree = "<group>"; };
 		9E4CD0742CF5877000328F86 /* ShopPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopPopupView.swift; sourceTree = "<group>"; };
 		9E4CD0762CF5882000328F86 /* ShopModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopModel.swift; sourceTree = "<group>"; };
@@ -74,6 +73,7 @@
 		9E4CD0882CFBC3F600328F86 /* CoinStatsPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinStatsPopupView.swift; sourceTree = "<group>"; };
 		9E4CD08A2CFBD21200328F86 /* ExchangeItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExchangeItemView.swift; sourceTree = "<group>"; };
 		9EB1D9B02CFEC92B00924994 /* ExchangePopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExchangePopupView.swift; sourceTree = "<group>"; };
+		9EB1D9B22D08FB8600924994 /* PowerUpScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerUpScrollView.swift; sourceTree = "<group>"; };
 		9EC1AC362C8FA0850055A38D /* Crypto Clicker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Crypto Clicker.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		9EC1AC392C8FA0850055A38D /* Crypto_ClickerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Crypto_ClickerApp.swift; sourceTree = "<group>"; };
 		9EC1AC3B2C8FA0850055A38D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -182,7 +182,6 @@
 				9EC1AC632C8FC9330055A38D /* CryptoStore.swift */,
 				9EC1AC6A2C8FCAB60055A38D /* ErrorWrapper.swift */,
 				9E3970392CDF14C700E461F6 /* PowerUps.swift */,
-				9E3970372CDEBBC900E461F6 /* PowerUpInfo.swift */,
 				9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */,
 				9E4CD0762CF5882000328F86 /* ShopModel.swift */,
 			);
@@ -204,6 +203,7 @@
 				9EB1D9B02CFEC92B00924994 /* ExchangePopupView.swift */,
 				9E4CD0802CF817E400328F86 /* InfoView.swift */,
 				9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */,
+				9EB1D9B22D08FB8600924994 /* PowerUpScrollView.swift */,
 				9EC1AC702C97C13F0055A38D /* SettingsView.swift */,
 				9E4CD0782CF5884C00328F86 /* ShopItemView.swift */,
 				9E4CD0742CF5877000328F86 /* ShopPopupView.swift */,
@@ -350,7 +350,6 @@
 				9EC1AC6D2C8FCC8C0055A38D /* ErrorView.swift in Sources */,
 				9E4CD07D2CF808BB00328F86 /* CoinExchangeView.swift in Sources */,
 				9EC1AC6F2C8FCE800055A38D /* CoinView.swift in Sources */,
-				9E3970382CDEBBD900E461F6 /* PowerUpInfo.swift in Sources */,
 				9E39702E2CDD552A00E461F6 /* BackgroundView.swift in Sources */,
 				9E4CD0752CF5878200328F86 /* ShopPopupView.swift in Sources */,
 				9EC1AC662C8FC96B0055A38D /* CryptoCoin.swift in Sources */,
@@ -362,6 +361,7 @@
 				9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */,
 				9EC1AC3A2C8FA0850055A38D /* Crypto_ClickerApp.swift in Sources */,
 				9E3970362CDEB3FF00E461F6 /* PowerButtonView.swift in Sources */,
+				9EB1D9B32D08FB8F00924994 /* PowerUpScrollView.swift in Sources */,
 				9E4CD0792CF5885500328F86 /* ShopItemView.swift in Sources */,
 				9E39703A2CDF14D100E461F6 /* PowerUps.swift in Sources */,
 				9E4CD0832CF81D1C00328F86 /* AchievementsView.swift in Sources */,

@@ -30,6 +30,7 @@ class CryptoStore: ObservableObject {
 
     // Timer to increment coins based on coinsPerSecond
     private func startTimer() {
+        
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             Task { @MainActor in
                 self.incrementCoinsPerSec()
@@ -38,6 +39,7 @@ class CryptoStore: ObservableObject {
     }
 
     private func incrementCoinsPerSec() {
+        
         if var currentCoin = coins {
             currentCoin.value += coinsPerSecond
             coins = currentCoin
@@ -46,6 +48,7 @@ class CryptoStore: ObservableObject {
 
     // Increment coin value manually
     func incrementCoinValue() {
+        
         if var currentCoin = coins {
             currentCoin.value += coinsPerClick
             coins = currentCoin
@@ -54,6 +57,7 @@ class CryptoStore: ObservableObject {
 
     // Reset coin value
     func resetCoinValue() {
+        
         if var currentCoin = coins {
             currentCoin.value = 0
             coins = currentCoin
@@ -62,6 +66,7 @@ class CryptoStore: ObservableObject {
 
     // Reset all power-ups
     func resetPowerUps() {
+        
         powerUps = PowerUps() // Reinitialize to default values
         recalculateCoinsPerSecond()
         recalculateCoinsPerClick()
@@ -72,7 +77,7 @@ class CryptoStore: ObservableObject {
     }
 
     // Purchase a power-up
-    func purchasePowerUp(powerUp: PowerUpInfo, quantity: Int) -> Bool {
+    func purchasePowerUp(powerUp: PowerUps.PowerUp, quantity: Int) -> Bool {
         
         guard let currentCoins = coins, currentCoins.value >= powerUp.cost * quantity else {
             print("Not enough coins to purchase \(powerUp.name). Required: \(powerUp.cost * quantity), Available: \(coins?.value ?? 0)")
@@ -105,7 +110,7 @@ class CryptoStore: ObservableObject {
             let powerUpName = entry.key
             let quantity = entry.value
             
-            if let powerUp = PowerUps.powerUps.first(where: { $0.name == powerUpName }) {
+            if let powerUp = PowerUps.availablePowerUps.first(where: { $0.name == powerUpName }) {
                 return total + (powerUp.coinsPerSecondIncrease * quantity)
             }
             return total
@@ -120,7 +125,7 @@ class CryptoStore: ObservableObject {
             let powerUpName = entry.key
             let quantity = entry.value
             
-            if let powerUp = PowerUps.powerUps.first(where: { $0.name == powerUpName }) {
+            if let powerUp = PowerUps.availablePowerUps.first(where: { $0.name == powerUpName }) {
                 return total + (powerUp.coinsPerClickIncrease * quantity)
             }
             return total

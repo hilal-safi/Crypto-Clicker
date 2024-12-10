@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct ShopItemView: View {
-    let powerUp: PowerUpInfo
+    
+    let powerUp: PowerUps.PowerUp
     @ObservedObject var model: ShopModel
 
     var body: some View {
@@ -80,18 +81,17 @@ struct ShopItemView: View {
 }
 
 struct ShopItemView_Previews: PreviewProvider {
+    
     static var previews: some View {
+        
         let mockModel = ShopModel(store: CryptoStore())
-        ShopItemView(
-            powerUp: PowerUpInfo(
-                name: "Chromebook",
-                cost: 50,
-                coinsPerSecondIncrease: 1,
-                coinsPerClickIncrease: 0,
-                emoji: "💻",
-                description: "A trusty Chromebook to start mining small amounts of crypto."
-            ),
-            model: mockModel
-        )
+        
+        if let mockPowerUp = PowerUps.availablePowerUps.first {
+            
+            ShopItemView(powerUp: mockPowerUp, model: mockModel)
+            
+        } else {
+            Text("No power-ups available")
+        }
     }
 }

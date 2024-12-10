@@ -9,10 +9,41 @@ import Foundation
 
 class PowerUps: ObservableObject, Codable {
     
+    struct PowerUp: Identifiable, Hashable, Codable {
+        
+        let id: UUID
+        let name: String
+        let cost: Int
+        let coinsPerSecondIncrease: Int
+        let coinsPerClickIncrease: Int
+        let emoji: String
+        let description: String
+
+        // Custom initializer for assigning default id
+        init(
+            id: UUID = UUID(),
+            name: String,
+            cost: Int,
+            coinsPerSecondIncrease: Int,
+            coinsPerClickIncrease: Int,
+            emoji: String,
+            description: String
+        ) {
+            self.id = id
+            self.name = name
+            self.cost = cost
+            self.coinsPerSecondIncrease = coinsPerSecondIncrease
+            self.coinsPerClickIncrease = coinsPerClickIncrease
+            self.emoji = emoji
+            self.description = description
+        }
+    }
+    
     @Published var quantities: [String: Int] = [:] // Store power-up quantities dynamically
 
-    static let powerUps = [
-        PowerUpInfo(
+    // Static list of available power-ups
+    static let availablePowerUps = [
+        PowerUp(
             name: "Coin Clicker",
             cost: 500,
             coinsPerSecondIncrease: 0,
@@ -20,7 +51,7 @@ class PowerUps: ObservableObject, Codable {
             emoji: "👆",
             description: "Adds an additional click, to assist you with mining coins. Increases the coin value per click by 1."
         ),
-        PowerUpInfo(
+        PowerUp(
             name: "Chromebook",
             cost: 100,
             coinsPerSecondIncrease: 1,
@@ -28,7 +59,7 @@ class PowerUps: ObservableObject, Codable {
             emoji: "💻",
             description: "A trusty Chromebook to start mining small amounts of crypto. Increases coin value by 1 every second."
         ),
-        PowerUpInfo(
+        PowerUp(
             name: "Upgraded Clicker",
             cost: 20000,
             coinsPerSecondIncrease: 0,
@@ -36,15 +67,15 @@ class PowerUps: ObservableObject, Codable {
             emoji: "💪",
             description: "Boosts clicks to generate 100 coins per click."
         ),
-        PowerUpInfo(
+        PowerUp(
             name: "Desktop",
             cost: 2500,
-            coinsPerSecondIncrease: 25,
+            coinsPerSecondIncrease: 30,
             coinsPerClickIncrease: 0,
             emoji: "🖥️",
-            description: "A powerful desktop for faster mining. Increases coin value by 25 every second."
+            description: "A powerful desktop for faster mining. Increases coin value by 30 every second."
         ),
-        PowerUpInfo(
+        PowerUp(
             name: "Server",
             cost: 50000,
             coinsPerSecondIncrease: 100,
@@ -52,7 +83,7 @@ class PowerUps: ObservableObject, Codable {
             emoji: "📡",
             description: "A dedicated server to mine crypto efficiently. Increases coin value by 100 every second."
         ),
-        PowerUpInfo(
+        PowerUp(
             name: "Automated Clicker",
             cost: 100000,
             coinsPerSecondIncrease: 0,
@@ -60,7 +91,7 @@ class PowerUps: ObservableObject, Codable {
             emoji: "🦾",
             description: "Automates 50,000 clicks."
         ),
-        PowerUpInfo(
+        PowerUp(
             name: "Mine Center",
             cost: 3000000,
             coinsPerSecondIncrease: 100,
@@ -68,7 +99,7 @@ class PowerUps: ObservableObject, Codable {
             emoji: "⛏️",
             description: "A full mining center for maximum crypto output. Increases coin value by 3000 every second."
         ),
-        PowerUpInfo(
+        PowerUp(
             name: "Robot Assistant",
             cost: 10000000,
             coinsPerSecondIncrease: 10000,
@@ -80,12 +111,13 @@ class PowerUps: ObservableObject, Codable {
     
     init() {
         // Initialize all quantities to zero
-        for powerUp in Self.powerUps {
+        for powerUp in Self.availablePowerUps {
             quantities[powerUp.name] = 0
         }
     }
 
-    func purchase(powerUp: PowerUpInfo, coins: inout CryptoCoin, quantity: Int) -> Bool {
+    func purchase(powerUp: PowerUp, coins: inout CryptoCoin, quantity: Int) -> Bool {
+        
         let totalCost = powerUp.cost * quantity
         guard coins.value >= totalCost else { return false }
 

@@ -34,7 +34,7 @@ class ShopModel: ObservableObject {
         }
     }
 
-    func handlePurchase(for powerUp: PowerUpInfo) {
+    func handlePurchase(for powerUp: PowerUps.PowerUp) {
         
         guard let quantity = selectedQuantities[powerUp.name], quantity > 0 else { return }
         let success = store.purchasePowerUp(powerUp: powerUp, quantity: quantity)
@@ -63,7 +63,7 @@ class ShopModel: ObservableObject {
 
     private func calculateTotalCost() {
         
-        totalCost = PowerUps.powerUps.reduce(0) { result, powerUp in
+        totalCost = PowerUps.availablePowerUps.reduce(0) { result, powerUp in
             result + (selectedQuantities[powerUp.name] ?? 0) * powerUp.cost
         }
     }

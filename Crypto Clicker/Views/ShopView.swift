@@ -42,7 +42,7 @@ struct ShopView: View {
                         
                         LazyVStack(spacing: 16) { // Reduced spacing between items
                             
-                            ForEach(PowerUps.powerUps, id: \.name) { powerUp in
+                            ForEach(PowerUps.availablePowerUps, id: \.name) { powerUp in
                                 ShopItemView(powerUp: powerUp, model: model)
                             }
                         }
