@@ -26,7 +26,6 @@ struct PowerButtonView: View {
                     .frame(height: 100)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .frame(width: UIScreen.main.bounds.width * 0.8, height: 100)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.blue, lineWidth: 1)

@@ -21,7 +21,7 @@ struct PowerUpScrollView: View {
                     
                     VStack {
                         Text(powerUp.emoji)
-                            .font(.system(size: 42))
+                            .font(.system(size: 45))
                         Text("\(store.powerUps.quantity(for: powerUp.name))")
                             .font(.system(size: 24, weight: .semibold))
                     }

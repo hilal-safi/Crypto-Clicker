@@ -14,56 +14,60 @@ struct ExchangeItemView: View {
     @Binding var coins: CryptoCoin?
 
     var body: some View {
-        HStack {
-            // Coin Emoji
-            Text(exchangeModel.emoji(for: coinType))
-                .font(.system(size: 42)) // Emoji size
+        if let coinInfo = exchangeModel.coinTypes.first(where: { $0.type == coinType }) {
+            HStack {
+                // Coin Image
+                Image(coinInfo.imageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 50, height: 50)
+                    .shadow(color: coinInfo.glowColor, radius: 10, x: 0, y: 0) // Glow effect
 
-            VStack(alignment: .leading, spacing: 4) {
-                // Coin Label
-                Text(exchangeModel.label(for: coinType))
-                    .font(.headline)
-                    .foregroundColor(textColor(for: coinType))
+                VStack(alignment: .leading, spacing: 4) {
+                    // Coin Label
+                    Text(coinInfo.label)
+                        .font(.headline)
+                        .foregroundColor(coinInfo.textColor)
 
-                // Coin Count
-                Text("Exchanged: \(exchangeModel.count(for: coinType))")
-                    .font(.subheadline)
-                    .foregroundColor(textColor(for: coinType).opacity(0.9)) // Slightly less opaque for distinction
-                
-                // Coin Cost
-                Text("Cost: \(exchangeModel.cost(for: coinType)) coins")
-                    .font(.subheadline)
-                    .foregroundColor(textColor(for: coinType).opacity(0.9)) // Slightly less opaque for distinction
+                    // Coin Count
+                    Text("Exchanged: \(coinInfo.count)")
+                        .font(.subheadline)
+                        .foregroundColor(coinInfo.textColor.opacity(0.9))
+
+                    // Coin Cost
+                    Text("Cost: \(coinInfo.cost) coins")
+                        .font(.subheadline)
+                        .foregroundColor(coinInfo.textColor.opacity(0.9))
+                }
+
+                Spacer()
+
+                // Exchange Button
+                Button(action: {
+                    exchangeModel.performExchange(for: coinType, with: &coins)
+                }) {
+                    Text("Exchange")
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 12)
+                        .cornerRadius(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.black) // Black background
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.white, lineWidth: 2) // White border
+                        )
+                        .foregroundColor(.white) // Text color
+
+                }
             }
-
-            Spacer()
-
-            // Exchange Button
-            Button(action: {
-                exchangeModel.performExchange(for: coinType, with: &coins)
-            }) {
-                Text("Exchange")
-                    .font(.subheadline)
-                    .foregroundColor(.white)
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 12)
-                    .background(Color.blue.opacity(0.8))
-                    .cornerRadius(8)
-            }
-        }
-        .padding()
-        .background(exchangeModel.color(for: coinType)) // Dynamic background color
-        .cornerRadius(12)
-        .shadow(radius: 5)
-    }
-    
-    // Helper to determine the text color
-    private func textColor(for type: CoinType) -> Color {
-        switch type {
-        case .gold:
-            return .black // Use black text for gold
-        default:
-            return .white // Use white text for all other types
+            .padding()
+            .background(coinInfo.backgroundColor) // Use dynamic background color
+            .cornerRadius(12)
+            .shadow(color: coinInfo.glowColor, radius: 5, x: 0, y: 0) // Glow effect for the item card
         }
     }
 }
@@ -74,17 +78,17 @@ struct ExchangeItemView_Previews: PreviewProvider {
         let coins = CryptoCoin(value: 1000)
         return VStack {
             ExchangeItemView(
-                coinType: .bronze,
+                coinType: .dogecoin,
                 exchangeModel: exchangeModel,
                 coins: .constant(coins)
             )
             ExchangeItemView(
-                coinType: .silver,
+                coinType: .ethereum,
                 exchangeModel: exchangeModel,
                 coins: .constant(coins)
             )
             ExchangeItemView(
-                coinType: .gold,
+                coinType: .bitcoin,
                 exchangeModel: exchangeModel,
                 coins: .constant(coins)
             )

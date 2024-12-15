@@ -31,8 +31,7 @@ struct ContentView: View {
                 
                 // Background view
                 BackgroundView(type: .default)
-                    .blur(radius: showStatsPopup ? 8 : 0) // Add blur when popup is open
-                    .animation(.easeInOut, value: showStatsPopup) // Smooth transition
+                    .ignoresSafeArea() // Ensure it fills the entire screen
 
                 VStack(spacing: 12) { // Reduced spacing between elements
                     Spacer(minLength: 10)
@@ -50,34 +49,14 @@ struct ContentView: View {
                                 .cornerRadius(8)
                         }
                     } else {
-                        // Show message if coin value is 0
-                        if coins?.value == 0 {
-                            VStack(spacing: 15) {
-                                Text("Coin Value: 0")
-                                    .font(.title2) // Larger font for emphasis
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.red)
-
-                                Text("Click the coin below to mine it and increase the value!")
-                                    .font(.headline)
-                                    .foregroundColor(.gray)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 20)
-                            }
-                            .padding(.bottom, 20)
-                        } else {
-                            // Coin Value as an invisible button to show popup
-                            Button(action: {
-                                showStatsPopup = true
-                            }) {
-                                if let coinValue = coins?.value {
-                                    Text("\(coinValue)")
-                                        .font(.system(size: 38, weight: .bold))
-                                        .padding(.bottom, 4)
-                                }
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
+                        // Use the refactored CoinNumberView
+                        CoinNumberView(
+                            coinValue: Binding(
+                                get: { coins?.value ?? 0 },
+                                set: { coins?.value = $0 }
+                            ),
+                            showStatsPopup: $showStatsPopup
+                        )
 
                         // CoinView handles the increment action
                         CoinView(
@@ -94,18 +73,21 @@ struct ContentView: View {
 
                         // Power button to display power-ups owned
                         PowerButtonView(store: store, coins: $coins)
-                            .frame(width: UIScreen.main.bounds.width * 0.95) // Set to 95% of screen width
+                            .frame(width: UIScreen.main.bounds.width * 0.85) // Set to 85% of screen width
                         
                         // Exchange button to display Bronze, Silver, Gold coins
                         ExchangeButtonView(exchangeModel: exchangeModel, coins: $coins)
-                        
+                            .frame(width: UIScreen.main.bounds.width * 0.85) // Set to 95% of screen width
+
                         Spacer()
                     }
 
                     Spacer()
                 }
                 .toolbar {
+                    
                     ToolbarItem(placement: .navigationBarTrailing) {
+                        
                         NavigationLink(destination: SettingsView(
                             coins: $coins,
                             store: store,
@@ -116,6 +98,7 @@ struct ContentView: View {
                         }
                     }
                     ToolbarItem(placement: .navigationBarLeading) {
+                        
                         Button(action: {
                             isInfoPresented = true
                         }) {
@@ -126,7 +109,8 @@ struct ContentView: View {
                             InfoView() // Reference to the external InfoView file
                         }
                     }
-                    ToolbarItem(placement: .principal) { // Add Trophy Icon in the center
+                    ToolbarItem(placement: .principal) {
+                        
                         Button(action: {
                             isAchievementsPresented = true
                         }) {
@@ -142,10 +126,13 @@ struct ContentView: View {
                 
                 // Popup overlay for coin stats
                 if showStatsPopup {
+                    
                     CoinStatsPopupView(
+                        
                         coinsPerSecond: store.coinsPerSecond,
                         coinsPerClick: store.coinsPerClick,
                         totalCoins: coins?.value ?? 0,
+                        
                         onClose: {
                             showStatsPopup = false
                         }

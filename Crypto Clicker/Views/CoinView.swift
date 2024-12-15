@@ -42,7 +42,7 @@ struct CoinView: View {
             }
             
         }) {
-            Image("bitcoin")
+            Image("Coin")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 300, height: 300)

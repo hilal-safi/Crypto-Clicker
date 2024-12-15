@@ -9,66 +9,107 @@ import SwiftUI
 
 class CoinExchangeModel: ObservableObject {
     
-    // Coin types as Ints with persistence
-    @Published var bronzeCoins: Int {
-        didSet {
-            UserDefaults.standard.set(bronzeCoins, forKey: "bronzeCoins")
-        }
+    struct CoinTypeInfo {
+        let type: CoinType
+        let label: String
+        let cost: Int
+        var count: Int
+        let imageName: String
+        let backgroundColor: Color
+        let textColor: Color
+        let glowColor: Color
     }
     
-    @Published var silverCoins: Int {
+    @Published var coinTypes: [CoinTypeInfo] {
         didSet {
-            UserDefaults.standard.set(silverCoins, forKey: "silverCoins")
+            saveCoinsToUserDefaults()
         }
-    }
-    
-    @Published var goldCoins: Int {
-        didSet {
-            UserDefaults.standard.set(goldCoins, forKey: "goldCoins")
-        }
-    }
-
-    // Exchange costs as Ints
-    let bronzeCost: Int = 250
-    let silverCost: Int = 10000
-    let goldCost: Int = 1000000
-    
-    // Initializer to load saved values
-    init() {
-        self.bronzeCoins = UserDefaults.standard.integer(forKey: "bronzeCoins")
-        self.silverCoins = UserDefaults.standard.integer(forKey: "silverCoins")
-        self.goldCoins = UserDefaults.standard.integer(forKey: "goldCoins")
-    }
-
-    // Accessor methods
-    func getBronzeCoins() -> Int {
-        return bronzeCoins
-    }
-
-    func getSilverCoins() -> Int {
-        return silverCoins
-    }
-
-    func getGoldCoins() -> Int {
-        return goldCoins
-    }
-
-    // Mutator methods
-    func setBronzeCoins(_ count: Int) {
-        bronzeCoins = count
-    }
-
-    func setSilverCoins(_ count: Int) {
-        silverCoins = count
-    }
-
-    func setGoldCoins(_ count: Int) {
-        goldCoins = count
     }
     
     // Popup properties
     @Published var popupMessage: String? = nil
     @Published var showMessage: Bool = false
+    
+    init() {
+        self.coinTypes = [
+            CoinTypeInfo(
+                type: .shibainu,
+                label: "Shiba Inu",
+                cost: 100,
+                count: UserDefaults.standard.integer(forKey: "shibaInuCount"),
+                imageName: "ShibaInu",
+                backgroundColor: Color(red: 139 / 255, green: 0 / 255, blue: 0 / 255), // Red background
+                textColor: .white,
+                glowColor: .orange // Orange glow
+            ),
+            CoinTypeInfo(
+                type: .xrp,
+                label: "XRP",
+                cost: 5000,
+                count: UserDefaults.standard.integer(forKey: "xrpCount"),
+                imageName: "XRP",
+                backgroundColor: .black, // Black background
+                textColor: .white,
+                glowColor: .white // White glow
+            ),
+            CoinTypeInfo(
+                type: .cardano,
+                label: "Cardano",
+                cost: 10000,
+                count: UserDefaults.standard.integer(forKey: "cardanoCount"),
+                imageName: "Cardano",
+                backgroundColor: Color(red: 135 / 255, green: 206 / 255, blue: 250 / 255), // Blue background
+                textColor: .black,
+                glowColor: .cyan // Cyan glow
+            ),
+            CoinTypeInfo(
+                type: .dogecoin,
+                label: "Dogecoin",
+                cost: 250,
+                count: UserDefaults.standard.integer(forKey: "dogecoinCount"),
+                imageName: "Dogecoin",
+                backgroundColor: Color(red: 205 / 255, green: 127 / 255, blue: 50 / 255), // Bronze background
+                textColor: .white,
+                glowColor: Color.brown // Bronze glow
+            ),
+            CoinTypeInfo(
+                type: .solana,
+                label: "Solana",
+                cost: 400000,
+                count: UserDefaults.standard.integer(forKey: "solanaCount"),
+                imageName: "Solana",
+                backgroundColor: .purple, // Purple background
+                textColor: .white,
+                glowColor: Color(hue: 0.8, saturation: 0.7, brightness: 0.8) // Vibrant purple glow
+            ),
+            CoinTypeInfo(
+                type: .ethereum,
+                label: "Ethereum",
+                cost: 1000000,
+                count: UserDefaults.standard.integer(forKey: "ethereumCount"),
+                imageName: "Ethereum",
+                backgroundColor: Color(red: 211 / 255, green: 211 / 255, blue: 211 / 255), // Silver background
+                textColor: .black,
+                glowColor: Color.gray // Silver glow
+            ),
+            CoinTypeInfo(
+                type: .bitcoin,
+                label: "Bitcoin",
+                cost: 10000000,
+                count: UserDefaults.standard.integer(forKey: "bitcoinCount"),
+                imageName: "Bitcoin",
+                backgroundColor: Color(red: 255 / 255, green: 215 / 255, blue: 0 / 255), // Gold background
+                textColor: .black,
+                glowColor: Color.yellow // Gold glow
+            )
+        ]
+    }
+    
+    private func saveCoinsToUserDefaults() {
+        for coinType in coinTypes {
+            UserDefaults.standard.set(coinType.count, forKey: "\(coinType.type.rawValue)Count")
+        }
+    }
 
     // Perform the exchange based on the coin type
     func performExchange(for type: CoinType, with coins: inout CryptoCoin?) {
@@ -79,57 +120,25 @@ class CoinExchangeModel: ObservableObject {
             return
         }
         
-        let totalCost: Int
-        
-        switch type {
+        if let index = coinTypes.firstIndex(where: { $0.type == type }) {
             
-        case .bronze:
+            let selectedCoin = coinTypes[index]
             
-            totalCost = bronzeCost
-            
-            if coin.value >= totalCost {
+            if coin.value >= selectedCoin.cost {
                 
-                coins?.value -= totalCost
-                bronzeCoins += 1
-                popupMessage = "Successfully exchanged for Bronze Coin!"
+                coins?.value -= selectedCoin.cost
+                coinTypes[index].count += 1
+                popupMessage = "Successfully exchanged for \(selectedCoin.label)!"
                 
             } else {
-                popupMessage = "Not enough coins for Bronze Coin."
+                popupMessage = "Not enough coins for \(selectedCoin.label)."
             }
             
-        case .silver:
-            
-            totalCost = silverCost
-            
-            if coin.value >= totalCost {
-                
-                coins?.value -= totalCost
-                silverCoins += 1
-                popupMessage = "Successfully exchanged for Silver Coin!"
-                
-            } else {
-                popupMessage = "Not enough coins for Silver Coin."
-            }
-        case .gold:
-            
-            totalCost = goldCost
-            
-            if coin.value >= totalCost {
-                
-                coins?.value -= totalCost
-                goldCoins += 1
-                popupMessage = "Successfully exchanged for Gold Coin!"
-                
-            } else {
-                popupMessage = "Not enough coins for Gold Coin."
-            }
+            showPopupWithAnimation()
         }
-        
-        showPopupWithAnimation()
     }
-    
+
     private func showPopupWithAnimation() {
-        
         withAnimation {
             showMessage = true
         }
@@ -140,62 +149,28 @@ class CoinExchangeModel: ObservableObject {
         }
     }
 
-    // Methods to get coin information
+    // Helper methods
     func count(for type: CoinType) -> Int {
-        switch type {
-        case .bronze:
-            return bronzeCoins
-        case .silver:
-            return silverCoins
-        case .gold:
-            return goldCoins
-        }
+        return coinTypes.first(where: { $0.type == type })?.count ?? 0
     }
 
-    func label(for type: CoinType) -> String {
-        switch type {
-        case .bronze:
-            return "Bronze"
-        case .silver:
-            return "Silver"
-        case .gold:
-            return "Gold"
-        }
-    }
-
-    func color(for type: CoinType) -> Color {
-        switch type {
-        case .bronze:
-            return .brown
-        case .silver:
-            return .gray
-        case .gold:
-            return .yellow
-        }
+    func image(for type: CoinType) -> String {
+        return coinTypes.first(where: { $0.type == type })?.imageName ?? "placeholderImage"
     }
     
-    // Helper to get emoji for each coin type
-    func emoji(for type: CoinType) -> String {
-        switch type {
-        case .bronze:
-            return "🥉"
-        case .silver:
-            return "🥈"
-        case .gold:
-            return "🥇"
-        }
-    }
-    
-    func cost(for coinType: CoinType) -> Int {
-        switch coinType {
-            case .bronze: return bronzeCost
-            case .silver: return silverCost
-            case .gold: return goldCost
-        }
+    func backgroundColor(for type: CoinType) -> Color {
+        return coinTypes.first(where: { $0.type == type })?.backgroundColor ?? .black
     }
 
+    func textColor(for type: CoinType) -> Color {
+        return coinTypes.first(where: { $0.type == type })?.textColor ?? .white
+    }
+
+    func glowColor(for type: CoinType) -> Color {
+        return coinTypes.first(where: { $0.type == type })?.glowColor ?? .clear
+    }
 }
 
-enum CoinType: CaseIterable {
-    case bronze, silver, gold
+enum CoinType: String, CaseIterable {
+    case shibainu, xrp, cardano, dogecoin, solana, ethereum, bitcoin
 }
