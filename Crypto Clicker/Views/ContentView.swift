@@ -11,88 +11,73 @@ struct ContentView: View {
     
     @Binding var coins: CryptoCoin?
     @Environment(\.scenePhase) private var scenePhase
-    @EnvironmentObject var settings: SettingsModel // Use EnvironmentObject for shared settings
+    @EnvironmentObject var settings: SettingsModel
 
     @ObservedObject var store: CryptoStore
     @ObservedObject var powerUps: PowerUps
     @ObservedObject var exchangeModel: CoinExchangeModel
 
-    @State private var isInfoPresented = false // State to control Info sheet presentation
-    @State private var isAchievementsPresented = false // State to control AchievementsView
-    @State private var showStatsPopup = false // State to control stats popup visibility
+    @State private var isInfoPresented = false
+    @State private var selectedTab: Tab = .content // Default to the game tab
+    @State private var showStatsPopup = false // State for the stats popup
 
     let saveAction: () -> Void
+    
+    enum Tab {
+        case achievements, content, minigames
+    }
 
     var body: some View {
         
-        NavigationStack {
-            
-            ZStack {
+        ZStack {
+
+            NavigationStack {
                 
-                // Background view
-                BackgroundView(type: .default)
-                    .ignoresSafeArea() // Ensure it fills the entire screen
-
-                VStack(spacing: 12) { // Reduced spacing between elements
-                    Spacer(minLength: 10)
-
-                    if coins == nil {
-                        // Show Start Button if coin is not initialized
-                        Button(action: {
-                            coins = CryptoCoin(value: 0) // Initialize the coin
-                        }) {
-                            Text("Start Game")
-                                .font(.title2)
-                                .padding()
-                                .background(Color.green)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                        }
-                    } else {
-                        // Use the refactored CoinNumberView
-                        CoinNumberView(
-                            coinValue: Binding(
-                                get: { coins?.value ?? 0 },
-                                set: { coins?.value = $0 }
-                            ),
-                            showStatsPopup: $showStatsPopup
+                VStack {
+                    
+                    TabView(selection: $selectedTab) {
+                        // Achievements Tab
+                        AchievementsView (
+                            coins: $coins,
+                            coinsPerSecond: store.coinsPerSecond, // Pass coinsPerSecond
+                            coinsPerClick: store.coinsPerClick    // Pass coinsPerClick
                         )
-
-                        // CoinView handles the increment action
-                        CoinView(
-                            coinValue: Binding(
-                                get: { coins?.value ?? 0 },
-                                set: { newValue in coins?.value = newValue }
-                            ),
-                            settings: settings
-                        ) {
-                            store.incrementCoinValue()
+                        .tabItem {
+                            VStack {
+                                Image(systemName: "trophy.fill")
+                                Text("Achievements")
+                            }
                         }
+                        .tag(Tab.achievements)
 
-                        Spacer(minLength: 10)
+                        // Main Game Tab
+                        gameContentView
+                            .tabItem {
+                                
+                                VStack {
+                                    Image(systemName: "bitcoinsign.circle.fill")
+                                }
+                            }
+                            .tag(Tab.content)
 
-                        // Power button to display power-ups owned
-                        PowerButtonView(store: store, coins: $coins)
-                            .frame(width: UIScreen.main.bounds.width * 0.85) // Set to 85% of screen width
-                        
-                        // Exchange button to display Bronze, Silver, Gold coins
-                        ExchangeButtonView(exchangeModel: exchangeModel, coins: $coins)
-                            .frame(width: UIScreen.main.bounds.width * 0.85) // Set to 95% of screen width
-
-                        Spacer()
+                        // Mini Games Tab
+                        MiniGamesView()
+                            .tabItem {
+                                
+                                VStack {
+                                    Image(systemName: "gamecontroller.fill")
+                                    Text("Mini Games")
+                                }
+                            }
+                            .tag(Tab.minigames)
                     }
-
-                    Spacer()
+                    .background(Color.clear) // Ensure TabView background doesn't override the ZStack
                 }
                 .toolbar {
-                    
+                    // Top navigation bar buttons
                     ToolbarItem(placement: .navigationBarTrailing) {
                         
-                        NavigationLink(destination: SettingsView(
-                            coins: $coins,
-                            store: store,
-                            settings: settings
-                        )) {
+                        NavigationLink(destination: SettingsView(coins: $coins, store: store, settings: settings)) {
                             Image(systemName: "gearshape.fill")
                                 .imageScale(.large)
                         }
@@ -106,37 +91,9 @@ struct ContentView: View {
                                 .imageScale(.large)
                         }
                         .sheet(isPresented: $isInfoPresented) {
-                            InfoView() // Reference to the external InfoView file
+                            InfoView()
                         }
                     }
-                    ToolbarItem(placement: .principal) {
-                        
-                        Button(action: {
-                            isAchievementsPresented = true
-                        }) {
-                            Image(systemName: "trophy.fill")
-                                .imageScale(.large)
-                                .foregroundColor(.yellow)
-                        }
-                        .sheet(isPresented: $isAchievementsPresented) {
-                            AchievementsView() // Present AchievementsView
-                        }
-                    }
-                }
-                
-                // Popup overlay for coin stats
-                if showStatsPopup {
-                    
-                    CoinStatsPopupView(
-                        
-                        coinsPerSecond: store.coinsPerSecond,
-                        coinsPerClick: store.coinsPerClick,
-                        totalCoins: coins?.value ?? 0,
-                        
-                        onClose: {
-                            showStatsPopup = false
-                        }
-                    )
                 }
             }
         }
@@ -147,9 +104,77 @@ struct ContentView: View {
             }
         }
     }
+    
+    // Extracted game content view for readability
+    private var gameContentView: some View {
+        
+        ZStack {
+            // Background view always visible
+            BackgroundView(type: .default)
+                .ignoresSafeArea()
+
+            VStack(spacing: 12) {
+                
+                if coins == nil {
+                    // Show Start Button if coin is not initialized
+                    Button(action: {
+                        coins = CryptoCoin(value: 0)
+                    }) {
+                        Text("Start Game")
+                            .font(.title2)
+                            .padding()
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                } else {
+                    // Game content
+                    CoinNumberView (
+                        
+                        coinValue: Binding(
+                            get: { coins?.value ?? 0 },
+                            set: { coins?.value = $0 }
+                        ),
+                        showStatsPopup: $showStatsPopup // Pass the binding for the popup
+                    )
+                    
+                    CoinView(
+                        coinValue: Binding(
+                            get: { coins?.value ?? 0 },
+                            set: { coins?.value = $0 }
+                        ),
+                        settings: settings
+                    ) {
+                        store.incrementCoinValue()
+                    }
+                    
+                    PowerButtonView(store: store, coins: $coins)
+                        .frame(width: UIScreen.main.bounds.width * 0.85)
+                    
+                    ExchangeButtonView(exchangeModel: exchangeModel, coins: $coins)
+                        .frame(width: UIScreen.main.bounds.width * 0.85)
+                }
+            }
+            // Popup overlay for coin stats
+            if showStatsPopup {
+                
+                CoinStatsPopupView(
+                    
+                    coinsPerSecond: store.coinsPerSecond,
+                    coinsPerClick: store.coinsPerClick,
+                    totalCoins: coins?.value ?? 0,
+                    
+                    onClose: {
+                        showStatsPopup = false
+                    }
+                )
+            }
+        }
+    }
 }
 
 struct ContentView_Previews: PreviewProvider {
+    
     static var previews: some View {
         
         let store = CryptoStore()
@@ -157,16 +182,14 @@ struct ContentView_Previews: PreviewProvider {
         let exchangeModel = CoinExchangeModel()
         store.coins = CryptoCoin(value: 100)
 
-        return ContentView(
+        return ContentView (
+            
             coins: .constant(store.coins),
             store: store,
             powerUps: powerUps,
             exchangeModel: exchangeModel,
-            saveAction: {
-                store.incrementCoinValue()
-            }
+            saveAction: { store.incrementCoinValue() }
         )
-        .environmentObject(SettingsModel()) // Inject the shared SettingsModel
-        .previewLayout(.sizeThatFits)
+        .environmentObject(SettingsModel())
     }
 }

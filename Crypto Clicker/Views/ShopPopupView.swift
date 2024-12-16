@@ -12,7 +12,9 @@ struct ShopPopupView: View {
     @ObservedObject var model: ShopModel
 
     var body: some View {
+        
         if model.showMessage, let message = model.purchaseMessage {
+            
             Text(message)
                 .font(.headline)
                 .padding()

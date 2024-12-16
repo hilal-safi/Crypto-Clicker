@@ -8,26 +8,73 @@
 import SwiftUI
 
 struct AchievementsView: View {
+    
+    @ObservedObject private var model = AchievementsModel.shared
+    @Binding var coins: CryptoCoin?
+
+    let coinsPerSecond: Int
+    let coinsPerClick: Int
+
     var body: some View {
-        VStack {
-            Text("Achievements")
-                .font(.largeTitle)
-                .padding()
+        NavigationStack {
+            ZStack {
+                // Background
+                BackgroundView(type: .achievements)
+                    .ignoresSafeArea()
 
-            Spacer()
+                VStack(spacing: 16) {
+                    
+                    Text("Achievements")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .padding(.top)
 
-            Text("Here you can view all your achievements!")
-                .font(.body)
-                .multilineTextAlignment(.center)
-                .padding()
+                    // Achievements list
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(model.achievements, id: \.name) { achievement in
+                                AchievementItemView(
+                                    achievement: achievement,
+                                    progress: progress(for: achievement.name)
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                    }
+                }
+                .padding(.horizontal, 12)
+            }
+            .navigationTitle("Achievements")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
 
-            Spacer()
+    // Get progress dynamically based on achievement type
+    private func progress(for achievementName: String) -> Int {
+        
+        switch achievementName {
+            
+        case "Mining Coins":
+            return coins?.value ?? 0
+        case "Coins Per Second":
+            return coinsPerSecond
+        case "Coins Per Click":
+            return coinsPerClick
+            
+        default:
+            return 0
         }
     }
 }
 
 struct AchievementsView_Previews: PreviewProvider {
     static var previews: some View {
-        AchievementsView()
+        let mockCoins = CryptoCoin(value: 10000)
+
+        return AchievementsView (
+            coins: .constant(mockCoins),
+            coinsPerSecond: 15000,  // Mock value for coins per second
+            coinsPerClick: 50     // Mock value for coins per click
+        )
     }
 }

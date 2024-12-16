@@ -38,6 +38,9 @@
 		9EC1AC6F2C8FCE800055A38D /* CoinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC1AC6E2C8FCE800055A38D /* CoinView.swift */; };
 		9EC1AC712C97C13F0055A38D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC1AC702C97C13F0055A38D /* SettingsView.swift */; };
 		9EC655262D0F4C6400D94007 /* CoinNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC655252D0F4C5A00D94007 /* CoinNumberView.swift */; };
+		9EC655282D0FABC800D94007 /* AchievementsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC655272D0FABC400D94007 /* AchievementsModel.swift */; };
+		9EC6552A2D0FAE0900D94007 /* AchievementItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC655292D0FAE0500D94007 /* AchievementItemView.swift */; };
+		9EC6552C2D0FB49A00D94007 /* MiniGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC6552B2D0FB49500D94007 /* MiniGamesView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +95,9 @@
 		9EC1AC6E2C8FCE800055A38D /* CoinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinView.swift; sourceTree = "<group>"; };
 		9EC1AC702C97C13F0055A38D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9EC655252D0F4C5A00D94007 /* CoinNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinNumberView.swift; sourceTree = "<group>"; };
+		9EC655272D0FABC400D94007 /* AchievementsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementsModel.swift; sourceTree = "<group>"; };
+		9EC655292D0FAE0500D94007 /* AchievementItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementItemView.swift; sourceTree = "<group>"; };
+		9EC6552B2D0FB49500D94007 /* MiniGamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniGamesView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -179,6 +185,7 @@
 		9EC1AC682C8FCA870055A38D /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				9EC655272D0FABC400D94007 /* AchievementsModel.swift */,
 				9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */,
 				9EC1AC652C8FC96B0055A38D /* CryptoCoin.swift */,
 				9EC1AC632C8FC9330055A38D /* CryptoStore.swift */,
@@ -193,6 +200,7 @@
 		9EC1AC692C8FCA8D0055A38D /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				9EC655292D0FAE0500D94007 /* AchievementItemView.swift */,
 				9E4CD0822CF81D0E00328F86 /* AchievementsView.swift */,
 				9E39702D2CDD552200E461F6 /* BackgroundView.swift */,
 				9E4CD07C2CF808B000328F86 /* CoinExchangeView.swift */,
@@ -205,6 +213,7 @@
 				9E4CD08A2CFBD21200328F86 /* ExchangeItemView.swift */,
 				9EB1D9B02CFEC92B00924994 /* ExchangePopupView.swift */,
 				9E4CD0802CF817E400328F86 /* InfoView.swift */,
+				9EC6552B2D0FB49500D94007 /* MiniGamesView.swift */,
 				9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */,
 				9EB1D9B22D08FB8600924994 /* PowerUpScrollView.swift */,
 				9EC1AC702C97C13F0055A38D /* SettingsView.swift */,
@@ -351,15 +360,18 @@
 				9E4CD07F2CF80BE100328F86 /* ExchangeButtonView.swift in Sources */,
 				9EC1AC712C97C13F0055A38D /* SettingsView.swift in Sources */,
 				9EC1AC6D2C8FCC8C0055A38D /* ErrorView.swift in Sources */,
+				9EC6552C2D0FB49A00D94007 /* MiniGamesView.swift in Sources */,
 				9E4CD07D2CF808BB00328F86 /* CoinExchangeView.swift in Sources */,
 				9EC1AC6F2C8FCE800055A38D /* CoinView.swift in Sources */,
 				9E39702E2CDD552A00E461F6 /* BackgroundView.swift in Sources */,
+				9EC655282D0FABC800D94007 /* AchievementsModel.swift in Sources */,
 				9E4CD0752CF5878200328F86 /* ShopPopupView.swift in Sources */,
 				9EC1AC662C8FC96B0055A38D /* CryptoCoin.swift in Sources */,
 				9EC1AC3C2C8FA0850055A38D /* ContentView.swift in Sources */,
 				9EC1AC6B2C8FCAB60055A38D /* ErrorWrapper.swift in Sources */,
 				9E4CD08B2CFBD21900328F86 /* ExchangeItemView.swift in Sources */,
 				9E4CD0812CF817E800328F86 /* InfoView.swift in Sources */,
+				9EC6552A2D0FAE0900D94007 /* AchievementItemView.swift in Sources */,
 				9E39702A2CDD118B00E461F6 /* ShopView.swift in Sources */,
 				9EC655262D0F4C6400D94007 /* CoinNumberView.swift in Sources */,
 				9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */,

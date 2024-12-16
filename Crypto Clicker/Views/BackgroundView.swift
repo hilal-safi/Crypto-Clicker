@@ -12,14 +12,17 @@ struct BackgroundView: View {
     @Environment(\.colorScheme) var colorScheme // Use environment's color scheme
     
     enum BackgroundType {
-        case store, settings, `default`
+        case store, settings, achievements, `default`
     }
 
     let type: BackgroundType
     
     var body: some View {
+        
         ZStack {
+            
             switch type {
+                
             case .store:
                 // Background image with transparency and blur for store
                 Image("StoreBackground")
@@ -47,6 +50,21 @@ struct BackgroundView: View {
                 Color(colorScheme == .dark ? .black : .white)
                     .opacity(0.5)
                     .ignoresSafeArea()
+                
+            case .achievements:
+                // Background image with transparency and blur for settings
+                Image("AchievementsBackground")
+                    .resizable()
+                    .scaledToFill()
+                    .ignoresSafeArea()
+                    .opacity(0.3)
+                    .blur(radius: 2)
+                
+                // Adaptive color overlay
+                Color(colorScheme == .dark ? .black : .white)
+                    .opacity(0.5)
+                    .ignoresSafeArea()
+
 
             case .default:
                 // Default background image with transparency and blur
@@ -67,13 +85,18 @@ struct BackgroundView: View {
 }
 
 struct BackgroundView_Previews: PreviewProvider {
+    
     static var previews: some View {
+        
         Group {
             BackgroundView(type: .store)
                 .environment(\.colorScheme, .light)
             
             BackgroundView(type: .settings)
                 .environment(\.colorScheme, .dark)
+            
+            BackgroundView(type: .achievements)
+                .environment(\.colorScheme, .light)
             
             BackgroundView(type: .default)
                 .environment(\.colorScheme, .light)
