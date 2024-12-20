@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct BlackjackBottomView: View {
+    
+    @Environment(\.colorScheme) var colorScheme // Detect light or dark mode
     @ObservedObject var model: BlackjackModel
 
     var body: some View {
@@ -20,11 +22,15 @@ struct BlackjackBottomView: View {
             }
 
             // Buttons in a Single Line
-            HStack(spacing: 15) {
-                // Display Bet Amount
-                Text("Bet: \(model.betAmount)")
-                    .font(.headline)
-                    .padding()
+            HStack(spacing: 5) {
+                VStack {
+                    Text("Bet Amount:")
+                    
+                    // Display Bet Amount
+                    Text("\(model.betAmount)")
+                        .font(.title2)
+                        .bold()
+                }
 
                 // Place Bet Button
                 Button("Place Bet") {
@@ -32,10 +38,10 @@ struct BlackjackBottomView: View {
                 }
                 .font(.headline)
                 .padding()
-                .background(Color.green)
+                .background(model.gameState == .waitingForBet ? Color.green : Color.gray)
                 .foregroundColor(.black)
                 .cornerRadius(8)
-                .disabled(model.betPlaced)
+                .allowsHitTesting(model.gameState == .waitingForBet) // Enable/disable interaction
 
                 // Hit Button
                 Button("Hit") {
@@ -43,10 +49,10 @@ struct BlackjackBottomView: View {
                 }
                 .font(.headline)
                 .padding()
-                .background(Color.blue)
+                .background(model.gameState == .playerTurn ? Color.blue : Color.gray)
                 .foregroundColor(.black)
                 .cornerRadius(8)
-                .disabled(!model.betPlaced || model.gameOver)
+                .allowsHitTesting(model.gameState == .playerTurn) // Enable/disable interaction
 
                 // Stand Button
                 Button("Stand") {
@@ -54,10 +60,10 @@ struct BlackjackBottomView: View {
                 }
                 .font(.headline)
                 .padding()
-                .background(Color.red)
+                .background(model.gameState == .playerTurn ? Color.red : Color.gray)
                 .foregroundColor(.black)
                 .cornerRadius(8)
-                .disabled(!model.betPlaced || model.gameOver)
+                .allowsHitTesting(model.gameState == .playerTurn) // Enable/disable interaction
             }
         }
         .padding()
@@ -65,15 +71,22 @@ struct BlackjackBottomView: View {
 
     // Helper function to create bet adjustment controls
     private func betAdjustmentView(amount: Int) -> some View {
+        
         HStack(spacing: 2) {
+            
             Button(action: {
                 model.betAmount = max(1, model.betAmount - amount)
             }) {
                 Text("-")
                     .font(.headline)
                     .frame(width: 30, height: 30)
-                    .background(Color.gray.opacity(0.2))
+                    .background(colorScheme == .dark ? Color.black : Color.white)
+                    .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
                     .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.gray, lineWidth: 2)
+                    )
             }
 
             Text("\(amount)")
@@ -87,8 +100,13 @@ struct BlackjackBottomView: View {
                 Text("+")
                     .font(.headline)
                     .frame(width: 30, height: 30)
-                    .background(Color.gray.opacity(0.2))
+                    .background(colorScheme == .dark ? Color.black : Color.white)
+                    .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
                     .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.gray, lineWidth: 2)
+                    )
             }
         }
     }

@@ -8,9 +8,11 @@
 import SwiftUI
 
 struct BlackjackView: View {
+    
     @ObservedObject var model: BlackjackModel
 
     var body: some View {
+        
         ZStack {
             // Background
             BackgroundView(type: .default)

@@ -12,18 +12,33 @@ struct BlackjackMiddleView: View {
     @ObservedObject var model: BlackjackModel
 
     var body: some View {
+        
         VStack {
+            
             // Dealer's cards and value
             VStack {
+                
                 Text("Dealer's Hand")
                     .font(.headline)
-                HStack {
-                    ForEach(model.dealerHand, id: \.self) { card in
-                        BlackjackCardView(card: card)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    
+                    HStack {
+                        
+                        Spacer(minLength: 0) // For centering
+
+                        ForEach(model.dealerHand, id: \.self) { card in
+                            BlackjackCardView(card: card)
+                        }
+                        .frame(alignment: .center)
+
+                        Spacer(minLength: 0) // Add spacer for centering
                     }
+                    .frame(alignment: .center)
                 }
                 Text("Dealer's Value: \(model.dealerValue)")
-                    .font(.subheadline)
+                    .font(.title3)
+                    .bold()
             }
             .padding()
 
@@ -31,30 +46,87 @@ struct BlackjackMiddleView: View {
 
             // Player's cards and value
             VStack {
+                
                 Text("Player's Hand")
                     .font(.headline)
-                HStack {
-                    ForEach(model.playerHand, id: \.self) { card in
-                        BlackjackCardView(card: card)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    
+                    HStack {
+                        
+                        Spacer(minLength: 0) // For centering
+                        
+                        ForEach(model.playerHand, id: \.self) { card in
+                            BlackjackCardView(card: card)
+                        }
+                        Spacer(minLength: 0) // Add spacer for centering
                     }
                 }
                 Text("Player's Value: \(model.playerValue)")
-                    .font(.subheadline)
+                    .font(.title3)
+                    .bold()
             }
             .padding()
 
             Divider()
 
             // Game result
-            if let result = model.gameResult {
-                Text(result)
-                    .font(.title)
-                    .foregroundColor(result.contains("Win") ? .green : .red)
-                    .padding()
-            } else {
+            switch model.gameState {
+                
+            case .waitingForBet:
+                
                 Text("Place your bet to start!")
                     .font(.headline)
                     .foregroundColor(.blue)
+                    .padding()
+                
+            case .playerTurn:
+                
+                Text("Select your action")
+                    .font(.headline)
+                    .foregroundColor(.orange)
+                    .padding()
+                
+            case .dealerTurn:
+                
+                Text("Dealer's turn. Please wait...")
+                    .font(.headline)
+                    .foregroundColor(.purple)
+                    .padding()
+                
+            case .playerWin:
+                
+                Text("You Win!")
+                    .font(.headline)
+                    .foregroundColor(.green)
+                    .padding()
+                
+            case .dealerWin:
+                
+                Text("You Lose!")
+                    .font(.headline)
+                    .foregroundColor(.red)
+                    .padding()
+                
+            case .tie:
+                
+                Text("It's a Draw!")
+                    .font(.headline)
+                    .foregroundColor(.orange)
+                    .padding()
+                
+            case .playerBust:
+                
+                Text("You Lose! Bust!")
+                    .font(.headline)
+                    .foregroundColor(.red)
+                    .padding()
+                
+            case .dealerBust:
+                
+                Text("You Win! Dealer Bust!")
+                    .font(.headline)
+                    .foregroundColor(.green)
                     .padding()
             }
         }
