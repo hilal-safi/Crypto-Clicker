@@ -26,6 +26,8 @@ class CoinExchangeModel: ObservableObject {
         }
     }
     
+    @Published var exchangedCoins: [String: Int] = [:]
+    
     // Popup properties
     @Published var popupMessage: String? = nil
     @Published var showMessage: Bool = false
@@ -37,7 +39,7 @@ class CoinExchangeModel: ObservableObject {
                 label: "Shiba Inu",
                 cost: 100,
                 count: UserDefaults.standard.integer(forKey: "shibaInuCount"),
-                imageName: "ShibaInu",
+                imageName: "shibainu_image",
                 backgroundColor: Color(red: 139 / 255, green: 0 / 255, blue: 0 / 255), // Red background
                 textColor: .white,
                 glowColor: .orange // Orange glow
@@ -47,7 +49,7 @@ class CoinExchangeModel: ObservableObject {
                 label: "XRP",
                 cost: 5000,
                 count: UserDefaults.standard.integer(forKey: "xrpCount"),
-                imageName: "XRP",
+                imageName: "xrp_image",
                 backgroundColor: .black, // Black background
                 textColor: .white,
                 glowColor: .white // White glow
@@ -57,7 +59,7 @@ class CoinExchangeModel: ObservableObject {
                 label: "Cardano",
                 cost: 10000,
                 count: UserDefaults.standard.integer(forKey: "cardanoCount"),
-                imageName: "Cardano",
+                imageName: "cardano_image",
                 backgroundColor: Color(red: 135 / 255, green: 206 / 255, blue: 250 / 255), // Blue background
                 textColor: .black,
                 glowColor: .cyan // Cyan glow
@@ -67,7 +69,7 @@ class CoinExchangeModel: ObservableObject {
                 label: "Dogecoin",
                 cost: 250,
                 count: UserDefaults.standard.integer(forKey: "dogecoinCount"),
-                imageName: "Dogecoin",
+                imageName: "dogecoin_image",
                 backgroundColor: Color(red: 205 / 255, green: 127 / 255, blue: 50 / 255), // Bronze background
                 textColor: .white,
                 glowColor: Color.brown // Bronze glow
@@ -77,7 +79,7 @@ class CoinExchangeModel: ObservableObject {
                 label: "Solana",
                 cost: 400000,
                 count: UserDefaults.standard.integer(forKey: "solanaCount"),
-                imageName: "Solana",
+                imageName: "solana_image",
                 backgroundColor: .purple, // Purple background
                 textColor: .white,
                 glowColor: Color(hue: 0.8, saturation: 0.7, brightness: 0.8) // Vibrant purple glow
@@ -87,7 +89,7 @@ class CoinExchangeModel: ObservableObject {
                 label: "Ethereum",
                 cost: 1000000,
                 count: UserDefaults.standard.integer(forKey: "ethereumCount"),
-                imageName: "Ethereum",
+                imageName: "ethereum_image",
                 backgroundColor: Color(red: 211 / 255, green: 211 / 255, blue: 211 / 255), // Silver background
                 textColor: .black,
                 glowColor: Color.gray // Silver glow
@@ -97,7 +99,7 @@ class CoinExchangeModel: ObservableObject {
                 label: "Bitcoin",
                 cost: 10000000,
                 count: UserDefaults.standard.integer(forKey: "bitcoinCount"),
-                imageName: "Bitcoin",
+                imageName: "bitcoin_image",
                 backgroundColor: Color(red: 255 / 255, green: 215 / 255, blue: 0 / 255), // Gold background
                 textColor: .black,
                 glowColor: Color.yellow // Gold glow

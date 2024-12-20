@@ -41,6 +41,13 @@
 		9EC655282D0FABC800D94007 /* AchievementsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC655272D0FABC400D94007 /* AchievementsModel.swift */; };
 		9EC6552A2D0FAE0900D94007 /* AchievementItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC655292D0FAE0500D94007 /* AchievementItemView.swift */; };
 		9EC6552C2D0FB49A00D94007 /* MiniGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC6552B2D0FB49500D94007 /* MiniGamesView.swift */; };
+		9EC6552E2D13BB4200D94007 /* BlackjackModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC6552D2D13BB3C00D94007 /* BlackjackModel.swift */; };
+		9EC655312D13BB7F00D94007 /* BlackjackCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC655302D13BB7C00D94007 /* BlackjackCardView.swift */; };
+		9EC655352D13BCEB00D94007 /* BlackjackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC655342D13BCE400D94007 /* BlackjackView.swift */; };
+		9EC655372D14DDEA00D94007 /* BlackjackTopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC655362D14DDE500D94007 /* BlackjackTopView.swift */; };
+		9EC655392D14DDFE00D94007 /* BlackjackMiddleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC655382D14DDF800D94007 /* BlackjackMiddleView.swift */; };
+		9EC6553B2D14DE3700D94007 /* BlackjackBottomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC6553A2D14DE2800D94007 /* BlackjackBottomView.swift */; };
+		9EC6553F2D14E9DC00D94007 /* CardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC6553E2D14E9DC00D94007 /* CardModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -98,6 +105,13 @@
 		9EC655272D0FABC400D94007 /* AchievementsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementsModel.swift; sourceTree = "<group>"; };
 		9EC655292D0FAE0500D94007 /* AchievementItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementItemView.swift; sourceTree = "<group>"; };
 		9EC6552B2D0FB49500D94007 /* MiniGamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniGamesView.swift; sourceTree = "<group>"; };
+		9EC6552D2D13BB3C00D94007 /* BlackjackModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlackjackModel.swift; sourceTree = "<group>"; };
+		9EC655302D13BB7C00D94007 /* BlackjackCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlackjackCardView.swift; sourceTree = "<group>"; };
+		9EC655342D13BCE400D94007 /* BlackjackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlackjackView.swift; sourceTree = "<group>"; };
+		9EC655362D14DDE500D94007 /* BlackjackTopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlackjackTopView.swift; sourceTree = "<group>"; };
+		9EC655382D14DDF800D94007 /* BlackjackMiddleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlackjackMiddleView.swift; sourceTree = "<group>"; };
+		9EC6553A2D14DE2800D94007 /* BlackjackBottomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlackjackBottomView.swift; sourceTree = "<group>"; };
+		9EC6553E2D14E9DC00D94007 /* CardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -186,6 +200,8 @@
 			isa = PBXGroup;
 			children = (
 				9EC655272D0FABC400D94007 /* AchievementsModel.swift */,
+				9EC6552D2D13BB3C00D94007 /* BlackjackModel.swift */,
+				9EC6553E2D14E9DC00D94007 /* CardModel.swift */,
 				9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */,
 				9EC1AC652C8FC96B0055A38D /* CryptoCoin.swift */,
 				9EC1AC632C8FC9330055A38D /* CryptoStore.swift */,
@@ -203,6 +219,11 @@
 				9EC655292D0FAE0500D94007 /* AchievementItemView.swift */,
 				9E4CD0822CF81D0E00328F86 /* AchievementsView.swift */,
 				9E39702D2CDD552200E461F6 /* BackgroundView.swift */,
+				9EC6553A2D14DE2800D94007 /* BlackjackBottomView.swift */,
+				9EC655302D13BB7C00D94007 /* BlackjackCardView.swift */,
+				9EC655382D14DDF800D94007 /* BlackjackMiddleView.swift */,
+				9EC655342D13BCE400D94007 /* BlackjackView.swift */,
+				9EC655362D14DDE500D94007 /* BlackjackTopView.swift */,
 				9E4CD07C2CF808B000328F86 /* CoinExchangeView.swift */,
 				9EC655252D0F4C5A00D94007 /* CoinNumberView.swift */,
 				9E4CD0882CFBC3F600328F86 /* CoinStatsPopupView.swift */,
@@ -357,17 +378,21 @@
 				9EC1AC642C8FC9330055A38D /* CryptoStore.swift in Sources */,
 				9E4CD0892CFBC3FE00328F86 /* CoinStatsPopupView.swift in Sources */,
 				9E4CD07B2CF8081E00328F86 /* CoinExchangeModel.swift in Sources */,
+				9EC655312D13BB7F00D94007 /* BlackjackCardView.swift in Sources */,
 				9E4CD07F2CF80BE100328F86 /* ExchangeButtonView.swift in Sources */,
 				9EC1AC712C97C13F0055A38D /* SettingsView.swift in Sources */,
 				9EC1AC6D2C8FCC8C0055A38D /* ErrorView.swift in Sources */,
 				9EC6552C2D0FB49A00D94007 /* MiniGamesView.swift in Sources */,
+				9EC6553F2D14E9DC00D94007 /* CardModel.swift in Sources */,
 				9E4CD07D2CF808BB00328F86 /* CoinExchangeView.swift in Sources */,
 				9EC1AC6F2C8FCE800055A38D /* CoinView.swift in Sources */,
+				9EC6553B2D14DE3700D94007 /* BlackjackBottomView.swift in Sources */,
 				9E39702E2CDD552A00E461F6 /* BackgroundView.swift in Sources */,
 				9EC655282D0FABC800D94007 /* AchievementsModel.swift in Sources */,
 				9E4CD0752CF5878200328F86 /* ShopPopupView.swift in Sources */,
 				9EC1AC662C8FC96B0055A38D /* CryptoCoin.swift in Sources */,
 				9EC1AC3C2C8FA0850055A38D /* ContentView.swift in Sources */,
+				9EC6552E2D13BB4200D94007 /* BlackjackModel.swift in Sources */,
 				9EC1AC6B2C8FCAB60055A38D /* ErrorWrapper.swift in Sources */,
 				9E4CD08B2CFBD21900328F86 /* ExchangeItemView.swift in Sources */,
 				9E4CD0812CF817E800328F86 /* InfoView.swift in Sources */,
@@ -378,11 +403,14 @@
 				9EC1AC3A2C8FA0850055A38D /* Crypto_ClickerApp.swift in Sources */,
 				9E3970362CDEB3FF00E461F6 /* PowerButtonView.swift in Sources */,
 				9EB1D9B32D08FB8F00924994 /* PowerUpScrollView.swift in Sources */,
+				9EC655372D14DDEA00D94007 /* BlackjackTopView.swift in Sources */,
+				9EC655392D14DDFE00D94007 /* BlackjackMiddleView.swift in Sources */,
 				9E4CD0792CF5885500328F86 /* ShopItemView.swift in Sources */,
 				9E39703A2CDF14D100E461F6 /* PowerUps.swift in Sources */,
 				9E4CD0832CF81D1C00328F86 /* AchievementsView.swift in Sources */,
 				9E3970322CDD7EF700E461F6 /* SettingsModel.swift in Sources */,
 				9EB1D9B12CFEC92E00924994 /* ExchangePopupView.swift in Sources */,
+				9EC655352D13BCEB00D94007 /* BlackjackView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

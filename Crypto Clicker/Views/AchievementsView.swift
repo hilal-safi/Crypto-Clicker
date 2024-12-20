@@ -16,7 +16,9 @@ struct AchievementsView: View {
     let coinsPerClick: Int
 
     var body: some View {
+        
         NavigationStack {
+            
             ZStack {
                 // Background
                 BackgroundView(type: .achievements)
@@ -31,8 +33,11 @@ struct AchievementsView: View {
 
                     // Achievements list
                     ScrollView {
+                        
                         LazyVStack(spacing: 12) {
+                            
                             ForEach(model.achievements, id: \.name) { achievement in
+                                
                                 AchievementItemView(
                                     achievement: achievement,
                                     progress: progress(for: achievement.name)
@@ -68,7 +73,9 @@ struct AchievementsView: View {
 }
 
 struct AchievementsView_Previews: PreviewProvider {
+    
     static var previews: some View {
+        
         let mockCoins = CryptoCoin(value: 10000)
 
         return AchievementsView (
