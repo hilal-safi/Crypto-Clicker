@@ -10,6 +10,8 @@ import SwiftUI
 struct BlackjackView: View {
     
     @ObservedObject var model: BlackjackModel
+    @ObservedObject var exchangeModel: CoinExchangeModel
+    @State private var showPopup = false
 
     var body: some View {
         
@@ -18,10 +20,10 @@ struct BlackjackView: View {
             BackgroundView(type: .default)
 
             VStack(spacing: 0) {
-                // Top View: Displays balance
+                // Top View: Displays balance and coin selection
                 BlackjackTopView(
-                    initialBalance: model.initialBalance,
-                    playerBalance: model.playerBalance
+                    selectedCoin: $model.selectedCoinType, // Ensure the correct label matches
+                    exchangeModel: exchangeModel
                 )
                 .padding(.top, 40)
 
@@ -38,11 +40,11 @@ struct BlackjackView: View {
             }
 
             // Overlay for Out of Coins
-            if model.playerBalance <= 0 {
+            if exchangeModel.count(for: model.selectedCoinType) <= 0 && showPopup {
                 ZStack {
                     Color.black.opacity(0.8).ignoresSafeArea()
                     VStack {
-                        Text("You're out of coins!")
+                        Text("You're out of \(model.selectedCoinType.rawValue)!")
                             .font(.largeTitle)
                             .foregroundColor(.white)
                             .padding()
@@ -53,12 +55,12 @@ struct BlackjackView: View {
                             .padding()
 
                         Button(action: {
-                            // Navigate to earn coins or reset
+                            showPopup = false // Close popup
                         }) {
-                            Text("Earn Coins")
+                            Text("Close")
                                 .font(.headline)
                                 .padding()
-                                .background(Color.green)
+                                .background(Color.gray)
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
                         }
@@ -66,11 +68,20 @@ struct BlackjackView: View {
                 }
             }
         }
+        .onAppear {
+            showPopup = exchangeModel.count(for: model.selectedCoinType) <= 0
+        }
     }
 }
 
 struct BlackjackView_Previews: PreviewProvider {
+    
     static var previews: some View {
-        BlackjackView(model: BlackjackModel(initialBalance: 1000, playerBalance: 1000))
+        let exchangeModel = CoinExchangeModel()
+        exchangeModel.setExampleCount(for: .dogecoin, count: 1000) // Set Dogecoin count to 1000
+        
+        let model = BlackjackModel(exchangeModel: exchangeModel)
+        
+        return BlackjackView(model: model, exchangeModel: exchangeModel)
     }
 }

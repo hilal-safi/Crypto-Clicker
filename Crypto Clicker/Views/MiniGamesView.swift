@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct MiniGamesView: View {
+    
+    @ObservedObject var exchangeModel: CoinExchangeModel
+    @StateObject private var blackjackModel = BlackjackModel(exchangeModel: CoinExchangeModel())
 
     var body: some View {
         
@@ -27,7 +30,10 @@ struct MiniGamesView: View {
                     Spacer()
 
                     // Navigation link to the Blackjack game
-                    NavigationLink(destination: BlackjackView(model: BlackjackModel(initialBalance: 1000, playerBalance: 1000))) {
+                    NavigationLink(destination: BlackjackView(
+                        model: blackjackModel, // Pass `blackjackModel` as `model`
+                        exchangeModel: exchangeModel)
+                    ) {
                         Text("Play Blackjack")
                             .font(.title2)
                             .padding()
@@ -50,6 +56,11 @@ struct MiniGamesView: View {
 struct MiniGamesView_Previews: PreviewProvider {
     
     static var previews: some View {
-        return MiniGamesView()
+        
+        let exchangeModel = CoinExchangeModel()
+        // Create the `exchangeModel` for previews
+        
+        return MiniGamesView(exchangeModel: exchangeModel)
+        // `blackjackModel` is created within the view
     }
 }

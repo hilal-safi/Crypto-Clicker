@@ -71,9 +71,7 @@ struct BlackjackBottomView: View {
 
     // Helper function to create bet adjustment controls
     private func betAdjustmentView(amount: Int) -> some View {
-        
         HStack(spacing: 2) {
-            
             Button(action: {
                 model.betAmount = max(1, model.betAmount - amount)
             }) {
@@ -113,9 +111,12 @@ struct BlackjackBottomView: View {
 }
 
 struct BlackjackBottomView_Previews: PreviewProvider {
-    @StateObject static var model = BlackjackModel(initialBalance: 10000, playerBalance: 5000)
-
+    
     static var previews: some View {
+        
+        let exchangeModel = CoinExchangeModel()
+        let model = BlackjackModel(exchangeModel: exchangeModel)
+        
         BlackjackBottomView(model: model)
     }
 }

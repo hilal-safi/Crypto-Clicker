@@ -18,9 +18,10 @@ struct BlackjackMiddleView: View {
             // Dealer's cards and value
             VStack {
                 
-                Text("Dealer's Hand")
-                    .font(.headline)
-                
+                Text("Dealer's Value: \(model.dealerValue)")
+                    .font(.title3)
+                    .bold()
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     
                     HStack {
@@ -36,20 +37,14 @@ struct BlackjackMiddleView: View {
                     }
                     .frame(alignment: .center)
                 }
-                Text("Dealer's Value: \(model.dealerValue)")
-                    .font(.title3)
-                    .bold()
             }
-            .padding()
-
+            .padding(.horizontal)
+            
             Divider()
 
             // Player's cards and value
             VStack {
-                
-                Text("Player's Hand")
-                    .font(.headline)
-                
+                                
                 ScrollView(.horizontal, showsIndicators: false) {
                     
                     HStack {
@@ -66,7 +61,7 @@ struct BlackjackMiddleView: View {
                     .font(.title3)
                     .bold()
             }
-            .padding()
+            .padding(.horizontal)
 
             Divider()
 
@@ -130,12 +125,16 @@ struct BlackjackMiddleView: View {
                     .padding()
             }
         }
-        .padding()
     }
 }
 
 struct BlackjackMiddleView_Previews: PreviewProvider {
+    
     static var previews: some View {
-        BlackjackMiddleView(model: BlackjackModel(initialBalance: 1000, playerBalance: 1000))
+        
+        let exchangeModel = CoinExchangeModel()
+        let model = BlackjackModel(exchangeModel: exchangeModel)
+        
+        BlackjackMiddleView(model: model)
     }
 }

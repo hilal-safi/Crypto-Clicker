@@ -11,49 +11,41 @@ struct ExchangeButtonView: View {
     
     @ObservedObject var exchangeModel: CoinExchangeModel
     @Binding var coins: CryptoCoin?
-
+    
     var body: some View {
         
         NavigationLink(
             destination: CoinExchangeView(coins: $coins, exchangeModel: exchangeModel)
         ) {
-            ScrollView(.horizontal, showsIndicators: false) { // Add horizontal scroll
+            ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 20) {
-                    coinTypeViews // Sub-expression for ForEach
+                    ForEach(exchangeModel.allCoinViews, id: \.type) { coinInfo in
+                        coinView(for: coinInfo)
+                    }
                 }
             }
-            .padding(.vertical, 8) // Reduced vertical padding
-            .padding(.horizontal, 12) // Adjust horizontal padding
-            .background(Color.blue.opacity(0.1)) // Light blue background tint
-            .cornerRadius(12) // Rounded corners
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.blue, lineWidth: 1) // Outline for the button
+                    .stroke(Color.blue, lineWidth: 1)
             )
         }
     }
     
-    // Sub-expression for coin type views
-    private var coinTypeViews: some View {
-        
-        ForEach(CoinType.allCases, id: \.self) { coinType in
-            coinView(for: coinType)
-        }
-    }
-
-    // Sub-expression for individual coin view
-    private func coinView(for coinType: CoinType) -> some View {
+    private func coinView(for coinInfo: CoinExchangeModel.CoinTypeInfo) -> some View {
         
         VStack {
-            
-            Image(exchangeModel.image(for: coinType))
+            Image(coinInfo.imageName)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 48, height: 48) // Adjust the size of the image
+                .frame(width: 48, height: 48)
             
-            Text("\(exchangeModel.count(for: coinType))")
-                .font(.system(size: 24, weight: .semibold)) // Display the coin count
-                .foregroundColor(.blue) // Ensure the text matches the UI style
+            Text("\(coinInfo.count)")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(.blue)
         }
     }
 }

@@ -45,6 +45,16 @@ class CoinExchangeModel: ObservableObject {
                 glowColor: .orange // Orange glow
             ),
             CoinTypeInfo(
+                type: .dogecoin,
+                label: "Dogecoin",
+                cost: 250,
+                count: UserDefaults.standard.integer(forKey: "dogecoinCount"),
+                imageName: "dogecoin_image",
+                backgroundColor: Color(red: 205 / 255, green: 127 / 255, blue: 50 / 255), // Bronze background
+                textColor: .white,
+                glowColor: Color.brown // Bronze glow
+            ),
+            CoinTypeInfo(
                 type: .xrp,
                 label: "XRP",
                 cost: 5000,
@@ -63,16 +73,6 @@ class CoinExchangeModel: ObservableObject {
                 backgroundColor: Color(red: 135 / 255, green: 206 / 255, blue: 250 / 255), // Blue background
                 textColor: .black,
                 glowColor: .cyan // Cyan glow
-            ),
-            CoinTypeInfo(
-                type: .dogecoin,
-                label: "Dogecoin",
-                cost: 250,
-                count: UserDefaults.standard.integer(forKey: "dogecoinCount"),
-                imageName: "dogecoin_image",
-                backgroundColor: Color(red: 205 / 255, green: 127 / 255, blue: 50 / 255), // Bronze background
-                textColor: .white,
-                glowColor: Color.brown // Bronze glow
             ),
             CoinTypeInfo(
                 type: .solana,
@@ -170,6 +170,22 @@ class CoinExchangeModel: ObservableObject {
 
     func glowColor(for type: CoinType) -> Color {
         return coinTypes.first(where: { $0.type == type })?.glowColor ?? .clear
+    }
+    
+    var allCoinViews: [CoinTypeInfo] {
+        return coinTypes
+    }
+    
+    func updateCoinCount(for type: CoinType, by amount: Int) {
+        if let index = coinTypes.firstIndex(where: { $0.type == type }) {
+            coinTypes[index].count = max(0, coinTypes[index].count + amount)
+        }
+    }
+    
+    func setExampleCount(for coin: CoinType, count: Int) {
+        if let index = coinTypes.firstIndex(where: { $0.type == coin }) {
+            coinTypes[index].count = count
+        }
     }
 }
 

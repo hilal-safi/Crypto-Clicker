@@ -2,38 +2,70 @@
 //  BlackjackTopView.swift
 //  Crypto Clicker
 //
-//  Created by Hilal Safi on 2024-12-19.
+//  Created by Hilal Safi.
 //
 
 import SwiftUI
 
 struct BlackjackTopView: View {
-    let initialBalance: Int
-    let playerBalance: Int
+    
+    @Binding var selectedCoin: CoinType
+    @ObservedObject var exchangeModel: CoinExchangeModel
     
     var body: some View {
-        VStack(spacing: 10) {
-            HStack {
-                Text("Initial: \(initialBalance)")
-                    .font(.title3)
-                Spacer()
-                Text("Gained/Lost: \(playerBalance - initialBalance)")
-                    .font(.title3)
-                    .foregroundColor(playerBalance - initialBalance >= 0 ? .green : .red)
+        
+        VStack {
+            // Coin Selector
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(exchangeModel.allCoinViews, id: \.type) { coin in
+                        Button(action: {
+                            selectedCoin = coin.type
+                        }) {
+                            VStack {
+                                Image(coin.imageName)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 32, height: 32) // Adjust image size
+                            }
+                            .padding()
+                            .background(selectedCoin == coin.type ? Color.blue.opacity(0.4) : Color.gray.opacity(0.4))
+                            .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(selectedCoin == coin.type ? Color.blue : Color.clear, lineWidth: 2)
+                            )
+                        }
+                    }
+                }
             }
-            .font(.subheadline)
-            .padding(.horizontal)
+            .padding()
+            .background(Color.gray.opacity(0.4))
+            .cornerRadius(10)
             
-            Text("Current Balance: \(playerBalance)")
-                .font(.title3)
-                .fontWeight(.bold)
+            // Display current coin count
+            HStack {
+                
+                Text("Available \(selectedCoin.rawValue.capitalized):")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Text("\(exchangeModel.count(for: selectedCoin))")
+                    .font(.headline)
+            }
+            .padding(.horizontal)
         }
-        .padding(.top)
+        .padding()
     }
 }
 
 struct BlackjackTopView_Previews: PreviewProvider {
+    
     static var previews: some View {
-        BlackjackTopView(initialBalance: 1000, playerBalance: 900)
+        
+        let exchangeModel = CoinExchangeModel()
+        
+        return BlackjackTopView(selectedCoin: .constant(.dogecoin), exchangeModel: exchangeModel)
     }
 }

@@ -61,7 +61,7 @@ struct ContentView: View {
                             .tag(Tab.content)
 
                         // Mini Games Tab
-                        MiniGamesView()
+                        MiniGamesView(exchangeModel: exchangeModel)
                             .tabItem {
                                 
                                 VStack {
