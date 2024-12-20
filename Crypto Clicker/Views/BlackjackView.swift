@@ -9,7 +9,6 @@ import SwiftUI
 
 struct BlackjackView: View {
     @ObservedObject var model: BlackjackModel
-    @State private var gameResult: String?
 
     var body: some View {
         ZStack {
@@ -17,58 +16,25 @@ struct BlackjackView: View {
             BackgroundView(type: .default)
 
             VStack(spacing: 0) {
-                // Top View: Fixed at the top
+                // Top View: Displays balance
                 BlackjackTopView(
                     initialBalance: model.initialBalance,
                     playerBalance: model.playerBalance
                 )
                 .padding(.top, 40)
-                
-                Spacer()
-
-                // Middle View: Displays dealer and player cards
-                BlackjackMiddleView(
-                    dealerHand: model.dealerHand,
-                    playerHand: model.playerHand,
-                    dealerValue: model.dealerValue,
-                    playerValue: model.playerValue,
-                    betPlaced: model.betPlaced
-                )
-                .onAppear {
-                    debugPrint("Dealer Hand: \(model.dealerHand)")
-                    debugPrint("Player Hand: \(model.playerHand)")
-                }
 
                 Spacer()
 
-                // Game Result Display
-                if let result = gameResult {
-                    Text(result)
-                        .font(.headline)
-                        .foregroundColor(result.contains("Win") ? .green : .red)
-                        .padding()
-                }
+                // Middle View: Displays cards, values, and game result
+                BlackjackMiddleView(model: model)
 
-                // Start Game Button (Initial round only)
-                if !model.betPlaced && model.playerHand.isEmpty && model.dealerHand.isEmpty {
-                    Button(action: {
-                        gameResult = nil
-                        model.startGame()
-                    }) {
-                        Text("Start Game")
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                    .padding()
-                }
+                Spacer()
 
-                // Bottom View: Handles betting and game controls
+                // Bottom View: Manages all controls (betting, hit, stand)
                 BlackjackBottomView(model: model)
-                .padding(.bottom, 20)
+                    .padding(.bottom, 20)
             }
-            
+
             // Overlay for Out of Coins
             if model.playerBalance <= 0 {
                 ZStack {

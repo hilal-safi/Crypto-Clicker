@@ -8,78 +8,62 @@
 import SwiftUI
 
 struct BlackjackMiddleView: View {
-    let dealerHand: [Card]
-    let playerHand: [Card]
-    let dealerValue: Int
-    let playerValue: Int
-    let betPlaced: Bool
     
+    @ObservedObject var model: BlackjackModel
+
     var body: some View {
-        
-        if betPlaced {
-            
-            VStack(spacing: 20) {
-                // Dealer's Hand
-                dealerSection
-                
-                // Player's Hand
-                playerSection
-            }
-        } else {
-            Spacer()
-                .frame(height: 200) // Placeholder space when the game has not started
-        }
-    }
-    
-    private var dealerSection: some View {
         VStack {
-            Text("Dealer")
-                .font(.headline)
-            HStack {
-                ForEach(dealerHand, id: \.self) { card in
-                    BlackjackCardView(card: card)
+            // Dealer's cards and value
+            VStack {
+                Text("Dealer's Hand")
+                    .font(.headline)
+                HStack {
+                    ForEach(model.dealerHand, id: \.self) { card in
+                        BlackjackCardView(card: card)
+                    }
                 }
+                Text("Dealer's Value: \(model.dealerValue)")
+                    .font(.subheadline)
             }
-            Text("Value: \(dealerValue)")
-                .font(.title2)
-                .bold()
+            .padding()
+
+            Divider()
+
+            // Player's cards and value
+            VStack {
+                Text("Player's Hand")
+                    .font(.headline)
+                HStack {
+                    ForEach(model.playerHand, id: \.self) { card in
+                        BlackjackCardView(card: card)
+                    }
+                }
+                Text("Player's Value: \(model.playerValue)")
+                    .font(.subheadline)
+            }
+            .padding()
+
+            Divider()
+
+            // Game result
+            if let result = model.gameResult {
+                Text(result)
+                    .font(.title)
+                    .foregroundColor(result.contains("Win") ? .green : .red)
+                    .padding()
+            } else {
+                Text("Place your bet to start!")
+                    .font(.headline)
+                    .foregroundColor(.blue)
+                    .padding()
+            }
         }
         .padding()
-    }
-    
-    private var playerSection: some View {
-        VStack {
-            Text("Player")
-                .font(.headline)
-            HStack {
-                ForEach(playerHand, id: \.self) { card in
-                    BlackjackCardView(card: card)
-                }
-            }
-            Text("Value: \(playerValue)")
-                .font(.title2)
-                .bold()
-        }
-        .padding()
-    }
-    
-    // Helper method to calculate dynamic card width
-    private func calculateCardWidth() -> CGFloat {
-        let screenWidth = UIScreen.main.bounds.width
-        let cardCount = max(playerHand.count, dealerHand.count)
-        let maxCards = max(cardCount, 5)
-        return screenWidth / CGFloat(maxCards) - 10
     }
 }
 
 struct BlackjackMiddleView_Previews: PreviewProvider {
     static var previews: some View {
-        BlackjackMiddleView(
-            dealerHand: [.example],
-            playerHand: [.example],
-            dealerValue: 20,
-            playerValue: 21,
-            betPlaced: true
-        )
+        BlackjackMiddleView(model: BlackjackModel(initialBalance: 1000, playerBalance: 1000))
     }
 }

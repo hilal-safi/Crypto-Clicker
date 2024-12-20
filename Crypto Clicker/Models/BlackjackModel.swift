@@ -8,17 +8,26 @@
 import Foundation
 
 class BlackjackModel: ObservableObject {
+    
     @Published var initialBalance: Int
     @Published var playerBalance: Int
+    
     @Published var dealerHand: [Card] = []
     @Published var playerHand: [Card] = []
+    
     @Published var dealerValue: Int = 0
     @Published var playerValue: Int = 0
+    
     @Published var betPlaced: Bool = false
     @Published var betAmount: Int = 0
-
+    
+    @Published var gameResult: String?
+    @Published var gameState: BlackjackGameState = .waitingForBet
+    @Published var gameOver: Bool = false
+    @Published var resultMessage: String? = nil
+    
     private var deck: [Card] = []
-
+    
     init(initialBalance: Int, playerBalance: Int) {
         self.initialBalance = initialBalance
         self.playerBalance = playerBalance
@@ -53,50 +62,81 @@ class BlackjackModel: ObservableObject {
     // MARK: - Game Logic
     
     func placeBet(amount: Int) {
+        
         guard amount > 0, playerBalance >= amount else {
             print("Invalid bet. Amount: \(amount), Player Balance: \(playerBalance)")
             return
         }
+        
         betAmount = amount
         playerBalance -= amount
         betPlaced = true
+        
         print("Bet placed: \(amount). Player balance is now: \(playerBalance)")
         startGame()
     }
     
     func startGame() {
+        
         print("Starting a new game...")
+        
         dealerHand = [drawCard(), drawCard()]
         playerHand = [drawCard(), drawCard()]
         calculateHandValues()
+        
         print("Game started. Dealer Hand: \(dealerHand), Player Hand: \(playerHand)")
     }
     
     func hitPlayer() {
-        guard betPlaced else {
-            print("Cannot hit. No bet has been placed.")
+        
+        guard betPlaced, !gameOver else {
+            print("Cannot hit. Either no bet has been placed or the game is over.")
             return
         }
+        
         let card = drawCard()
         playerHand.append(card)
+        
         print("Player hits and draws: \(card.suit)\(card.value)")
         calculateHandValues()
+        
+        if playerValue > 21 {
+            
+            gameState = .playerBust
+            resultMessage = "You Lose! Bust!"
+            
+            gameOver = true
+            print("Player busts. Game over.")
+        }
     }
-    
+
     func stand() {
-        guard betPlaced else {
-            print("Cannot stand. No bet has been placed.")
+        
+        guard betPlaced, !gameOver else {
+            print("Cannot stand. Either no bet has been placed or the game is over.")
             return
         }
         print("Player stands. Dealer's turn.")
+        gameState = .dealerTurn
+        
+        // Dealer's turn to draw cards
         while dealerValue < 17 {
+            
             let card = drawCard()
             dealerHand.append(card)
+            
             print("Dealer draws: \(card.suit)\(card.value)")
             calculateHandValues()
         }
+        
+        // Check win condition after dealer finishes
+        let result = checkWinCondition()
+        resultMessage = result
+        
+        gameOver = true
+        print("Game Result: \(result)")
     }
-    
+
     private func calculateHandValues() {
         playerValue = calculateHandValue(for: playerHand)
         dealerValue = calculateHandValue(for: dealerHand)
@@ -104,14 +144,19 @@ class BlackjackModel: ObservableObject {
     }
     
     private func calculateHandValue(for hand: [Card]) -> Int {
+        
         var total = 0
         var aceCount = 0
+        
         for card in hand {
+            
             if card.value == 1 { // Ace
                 aceCount += 1
                 total += 11 // Count ace as 11 initially
+                
             } else if card.value >= 10 {
                 total += 10 // Face cards are worth 10
+                
             } else {
                 total += card.value
             }
@@ -124,31 +169,73 @@ class BlackjackModel: ObservableObject {
     }
     
     func checkWinCondition() -> String {
+        
         if playerValue > 21 {
+            
+            resultMessage = "You Lose! Bust!"
+            gameOver = true
+            
             print("Player busts. Dealer wins.")
-            return "You Lose! Bust!"
+            return resultMessage!
+            
         } else if dealerValue > 21 {
+            
+            resultMessage = "You Win! Dealer Bust!"
+            gameOver = true
+            
             print("Dealer busts. Player wins.")
-            return "You Win! Dealer Bust!"
+            return resultMessage!
+            
         } else if playerValue > dealerValue {
+            
+            resultMessage = "You Win!"
+            gameOver = true
+            
             print("Player wins with \(playerValue) over Dealer's \(dealerValue).")
-            return "You Win!"
+            return resultMessage!
+            
         } else if dealerValue > playerValue {
+            
+            resultMessage = "You Lose!"
+            gameOver = true
+            
             print("Dealer wins with \(dealerValue) over Player's \(playerValue).")
-            return "You Lose!"
+            return resultMessage!
+            
         } else {
+            
+            resultMessage = "It's a Draw!"
+            gameOver = true
+            
             print("It's a draw. Player: \(playerValue), Dealer: \(dealerValue).")
-            return "It's a Draw!"
+            return resultMessage!
         }
     }
-
+    
+    enum BlackjackGameState {
+        case waitingForBet
+        case playerTurn
+        case dealerTurn
+        case playerWin
+        case dealerWin
+        case tie
+        case playerBust
+        case dealerBust
+    }
+    
     func resetGame() {
+        
         dealerHand = []
         playerHand = []
+        
         dealerValue = 0
         playerValue = 0
+        
         betPlaced = false
         betAmount = 0
+        resultMessage = nil
+        gameOver = false
+        
         print("Game has been reset.")
     }
 }
