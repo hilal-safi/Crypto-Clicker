@@ -20,7 +20,7 @@ struct Card: Identifiable, Hashable {
             ("6", 6), ("7", 7), ("8", 8), ("9", 9), ("10", 10),
             ("J", 10), ("Q", 10), ("K", 10)
         ]
-        let suits = ["♠", "♥", "♦", "♣"]
+        let suits = ["♠️", "♥️", "♦️", "♣️"]
 
         return suits.flatMap { suit in
             ranksWithValues.map { rank, value in
@@ -29,6 +29,14 @@ struct Card: Identifiable, Hashable {
         }
     }
     
-    static let example = Card(suit: "Hearts", value: 10)
-
+    var displayValue: String {
+        switch value {
+        case 1: return "A"
+        case 11: return "J"
+        case 12: return "Q"
+        case 13: return "K"
+        default: return "\(value)"
+        }
+    }
+    static let example = Card(suit: "♥️", value: 10)
 }

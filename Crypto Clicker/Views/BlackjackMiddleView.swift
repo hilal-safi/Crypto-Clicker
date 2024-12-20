@@ -15,7 +15,9 @@ struct BlackjackMiddleView: View {
     let betPlaced: Bool
     
     var body: some View {
+        
         if betPlaced {
+            
             VStack(spacing: 20) {
                 // Dealer's Hand
                 dealerSection
@@ -30,34 +32,35 @@ struct BlackjackMiddleView: View {
     }
     
     private var dealerSection: some View {
-        VStack(spacing: 8) {
-            Text("Dealer's Hand (Value: \(dealerValue))")
+        VStack {
+            Text("Dealer")
                 .font(.headline)
             HStack {
-                ForEach(dealerHand) { card in
+                ForEach(dealerHand, id: \.self) { card in
                     BlackjackCardView(card: card)
-                        .aspectRatio(2/3, contentMode: .fit)
-                        .frame(maxWidth: calculateCardWidth(), maxHeight: calculateCardWidth() * 1.5)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .center)
+            Text("Value: \(dealerValue)")
+                .font(.title2)
+                .bold()
         }
-        .padding(.bottom, 8)
+        .padding()
     }
     
     private var playerSection: some View {
-        VStack(spacing: 8) {
+        VStack {
+            Text("Player")
+                .font(.headline)
             HStack {
-                ForEach(playerHand) { card in
+                ForEach(playerHand, id: \.self) { card in
                     BlackjackCardView(card: card)
-                        .aspectRatio(2/3, contentMode: .fit)
-                        .frame(maxWidth: calculateCardWidth(), maxHeight: calculateCardWidth() * 1.5)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .center)
-            Text("Your Hand (Value: \(playerValue))")
-                .font(.headline)
+            Text("Value: \(playerValue)")
+                .font(.title2)
+                .bold()
         }
+        .padding()
     }
     
     // Helper method to calculate dynamic card width

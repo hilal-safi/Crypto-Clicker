@@ -15,16 +15,20 @@ struct BlackjackTopView: View {
         VStack(spacing: 10) {
             HStack {
                 Text("Initial: \(initialBalance)")
+                    .font(.title3)
                 Spacer()
                 Text("Gained/Lost: \(playerBalance - initialBalance)")
+                    .font(.title3)
                     .foregroundColor(playerBalance - initialBalance >= 0 ? .green : .red)
             }
             .font(.subheadline)
             .padding(.horizontal)
             
             Text("Current Balance: \(playerBalance)")
-                .font(.headline)
+                .font(.title3)
+                .fontWeight(.bold)
         }
+        .padding(.top)
     }
 }
 

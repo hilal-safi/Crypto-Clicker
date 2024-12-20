@@ -11,14 +11,22 @@ struct BlackjackCardView: View {
     let card: Card
 
     var body: some View {
-        VStack {
-            Text("\(card.value)")
-            Text(card.suit)
+        ZStack {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.white)
+                .shadow(radius: 3)
+                .frame(width: 80, height: 120)
+            
+            VStack {
+                Text(card.displayValue)
+                    .font(.title)
+                    .bold()
+                    .foregroundColor(card.suit == "♠" || card.suit == "♣" ? .black : .red)
+                Text(card.suit)
+                    .font(.largeTitle)
+                    .foregroundColor(card.suit == "♠" || card.suit == "♣" ? .black : .red)
+            }
         }
-        .frame(width: 50, height: 75)
-        .background(Color.white)
-        .cornerRadius(5)
-        .shadow(radius: 5)
     }
 }
 
