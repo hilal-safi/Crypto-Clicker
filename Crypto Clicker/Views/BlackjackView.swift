@@ -11,13 +11,13 @@ struct BlackjackView: View {
     
     @ObservedObject var model: BlackjackModel
     @ObservedObject var exchangeModel: CoinExchangeModel
-    @State private var showPopup = false
-
+    @Environment(\.colorScheme) var colorScheme
+    
     var body: some View {
         
         ZStack {
             // Background
-            BackgroundView(type: .default)
+            BackgroundView(type: .blackjack)
 
             VStack(spacing: 0) {
                 // Top View: Displays balance and coin selection
@@ -25,12 +25,27 @@ struct BlackjackView: View {
                     selectedCoin: $model.selectedCoinType, // Ensure the correct label matches
                     exchangeModel: exchangeModel
                 )
-                .padding(.top, 40)
+                .padding(.top, 30)
+                .disabled(model.gameState != .waitingForBet) // Disable coin selection while the game is active
 
                 Spacer()
 
-                // Middle View: Displays cards, values, and game result
+                // Middle View: Displays cards and values
                 BlackjackMiddleView(model: model)
+
+                Spacer()
+
+                // Message View: Displays result and error messages
+                BlackjackMessageView(model: model)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(
+                                Color(colorScheme == .dark ? .gray : .lightGray)
+                                    .opacity(0.7)
+                            )
+                            .padding()
+                    )
 
                 Spacer()
 
@@ -38,38 +53,6 @@ struct BlackjackView: View {
                 BlackjackBottomView(model: model)
                     .padding(.bottom, 20)
             }
-
-            // Overlay for Out of Coins
-            if exchangeModel.count(for: model.selectedCoinType) <= 0 && showPopup {
-                ZStack {
-                    Color.black.opacity(0.8).ignoresSafeArea()
-                    VStack {
-                        Text("You're out of \(model.selectedCoinType.rawValue)!")
-                            .font(.largeTitle)
-                            .foregroundColor(.white)
-                            .padding()
-
-                        Text("Earn more before playing again.")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding()
-
-                        Button(action: {
-                            showPopup = false // Close popup
-                        }) {
-                            Text("Close")
-                                .font(.headline)
-                                .padding()
-                                .background(Color.gray)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                    }
-                }
-            }
-        }
-        .onAppear {
-            showPopup = exchangeModel.count(for: model.selectedCoinType) <= 0
         }
     }
 }

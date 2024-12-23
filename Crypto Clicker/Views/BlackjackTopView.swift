@@ -11,18 +11,24 @@ struct BlackjackTopView: View {
     
     @Binding var selectedCoin: CoinType
     @ObservedObject var exchangeModel: CoinExchangeModel
-    
+    @State private var initialCoins: Int = 0 // Track initial coin count
+
     var body: some View {
         
         VStack {
             // Coin Selector
             ScrollView(.horizontal, showsIndicators: false) {
+                
                 HStack(spacing: 16) {
+                    
                     ForEach(exchangeModel.allCoinViews, id: \.type) { coin in
+                        
                         Button(action: {
                             selectedCoin = coin.type
                         }) {
+                            
                             VStack {
+                                
                                 Image(coin.imageName)
                                     .resizable()
                                     .scaledToFit()
@@ -55,8 +61,30 @@ struct BlackjackTopView: View {
                     .font(.headline)
             }
             .padding(.horizontal)
+            
+            // New line for coins won/lost
+            HStack {
+                
+                Text("Coins Won/Lost:")
+                    .font(.headline)
+                
+                let coinDifference = exchangeModel.count(for: selectedCoin) - initialCoins
+                
+                Spacer()
+
+                Text(coinDifference >= 0 ? "+\(coinDifference)" : "\(coinDifference)")
+                    .font(.headline)
+                    .bold()
+                    .foregroundColor(coinDifference >= 0 ? .green : .red)
+            }
+            .padding(.horizontal)
         }
         .padding()
+        
+        .onAppear {
+            // Set initial coin count when the view appears
+            initialCoins = exchangeModel.count(for: selectedCoin)
+        }
     }
 }
 

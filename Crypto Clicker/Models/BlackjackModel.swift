@@ -14,12 +14,13 @@ class BlackjackModel: ObservableObject {
     
     @Published var dealerHand: [Card] = []
     @Published var playerHand: [Card] = []
+    @Published var dealerSecondCardHidden: Bool = true
     
     @Published var dealerValue: Int = 0
     @Published var playerValue: Int = 0
     
     @Published var betPlaced: Bool = false
-    @Published var betAmount: Int = 0
+    @Published var betAmount: Int = 1
     
     @Published var gameState: BlackjackGameState = .waitingForBet
     @Published var gameOver: Bool = false
@@ -28,6 +29,7 @@ class BlackjackModel: ObservableObject {
     private var deck: [Card] = []
 
     init(exchangeModel: CoinExchangeModel) {
+        
         self.exchangeModel = exchangeModel
         self.deck = createDeck().shuffled()
         print("Game initialized with \(selectedCoinType.rawValue) balance: \(exchangeModel.count(for: selectedCoinType))")
@@ -36,6 +38,7 @@ class BlackjackModel: ObservableObject {
     // MARK: - Deck and Card Management
 
     func createDeck() -> [Card] {
+        
         let suits = ["♠", "♥", "♦", "♣"]
         let values = (1...13).map { $0 }
         
@@ -50,6 +53,7 @@ class BlackjackModel: ObservableObject {
     }
     
     func drawCard() -> Card {
+        
         if deck.isEmpty {
             print("Deck is empty. Creating and shuffling a new deck.")
             deck = createDeck().shuffled()
@@ -63,20 +67,19 @@ class BlackjackModel: ObservableObject {
     // MARK: - Game Logic
 
     func placeBet(amount: Int) {
+        
         guard amount > 0, exchangeModel.count(for: selectedCoinType) >= amount else {
             print("Invalid bet. Amount: \(amount), \(selectedCoinType.rawValue) Balance: \(exchangeModel.count(for: selectedCoinType))")
             resultMessage = "Insufficient balance to place the bet."
             return
         }
-        
+
         // Deduct coins and reset game state
         exchangeModel.updateCoinCount(for: selectedCoinType, by: -amount)
         betAmount = amount
-        dealerHand = []
-        playerHand = []
-        dealerValue = 0
-        playerValue = 0
+            
         betPlaced = true
+        dealerSecondCardHidden = true // Reset the hidden state
         gameState = .playerTurn
         gameOver = false
         resultMessage = nil
@@ -86,16 +89,20 @@ class BlackjackModel: ObservableObject {
     }
     
     func startGame() {
+        
         print("Starting a new game...")
         
         dealerHand = [drawCard(), drawCard()]
         playerHand = [drawCard(), drawCard()]
+        dealerSecondCardHidden = true // Hide dealer's second card initially
+
         calculateHandValues()
         
         print("Game started. Dealer Hand: \(dealerHand), Player Hand: \(playerHand)")
     }
     
     func hitPlayer() {
+        
         guard betPlaced, !gameOver else {
             print("Cannot hit. Either no bet has been placed or the game is over.")
             return
@@ -108,12 +115,13 @@ class BlackjackModel: ObservableObject {
         calculateHandValues()
         
         if playerValue > 21 {
+            
             gameState = .playerBust
             resultMessage = "You Lose! Bust!"
             gameOver = true
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self.resetGame()
+                self.endGame()
             }
 
             print("Player busts. Game over.")
@@ -121,6 +129,7 @@ class BlackjackModel: ObservableObject {
     }
     
     func stand() {
+        
         guard betPlaced, !gameOver else {
             print("Cannot stand. Either no bet has been placed or the game is over.")
             return
@@ -132,39 +141,54 @@ class BlackjackModel: ObservableObject {
     }
     
     func handleDealerTurn() {
+        
         guard gameState == .dealerTurn else { return }
+        dealerSecondCardHidden = false // Reveal the dealer's second card
 
         print("Dealer's turn starts.")
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self = self else { return }
 
             if self.dealerValue < 17 {
+                
                 let card = self.drawCard()
+                
                 self.dealerHand.append(card)
                 self.calculateHandValues()
+                
                 print("Dealer draws: \(card.suit)\(card.value)")
 
                 if self.dealerValue > 21 {
+                    
                     self.gameState = .dealerBust
                     self.resultMessage = "You Win! Dealer Bust!"
+                    
+                    self.exchangeModel.rewardCoins(for: self.selectedCoinType, amount: self.betAmount * 2) // Reward on dealer bust
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        self.resetGame()
+                        self.endGame()
                     }
+                    
                 } else {
                     self.handleDealerTurn()
                 }
             } else {
+                
                 print("Dealer stands.")
+                
                 let result = self.checkWinCondition()
                 self.resultMessage = result
+                
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    self.resetGame()
+                    self.endGame()
                 }
             }
         }
     }
     
     private func calculateHandValues() {
+        
         playerValue = calculateHandValue(for: playerHand)
         dealerValue = calculateHandValue(for: dealerHand)
         
@@ -172,6 +196,7 @@ class BlackjackModel: ObservableObject {
     }
     
     private func calculateHandValue(for hand: [Card]) -> Int {
+        
         var total = 0
         var aceCount = 0
         
@@ -195,11 +220,12 @@ class BlackjackModel: ObservableObject {
     func checkWinCondition() -> String {
         
         if playerValue > 21 {
+            
             resultMessage = "You Lose! Bust!"
             gameState = .dealerWin
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self.resetGame()
+                self.endGame()
             }
             
             print("Player busts. Dealer wins.")
@@ -210,9 +236,10 @@ class BlackjackModel: ObservableObject {
             resultMessage = "You Win! Dealer Bust!"
             gameState = .playerWin
             
-            reward(amount: betAmount * 2)
+            exchangeModel.rewardCoins(for: selectedCoinType, amount: betAmount * 2) // Reward 2x bet
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self.resetGame()
+                self.endGame()
             }
             
             print("Dealer busts. Player wins.")
@@ -223,9 +250,10 @@ class BlackjackModel: ObservableObject {
             resultMessage = "You Win!"
             gameState = .playerWin
             
-            reward(amount: betAmount * 2)
+            exchangeModel.rewardCoins(for: selectedCoinType, amount: betAmount * 2) // Reward 2x bet
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self.resetGame()
+                self.endGame()
             }
             
             print("Player wins with \(playerValue) over Dealer's \(dealerValue).")
@@ -237,7 +265,7 @@ class BlackjackModel: ObservableObject {
             gameState = .dealerWin
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self.resetGame()
+                self.endGame()
             }
             
             print("Dealer wins with \(dealerValue) over Player's \(playerValue).")
@@ -248,9 +276,10 @@ class BlackjackModel: ObservableObject {
             resultMessage = "It's a Draw!"
             gameState = .tie
             
-            reward(amount: betAmount)
+            exchangeModel.refundBet(for: selectedCoinType, amount: betAmount) // Refund bet on draw
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self.resetGame()
+                self.endGame()
             }
             
             print("It's a draw. Player: \(playerValue), Dealer: \(dealerValue).")
@@ -258,17 +287,25 @@ class BlackjackModel: ObservableObject {
         }
     }
     
-    func reward(amount: Int) {
-        exchangeModel.updateCoinCount(for: selectedCoinType, by: amount)
-        print("Player rewarded \(amount). New \(selectedCoinType.rawValue) balance: \(exchangeModel.count(for: selectedCoinType))")
+    func endGame() {
+        
+        gameOver = true // Triggers UI transition to "New Game" button
+        resultMessage = "Game Over!"
+        print("Game over. Waiting for the player to start a new game.")
     }
     
     func resetGame() {
+        
         betPlaced = false
-        betAmount = 0
-        resultMessage = nil
-        gameOver = false
+        betAmount = 1
+        dealerHand = []
+        playerHand = []
+        dealerValue = 0
+        playerValue = 0
+        dealerSecondCardHidden = true
         gameState = .waitingForBet
+        gameOver = false
+        resultMessage = nil
         print("Game has been reset. Ready for a new round.")
     }
     

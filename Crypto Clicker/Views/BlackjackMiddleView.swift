@@ -18,20 +18,30 @@ struct BlackjackMiddleView: View {
             // Dealer's cards and value
             VStack {
                 
-                Text("Dealer's Value: \(model.dealerValue)")
+                Text("Dealer's Value: \(model.gameState == .waitingForBet ? "??" : "\(model.dealerSecondCardHidden ? model.dealerHand.first?.value ?? 0 : model.dealerValue)")")
                     .font(.title3)
                     .bold()
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     
                     HStack {
-                        
                         Spacer(minLength: 0) // For centering
 
-                        ForEach(model.dealerHand, id: \.self) { card in
-                            BlackjackCardView(card: card)
+                        if model.gameState == .waitingForBet {
+                            // Show two blank cards before the game starts
+                            ForEach(0..<2, id: \.self) { _ in
+                                BlackjackCardView(card: Card(suit: "🂠", value: 0))
+                            }
+                        } else {
+                            // Show dealer's actual cards during the game
+                            ForEach(model.dealerHand.indices, id: \.self) { index in
+                                if index == 1 && model.dealerSecondCardHidden {
+                                    BlackjackCardView(card: Card(suit: "🂠", value: 0))
+                                } else {
+                                    BlackjackCardView(card: model.dealerHand[index])
+                                }
+                            }
                         }
-                        .frame(alignment: .center)
 
                         Spacer(minLength: 0) // Add spacer for centering
                     }
@@ -48,82 +58,30 @@ struct BlackjackMiddleView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     
                     HStack {
-                        
                         Spacer(minLength: 0) // For centering
                         
-                        ForEach(model.playerHand, id: \.self) { card in
-                            BlackjackCardView(card: card)
+                        if model.gameState == .waitingForBet {
+                            // Show two blank cards before the game starts
+                            ForEach(0..<2, id: \.self) { _ in
+                                BlackjackCardView(card: Card(suit: "🂠", value: 0))
+                            }
+                        } else {
+                            // Show player's actual cards during the game
+                            ForEach(model.playerHand, id: \.self) { card in
+                                BlackjackCardView(card: card)
+                            }
                         }
                         Spacer(minLength: 0) // Add spacer for centering
                     }
                 }
-                Text("Player's Value: \(model.playerValue)")
+                
+                Text("Player's Value: \(model.gameState == .waitingForBet ? "??" : "\(model.playerValue)")")
                     .font(.title3)
                     .bold()
             }
             .padding(.horizontal)
 
             Divider()
-
-            // Game result
-            switch model.gameState {
-                
-            case .waitingForBet:
-                
-                Text("Place your bet to start!")
-                    .font(.headline)
-                    .foregroundColor(.blue)
-                    .padding()
-                
-            case .playerTurn:
-                
-                Text("Select your action")
-                    .font(.headline)
-                    .foregroundColor(.orange)
-                    .padding()
-                
-            case .dealerTurn:
-                
-                Text("Dealer's turn. Please wait...")
-                    .font(.headline)
-                    .foregroundColor(.purple)
-                    .padding()
-                
-            case .playerWin:
-                
-                Text("You Win!")
-                    .font(.headline)
-                    .foregroundColor(.green)
-                    .padding()
-                
-            case .dealerWin:
-                
-                Text("You Lose!")
-                    .font(.headline)
-                    .foregroundColor(.red)
-                    .padding()
-                
-            case .tie:
-                
-                Text("It's a Draw!")
-                    .font(.headline)
-                    .foregroundColor(.orange)
-                    .padding()
-                
-            case .playerBust:
-                
-                Text("You Lose! Bust!")
-                    .font(.headline)
-                    .foregroundColor(.red)
-                    .padding()
-                
-            case .dealerBust:
-                
-                Text("You Win! Dealer Bust!")
-                    .font(.headline)
-                    .foregroundColor(.green)
-                    .padding()
-            }
         }
     }
 }

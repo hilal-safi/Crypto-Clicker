@@ -12,75 +12,52 @@ struct BackgroundView: View {
     @Environment(\.colorScheme) var colorScheme // Use environment's color scheme
     
     enum BackgroundType {
-        case store, settings, achievements, `default`
+        case store, settings, achievements, minigames, blackjack, `default`
     }
 
     let type: BackgroundType
     
     var body: some View {
-        
-        ZStack {
-            
-            switch type {
-                
-            case .store:
-                // Background image with transparency and blur for store
-                Image("StoreBackground")
-                    .resizable()
-                    .scaledToFill()
-                    .ignoresSafeArea()
-                    .opacity(0.3)
-                    .blur(radius: 2)
-                
-                // Adaptive color overlay
-                Color(colorScheme == .dark ? .black : .white)
-                    .opacity(0.5)
-                    .ignoresSafeArea()
-
-            case .settings:
-                // Background image with transparency and blur for settings
-                Image("SettingsBackground")
-                    .resizable()
-                    .scaledToFill()
-                    .ignoresSafeArea()
-                    .opacity(0.3)
-                    .blur(radius: 2)
-                
-                // Adaptive color overlay
-                Color(colorScheme == .dark ? .black : .white)
-                    .opacity(0.5)
-                    .ignoresSafeArea()
-                
-            case .achievements:
-                // Background image with transparency and blur for settings
-                Image("AchievementsBackground")
-                    .resizable()
-                    .scaledToFill()
-                    .ignoresSafeArea()
-                    .opacity(0.3)
-                    .blur(radius: 2)
-                
-                // Adaptive color overlay
-                Color(colorScheme == .dark ? .black : .white)
-                    .opacity(0.5)
-                    .ignoresSafeArea()
-
-
-            case .default:
-                // Default background image with transparency and blur
-                Image("Background")
-                    .resizable()
-                    .scaledToFill()
-                    .ignoresSafeArea()
-                    .opacity(0.3)
-                    .blur(radius: 2)
-                
-                // Adaptive color overlay
-                Color(colorScheme == .dark ? .black : .white)
-                    .opacity(0.5)
-                    .ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                backgroundImage(for: type, geometry: geometry)
+                adaptiveOverlay
             }
         }
+        .ignoresSafeArea()
+    }
+    
+    // MARK: - Helper Views
+
+    /// Provides the appropriate background image with common styling.
+    private func backgroundImage(for type: BackgroundType, geometry: GeometryProxy) -> some View {
+        
+        let imageName: String
+        
+        switch type {
+            case .store: imageName = "StoreBackground"
+            case .settings: imageName = "SettingsBackground"
+            case .achievements: imageName = "AchievementsBackground"
+            case .minigames: imageName = "MiniGamesBackground"
+            case .blackjack: imageName = "BlackjackBackground"
+            case .default: imageName = "Background"
+        }
+        
+        return Image(imageName)
+            .resizable()
+            .scaledToFill()
+            .frame(width: geometry.size.width, height: geometry.size.height) // Match screen size
+            .position(x: geometry.size.width / 2, y: geometry.size.height / 2) // Center the image
+            .opacity(0.3)
+            .blur(radius: 2)
+    }
+    
+    /// Adds an adaptive overlay for dark/light mode.
+    private var adaptiveOverlay: some View {
+        
+        Color(colorScheme == .dark ? .black : .white)
+            .opacity(0.5)
+            .ignoresSafeArea()
     }
 }
 
@@ -97,6 +74,9 @@ struct BackgroundView_Previews: PreviewProvider {
             
             BackgroundView(type: .achievements)
                 .environment(\.colorScheme, .light)
+            
+            BackgroundView(type: .blackjack)
+                .environment(\.colorScheme, .dark)
             
             BackgroundView(type: .default)
                 .environment(\.colorScheme, .light)

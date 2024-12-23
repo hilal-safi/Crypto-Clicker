@@ -18,7 +18,7 @@ struct MiniGamesView: View {
             
             ZStack {
                 // Background
-                BackgroundView(type: .achievements)
+                BackgroundView(type: .minigames)
                     .ignoresSafeArea()
 
                 VStack(spacing: 16) {

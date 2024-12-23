@@ -13,57 +13,99 @@ struct BlackjackBottomView: View {
     @ObservedObject var model: BlackjackModel
 
     var body: some View {
+        
         VStack(spacing: 10) {
-            // Bet Adjustment Controls
-            HStack(spacing: 15) {
-                betAdjustmentView(amount: 1)
-                betAdjustmentView(amount: 100)
-                betAdjustmentView(amount: 10000)
+            
+            HStack {
+                Text("Bet Amount:")
+                    .font(.title2)
+
+                // Display Bet Amount
+                Text("\(model.betAmount)")
+                    .font(.title2)
+                    .bold()
+            }
+
+            
+            // Bet Adjustment Controls (only visible when the game has not started)
+            if model.gameState == .waitingForBet {
+                HStack(spacing: 15) {
+                    betAdjustmentView(amount: 1)
+                    betAdjustmentView(amount: 100)
+                    betAdjustmentView(amount: 10000)
+                }
             }
 
             // Buttons in a Single Line
             HStack(spacing: 5) {
-                VStack {
-                    Text("Bet Amount:")
+
+                if model.gameOver {
+                    // Single "New Game" button when the game is over
+                    Button(action: {
+                        model.resetGame()
+                    }) {
+                        Text("New Game")
+                            .font(.headline)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                    }
+                } else {
+                    // Place Bet Button (only visible when the game has not started)
+                    if model.gameState == .waitingForBet {
+                        Button("Place Bet") {
+                            model.placeBet(amount: model.betAmount)
+                        }
+                        .font(.headline)
+                        .padding()
+                        .background(Color.green)
+                        .foregroundColor(.black)
+                        .cornerRadius(8)
+                    }
                     
-                    // Display Bet Amount
-                    Text("\(model.betAmount)")
-                        .font(.title2)
-                        .bold()
-                }
+                    // Hit and Stand Buttons (only visible when the game has started)
+                    if model.gameState == .playerTurn {
+                        
+                        Button("Hit") {
+                            model.hitPlayer()
+                        }
+                        .font(.headline)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.black)
+                        .cornerRadius(8)
+                        
+                        Button("Stand") {
+                            model.stand()
+                        }
+                        .font(.headline)
+                        .padding()
+                        .background(Color.red)
+                        .foregroundColor(.black)
+                        .cornerRadius(8)
+                        
+                        // Disabled Double Down Button
+                        Button("Double Down") {}
+                            .font(.headline)
+                            .padding()
+                            .background(Color.gray)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                            .disabled(true) // Greyed out and disabled
 
-                // Place Bet Button
-                Button("Place Bet") {
-                    model.placeBet(amount: model.betAmount)
-                }
-                .font(.headline)
-                .padding()
-                .background(model.gameState == .waitingForBet ? Color.green : Color.gray)
-                .foregroundColor(.black)
-                .cornerRadius(8)
-                .allowsHitTesting(model.gameState == .waitingForBet) // Enable/disable interaction
+                        // Disabled Split Button
+                        Button("Split") {}
+                            .font(.headline)
+                            .padding()
+                            .background(Color.gray)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                            .disabled(true) // Greyed out and disabled
 
-                // Hit Button
-                Button("Hit") {
-                    model.hitPlayer()
+                    }
                 }
-                .font(.headline)
-                .padding()
-                .background(model.gameState == .playerTurn ? Color.blue : Color.gray)
-                .foregroundColor(.black)
-                .cornerRadius(8)
-                .allowsHitTesting(model.gameState == .playerTurn) // Enable/disable interaction
-
-                // Stand Button
-                Button("Stand") {
-                    model.stand()
-                }
-                .font(.headline)
-                .padding()
-                .background(model.gameState == .playerTurn ? Color.red : Color.gray)
-                .foregroundColor(.black)
-                .cornerRadius(8)
-                .allowsHitTesting(model.gameState == .playerTurn) // Enable/disable interaction
             }
         }
         .padding()
