@@ -8,14 +8,22 @@
 import SwiftUI
 
 struct BlackjackCardView: View {
+    
     let card: Card
+    @Environment(\.colorScheme) var colorScheme // Access the current color scheme
 
     var body: some View {
         
         ZStack {
             
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.white)
+                .fill(
+                    Color(
+                        colorScheme == .dark
+                            ? Color(red: 0.5, green: 0.5, blue: 0.5) // Darker grey for dark mode
+                            : Color(red: 1, green: 1, blue: 1) // Lighter grey for light mode
+                    )
+                )
                 .shadow(radius: 3)
                 .frame(width: 80, height: 120)
             

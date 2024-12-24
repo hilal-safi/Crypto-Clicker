@@ -13,129 +13,45 @@ struct BlackjackMessageView: View {
     @Environment(\.colorScheme) var colorScheme // Detect light or dark mode
     
     var body: some View {
+        // Get the current message and its type
+        let (text, type) = model.currentMessage()
         
-        // Message content
-        VStack {
-            
-            if let resultMessage = model.resultMessage {
-                
-                // Show game result message
-                Text(resultMessage)
-                    .font(.title2)
-                    .foregroundColor(colorScheme == .dark ? .green : .green) // Always green for win result
-                    .bold()
-                    .multilineTextAlignment(.center) // Center-align long text
-                    .lineLimit(nil) // Allow unlimited lines
-                    .padding()
-                
-            } else {
-                
-                // Show messages based on the game state
-                switch model.gameState {
-                    
-                case .waitingForBet:
-                    
-                    if model.betAmount <= 0 {
-                        
-                        Text("Bet amount must be greater than 0.")
-                            .font(.title2)
-                            .foregroundColor(.red)
-                            .bold()
-                            .multilineTextAlignment(.center)
-                            .lineLimit(nil)
-                            .padding()
-                        
-                    } else if model.betAmount > model.exchangeModel.count(for: model.selectedCoinType) {
-                        
-                        Text("Bet exceeds available coins.")
-                            .font(.title2)
-                            .foregroundColor(.red)
-                            .bold()
-                            .multilineTextAlignment(.center)
-                            .lineLimit(nil)
-                            .padding()
-                        
-                    } else {
-                        
-                        Text("Place your bet to start!")
-                            .font(.title2)
-                            .foregroundColor(colorScheme == .dark ? Color.blue.opacity(0.7) : .blue) // Lighter blue in dark mode
-                            .bold()
-                            .multilineTextAlignment(.center)
-                            .lineLimit(nil)
-                            .padding()
-                    }
-                    
-                case .playerTurn:
-                    
-                    Text("Select your action")
-                        .font(.title2)
-                        .foregroundColor(colorScheme == .dark ? Color.blue.opacity(0.7) : .blue) // Lighter blue in dark mode
-                        .bold()
-                        .padding()
-                    
-                case .dealerTurn:
-                    
-                    Text("Dealer's turn. Please wait...")
-                        .font(.title2)
-                        .foregroundColor(colorScheme == .dark ? Color.purple.opacity(0.7) : .purple) // Lighter purple in dark mode
-                        .bold()
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .padding()
-                    
-                case .playerWin:
-                    
-                    Text("You Win!")
-                        .font(.title2)
-                        .foregroundColor(.green) // Always green for win
-                        .bold()
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .padding()
-                    
-                case .dealerWin:
-                    
-                    Text("You Lose!")
-                        .font(.title2)
-                        .foregroundColor(.red) // Always red for loss
-                        .bold()
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .padding()
-                    
-                case .tie:
-                    
-                    Text("It's a Draw!")
-                        .font(.title2)
-                        .foregroundColor(colorScheme == .dark ? Color.blue.opacity(0.7) : .blue) // Lighter blue in dark mode
-                        .bold()
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .padding()
-                    
-                case .playerBust:
-                    
-                    Text("You Lose! Bust!")
-                        .font(.title2)
-                        .foregroundColor(.red) // Always red for loss
-                        .bold()
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .padding()
-                    
-                case .dealerBust:
-                    
-                    Text("You Win! Dealer Bust!")
-                        .font(.title2)
-                        .foregroundColor(.green) // Always green for win
-                        .bold()
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .padding()
-                }
-            }
+        // Display the message with appropriate color
+        ScrollView { // Allows scrolling for very long text
+            Text(text)
+                .font(.title2)
+                .foregroundColor(getTextColor(for: type))
+                .bold()
+                .multilineTextAlignment(.center) // Aligns the text to the center
+                .lineLimit(nil) // Allows the text to wrap onto multiple lines
+                .frame(maxWidth: .infinity) // Ensures the text spans across the available width
+                .padding()
         }
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(getBackgroundColor()) // Dynamically set background color
+                .opacity(0.8)
+        )
+        .padding()
+    }
+    
+    /// Determines the text color based on the message type
+    private func getTextColor(for type: MessageType) -> Color {
+        switch type {
+        case .win:
+            return colorScheme == .dark ? Color(red: 0.0, green: 0.7, blue: 0.0) : Color(red: 0.0, green: 0.5, blue: 0.0)
+        case .loss:
+            return colorScheme == .dark ? Color(red: 0.8, green: 0.0, blue: 0.0) : Color(red: 0.6, green: 0.0, blue: 0.0)
+        case .tie, .info:
+            return colorScheme == .dark ? Color(red: 0.0, green: 0.4, blue: 0.8) : Color(red: 0.0, green: 0.3, blue: 0.6)
+        }
+    }
+    
+    /// Dynamically set background color based on the color scheme
+    private func getBackgroundColor() -> Color {
+        colorScheme == .dark
+            ? Color(red: 0.2, green: 0.2, blue: 0.2) // Darker grey for dark mode
+            : Color(red: 0.9, green: 0.9, blue: 0.9) // Lighter grey for light mode
     }
 }
 

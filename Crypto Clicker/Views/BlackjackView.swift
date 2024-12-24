@@ -25,33 +25,27 @@ struct BlackjackView: View {
                         selectedCoin: $model.selectedCoinType,
                         exchangeModel: exchangeModel
                     )
-                    .frame(height: geometry.size.height * 0.16) // Adjusted to 16% of the screen height
-                    .padding(.top, 20)
+                    .frame(height: geometry.size.height * 0.18) // 18% of the screen height
+                    .padding(.vertical, 8)
                     .disabled(model.gameState != .waitingForBet)
 
                     // Middle View: Displays cards and values
                     BlackjackMiddleView(model: model)
-                        .frame(height: geometry.size.height * 0.55) // Adjusted to 55% of the screen height
-                        .layoutPriority(1) // Higher priority to avoid getting cut off
-                        .padding(.vertical, 10)
+                        .frame(height: geometry.size.height * 0.50) // Adjusted to 52% of the screen height
+                        .layoutPriority(1) // Ensures content gets priority over other views
+                        .padding(.vertical, 5)
 
                     // Message View: Displays result and error messages
                     BlackjackMessageView(model: model)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(
-                                    Color(colorScheme == .dark ? .gray : .lightGray)
-                                        .opacity(0.8)
-                                )
-                                .padding()
-                        )
-                        .frame(height: geometry.size.height * 0.03) // 3% of the screen height
+                        .fixedSize(horizontal: false, vertical: true) // Ensures height adjusts to content
+                        .padding(.horizontal, 16)
+                        .frame(maxHeight: geometry.size.height * 0.10) // Maximum 10% height for messages
+                        .padding(.vertical, 8)
 
                     // Bottom View: Manages all controls (betting, hit, stand)
                     BlackjackBottomView(model: model)
-                        .frame(height: geometry.size.height * 0.25) // 25% of the screen height
-                        .padding(.bottom, 16) // Adjusted padding to prevent cutoff
+                        .frame(height: geometry.size.height * 0.20) // Ensures 20% height for controls
+                        .padding(.bottom, 10)
                 }
             }
         }

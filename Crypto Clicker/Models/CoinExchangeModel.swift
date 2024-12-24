@@ -178,29 +178,21 @@ class CoinExchangeModel: ObservableObject {
     
     // Methods related to Blackjack
     
-    func updateCoinCount(for type: CoinType, by amount: Int) {
+    // Update coin count dynamically and return the updated value
+    func updateCoinCount(for type: CoinType, by amount: Int) -> Int {
         if let index = coinTypes.firstIndex(where: { $0.type == type }) {
-            coinTypes[index].count = max(0, coinTypes[index].count + amount)
+            let newCount = max(0, coinTypes[index].count + amount)
+            coinTypes[index].count = newCount
+            saveCoinsToUserDefaults()
+            return newCount
         }
+        return 0
     }
 
     func setExampleCount(for coin: CoinType, count: Int) {
         if let index = coinTypes.firstIndex(where: { $0.type == coin }) {
             coinTypes[index].count = count
         }
-    }
-    
-    
-    func rewardCoins(for type: CoinType, amount: Int) {
-        if let index = coinTypes.firstIndex(where: { $0.type == type }) {
-            coinTypes[index].count += amount
-            popupMessage = "\(amount) \(coinTypes[index].label) coins rewarded!"
-            showPopupWithAnimation()
-        }
-    }
-
-    func refundBet(for type: CoinType, amount: Int) {
-        rewardCoins(for: type, amount: amount) // Refund is the same as reward
     }
 }
 
