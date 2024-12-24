@@ -22,7 +22,7 @@ struct BlackjackMessageView: View {
                 // Show game result message
                 Text(resultMessage)
                     .font(.title2)
-                    .foregroundColor(colorScheme == .dark ? .white : .black) // Black in light mode, white in dark mode
+                    .foregroundColor(colorScheme == .dark ? .green : .green) // Always green for win result
                     .bold()
                     .multilineTextAlignment(.center) // Center-align long text
                     .lineLimit(nil) // Allow unlimited lines
@@ -59,7 +59,7 @@ struct BlackjackMessageView: View {
                         
                         Text("Place your bet to start!")
                             .font(.title2)
-                            .foregroundColor(.blue)
+                            .foregroundColor(colorScheme == .dark ? Color.blue.opacity(0.7) : .blue) // Lighter blue in dark mode
                             .bold()
                             .multilineTextAlignment(.center)
                             .lineLimit(nil)
@@ -70,7 +70,7 @@ struct BlackjackMessageView: View {
                     
                     Text("Select your action")
                         .font(.title2)
-                        .foregroundColor(.blue)
+                        .foregroundColor(colorScheme == .dark ? Color.blue.opacity(0.7) : .blue) // Lighter blue in dark mode
                         .bold()
                         .padding()
                     
@@ -78,7 +78,7 @@ struct BlackjackMessageView: View {
                     
                     Text("Dealer's turn. Please wait...")
                         .font(.title2)
-                        .foregroundColor(.purple)
+                        .foregroundColor(colorScheme == .dark ? Color.purple.opacity(0.7) : .purple) // Lighter purple in dark mode
                         .bold()
                         .multilineTextAlignment(.center)
                         .lineLimit(nil)
@@ -88,7 +88,7 @@ struct BlackjackMessageView: View {
                     
                     Text("You Win!")
                         .font(.title2)
-                        .foregroundColor(.green)
+                        .foregroundColor(.green) // Always green for win
                         .bold()
                         .multilineTextAlignment(.center)
                         .lineLimit(nil)
@@ -98,7 +98,7 @@ struct BlackjackMessageView: View {
                     
                     Text("You Lose!")
                         .font(.title2)
-                        .foregroundColor(.red)
+                        .foregroundColor(.red) // Always red for loss
                         .bold()
                         .multilineTextAlignment(.center)
                         .lineLimit(nil)
@@ -108,7 +108,7 @@ struct BlackjackMessageView: View {
                     
                     Text("It's a Draw!")
                         .font(.title2)
-                        .foregroundColor(.blue)
+                        .foregroundColor(colorScheme == .dark ? Color.blue.opacity(0.7) : .blue) // Lighter blue in dark mode
                         .bold()
                         .multilineTextAlignment(.center)
                         .lineLimit(nil)
@@ -118,7 +118,7 @@ struct BlackjackMessageView: View {
                     
                     Text("You Lose! Bust!")
                         .font(.title2)
-                        .foregroundColor(.red)
+                        .foregroundColor(.red) // Always red for loss
                         .bold()
                         .multilineTextAlignment(.center)
                         .lineLimit(nil)
@@ -128,7 +128,7 @@ struct BlackjackMessageView: View {
                     
                     Text("You Win! Dealer Bust!")
                         .font(.title2)
-                        .foregroundColor(.green)
+                        .foregroundColor(.green) // Always green for win
                         .bold()
                         .multilineTextAlignment(.center)
                         .lineLimit(nil)
