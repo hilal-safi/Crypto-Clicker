@@ -9,40 +9,45 @@ import SwiftUI
 
 class CoinExchangeModel: ObservableObject {
     
+    /// A simple struct to represent a coin and its properties.
+    /// No need to conform to Equatable if you use `.onReceive`.
     struct CoinTypeInfo {
         let type: CoinType
         let label: String
         let cost: Int
         var count: Int
+        
         let imageName: String
         let backgroundColor: Color
         let textColor: Color
         let glowColor: Color
     }
     
-    @Published var coinTypes: [CoinTypeInfo] {
-        didSet {
-            saveCoinsToUserDefaults()
+    @Published var availableCoins: [CoinTypeInfo]  // <-- No manual didSet
+    
+    // Keep track of exchanged coins in a dictionary (optional)
+    @Published var exchangedCoins: [String: Int] = [:] {
+        willSet {
+            // This is optional. If you do want to log changes:
+            print("[DEBUG] exchangedCoins will change. New value: \(newValue)")
         }
     }
-    
-    @Published var exchangedCoins: [String: Int] = [:]
-    
+
     // Popup properties
     @Published var popupMessage: String? = nil
     @Published var showMessage: Bool = false
     
     init() {
-        self.coinTypes = [
+        self.availableCoins = [
             CoinTypeInfo(
                 type: .shibainu,
                 label: "Shiba Inu",
                 cost: 100,
                 count: UserDefaults.standard.integer(forKey: "shibaInuCount"),
                 imageName: "shibainu_image",
-                backgroundColor: Color(red: 139 / 255, green: 0 / 255, blue: 0 / 255), // Red background
+                backgroundColor: Color(red: 139/255, green: 0, blue: 0), // Red
                 textColor: .white,
-                glowColor: .orange // Orange glow
+                glowColor: .orange
             ),
             CoinTypeInfo(
                 type: .dogecoin,
@@ -50,9 +55,9 @@ class CoinExchangeModel: ObservableObject {
                 cost: 250,
                 count: UserDefaults.standard.integer(forKey: "dogecoinCount"),
                 imageName: "dogecoin_image",
-                backgroundColor: Color(red: 205 / 255, green: 127 / 255, blue: 50 / 255), // Bronze background
+                backgroundColor: Color(red: 205/255, green: 127/255, blue: 50/255), // Bronze
                 textColor: .white,
-                glowColor: Color.brown // Bronze glow
+                glowColor: .brown
             ),
             CoinTypeInfo(
                 type: .xrp,
@@ -60,9 +65,9 @@ class CoinExchangeModel: ObservableObject {
                 cost: 5000,
                 count: UserDefaults.standard.integer(forKey: "xrpCount"),
                 imageName: "xrp_image",
-                backgroundColor: .black, // Black background
+                backgroundColor: .black,
                 textColor: .white,
-                glowColor: .white // White glow
+                glowColor: .white
             ),
             CoinTypeInfo(
                 type: .cardano,
@@ -70,9 +75,9 @@ class CoinExchangeModel: ObservableObject {
                 cost: 10000,
                 count: UserDefaults.standard.integer(forKey: "cardanoCount"),
                 imageName: "cardano_image",
-                backgroundColor: Color(red: 135 / 255, green: 206 / 255, blue: 250 / 255), // Blue background
+                backgroundColor: Color(red: 135/255, green: 206/255, blue: 250/255), // Blue
                 textColor: .black,
-                glowColor: .cyan // Cyan glow
+                glowColor: .cyan
             ),
             CoinTypeInfo(
                 type: .solana,
@@ -80,9 +85,9 @@ class CoinExchangeModel: ObservableObject {
                 cost: 400000,
                 count: UserDefaults.standard.integer(forKey: "solanaCount"),
                 imageName: "solana_image",
-                backgroundColor: .purple, // Purple background
+                backgroundColor: .purple,
                 textColor: .white,
-                glowColor: Color(hue: 0.8, saturation: 0.7, brightness: 0.8) // Vibrant purple glow
+                glowColor: Color(hue: 0.8, saturation: 0.7, brightness: 0.8)
             ),
             CoinTypeInfo(
                 type: .ethereum,
@@ -90,9 +95,9 @@ class CoinExchangeModel: ObservableObject {
                 cost: 1000000,
                 count: UserDefaults.standard.integer(forKey: "ethereumCount"),
                 imageName: "ethereum_image",
-                backgroundColor: Color(red: 211 / 255, green: 211 / 255, blue: 211 / 255), // Silver background
+                backgroundColor: Color(red: 211/255, green: 211/255, blue: 211/255), // Silver
                 textColor: .black,
-                glowColor: Color.gray // Silver glow
+                glowColor: .gray
             ),
             CoinTypeInfo(
                 type: .bitcoin,
@@ -100,20 +105,21 @@ class CoinExchangeModel: ObservableObject {
                 cost: 10000000,
                 count: UserDefaults.standard.integer(forKey: "bitcoinCount"),
                 imageName: "bitcoin_image",
-                backgroundColor: Color(red: 255 / 255, green: 215 / 255, blue: 0 / 255), // Gold background
+                backgroundColor: Color(red: 255/255, green: 215/255, blue: 0/255), // Gold
                 textColor: .black,
-                glowColor: Color.yellow // Gold glow
+                glowColor: .yellow
             )
         ]
     }
     
     private func saveCoinsToUserDefaults() {
-        for coinType in coinTypes {
+        // Save each coin's count to UserDefaults
+        for coinType in availableCoins {
             UserDefaults.standard.set(coinType.count, forKey: "\(coinType.type.rawValue)Count")
         }
     }
 
-    // Perform the exchange based on the coin type
+    // Perform an exchange for the given coin type
     func performExchange(for type: CoinType, with coins: inout CryptoCoin?) {
         
         guard let coin = coins else {
@@ -122,14 +128,20 @@ class CoinExchangeModel: ObservableObject {
             return
         }
         
-        if let index = coinTypes.firstIndex(where: { $0.type == type }) {
+        if let index = availableCoins.firstIndex(where: { $0.type == type }) {
             
-            let selectedCoin = coinTypes[index]
+            let selectedCoin = availableCoins[index]
             
             if coin.value >= selectedCoin.cost {
-                
                 coins?.value -= selectedCoin.cost
-                coinTypes[index].count += 1
+                
+                // **Important**: Reassign the entire array
+                var newList = availableCoins
+                var coinInfo = newList[index]
+                coinInfo.count += 1
+                newList[index] = coinInfo
+                availableCoins = newList
+                
                 popupMessage = "Successfully exchanged for \(selectedCoin.label)!"
                 
             } else {
@@ -140,6 +152,7 @@ class CoinExchangeModel: ObservableObject {
         }
     }
 
+    // Animate a popup for 3 seconds
     private func showPopupWithAnimation() {
         withAnimation {
             showMessage = true
@@ -151,51 +164,63 @@ class CoinExchangeModel: ObservableObject {
         }
     }
 
-    // Helper methods
+    // Convenience getters
     func count(for type: CoinType) -> Int {
-        return coinTypes.first(where: { $0.type == type })?.count ?? 0
+        availableCoins.first(where: { $0.type == type })?.count ?? 0
     }
 
     func image(for type: CoinType) -> String {
-        return coinTypes.first(where: { $0.type == type })?.imageName ?? "placeholderImage"
+        availableCoins.first(where: { $0.type == type })?.imageName ?? "placeholderImage"
     }
     
     func backgroundColor(for type: CoinType) -> Color {
-        return coinTypes.first(where: { $0.type == type })?.backgroundColor ?? .black
+        availableCoins.first(where: { $0.type == type })?.backgroundColor ?? .black
     }
 
     func textColor(for type: CoinType) -> Color {
-        return coinTypes.first(where: { $0.type == type })?.textColor ?? .white
+        availableCoins.first(where: { $0.type == type })?.textColor ?? .white
     }
 
     func glowColor(for type: CoinType) -> Color {
-        return coinTypes.first(where: { $0.type == type })?.glowColor ?? .clear
+        availableCoins.first(where: { $0.type == type })?.glowColor ?? .clear
     }
     
     var allCoinViews: [CoinTypeInfo] {
-        return coinTypes
+        return availableCoins
     }
     
-    // Methods related to Blackjack
-    
-    // Update coin count dynamically and return the updated value
+    // MARK: - Update coin count dynamically and return the updated value
     func updateCoinCount(for type: CoinType, by amount: Int) -> Int {
-        if let index = coinTypes.firstIndex(where: { $0.type == type }) {
-            let newCount = max(0, coinTypes[index].count + amount)
-            coinTypes[index].count = newCount
-            saveCoinsToUserDefaults()
-            return newCount
-        }
-        return 0
+        guard let index = availableCoins.firstIndex(where: { $0.type == type }) else { return 0 }
+        
+        // Reassign the array instead of in-place mutation
+        var newList = availableCoins
+        var coinInfo = newList[index]
+        
+        let newCount = max(0, coinInfo.count + amount)
+        coinInfo.count = newCount
+        newList[index] = coinInfo
+        
+        // Trigger SwiftUI update
+        availableCoins = newList
+        
+        saveCoinsToUserDefaults()
+        
+        print("UpdateCoinCount triggered. New balance: \(coinInfo.count), change by: \(amount)")
+        return newCount
     }
 
+    // For preview/demo usage
     func setExampleCount(for coin: CoinType, count: Int) {
-        if let index = coinTypes.firstIndex(where: { $0.type == coin }) {
-            coinTypes[index].count = count
-        }
+        guard let index = availableCoins.firstIndex(where: { $0.type == coin }) else { return }
+        var newList = availableCoins
+        var coinInfo = newList[index]
+        coinInfo.count = count
+        newList[index] = coinInfo
+        availableCoins = newList
     }
 }
 
 enum CoinType: String, CaseIterable {
-    case shibainu, xrp, cardano, dogecoin, solana, ethereum, bitcoin
+    case shibainu, dogecoin, xrp, cardano, solana, ethereum, bitcoin
 }

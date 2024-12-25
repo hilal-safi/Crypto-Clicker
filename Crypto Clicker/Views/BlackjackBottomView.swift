@@ -108,7 +108,7 @@ struct BlackjackBottomView: View {
                 }
             }
         }
-        .padding()
+        .padding(.horizontal)
     }
 
     // Helper function to create bet adjustment controls

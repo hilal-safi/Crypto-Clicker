@@ -14,7 +14,7 @@ struct ExchangeItemView: View {
     @Binding var coins: CryptoCoin?
 
     var body: some View {
-        if let coinInfo = exchangeModel.coinTypes.first(where: { $0.type == coinType }) {
+        if let coinInfo = exchangeModel.availableCoins.first(where: { $0.type == coinType }) {
             HStack {
                 // Coin Image
                 Image(coinInfo.imageName)
