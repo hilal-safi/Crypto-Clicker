@@ -114,6 +114,7 @@
 		9EC6553A2D14DE2800D94007 /* BlackjackBottomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlackjackBottomView.swift; sourceTree = "<group>"; };
 		9EC6553E2D14E9DC00D94007 /* CardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardModel.swift; sourceTree = "<group>"; };
 		9EC655402D19DD6E00D94007 /* BlackjackMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlackjackMessageView.swift; sourceTree = "<group>"; };
+		9EC655442D1D0B9100D94007 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -144,6 +145,7 @@
 		9EC1AC2D2C8FA0850055A38D = {
 			isa = PBXGroup;
 			children = (
+				9EC655442D1D0B9100D94007 /* Readme.md */,
 				9EC1AC382C8FA0850055A38D /* Crypto Clicker */,
 				9EC1AC492C8FA0860055A38D /* Crypto ClickerTests */,
 				9EC1AC532C8FA0870055A38D /* Crypto ClickerUITests */,
