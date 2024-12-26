@@ -110,8 +110,8 @@ The project adheres to the **Model-View-ViewModel (MVVM)** design pattern to ens
    ```git clone https://github.com/hilal-safi/crypto-clicker.git```
 
 1. Clone the repository:
-    ```cd crypto-clicker
-    open Crypto_Clicker.xcodeproj```
+    ```cd crypto-clicker```
+    ```open Crypto_Clicker.xcodeproj```
 
 3. Build and run the app on your preferred iOS simulator or device:
    - In Xcode, select your target device or simulator.
