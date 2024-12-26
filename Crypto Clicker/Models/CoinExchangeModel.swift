@@ -10,7 +10,6 @@ import SwiftUI
 class CoinExchangeModel: ObservableObject {
     
     /// A simple struct to represent a coin and its properties.
-    /// No need to conform to Equatable if you use `.onReceive`.
     struct CoinTypeInfo {
         let type: CoinType
         let label: String
@@ -23,15 +22,10 @@ class CoinExchangeModel: ObservableObject {
         let glowColor: Color
     }
     
-    @Published var availableCoins: [CoinTypeInfo]  // <-- No manual didSet
+    @Published var availableCoins: [CoinTypeInfo]
     
     // Keep track of exchanged coins in a dictionary (optional)
-    @Published var exchangedCoins: [String: Int] = [:] {
-        willSet {
-            // This is optional. If you do want to log changes:
-            print("[DEBUG] exchangedCoins will change. New value: \(newValue)")
-        }
-    }
+    @Published var exchangedCoins: [String: Int] = [:]
 
     // Popup properties
     @Published var popupMessage: String? = nil
@@ -191,9 +185,13 @@ class CoinExchangeModel: ObservableObject {
     
     // MARK: - Update coin count dynamically and return the updated value
     func updateCoinCount(for type: CoinType, by amount: Int) -> Int {
-        guard let index = availableCoins.firstIndex(where: { $0.type == type }) else { return 0 }
+        // Print the instance ID to confirm whether this is the same CoinExchangeModel observed by your views.
+
+        guard let index = availableCoins.firstIndex(where: { $0.type == type }) else {
+            return 0
+        }
         
-        // Reassign the array instead of in-place mutation
+        // Reassign the array instead of doing an in-place mutation
         var newList = availableCoins
         var coinInfo = newList[index]
         
@@ -201,20 +199,23 @@ class CoinExchangeModel: ObservableObject {
         coinInfo.count = newCount
         newList[index] = coinInfo
         
-        // Trigger SwiftUI update
+        // Reassigning availableCoins publishes the change to SwiftUI
         availableCoins = newList
         
+        // Persist the updated coin count
         saveCoinsToUserDefaults()
         
-        print("UpdateCoinCount triggered. New balance: \(coinInfo.count), change by: \(amount)")
         return newCount
     }
-
+    
     // For preview/demo usage
     func setExampleCount(for coin: CoinType, count: Int) {
+        
         guard let index = availableCoins.firstIndex(where: { $0.type == coin }) else { return }
+        
         var newList = availableCoins
         var coinInfo = newList[index]
+        
         coinInfo.count = count
         newList[index] = coinInfo
         availableCoins = newList

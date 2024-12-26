@@ -10,51 +10,63 @@ import SwiftUI
 @main
 struct Crypto_ClickerApp: App {
     
-    @StateObject private var store = CryptoStore()
-    @StateObject private var exchangeModel = CoinExchangeModel()  // Add CoinExchangeModel
+    // Declare your @StateObject properties, but don’t initialize them inline
+    @StateObject private var store: CryptoStore
+    @StateObject private var exchangeModel: CoinExchangeModel
+    @StateObject private var settings: SettingsModel
+    @StateObject private var blackjackModel: BlackjackModel
+    
     @State private var errorWrapper: ErrorWrapper?
-    @StateObject private var settings = SettingsModel() // Shared settings
+    
+    init() {
+        // Create local instances first (no references to `self`)
+        let st = CryptoStore()
+        let ex = CoinExchangeModel()
+        let set = SettingsModel()
+        
+        let bm = BlackjackModel(exchangeModel: ex)
+        
+        // Wrap each local instance in a StateObject
+        _store = StateObject(wrappedValue: st)
+        _exchangeModel = StateObject(wrappedValue: ex)
+        _settings = StateObject(wrappedValue: set)
+        _blackjackModel = StateObject(wrappedValue: bm)
+    }
     
     var body: some Scene {
-        
         WindowGroup {
-    
+            
             ContentView(
-                
                 coins: $store.coins,
                 store: store,
-                powerUps: store.powerUps, // Access power-ups directly from the store
-                exchangeModel: exchangeModel, // Pass exchangeModel
-                
+                powerUps: store.powerUps,
                 saveAction: {
                     Task {
                         do {
                             await store.saveCoins()
-                            await store.savePowerUps() // Save power-ups
-                            
+                            await store.savePowerUps()
                         } catch {
                             errorWrapper = ErrorWrapper(error: error, guidance: "Try again later.")
                         }
                     }
                 }
             )
-            .environmentObject(settings) // Provide settings to all views
-
+            .environmentObject(settings)
+            .environmentObject(exchangeModel)
+            .environmentObject(blackjackModel)
+            
             .task {
                 do {
                     await store.loadCoins()
-                    await store.loadPowerUps() // Load power-ups
-                    
+                    await store.loadPowerUps()
                 } catch {
                     errorWrapper = ErrorWrapper(error: error, guidance: "Crypto Clicker will load sample data and continue.")
                 }
             }
             .sheet(item: $errorWrapper) {
-                
+                // Fallback data
                 store.coins = CryptoCoin.sampleData
-                
             } content: { wrapper in
-                
                 ErrorView(errorWrapper: wrapper)
             }
         }

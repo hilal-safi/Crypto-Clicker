@@ -20,8 +20,8 @@ struct BlackjackCardView: View {
                 .fill(
                     Color(
                         colorScheme == .dark
-                            ? Color(red: 0.5, green: 0.5, blue: 0.5) // Darker grey for dark mode
-                            : Color(red: 1, green: 1, blue: 1) // Lighter grey for light mode
+                            ? Color(red: 0.7, green: 0.7, blue: 0.7) // Gray for dark mode
+                            : Color(red: 1, green: 1, blue: 1) // White for light mode
                     )
                 )
                 .shadow(radius: 3)
@@ -53,6 +53,7 @@ struct BlackjackCardView: View {
 }
 
 struct BlackjackCardView_Previews: PreviewProvider {
+    
     static var previews: some View {
         BlackjackCardView(card: Card.example)
     }

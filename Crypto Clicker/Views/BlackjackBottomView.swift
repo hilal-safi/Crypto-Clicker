@@ -10,7 +10,7 @@ import SwiftUI
 struct BlackjackBottomView: View {
     
     @Environment(\.colorScheme) var colorScheme // Detect light or dark mode
-    @ObservedObject var model: BlackjackModel
+    @EnvironmentObject var model: BlackjackModel
 
     var body: some View {
         
@@ -158,7 +158,9 @@ struct BlackjackBottomView_Previews: PreviewProvider {
         
         let exchangeModel = CoinExchangeModel()
         let model = BlackjackModel(exchangeModel: exchangeModel)
-        
-        BlackjackBottomView(model: model)
+            
+        BlackjackBottomView()
+            .environmentObject(model)
+
     }
 }

@@ -15,7 +15,7 @@ struct ContentView: View {
 
     @ObservedObject var store: CryptoStore
     @ObservedObject var powerUps: PowerUps
-    @ObservedObject var exchangeModel: CoinExchangeModel
+    @EnvironmentObject var exchangeModel: CoinExchangeModel
 
     @State private var isInfoPresented = false
     @State private var selectedTab: Tab = .content // Default to the game tab
@@ -61,7 +61,7 @@ struct ContentView: View {
                             .tag(Tab.content)
 
                         // Mini Games Tab
-                        MiniGamesView(exchangeModel: exchangeModel)
+                        MiniGamesView()
                             .tabItem {
                                 
                                 VStack {
@@ -151,7 +151,7 @@ struct ContentView: View {
                     PowerButtonView(store: store, coins: $coins)
                         .frame(width: UIScreen.main.bounds.width * 0.85)
                     
-                    ExchangeButtonView(exchangeModel: exchangeModel, coins: $coins)
+                    ExchangeButtonView(coins: $coins)
                         .frame(width: UIScreen.main.bounds.width * 0.85)
                 }
             }
@@ -179,7 +179,6 @@ struct ContentView_Previews: PreviewProvider {
         
         let store = CryptoStore()
         let powerUps = PowerUps()
-        let exchangeModel = CoinExchangeModel()
         store.coins = CryptoCoin(value: 100)
 
         return ContentView (
@@ -187,9 +186,10 @@ struct ContentView_Previews: PreviewProvider {
             coins: .constant(store.coins),
             store: store,
             powerUps: powerUps,
-            exchangeModel: exchangeModel,
             saveAction: { store.incrementCoinValue() }
         )
         .environmentObject(SettingsModel())
+        .environmentObject(CoinExchangeModel())
+
     }
 }

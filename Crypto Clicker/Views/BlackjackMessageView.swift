@@ -9,7 +9,7 @@ import SwiftUI
 
 struct BlackjackMessageView: View {
     
-    @ObservedObject var model: BlackjackModel
+    @EnvironmentObject var model: BlackjackModel
     @Environment(\.colorScheme) var colorScheme // Detect light or dark mode
     
     var body: some View {
@@ -25,19 +25,21 @@ struct BlackjackMessageView: View {
                 .multilineTextAlignment(.center) // Aligns the text to the center
                 .lineLimit(nil) // Allows the text to wrap onto multiple lines
                 .frame(maxWidth: .infinity) // Ensures the text spans across the available width
-                .padding()
+                .padding(8)
         }
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(getBackgroundColor()) // Dynamically set background color
-                .opacity(0.8)
+                .opacity(0.7)
         )
         .padding()
     }
     
     /// Determines the text color based on the message type
     private func getTextColor(for type: MessageType) -> Color {
+        
         switch type {
+            
         case .win:
             return colorScheme == .dark ? Color(red: 0.0, green: 0.7, blue: 0.0) : Color(red: 0.0, green: 0.5, blue: 0.0)
         case .loss:
@@ -64,7 +66,8 @@ struct BlackjackMessageView_Previews: PreviewProvider {
         
         model.gameState = .waitingForBet
         
-        return BlackjackMessageView(model: model)
+        return BlackjackMessageView()
             .environment(\.colorScheme, .light)
+            .environmentObject(model)
     }
 }

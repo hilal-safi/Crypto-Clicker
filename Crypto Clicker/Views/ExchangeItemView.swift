@@ -10,7 +10,7 @@ import SwiftUI
 struct ExchangeItemView: View {
     
     let coinType: CoinType
-    @ObservedObject var exchangeModel: CoinExchangeModel
+    @EnvironmentObject var exchangeModel: CoinExchangeModel
     @Binding var coins: CryptoCoin?
 
     var body: some View {
@@ -73,25 +73,30 @@ struct ExchangeItemView: View {
 }
 
 struct ExchangeItemView_Previews: PreviewProvider {
+    
     static var previews: some View {
-        let exchangeModel = CoinExchangeModel()
+
         let coins = CryptoCoin(value: 1000)
+        
         return VStack {
             ExchangeItemView(
                 coinType: .dogecoin,
-                exchangeModel: exchangeModel,
                 coins: .constant(coins)
             )
+            .environmentObject(CoinExchangeModel())
+
             ExchangeItemView(
                 coinType: .ethereum,
-                exchangeModel: exchangeModel,
                 coins: .constant(coins)
             )
+            .environmentObject(CoinExchangeModel())
+
             ExchangeItemView(
                 coinType: .bitcoin,
-                exchangeModel: exchangeModel,
                 coins: .constant(coins)
             )
+            .environmentObject(CoinExchangeModel())
+
         }
         .previewLayout(.sizeThatFits)
         .padding()

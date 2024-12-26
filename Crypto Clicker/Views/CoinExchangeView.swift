@@ -10,7 +10,7 @@ import SwiftUI
 struct CoinExchangeView: View {
     
     @Binding var coins: CryptoCoin?
-    @ObservedObject var exchangeModel: CoinExchangeModel
+    @EnvironmentObject var exchangeModel: CoinExchangeModel
     
     var body: some View {
         
@@ -22,7 +22,7 @@ struct CoinExchangeView: View {
 
                 VStack(spacing: 16) { // Reduced spacing for a more compact layout
                     
-                    ExchangePopupView(model: exchangeModel)
+                    ExchangePopupView()
                     
                     // Display Current Coins
                     Text("Coins: \(coins?.value ?? 0)")
@@ -35,7 +35,7 @@ struct CoinExchangeView: View {
                         LazyVStack(spacing: 16) { // Reduced spacing between items
                             
                             ForEach(CoinType.allCases, id: \.self) { coinType in
-                                ExchangeItemView(coinType: coinType, exchangeModel: exchangeModel, coins: $coins)
+                                ExchangeItemView(coinType: coinType, coins: $coins)
                             }
                         }
                         .padding(.horizontal, 16) // Reduced horizontal padding
@@ -50,9 +50,10 @@ struct CoinExchangeView: View {
 }
 
 struct CoinExchangeView_Previews: PreviewProvider {
+    
     static var previews: some View {
-        let exchangeModel = CoinExchangeModel()
+        
         let coins = CryptoCoin(value: 1000)
-        return CoinExchangeView(coins: .constant(coins), exchangeModel: exchangeModel)
+        return CoinExchangeView(coins: .constant(coins))
     }
 }

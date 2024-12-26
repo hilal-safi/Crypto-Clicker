@@ -8,8 +8,11 @@
 import SwiftUI
 
 struct InfoView: View {
+    
     var body: some View {
+        
         VStack(alignment: .center) {
+            
             Text("Welcome to Crypto Clicker!")
                 .font(.largeTitle)
                 .padding()
@@ -38,6 +41,7 @@ struct InfoView: View {
 }
 
 struct InfoView_Previews: PreviewProvider {
+    
     static var previews: some View {
         InfoView()
     }

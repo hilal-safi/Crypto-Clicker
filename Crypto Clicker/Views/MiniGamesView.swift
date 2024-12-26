@@ -9,8 +9,8 @@ import SwiftUI
 
 struct MiniGamesView: View {
     
-    @ObservedObject var exchangeModel: CoinExchangeModel
-    @StateObject private var blackjackModel = BlackjackModel(exchangeModel: CoinExchangeModel())
+    @EnvironmentObject var exchangeModel: CoinExchangeModel
+    @EnvironmentObject var blackjackModel: BlackjackModel
 
     var body: some View {
         
@@ -30,9 +30,7 @@ struct MiniGamesView: View {
                     Spacer()
 
                     // Navigation link to the Blackjack game
-                    NavigationLink(destination: BlackjackView(
-                        model: blackjackModel, // Pass `blackjackModel` as `model`
-                        exchangeModel: exchangeModel)
+                    NavigationLink(destination: BlackjackView()
                     ) {
                         Text("Play Blackjack")
                             .font(.title2)
@@ -56,11 +54,9 @@ struct MiniGamesView: View {
 struct MiniGamesView_Previews: PreviewProvider {
     
     static var previews: some View {
-        
-        let exchangeModel = CoinExchangeModel()
-        // Create the `exchangeModel` for previews
-        
-        return MiniGamesView(exchangeModel: exchangeModel)
-        // `blackjackModel` is created within the view
+                
+        return MiniGamesView()
+            .environmentObject(CoinExchangeModel())
+            .environmentObject(BlackjackModel(exchangeModel: CoinExchangeModel()))
     }
 }

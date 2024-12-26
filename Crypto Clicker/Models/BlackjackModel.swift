@@ -244,9 +244,6 @@ class BlackjackModel: ObservableObject {
             reward = betAmount // Refund the bet
             resultMessage = "It's a Tie! Both you and the dealer scored \(playerValue)."
         }
-
-        // Update the coin balance using CoinExchangeModel
-        let newBalance = exchangeModel.updateCoinCount(for: selectedCoinType, by: reward)
     }
     
     func endGame() {

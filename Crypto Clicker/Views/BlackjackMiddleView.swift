@@ -9,7 +9,7 @@ import SwiftUI
 
 struct BlackjackMiddleView: View {
     
-    @ObservedObject var model: BlackjackModel
+    @EnvironmentObject var model: BlackjackModel
 
     var body: some View {
         
@@ -98,12 +98,15 @@ struct BlackjackMiddleView: View {
 struct BlackjackMiddleView_Previews: PreviewProvider {
     
     static var previews: some View {
+        
         let exchangeModel = CoinExchangeModel()
         let model = BlackjackModel(exchangeModel: exchangeModel)
         
         model.dealerHand = [Card(suit: "♠️", value: 10), Card(suit: "♦️", value: 5)]
         model.playerHand = [Card(suit: "♣️", value: 7), Card(suit: "♥️", value: 6)]
         
-        return BlackjackMiddleView(model: model)
+        return BlackjackMiddleView()
+            .environmentObject(model)
+
     }
 }

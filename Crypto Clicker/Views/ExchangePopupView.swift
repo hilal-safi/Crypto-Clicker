@@ -9,10 +9,12 @@ import SwiftUI
 
 struct ExchangePopupView: View {
     
-    @ObservedObject var model: CoinExchangeModel
+    @EnvironmentObject var model: CoinExchangeModel
 
     var body: some View {
+        
         if model.showMessage, let message = model.popupMessage {
+            
             Text(message)
                 .font(.headline)
                 .padding()
@@ -26,12 +28,13 @@ struct ExchangePopupView: View {
     }
 }
 struct ExchangePopupView_Previews: PreviewProvider {
+    
     static var previews: some View {
-        let mockModel = CoinExchangeModel()
-        mockModel.popupMessage = "Example Message"
-        mockModel.showMessage = true
-        return ExchangePopupView(model: mockModel)
+                        
+        return ExchangePopupView()
             .previewLayout(.sizeThatFits)
             .padding()
+            .environmentObject(CoinExchangeModel())
+
     }
 }

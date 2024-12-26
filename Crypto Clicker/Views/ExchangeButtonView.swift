@@ -9,13 +9,13 @@ import SwiftUI
 
 struct ExchangeButtonView: View {
     
-    @ObservedObject var exchangeModel: CoinExchangeModel
+    @EnvironmentObject var exchangeModel: CoinExchangeModel
     @Binding var coins: CryptoCoin?
     
     var body: some View {
         
         NavigationLink(
-            destination: CoinExchangeView(coins: $coins, exchangeModel: exchangeModel)
+            destination: CoinExchangeView(coins: $coins)
         ) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 20) {
@@ -54,11 +54,12 @@ struct ExchangeButtonView_Previews: PreviewProvider {
     
     static var previews: some View {
         
-        let exchangeModel = CoinExchangeModel()
         let coins = CryptoCoin(value: 1000)
         
         return NavigationView {
-            ExchangeButtonView(exchangeModel: exchangeModel, coins: .constant(coins))
+            ExchangeButtonView(coins: .constant(coins))
         }
+        .environmentObject(CoinExchangeModel())
+
     }
 }
