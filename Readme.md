@@ -107,7 +107,7 @@ The project adheres to the **Model-View-ViewModel (MVVM)** design pattern to ens
 ## Installation and Setup
 
 1. Clone the repository:
-   ```git clone https://github.com/hilal-safi/crypto-clicker.git```
+   ```git clone https://github.com/hilal-safi/Crypto-Clicker.git```
 
 1. Clone the repository:
     ```cd crypto-clicker```
