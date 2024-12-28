@@ -24,9 +24,9 @@ struct BlackjackView: View {
                 VStack(spacing: 0) {
                     // Top View: Displays balance and coin selection
                     BlackjackTopView(selectedCoin: $model.selectedCoinType)
-                    .frame(height: geometry.size.height * 0.16) // 16% of the screen height
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
+                    .frame(height: geometry.size.height * 0.18) // 18% of the screen height
+                    .padding(.top, 6)
+                    .padding(.bottom, 12)
                     .disabled(model.gameState != .waitingForBet)
 
                     // Middle View: Displays cards and values
@@ -38,8 +38,7 @@ struct BlackjackView: View {
                     // Message View: Displays result and error messages
                     BlackjackMessageView()
                         .fixedSize(horizontal: false, vertical: true) // Ensures height adjusts to content
-                        .padding(.horizontal, 8)
-                        .frame(maxHeight: geometry.size.height * 0.10) // Maximum 10% height for messages
+                        .frame(maxHeight: geometry.size.height * 0.08) // Maximum 8% height for messages
                         .padding(.vertical, 8)
 
                     // Bottom View: Manages all controls (betting, hit, stand)
@@ -63,6 +62,6 @@ struct BlackjackView_Previews: PreviewProvider {
                 
         return BlackjackView()
             .environmentObject(model)
-
+            .environmentObject(exchangeModel)
     }
 }
