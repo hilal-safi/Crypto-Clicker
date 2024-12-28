@@ -71,9 +71,8 @@ class BlackjackModel: ObservableObject {
         
         // Deduct coins and reset game state
         betAmount = amount
-        _ = exchangeModel.updateCoinCount(for: selectedCoinType, by: -amount) // Deduct bet amount
+        exchangeModel.updateCoinCount(for: selectedCoinType, by: -amount) // Deduct bet amount
 
-        
         // Reset game state
         betPlaced = true
         dealerSecondCardHidden = true // Reset the hidden state
@@ -244,6 +243,8 @@ class BlackjackModel: ObservableObject {
             reward = betAmount // Refund the bet
             resultMessage = "It's a Tie! Both you and the dealer scored \(playerValue)."
         }
+        
+        exchangeModel.updateCoinCount(for: selectedCoinType, by: reward) // Provide the reward
     }
     
     func endGame() {
