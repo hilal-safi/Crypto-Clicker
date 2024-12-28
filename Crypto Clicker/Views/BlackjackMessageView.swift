@@ -32,7 +32,6 @@ struct BlackjackMessageView: View {
                 .fill(getBackgroundColor()) // Dynamically set background color
                 .opacity(0.7)
         )
-        .padding()
     }
     
     /// Determines the text color based on the message type

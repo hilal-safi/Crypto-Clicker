@@ -4,7 +4,7 @@
 //
 //  Created by Hilal Safi on 2024-12-18.
 //
-// Test
+
 import SwiftUI
 
 struct BlackjackView: View {
@@ -38,8 +38,9 @@ struct BlackjackView: View {
                     // Message View: Displays result and error messages
                     BlackjackMessageView()
                         .fixedSize(horizontal: false, vertical: true) // Ensures height adjusts to content
-                        .frame(maxHeight: geometry.size.height * 0.08) // Maximum 8% height for messages
-                        .padding(.vertical, 8)
+                        .frame(maxHeight: geometry.size.height * 0.09) // Maximum 9% height for messages
+                        .padding(.top, 14)
+                        .padding(.bottom, 6)
 
                     // Bottom View: Manages all controls (betting, hit, stand)
                     BlackjackBottomView()

@@ -9,38 +9,36 @@ import SwiftUI
 
 struct BlackjackBottomView: View {
     
-    @Environment(\.colorScheme) var colorScheme // Detect light or dark mode
+    @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var model: BlackjackModel
 
     var body: some View {
         
         VStack(spacing: 10) {
             
+            // Display current bet
             HStack {
                 Text("Bet Amount:")
                     .font(.title2)
-
-                // Display Bet Amount
                 Text("\(model.betAmount)")
                     .font(.title2)
                     .bold()
             }
-
             
-            // Bet Adjustment Controls (only visible when the game has not started)
+            // Bet Adjustment (only if waitingForBet)
             if model.gameState == .waitingForBet {
                 HStack(spacing: 15) {
                     betAdjustmentView(amount: 1)
-                    betAdjustmentView(amount: 100)
-                    betAdjustmentView(amount: 10000)
+                    Spacer()
+                    betAdjustmentView(amount: 5)
+                    Spacer()
+                    betAdjustmentView(amount: 10)
                 }
             }
 
-            // Buttons in a Single Line
             HStack(spacing: 5) {
-
+                
                 if model.gameOver {
-                    // Single "New Game" button when the game is over
                     Button(action: {
                         model.resetGame()
                     }) {
@@ -52,20 +50,28 @@ struct BlackjackBottomView: View {
                             .foregroundColor(.white)
                             .cornerRadius(10)
                     }
+                    
                 } else {
-                    // Place Bet Button (only visible when the game has not started)
+                    
+                    // Place Bet (only visible if waiting)
                     if model.gameState == .waitingForBet {
-                        Button("Place Bet") {
-                            model.placeBet(amount: model.betAmount)
+                        HStack {
+                            betAdjustmentView(amount: 500)
+                            Spacer()
+                            Button("Place Bet") {
+                                model.placeBet(amount: model.betAmount)
+                            }
+                            .font(.headline)
+                            .padding()
+                            .background(Color.green)
+                            .foregroundColor(.black)
+                            .cornerRadius(8)
                         }
-                        .font(.headline)
-                        .padding()
-                        .background(Color.green)
-                        .foregroundColor(.black)
-                        .cornerRadius(8)
+                        Spacer()
+                        betAdjustmentView(amount: 10000)
                     }
                     
-                    // Hit and Stand Buttons (only visible when the game has started)
+                    // Hit / Stand / Double / Split (only visible if player's turn)
                     if model.gameState == .playerTurn {
                         
                         Button("Hit") {
@@ -85,33 +91,54 @@ struct BlackjackBottomView: View {
                         .background(Color.red)
                         .foregroundColor(.black)
                         .cornerRadius(8)
+
+                        Button("Double Down") {
+                            model.doubleDown()
+                        }
+                        .font(.headline)
+                        .padding()
+                        .background(canDoubleDown ? Color.orange : Color.gray)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .disabled(!canDoubleDown)
                         
-                        // Disabled Double Down Button
-                        Button("Double Down") {}
-                            .font(.headline)
-                            .padding()
-                            .background(Color.gray)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                            .disabled(true) // Greyed out and disabled
-
-                        // Disabled Split Button
-                        Button("Split") {}
-                            .font(.headline)
-                            .padding()
-                            .background(Color.gray)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                            .disabled(true) // Greyed out and disabled
-
+                        Button("Split") {
+                            model.split()
+                        }
+                        .font(.headline)
+                        .padding()
+                        .background(canSplit ? Color.purple : Color.gray)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .disabled(!canSplit)
                     }
                 }
             }
         }
         .padding(.horizontal)
     }
-
-    // Helper function to create bet adjustment controls
+    
+    // MARK: - Private Helpers
+    
+    private var canDoubleDown: Bool {
+        guard model.gameState == .playerTurn else { return false }
+        guard model.currentPlayerHand.count == 2 else { return false }
+        guard !model.hasDoubledDown else { return false }
+        
+        let costToDouble = model.playerBets[model.currentHandIndex]
+        
+        // Now that `exchangeModel` is internal, we can reference it here
+        return model.exchangeModel.count(for: model.selectedCoinType) >= costToDouble
+    }
+    
+    private var canSplit: Bool {
+        guard model.gameState == .playerTurn else { return false }
+        guard model.currentPlayerHand.count == 2 else { return false }
+        guard !model.hasSplit else { return false }
+        
+        return model.canSplit(hand: model.currentPlayerHand)
+    }
+    
     private func betAdjustmentView(amount: Int) -> some View {
         HStack(spacing: 2) {
             Button(action: {
@@ -131,8 +158,7 @@ struct BlackjackBottomView: View {
 
             Text("\(amount)")
                 .font(.headline)
-                .frame(width: CGFloat(amount == 1 ? 15 : amount == 100 ? 35 : 65), height: 30)
-                .cornerRadius(8)
+                .frame(width: dynamicWidth(for: amount), height: 30)
 
             Button(action: {
                 model.betAmount += amount
@@ -150,7 +176,14 @@ struct BlackjackBottomView: View {
             }
         }
     }
-}
+    
+    private func dynamicWidth(for amount: Int) -> CGFloat {
+        if amount <= 10 {
+            return 25 // Slightly larger width for 1 and 5
+        }
+        let digitCount = String(amount).count
+        return CGFloat(digitCount * 12) // Standard dynamic width for other values
+    }}
 
 struct BlackjackBottomView_Previews: PreviewProvider {
     
@@ -161,6 +194,5 @@ struct BlackjackBottomView_Previews: PreviewProvider {
             
         BlackjackBottomView()
             .environmentObject(model)
-
     }
 }
