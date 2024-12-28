@@ -184,11 +184,10 @@ class CoinExchangeModel: ObservableObject {
     }
     
     // MARK: - Update coin count dynamically and return the updated value
-    func updateCoinCount(for type: CoinType, by amount: Int) -> Int {
-        // Print the instance ID to confirm whether this is the same CoinExchangeModel observed by your views.
+    func updateCoinCount(for type: CoinType, by amount: Int) {
 
         guard let index = availableCoins.firstIndex(where: { $0.type == type }) else {
-            return 0
+            return
         }
         
         // Reassign the array instead of doing an in-place mutation
@@ -204,8 +203,6 @@ class CoinExchangeModel: ObservableObject {
         
         // Persist the updated coin count
         saveCoinsToUserDefaults()
-        
-        return newCount
     }
     
     // For preview/demo usage
