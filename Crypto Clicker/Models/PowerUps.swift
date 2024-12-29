@@ -18,7 +18,7 @@ class PowerUps: ObservableObject, Codable {
         let coinsPerClickIncrease: Int
         let emoji: String
         let description: String
-
+        
         // Custom initializer for assigning default id
         init(
             id: UUID = UUID(),
@@ -40,7 +40,7 @@ class PowerUps: ObservableObject, Codable {
     }
     
     @Published var quantities: [String: Int] = [:] // Store power-up quantities dynamically
-
+    
     // Static list of available power-ups
     static let availablePowerUps = [
         PowerUp(
@@ -115,12 +115,12 @@ class PowerUps: ObservableObject, Codable {
             quantities[powerUp.name] = 0
         }
     }
-
+    
     func purchase(powerUp: PowerUp, coins: inout CryptoCoin, quantity: Int) -> Bool {
         
         let totalCost = powerUp.cost * quantity
         guard coins.value >= totalCost else { return false }
-
+        
         coins.value -= totalCost
         quantities[powerUp.name, default: 0] += quantity
         return true
@@ -134,14 +134,23 @@ class PowerUps: ObservableObject, Codable {
     enum CodingKeys: CodingKey {
         case quantities
     }
-
+    
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         quantities = try container.decode([String: Int].self, forKey: .quantities)
     }
-
+    
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(quantities, forKey: .quantities)
+    }
+    
+    // For Achievements
+    func getOwnedCount(for powerUpName: String) -> Int {
+        return quantities[powerUpName, default: 0]
+    }
+
+    var totalOwnedPowerUps: Int {
+        return quantities.values.reduce(0) { $0 + $1 }
     }
 }

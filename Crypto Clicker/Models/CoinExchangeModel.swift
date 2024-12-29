@@ -11,6 +11,7 @@ class CoinExchangeModel: ObservableObject {
     
     /// A simple struct to represent a coin and its properties.
     struct CoinTypeInfo {
+        
         let type: CoinType
         let label: String
         let cost: Int
@@ -127,15 +128,17 @@ class CoinExchangeModel: ObservableObject {
             let selectedCoin = availableCoins[index]
             
             if coin.value >= selectedCoin.cost {
+                
                 coins?.value -= selectedCoin.cost
                 
                 // **Important**: Reassign the entire array
                 var newList = availableCoins
                 var coinInfo = newList[index]
+                
                 coinInfo.count += 1
                 newList[index] = coinInfo
                 availableCoins = newList
-                
+                                
                 popupMessage = "Successfully exchanged for \(selectedCoin.label)!"
                 
             } else {
@@ -161,6 +164,14 @@ class CoinExchangeModel: ObservableObject {
     // Convenience getters
     func count(for type: CoinType) -> Int {
         availableCoins.first(where: { $0.type == type })?.count ?? 0
+    }
+    
+    func totalExchangedCoins() -> Int {
+        availableCoins.reduce(0) { $0 + $1.count }
+    }
+    
+    func getExchangedCount(for coinType: CoinType) -> Int {
+        return availableCoins.first(where: { $0.type == coinType })?.count ?? 0
     }
 
     func image(for type: CoinType) -> String {

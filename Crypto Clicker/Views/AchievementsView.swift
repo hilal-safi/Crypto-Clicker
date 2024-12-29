@@ -61,14 +61,32 @@ struct AchievementsView: View {
             
         case "Mining Coins":
             return coins?.value ?? 0
+            
         case "Coins Per Second":
             return coinsPerSecond
+            
         case "Coins Per Click":
             return coinsPerClick
+            
+        case let name where name.contains("Power-Up"):
+            return progressForPowerUps(name: name)
+            
+        case let name where name.contains("Coin"):
+            return progressForCoins(name: name)
             
         default:
             return 0
         }
+    }
+
+    private func progressForPowerUps(name: String) -> Int {
+        // Match specific power-up or calculate total
+        return AchievementsModel.shared.getProgressForPowerUps(named: name)
+    }
+
+    private func progressForCoins(name: String) -> Int {
+        // Match specific coin or calculate total
+        return AchievementsModel.shared.getProgressForCoins(named: name)
     }
 }
 
