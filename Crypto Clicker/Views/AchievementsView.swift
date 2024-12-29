@@ -9,7 +9,7 @@ import SwiftUI
 
 struct AchievementsView: View {
     
-    @ObservedObject private var model = AchievementsModel.shared
+    @EnvironmentObject var achievements: AchievementsModel
     @Binding var coins: CryptoCoin?
 
     let coinsPerSecond: Int
@@ -35,9 +35,7 @@ struct AchievementsView: View {
                     ScrollView {
                         
                         LazyVStack(spacing: 12) {
-                            
-                            ForEach(model.achievements, id: \.name) { achievement in
-                                
+                            ForEach(achievements.achievements, id: \.name) { achievement in
                                 AchievementItemView(
                                     achievement: achievement,
                                     progress: progress(for: achievement.name)
@@ -56,50 +54,58 @@ struct AchievementsView: View {
 
     // Get progress dynamically based on achievement type
     private func progress(for achievementName: String) -> Int {
-        
-        switch achievementName {
-            
-        case "Mining Coins":
-            return coins?.value ?? 0
-            
-        case "Coins Per Second":
-            return coinsPerSecond
-            
-        case "Coins Per Click":
-            return coinsPerClick
-            
-        case let name where name.contains("Power-Up"):
-            return progressForPowerUps(name: name)
-            
-        case let name where name.contains("Coin"):
-            return progressForCoins(name: name)
-            
-        default:
-            return 0
-        }
-    }
+        var progressValue: Int
 
+        switch achievementName {
+        case "Mining Coins":
+            progressValue = coins?.value ?? 0
+        case "Coins Per Second":
+            progressValue = coinsPerSecond
+        case "Coins Per Click":
+            progressValue = coinsPerClick
+        case let name where name.contains("Exchanged"):
+            progressValue = achievements.getProgress(for: achievementName)
+            print("Progress for \(achievementName): \(progressValue)") // Debugging log
+        case let name where name.contains("Ownership"):
+            progressValue = achievements.getProgress(for: achievementName)
+            print("Progress for \(achievementName): \(progressValue)") // Debugging log
+        default:
+            progressValue = 0
+        }
+
+        print("Final Progress for \(achievementName): \(progressValue)") // Final debugging log
+        return progressValue
+    }
+    
     private func progressForPowerUps(name: String) -> Int {
-        // Match specific power-up or calculate total
-        return AchievementsModel.shared.getProgressForPowerUps(named: name)
+        let value = AchievementsModel.shared.getProgressForPowerUps(named: name)
+        print("Power-Up progress for \(name): \(value)") // Debugging log
+        return value
     }
 
     private func progressForCoins(name: String) -> Int {
-        // Match specific coin or calculate total
-        return AchievementsModel.shared.getProgressForCoins(named: name)
+        let value = AchievementsModel.shared.getProgressForCoins(named: name)
+        print("Coin progress for \(name): \(value)") // Debugging log
+        return value
     }
 }
 
 struct AchievementsView_Previews: PreviewProvider {
-    
-    static var previews: some View {
-        
-        let mockCoins = CryptoCoin(value: 10000)
 
-        return AchievementsView (
+    static var previews: some View {
+        // Mock data
+        let mockCoins = CryptoCoin(value: 10000)
+        let mockExchangeModel = CoinExchangeModel()
+        let mockPowerUps = PowerUps() // Use actual PowerUps initialization
+
+        return AchievementsView(
             coins: .constant(mockCoins),
-            coinsPerSecond: 15000,  // Mock value for coins per second
-            coinsPerClick: 50     // Mock value for coins per click
+            coinsPerSecond: 15000,  // Example value
+            coinsPerClick: 50       // Example value
         )
+        .environmentObject(AchievementsModel(
+            exchangeModel: mockExchangeModel,
+            powerUps: mockPowerUps
+        ))
     }
 }

@@ -16,7 +16,10 @@ struct Achievement {
 
 class AchievementsModel: ObservableObject {
     
-    static let shared = AchievementsModel(exchangeModel: CoinExchangeModel(), powerUps: PowerUps())
+    static let shared = AchievementsModel(
+        exchangeModel: CoinExchangeModel.shared,
+        powerUps: PowerUps.shared
+    )
     @Published var achievements: [Achievement] = []
     
     let exchangeModel: CoinExchangeModel
@@ -31,6 +34,7 @@ class AchievementsModel: ObservableObject {
         loadProgress() // Load progress after initializing stored properties
         generateAchievements() // Generate achievements after stored properties are initialized
         syncInitialProgress() // Sync initial progress based on current state
+        print("[DEBUG] AchievementsModel initialized with ID: \(ObjectIdentifier(self).hashValue)")
     }
     
     // Dynamically generate achievements based on available coin types and power-ups
@@ -100,25 +104,37 @@ class AchievementsModel: ObservableObject {
     // Sync initial progress with current state
     private func syncInitialProgress() {
         // Sync progress for each coin type
+        print("[DEBUG] Starting syncInitialProgress in AchievementsModel with ID: \(ObjectIdentifier(self).hashValue)")
+
         for coin in exchangeModel.availableCoins {
             let progressValue = exchangeModel.getExchangedCount(for: coin.type)
+            print("[DEBUG] Syncing progress for coin: \(coin.label) - Value: \(progressValue)")
             setProgress(for: "Exchanged \(coin.label)", value: progressValue)
         }
 
         // Sync progress for each power-up
         for powerUp in PowerUps.availablePowerUps {
             let progressValue = powerUps.getOwnedCount(for: powerUp.name)
+            print("[DEBUG] Syncing progress for power-up: \(powerUp.name) - Value: \(progressValue)")
             setProgress(for: "\(powerUp.name) Ownership", value: progressValue)
         }
 
         // Sync total progress
-        let totalCoinsExchanged = exchangeModel.totalExchangedCoins
-        setProgress(for: "Total Exchanged Coins", value: totalCoinsExchanged())
+        let totalCoinsExchanged = exchangeModel.totalExchangedCoins()
+        print("[DEBUG] Total coins exchanged: \(totalCoinsExchanged)")
+        setProgress(for: "Total Exchanged Coins", value: totalCoinsExchanged)
 
         let totalPowerUpsOwned = powerUps.totalOwnedPowerUps
+        print("[DEBUG] Total power-ups owned: \(totalPowerUpsOwned)")
         setProgress(for: "Total Power-Ups Owned", value: totalPowerUpsOwned)
-        
+
         saveProgress() // Save the updated progress
+    }
+    
+    private func progress(for achievementName: String) -> Int {
+        let progressValue = progress[achievementName] ?? 0
+        print("Progress for \(achievementName): \(progressValue)") // Debug log
+        return progressValue
     }
 
     // Update progress based on stats
@@ -131,32 +147,59 @@ class AchievementsModel: ObservableObject {
 
     // Set progress for a specific achievement
     func setProgress(for achievementName: String, value: Int) {
-        progress[achievementName] = max(progress[achievementName] ?? 0, value)
+        let updatedValue = max(progress[achievementName] ?? 0, value)
+        print("Setting progress for \(achievementName): \(updatedValue)") // Debug log
+        progress[achievementName] = updatedValue
     }
-
+    
     // Get progress for a specific achievement
     func getProgress(for achievementName: String) -> Int {
-        return progress[achievementName] ?? 0
+        let currentProgress = progress[achievementName] ?? 0
+        print("Retrieving progress for \(achievementName): \(currentProgress)")
+        print("All progress data: \(progress)") // Log full progress dictionary
+        return currentProgress
     }
-
+    
     // Get progress for power-ups
     func getProgressForPowerUps(named name: String) -> Int {
-        return powerUps.getOwnedCount(for: name)
+        let ownedCount = powerUps.getOwnedCount(for: name)
+        print("Fetching power-up progress for \(name): \(ownedCount)") // Debug log
+        return ownedCount
     }
-
+    
     // Get progress for coins
     func getProgressForCoins(named name: String) -> Int {
-        return exchangeModel.availableCoins.first(where: { $0.label == name })?.count ?? 0
+        if let coin = exchangeModel.availableCoins.first(where: { name.contains($0.label) }) {
+            let exchangedCount = exchangeModel.getExchangedCount(for: coin.type)
+            print("Fetching coin progress for \(coin.label): \(exchangedCount)") // Debug log
+            return exchangedCount
+        }
+        print("Fetching coin progress for \(name): 0 (No match found)") // Debug log
+        return 0
     }
     
     // Persistence
     private func saveProgress() {
+        print("[DEBUG] Saving achievement progress to UserDefaults: \(progress)")
+
         UserDefaults.standard.set(progress, forKey: progressKey)
     }
 
     private func loadProgress() {
         if let savedProgress = UserDefaults.standard.dictionary(forKey: progressKey) as? [String: Int] {
             progress = savedProgress
+        } else {
+            print("[DEBUG] No saved progress found. Initializing empty dictionary.")
         }
+        print("[DEBUG] Loaded progress: \(progress)")
+    }
+
+    // Test Method for Isolating AchievementsModel
+    func isolateAndTest() {
+        print("[DEBUG] Testing AchievementsModel in isolation...")
+        generateAchievements()
+        syncInitialProgress()
+        print("[DEBUG] Achievements: \(achievements)")
+        print("[DEBUG] Current Progress: \(progress)")
     }
 }

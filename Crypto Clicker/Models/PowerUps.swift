@@ -9,6 +9,8 @@ import Foundation
 
 class PowerUps: ObservableObject, Codable {
     
+    static let shared = PowerUps() // Singleton instance
+    
     struct PowerUp: Identifiable, Hashable, Codable {
         
         let id: UUID

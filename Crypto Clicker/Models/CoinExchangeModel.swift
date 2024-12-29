@@ -9,6 +9,8 @@ import SwiftUI
 
 class CoinExchangeModel: ObservableObject {
     
+    static let shared = CoinExchangeModel() // Singleton instance
+
     /// A simple struct to represent a coin and its properties.
     struct CoinTypeInfo {
         
@@ -19,6 +21,7 @@ class CoinExchangeModel: ObservableObject {
         
         let imageName: String
         let backgroundColor: Color
+        let secondaryColor: Color
         let textColor: Color
         let glowColor: Color
     }
@@ -27,12 +30,13 @@ class CoinExchangeModel: ObservableObject {
     
     // Keep track of exchanged coins in a dictionary (optional)
     @Published var exchangedCoins: [String: Int] = [:]
+    private let exchangeKey = "coin_exchange_data"
 
-    // Popup properties
-    @Published var popupMessage: String? = nil
-    @Published var showMessage: Bool = false
-    
+    // Message property
+    @Published var message: String? = nil
+
     init() {
+
         self.availableCoins = [
             CoinTypeInfo(
                 type: .shibainu,
@@ -41,6 +45,7 @@ class CoinExchangeModel: ObservableObject {
                 count: UserDefaults.standard.integer(forKey: "shibaInuCount"),
                 imageName: "shibainu_image",
                 backgroundColor: Color(red: 139/255, green: 0, blue: 0), // Red
+                secondaryColor: Color(red: 255/255, green: 99/255, blue: 71/255), // Tomato
                 textColor: .white,
                 glowColor: .orange
             ),
@@ -51,6 +56,7 @@ class CoinExchangeModel: ObservableObject {
                 count: UserDefaults.standard.integer(forKey: "dogecoinCount"),
                 imageName: "dogecoin_image",
                 backgroundColor: Color(red: 205/255, green: 127/255, blue: 50/255), // Bronze
+                secondaryColor: Color(red: 244/255, green: 164/255, blue: 96/255), // SandyBrown
                 textColor: .white,
                 glowColor: .brown
             ),
@@ -61,6 +67,7 @@ class CoinExchangeModel: ObservableObject {
                 count: UserDefaults.standard.integer(forKey: "xrpCount"),
                 imageName: "xrp_image",
                 backgroundColor: .black,
+                secondaryColor: Color(red: 105/255, green: 105/255, blue: 105/255), // DimGray
                 textColor: .white,
                 glowColor: .white
             ),
@@ -71,6 +78,7 @@ class CoinExchangeModel: ObservableObject {
                 count: UserDefaults.standard.integer(forKey: "cardanoCount"),
                 imageName: "cardano_image",
                 backgroundColor: Color(red: 135/255, green: 206/255, blue: 250/255), // Blue
+                secondaryColor: Color(red: 70/255, green: 130/255, blue: 180/255), // SteelBlue
                 textColor: .black,
                 glowColor: .cyan
             ),
@@ -81,6 +89,7 @@ class CoinExchangeModel: ObservableObject {
                 count: UserDefaults.standard.integer(forKey: "solanaCount"),
                 imageName: "solana_image",
                 backgroundColor: .purple,
+                secondaryColor: (Color(red: 128/255, green: 0, blue: 128/255)), // Deep Violet
                 textColor: .white,
                 glowColor: Color(hue: 0.8, saturation: 0.7, brightness: 0.8)
             ),
@@ -91,6 +100,7 @@ class CoinExchangeModel: ObservableObject {
                 count: UserDefaults.standard.integer(forKey: "ethereumCount"),
                 imageName: "ethereum_image",
                 backgroundColor: Color(red: 211/255, green: 211/255, blue: 211/255), // Silver
+                secondaryColor:(Color(red: 105/255, green: 105/255, blue: 105/255)), // Dark Grey
                 textColor: .black,
                 glowColor: .gray
             ),
@@ -101,64 +111,76 @@ class CoinExchangeModel: ObservableObject {
                 count: UserDefaults.standard.integer(forKey: "bitcoinCount"),
                 imageName: "bitcoin_image",
                 backgroundColor: Color(red: 255/255, green: 215/255, blue: 0/255), // Gold
+                secondaryColor: (Color(red: 184/255, green: 134/255, blue: 11/255)), // Dark gold
                 textColor: .black,
                 glowColor: .yellow
             )
         ]
+        
+        // Add debug log for instance ID
+        let instanceID = ObjectIdentifier(self).hashValue
+        print("[DEBUG] CoinExchangeModel initialized with ID: \(instanceID)")
+
+        loadExchangeData()
     }
     
     private func saveCoinsToUserDefaults() {
-        // Save each coin's count to UserDefaults
         for coinType in availableCoins {
-            UserDefaults.standard.set(coinType.count, forKey: "\(coinType.type.rawValue)Count")
+            let key = "\(coinType.type.rawValue)_Count"
+            UserDefaults.standard.set(coinType.count, forKey: key)
         }
+        UserDefaults.standard.synchronize() // Ensure data is saved immediately
+        print("[DEBUG] Coins saved to UserDefaults individually.")
     }
-
-    // Perform an exchange for the given coin type
-    func performExchange(for type: CoinType, with coins: inout CryptoCoin?) {
-        
+    
+    private func loadExchangeData() {
+        for (index, coinType) in availableCoins.enumerated() {
+            let key = "\(coinType.type.rawValue)_Count"
+            let count = UserDefaults.standard.integer(forKey: key)
+            availableCoins[index].count = count
+        }
+        print("[DEBUG] Coins loaded from UserDefaults: \(availableCoins.map { "\($0.type.rawValue): \($0.count)" })")
+    }
+    
+    // Perform the exchange based on the coin type
+    func performExchange(for type: CoinType, quantity: Int, with coins: inout CryptoCoin?) {
+        // Check if coin data is valid
         guard let coin = coins else {
-            popupMessage = "Invalid coin data."
-            showPopupWithAnimation()
+            updateMessage("Invalid coin data.")
             return
         }
-        
+
+        // Locate the coin type in the availableCoins array
         if let index = availableCoins.firstIndex(where: { $0.type == type }) {
-            
             let selectedCoin = availableCoins[index]
-            
-            if coin.value >= selectedCoin.cost {
+            let totalCost = selectedCoin.cost * quantity
+
+            // Check if the user has enough coins
+            if coin.value >= totalCost {
                 
-                coins?.value -= selectedCoin.cost
-                
-                // **Important**: Reassign the entire array
-                var newList = availableCoins
-                var coinInfo = newList[index]
-                
-                coinInfo.count += 1
-                newList[index] = coinInfo
-                availableCoins = newList
-                                
-                popupMessage = "Successfully exchanged for \(selectedCoin.label)!"
-                
+                coins?.value -= totalCost
+
+                // Update the coin count
+                availableCoins[index].count += quantity
+
+                // Update the exchangedCoins dictionary
+                exchangedCoins[type.rawValue, default: 0] += quantity
+
+                // Save updates to UserDefaults
+                saveCoinsToUserDefaults()
+
+                updateMessage("Successfully exchanged \(quantity) \(selectedCoin.label)!")
             } else {
-                popupMessage = "Not enough coins for \(selectedCoin.label)."
+                updateMessage("Not enough coins for \(quantity) \(selectedCoin.label).")
             }
-            
-            showPopupWithAnimation()
+        } else {
+            updateMessage("Coin type not found.")
         }
     }
-
-    // Animate a popup for 3 seconds
-    private func showPopupWithAnimation() {
-        withAnimation {
-            showMessage = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            withAnimation {
-                self.showMessage = false
-            }
-        }
+    
+    func updateMessage(_ newMessage: String) {
+        message = newMessage
+        print("[DEBUG] Message updated: \(newMessage)")
     }
 
     // Convenience getters

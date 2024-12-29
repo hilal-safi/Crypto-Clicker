@@ -22,13 +22,12 @@ struct CoinExchangeView: View {
 
                 VStack(spacing: 16) { // Reduced spacing for a more compact layout
                     
-                    ExchangePopupView()
-                    
                     // Display Current Coins
                     Text("Coins: \(coins?.value ?? 0)")
                         .font(.headline)
-                        .padding(.top)
-
+                    
+                    ExchangeMessageView() // Message Area
+                    
                     // List of Coin Exchanges
                     ScrollView {
                         
@@ -40,8 +39,10 @@ struct CoinExchangeView: View {
                         }
                         .padding(.horizontal, 16) // Reduced horizontal padding
                     }
+                    .padding(.top, 4)
                 }
                 .padding(.horizontal, 12) // Overall padding for the entire view
+                .padding(.top, 4)
             }
             .navigationTitle("Exchange Coins") // Title is now part of the NavigationStack
             .navigationBarTitleDisplayMode(.inline) // Keeps the title inline for a cleaner look
