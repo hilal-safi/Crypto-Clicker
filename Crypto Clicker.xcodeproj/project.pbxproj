@@ -12,7 +12,6 @@
 		9E3970322CDD7EF700E461F6 /* SettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */; };
 		9E3970362CDEB3FF00E461F6 /* PowerButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */; };
 		9E39703A2CDF14D100E461F6 /* PowerUps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970392CDF14C700E461F6 /* PowerUps.swift */; };
-		9E4CD0752CF5878200328F86 /* ShopPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0742CF5877000328F86 /* ShopPopupView.swift */; };
 		9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0762CF5882000328F86 /* ShopModel.swift */; };
 		9E4CD0792CF5885500328F86 /* ShopItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0782CF5884C00328F86 /* ShopItemView.swift */; };
 		9E4CD07B2CF8081E00328F86 /* CoinExchangeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */; };
@@ -49,6 +48,8 @@
 		9EC6553F2D14E9DC00D94007 /* CardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC6553E2D14E9DC00D94007 /* CardModel.swift */; };
 		9EC655412D19DD7400D94007 /* BlackjackMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC655402D19DD6E00D94007 /* BlackjackMessageView.swift */; };
 		9EEE79862D21DE3500FBC049 /* ExchangeMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79852D21DE2E00FBC049 /* ExchangeMessageView.swift */; };
+		9EEE79882D2342DB00FBC049 /* ShopMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79872D2342DB00FBC049 /* ShopMessageView.swift */; };
+		9EEE798A2D2343F200FBC049 /* BlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79892D2343F000FBC049 /* BlurView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,7 +75,6 @@
 		9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsModel.swift; sourceTree = "<group>"; };
 		9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerButtonView.swift; sourceTree = "<group>"; };
 		9E3970392CDF14C700E461F6 /* PowerUps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerUps.swift; sourceTree = "<group>"; };
-		9E4CD0742CF5877000328F86 /* ShopPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopPopupView.swift; sourceTree = "<group>"; };
 		9E4CD0762CF5882000328F86 /* ShopModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopModel.swift; sourceTree = "<group>"; };
 		9E4CD0782CF5884C00328F86 /* ShopItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopItemView.swift; sourceTree = "<group>"; };
 		9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinExchangeModel.swift; sourceTree = "<group>"; };
@@ -115,6 +115,8 @@
 		9EC655402D19DD6E00D94007 /* BlackjackMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlackjackMessageView.swift; sourceTree = "<group>"; };
 		9EC655442D1D0B9100D94007 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 		9EEE79852D21DE2E00FBC049 /* ExchangeMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExchangeMessageView.swift; sourceTree = "<group>"; };
+		9EEE79872D2342DB00FBC049 /* ShopMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopMessageView.swift; sourceTree = "<group>"; };
+		9EEE79892D2343F000FBC049 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -229,6 +231,7 @@
 				9EC655382D14DDF800D94007 /* BlackjackMiddleView.swift */,
 				9EC655342D13BCE400D94007 /* BlackjackView.swift */,
 				9EC655362D14DDE500D94007 /* BlackjackTopView.swift */,
+				9EEE79892D2343F000FBC049 /* BlurView.swift */,
 				9E4CD07C2CF808B000328F86 /* CoinExchangeView.swift */,
 				9EC655252D0F4C5A00D94007 /* CoinNumberView.swift */,
 				9E4CD0882CFBC3F600328F86 /* CoinStatsPopupView.swift */,
@@ -244,7 +247,7 @@
 				9EB1D9B22D08FB8600924994 /* PowerUpScrollView.swift */,
 				9EC1AC702C97C13F0055A38D /* SettingsView.swift */,
 				9E4CD0782CF5884C00328F86 /* ShopItemView.swift */,
-				9E4CD0742CF5877000328F86 /* ShopPopupView.swift */,
+				9EEE79872D2342DB00FBC049 /* ShopMessageView.swift */,
 				9E3970292CDD118800E461F6 /* ShopView.swift */,
 			);
 			path = Views;
@@ -396,8 +399,8 @@
 				9EEE79862D21DE3500FBC049 /* ExchangeMessageView.swift in Sources */,
 				9E39702E2CDD552A00E461F6 /* BackgroundView.swift in Sources */,
 				9EC655282D0FABC800D94007 /* AchievementsModel.swift in Sources */,
-				9E4CD0752CF5878200328F86 /* ShopPopupView.swift in Sources */,
 				9EC1AC662C8FC96B0055A38D /* CryptoCoin.swift in Sources */,
+				9EEE79882D2342DB00FBC049 /* ShopMessageView.swift in Sources */,
 				9EC1AC3C2C8FA0850055A38D /* ContentView.swift in Sources */,
 				9EC6552E2D13BB4200D94007 /* BlackjackModel.swift in Sources */,
 				9EC1AC6B2C8FCAB60055A38D /* ErrorWrapper.swift in Sources */,
@@ -414,6 +417,7 @@
 				9EC655392D14DDFE00D94007 /* BlackjackMiddleView.swift in Sources */,
 				9E4CD0792CF5885500328F86 /* ShopItemView.swift in Sources */,
 				9E39703A2CDF14D100E461F6 /* PowerUps.swift in Sources */,
+				9EEE798A2D2343F200FBC049 /* BlurView.swift in Sources */,
 				9E4CD0832CF81D1C00328F86 /* AchievementsView.swift in Sources */,
 				9E3970322CDD7EF700E461F6 /* SettingsModel.swift in Sources */,
 				9EC655352D13BCEB00D94007 /* BlackjackView.swift in Sources */,

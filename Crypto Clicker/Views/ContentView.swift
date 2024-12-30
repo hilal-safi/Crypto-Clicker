@@ -37,10 +37,11 @@ struct ContentView: View {
                     
                     TabView(selection: $selectedTab) {
                         // Achievements Tab
-                        AchievementsView (
+                        AchievementsView(
                             coins: $coins,
-                            coinsPerSecond: store.coinsPerSecond, // Pass coinsPerSecond
-                            coinsPerClick: store.coinsPerClick    // Pass coinsPerClick
+                            store: store,
+                            powerUps: powerUps,
+                            exchangeModel: exchangeModel
                         )
                         .tabItem {
                             VStack {
@@ -178,7 +179,7 @@ struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         
         let store = CryptoStore()
-        let powerUps = PowerUps()
+        let powerUps = PowerUps.shared
         store.coins = CryptoCoin(value: 100)
 
         return ContentView (

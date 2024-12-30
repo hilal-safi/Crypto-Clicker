@@ -1,23 +1,22 @@
 //
-//  ExchangeMessageView.swift
+//  ShopMessageView.swift
 //  Crypto Clicker
 //
-//  Created by Hilal Safi on 2024-12-29.
+//  Created by Hilal Safi on 2024-12-30.
 //
 
 import SwiftUI
 
-struct ExchangeMessageView: View {
+struct ShopMessageView: View {
     
-    @EnvironmentObject var exchangeModel: CoinExchangeModel
+    @EnvironmentObject var model: ShopModel
     @Binding var coins: CryptoCoin?
 
     var body: some View {
-        
         VStack {
 
             // Display Message
-            Text(exchangeModel.message)
+            Text(model.purchaseMessage)
                 .font(.headline)
                 .foregroundColor(.white)
                 .padding(.vertical, 2)
@@ -28,20 +27,21 @@ struct ExchangeMessageView: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(exchangeModel.messageBackgroundColor)
+        .background(model.messageBackgroundColor)
         .cornerRadius(8)
-        .animation(.easeInOut, value: exchangeModel.messageBackgroundColor)
+        .animation(.easeInOut, value: model.messageBackgroundColor)
     }
-
 }
 
-struct ExchangeMessageView_Previews: PreviewProvider {
+struct ShopMessageView_Previews: PreviewProvider {
     
     static var previews: some View {
         
+        let model = ShopModel(store: CryptoStore())
         let coins = CryptoCoin(value: 1000)
-        ExchangeMessageView(coins: .constant(coins))
-            .environmentObject(CoinExchangeModel())
+        
+        return ShopMessageView(coins: .constant(coins))
+            .environmentObject(model)
             .padding()
             .previewLayout(.sizeThatFits)
     }

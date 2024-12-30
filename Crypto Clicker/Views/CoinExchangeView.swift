@@ -21,27 +21,26 @@ struct CoinExchangeView: View {
                 BackgroundView(type: .store)
 
                 VStack(spacing: 16) { // Reduced spacing for a more compact layout
-                    
-                    // Display Current Coins
-                    Text("Coins: \(coins?.value ?? 0)")
-                        .font(.headline)
-                    
-                    ExchangeMessageView() // Message Area
+                                        
+                    ExchangeMessageView(coins: $coins) // Message Area
+                        .padding(.horizontal, 8) // Overall padding for the entire view
+                        .padding(.top, -8)
                     
                     // List of Coin Exchanges
                     ScrollView {
                         
-                        LazyVStack(spacing: 16) { // Reduced spacing between items
+                        LazyVStack(spacing: 20) { // Reduced spacing between items
                             
                             ForEach(CoinType.allCases, id: \.self) { coinType in
                                 ExchangeItemView(coinType: coinType, coins: $coins)
                             }
                         }
-                        .padding(.horizontal, 16) // Reduced horizontal padding
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
                     }
                     .padding(.top, 4)
                 }
-                .padding(.horizontal, 12) // Overall padding for the entire view
+                .padding(.horizontal, 10) // Overall padding for the entire view
                 .padding(.top, 4)
             }
             .navigationTitle("Exchange Coins") // Title is now part of the NavigationStack
@@ -56,5 +55,6 @@ struct CoinExchangeView_Previews: PreviewProvider {
         
         let coins = CryptoCoin(value: 1000)
         return CoinExchangeView(coins: .constant(coins))
+            .environmentObject(CoinExchangeModel())
     }
 }

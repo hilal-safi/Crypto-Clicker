@@ -117,6 +117,7 @@ struct StatisticRow: View {
 }
 
 struct CoinStatsPopupView_Previews: PreviewProvider {
+    
     static var previews: some View {
         CoinStatsPopupView(
             coinsPerSecond: 5_000_000,

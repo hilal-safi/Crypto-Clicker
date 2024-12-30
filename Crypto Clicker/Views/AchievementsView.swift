@@ -12,8 +12,11 @@ struct AchievementsView: View {
     @EnvironmentObject var achievements: AchievementsModel
     @Binding var coins: CryptoCoin?
 
-    let coinsPerSecond: Int
-    let coinsPerClick: Int
+    let store: CryptoStore
+    @ObservedObject var powerUps: PowerUps // ObservedObject for PowerUps
+    let exchangeModel: CoinExchangeModel
+    
+    @State private var hasAppeared = false // Flag to track if the view has already appeared
 
     var body: some View {
         
@@ -24,88 +27,70 @@ struct AchievementsView: View {
                 BackgroundView(type: .achievements)
                     .ignoresSafeArea()
 
-                VStack(spacing: 16) {
+                VStack(spacing: 8) {
                     
                     Text("Achievements")
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                        .padding(.top)
-
+                        .padding(.top, -12)
+                    
                     // Achievements list
                     ScrollView {
                         
                         LazyVStack(spacing: 12) {
-                            ForEach(achievements.achievements, id: \.name) { achievement in
-                                AchievementItemView(
-                                    achievement: achievement,
-                                    progress: progress(for: achievement.name)
-                                )
-                            }
+                            getAchievementsList()
                         }
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, 14)
                     }
+                    .padding(.top, 8) // Reduce padding above the list to bring it closer to the title
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 10)
             }
-            .navigationTitle("Achievements")
-            .navigationBarTitleDisplayMode(.inline)
         }
-    }
-
-    // Get progress dynamically based on achievement type
-    private func progress(for achievementName: String) -> Int {
-        var progressValue: Int
-
-        switch achievementName {
-        case "Mining Coins":
-            progressValue = coins?.value ?? 0
-        case "Coins Per Second":
-            progressValue = coinsPerSecond
-        case "Coins Per Click":
-            progressValue = coinsPerClick
-        case let name where name.contains("Exchanged"):
-            progressValue = achievements.getProgress(for: achievementName)
-            print("Progress for \(achievementName): \(progressValue)") // Debugging log
-        case let name where name.contains("Ownership"):
-            progressValue = achievements.getProgress(for: achievementName)
-            print("Progress for \(achievementName): \(progressValue)") // Debugging log
-        default:
-            progressValue = 0
+        .onAppear {
+            // Only run the refresh when the page loads
+            if !hasAppeared {
+                
+                hasAppeared = true
+                achievements.refreshProgress(coins: coins,
+                                             coinsPerSecond: store.coinsPerSecond,
+                                             coinsPerClick: store.coinsPerClick)
+            }
         }
-
-        print("Final Progress for \(achievementName): \(progressValue)") // Final debugging log
-        return progressValue
+        .onDisappear {
+            hasAppeared = false // Reset the flag when the view disappears
+        }
     }
     
-    private func progressForPowerUps(name: String) -> Int {
-        let value = AchievementsModel.shared.getProgressForPowerUps(named: name)
-        print("Power-Up progress for \(name): \(value)") // Debugging log
-        return value
+    private func getAchievementsList() -> some View {
+        
+        ForEach(achievements.achievements, id: \.name) { achievement in
+            
+            AchievementItemView(
+                achievement: achievement,
+                progress: achievements.getProgress(for: achievement.name)
+            )
+        }
     }
 
-    private func progressForCoins(name: String) -> Int {
-        let value = AchievementsModel.shared.getProgressForCoins(named: name)
-        print("Coin progress for \(name): \(value)") // Debugging log
-        return value
-    }
 }
 
 struct AchievementsView_Previews: PreviewProvider {
-
+    
     static var previews: some View {
-        // Mock data
+        
         let mockCoins = CryptoCoin(value: 10000)
         let mockExchangeModel = CoinExchangeModel()
-        let mockPowerUps = PowerUps() // Use actual PowerUps initialization
+        let mockPowerUps = PowerUps.shared
+        let mockStore = CryptoStore()
+        let mockAchievementsModel = AchievementsModel(exchangeModel: mockExchangeModel, powerUps: mockPowerUps)
 
         return AchievementsView(
             coins: .constant(mockCoins),
-            coinsPerSecond: 15000,  // Example value
-            coinsPerClick: 50       // Example value
+            store: mockStore,
+            powerUps: mockPowerUps,
+            exchangeModel: mockExchangeModel
         )
-        .environmentObject(AchievementsModel(
-            exchangeModel: mockExchangeModel,
-            powerUps: mockPowerUps
-        ))
+        .environmentObject(mockAchievementsModel) // Add the environment object here
     }
 }

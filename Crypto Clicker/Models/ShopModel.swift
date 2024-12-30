@@ -13,8 +13,8 @@ class ShopModel: ObservableObject {
     
     @Published var selectedQuantities: [String: Int] = [:]
     @Published var totalCost: Int = 0
-    @Published var purchaseMessage: String? = nil
-    @Published var showMessage: Bool = false
+    @Published var purchaseMessage: String = "Welcome to the Power Up Store!" // Default message
+    @Published var messageBackgroundColor: Color = .gray // Default background color is grey
 
     private let store: CryptoStore
 
@@ -22,49 +22,46 @@ class ShopModel: ObservableObject {
         self.store = store
     }
 
-    func incrementQuantity(for name: String) {
-        selectedQuantities[name, default: 0] += 1
-        calculateTotalCost()
-    }
-
-    func decrementQuantity(for name: String) {
-        if let currentQuantity = selectedQuantities[name], currentQuantity > 0 {
-            selectedQuantities[name] = currentQuantity - 1
-            calculateTotalCost()
+    func handlePurchase(for powerUp: PowerUps.PowerUp, quantity: Int) {
+        // Ensure quantity is valid
+        guard quantity > 0 else {
+            updateMessage("Invalid quantity for \(powerUp.name).", success: false)
+            return
         }
-    }
 
-    func handlePurchase(for powerUp: PowerUps.PowerUp) {
-        
-        guard let quantity = selectedQuantities[powerUp.name], quantity > 0 else { return }
+        // Attempt the purchase through the store
         let success = store.purchasePowerUp(powerUp: powerUp, quantity: quantity)
 
-        purchaseMessage = success
-            ? "Purchase of \(quantity) \(powerUp.name)(s) successful!"
-            : "Purchase failed. Not enough coins."
+        // Update the message with specific details
+        let message = success
+            ? "Successfully purchased \(quantity) \(powerUp.name)(s)!"
+            : "Failed to purchase \(quantity) \(powerUp.name)(s). Not enough coins."
 
-        // Show the popup message with animation
-        withAnimation {
-            showMessage = true
-        }
-
-        // Hide message after 3 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            withAnimation {
-                self.showMessage = false
-            }
-        }
+        updateMessage(message, success: success)
 
         if success {
+            // Reset quantity and recalculate cost on successful purchase
             selectedQuantities[powerUp.name] = 0
             calculateTotalCost()
         }
     }
-
+    
     private func calculateTotalCost() {
-        
+        // Calculate the total cost of selected items
         totalCost = PowerUps.availablePowerUps.reduce(0) { result, powerUp in
             result + (selectedQuantities[powerUp.name] ?? 0) * powerUp.cost
+        }
+    }
+    
+    func updateMessage(_ text: String, success: Bool) {
+        // Update the message and background color
+        purchaseMessage = text
+        messageBackgroundColor = success ? .green : .red
+
+        // Reset message and background color after 3 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            self.purchaseMessage = "Welcome to the Power Up Store!"
+            self.messageBackgroundColor = .gray // Reset to default
         }
     }
 }

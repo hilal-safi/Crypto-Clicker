@@ -15,31 +15,36 @@ struct ExchangeItemView: View {
     @State private var quantity: Int = 1 // State for quantity selection
 
     var body: some View {
+        
         if let coinInfo = exchangeModel.availableCoins.first(where: { $0.type == coinType }) {
+            
             VStack(spacing: 12) {
+                
                 HStack {
+                    
                     // Coin Image
                     Image(coinInfo.imageName)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 50, height: 50)
+                        .frame(width: 64, height: 64)
                         .shadow(color: coinInfo.glowColor, radius: 10, x: 0, y: 0) // Glow effect
 
                     VStack(alignment: .leading, spacing: 4) {
                         // Coin Label
                         Text(coinInfo.label)
-                            .font(.headline)
+                            .font(.title2)
                             .foregroundColor(coinInfo.textColor)
+                            .bold()
 
                         // Coin Count
                         Text("Exchanged: \(coinInfo.count)")
-                            .font(.subheadline)
-                            .foregroundColor(coinInfo.textColor.opacity(0.9))
+                            .font(.headline)
+                            .foregroundColor(coinInfo.textColor)
 
                         // Coin Cost
-                        Text("Cost per unit: \(coinInfo.cost) coins")
-                            .font(.subheadline)
-                            .foregroundColor(coinInfo.textColor.opacity(0.9))
+                        Text("Cost per coin: \(coinInfo.cost) coins")
+                            .font(.headline)
+                            .foregroundColor(coinInfo.textColor)
                     }
                     Spacer()
                 }
@@ -48,53 +53,58 @@ struct ExchangeItemView: View {
                 HStack {
                     Text("Quantity:")
                         .font(.subheadline)
-                        .foregroundColor(coinInfo.textColor.opacity(0.9))
+                        .bold()
+                        .foregroundColor(coinInfo.textColor)
                     Spacer()
                     Text("\(quantity)")
                         .font(.headline)
-                        .foregroundColor(coinInfo.textColor.opacity(0.9))
+                        .foregroundColor(coinInfo.textColor)
                 }
 
                 HStack {
                     Text("Total Cost:")
                         .font(.subheadline)
-                        .foregroundColor(coinInfo.textColor.opacity(0.9))
+                        .bold()
+                        .foregroundColor(coinInfo.textColor)
                     Spacer()
                     Text("\(quantity * coinInfo.cost) coins")
                         .font(.headline)
-                        .foregroundColor(coinInfo.textColor.opacity(0.9))
+                        .foregroundColor(coinInfo.textColor)
                 }
 
                 // Quantity Selector
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Button(action: {
                         quantity = max(1, quantity - 1)
                     }) {
                         Text("-1")
                             .frame(width: 40, height: 40)
-                            .background(coinInfo.secondaryColor)
+                            .background(coinInfo.textColor.opacity(0.8))
                             .cornerRadius(8)
-                            .foregroundColor(coinInfo.textColor.opacity(0.9))
+                            .foregroundColor(.red)
+                            .bold()
                     }
 
                     Button(action: {
                         quantity = max(1, quantity - 20)
                     }) {
                         Text("-20")
-                            .frame(width: 40, height: 40)
-                            .background(coinInfo.secondaryColor)
+                            .frame(width: 48, height: 40)
+                            .background(coinInfo.textColor.opacity(0.8))
                             .cornerRadius(8)
-                            .foregroundColor(coinInfo.textColor.opacity(0.9))
+                            .foregroundColor(.red)
+                            .bold()
                     }
 
                     Button(action: {
                         quantity = max(1, quantity - 500)
                     }) {
                         Text("-500")
-                            .frame(width: 40, height: 40)
-                            .background(coinInfo.secondaryColor)
+                            .frame(width: 55, height: 40)
+                            .background(coinInfo.textColor.opacity(0.8))
                             .cornerRadius(8)
-                            .foregroundColor(coinInfo.textColor.opacity(0.9))
+                            .foregroundColor(.red)
+                            .bold()
                     }
 
                     Button(action: {
@@ -102,29 +112,32 @@ struct ExchangeItemView: View {
                     }) {
                         Text("+1")
                             .frame(width: 40, height: 40)
-                            .background(coinInfo.secondaryColor)
+                            .background(coinInfo.textColor.opacity(0.8))
                             .cornerRadius(8)
-                            .foregroundColor(coinInfo.textColor.opacity(0.9))
+                            .foregroundColor(.green)
+                            .bold()
                     }
 
                     Button(action: {
                         quantity += 20
                     }) {
                         Text("+20")
-                            .frame(width: 40, height: 40)
-                            .background(coinInfo.secondaryColor)
+                            .frame(width: 48, height: 40)
+                            .background(coinInfo.textColor.opacity(0.8))
                             .cornerRadius(8)
-                            .foregroundColor(coinInfo.textColor.opacity(0.9))
+                            .foregroundColor(.green)
+                            .bold()
                     }
 
                     Button(action: {
                         quantity += 500
                     }) {
                         Text("+500")
-                            .frame(width: 40, height: 40)
-                            .background(coinInfo.secondaryColor)
+                            .frame(width: 55, height: 40)
+                            .background(coinInfo.textColor.opacity(0.8))
                             .cornerRadius(8)
-                            .foregroundColor(coinInfo.textColor.opacity(0.9))
+                            .foregroundColor(.green)
+                            .bold()
                     }
                 }
 

@@ -12,8 +12,8 @@ import SwiftUI
 class CryptoStore: ObservableObject {
     
     @Published var coins: CryptoCoin?
-    @Published var powerUps = PowerUps()
-    
+    @Published var powerUps = PowerUps.shared
+
     @Published var coinsPerSecond: Int = 0
     @Published var coinsPerClick: Int = 1
 
@@ -30,7 +30,7 @@ class CryptoStore: ObservableObject {
 
     // Timer to increment coins based on coinsPerSecond
     private func startTimer() {
-        
+
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             Task { @MainActor in
                 self.incrementCoinsPerSec()
@@ -39,7 +39,7 @@ class CryptoStore: ObservableObject {
     }
 
     private func incrementCoinsPerSec() {
-        
+
         if var currentCoin = coins {
             currentCoin.value += coinsPerSecond
             coins = currentCoin
@@ -57,7 +57,7 @@ class CryptoStore: ObservableObject {
 
     // Reset coin value
     func resetCoinValue() {
-        
+
         if var currentCoin = coins {
             currentCoin.value = 0
             coins = currentCoin
@@ -67,7 +67,7 @@ class CryptoStore: ObservableObject {
     // Reset all power-ups
     func resetPowerUps() {
         
-        powerUps = PowerUps() // Reinitialize to default values
+        powerUps.resetAll() // Reinitialize to default values by removing all powerups
         recalculateCoinsPerSecond()
         recalculateCoinsPerClick()
 
@@ -80,7 +80,6 @@ class CryptoStore: ObservableObject {
     func purchasePowerUp(powerUp: PowerUps.PowerUp, quantity: Int) -> Bool {
         
         guard let currentCoins = coins, currentCoins.value >= powerUp.cost * quantity else {
-            print("Not enough coins to purchase \(powerUp.name). Required: \(powerUp.cost * quantity), Available: \(coins?.value ?? 0)")
             return false
         }
 
@@ -104,7 +103,7 @@ class CryptoStore: ObservableObject {
 
     // Recalculate coinsPerSecond based on power-ups
     private func recalculateCoinsPerSecond() {
-        
+
         coinsPerSecond = powerUps.quantities.reduce(0) { total, entry in
             
             let powerUpName = entry.key
@@ -119,7 +118,7 @@ class CryptoStore: ObservableObject {
 
     // Recalculate coinsPerClick based on power-ups
     private func recalculateCoinsPerClick() {
-        
+
         coinsPerClick = powerUps.quantities.reduce(1) { total, entry in
             
             let powerUpName = entry.key
@@ -141,7 +140,7 @@ extension CryptoStore {
                                     in: .userDomainMask,
                                     appropriateFor: nil,
                                     create: false)
-            .appendingPathComponent("coins.data")
+        .appendingPathComponent("coins.data")
     }
     private static func powerUpsFileURL() throws -> URL {
         
@@ -149,9 +148,9 @@ extension CryptoStore {
                                     in: .userDomainMask,
                                     appropriateFor: nil,
                                     create: false)
-            .appendingPathComponent("powerUps.data")
+        .appendingPathComponent("powerUps.data")
     }
-
+    
     func saveCoins() async {
         
         guard let coins = coins else { return }
@@ -166,11 +165,12 @@ extension CryptoStore {
             print("Failed to save coins: \(error)")
         }
     }
-
+    
     func loadCoins() async {
         
         do {
             let fileURL = try Self.coinsFileURL()
+            
             guard let data = try? Data(contentsOf: fileURL) else {
                 coins = CryptoCoin(value: 0)
                 return
@@ -182,7 +182,7 @@ extension CryptoStore {
             print("Failed to load coins: \(error)")
         }
     }
-
+    
     func savePowerUps() async {
         
         do {
@@ -195,21 +195,22 @@ extension CryptoStore {
             print("Failed to save power-ups: \(error)")
         }
     }
-
+    
     func loadPowerUps() async {
-        
         do {
-            
             let fileURL = try Self.powerUpsFileURL()
+            
             guard let data = try? Data(contentsOf: fileURL) else {
-                powerUps = PowerUps() // Initialize with default values
+
+                PowerUps.shared.resetAll()
                 recalculateCoinsPerSecond()
                 recalculateCoinsPerClick()
                 return
             }
             
-            powerUps = try JSONDecoder().decode(PowerUps.self, from: data)
-            recalculateCoinsPerSecond() // Recalculate coinsPerSecond after loading power-ups
+            let loadedPowerUps = try JSONDecoder().decode(PowerUps.self, from: data)
+            PowerUps.shared.quantities = loadedPowerUps.quantities
+            recalculateCoinsPerSecond()
             recalculateCoinsPerClick()
             
         } catch {

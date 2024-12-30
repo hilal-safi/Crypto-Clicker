@@ -32,8 +32,9 @@ class CoinExchangeModel: ObservableObject {
     @Published var exchangedCoins: [String: Int] = [:]
     private let exchangeKey = "coin_exchange_data"
 
-    // Message property
-    @Published var message: String? = nil
+    // Message and background color for the exchange message
+    @Published var message: String = "Welcome to the Coin Exchange"
+    @Published var messageBackgroundColor: Color = Color.gray // Default background color is grey
 
     init() {
 
@@ -117,10 +118,6 @@ class CoinExchangeModel: ObservableObject {
             )
         ]
         
-        // Add debug log for instance ID
-        let instanceID = ObjectIdentifier(self).hashValue
-        print("[DEBUG] CoinExchangeModel initialized with ID: \(instanceID)")
-
         loadExchangeData()
     }
     
@@ -130,7 +127,6 @@ class CoinExchangeModel: ObservableObject {
             UserDefaults.standard.set(coinType.count, forKey: key)
         }
         UserDefaults.standard.synchronize() // Ensure data is saved immediately
-        print("[DEBUG] Coins saved to UserDefaults individually.")
     }
     
     private func loadExchangeData() {
@@ -139,48 +135,57 @@ class CoinExchangeModel: ObservableObject {
             let count = UserDefaults.standard.integer(forKey: key)
             availableCoins[index].count = count
         }
-        print("[DEBUG] Coins loaded from UserDefaults: \(availableCoins.map { "\($0.type.rawValue): \($0.count)" })")
     }
     
     // Perform the exchange based on the coin type
     func performExchange(for type: CoinType, quantity: Int, with coins: inout CryptoCoin?) {
-        // Check if coin data is valid
-        guard let coin = coins else {
-            updateMessage("Invalid coin data.")
+        
+        guard var coins = coins else { // Make coins mutable here
+            updateMessage("Invalid coin data.", backgroundColor: .red)
             return
         }
 
-        // Locate the coin type in the availableCoins array
-        if let index = availableCoins.firstIndex(where: { $0.type == type }) {
-            let selectedCoin = availableCoins[index]
-            let totalCost = selectedCoin.cost * quantity
+        // Find the index of the coin in availableCoins
+        guard let index = availableCoins.firstIndex(where: { $0.type == type }) else {
+            updateMessage("Coin type not found.", backgroundColor: .red)
+            return
+        }
 
-            // Check if the user has enough coins
-            if coin.value >= totalCost {
-                
-                coins?.value -= totalCost
+        var coinInfo = availableCoins[index] // Fetch coin info
 
-                // Update the coin count
-                availableCoins[index].count += quantity
+        // Calculate total cost
+        let totalCost = coinInfo.cost * quantity
 
-                // Update the exchangedCoins dictionary
-                exchangedCoins[type.rawValue, default: 0] += quantity
+        // Check if the user has enough coins for the exchange
+        if coins.value >= totalCost {
+            // Deduct coins and update count
+            coins.value -= totalCost
+            coinInfo.count += quantity
 
-                // Save updates to UserDefaults
-                saveCoinsToUserDefaults()
+            // Update the availableCoins array
+            availableCoins[index] = coinInfo
 
-                updateMessage("Successfully exchanged \(quantity) \(selectedCoin.label)!")
-            } else {
-                updateMessage("Not enough coins for \(quantity) \(selectedCoin.label).")
-            }
+            // Save updated data to UserDefaults
+            saveCoinsToUserDefaults()
+
+            // Show success message
+            updateMessage("Successfully purchased \(quantity) \(coinInfo.label).", backgroundColor: .green)
         } else {
-            updateMessage("Coin type not found.")
+            // Show failure message
+            updateMessage("Not enough coins for \(quantity) \(coinInfo.label).", backgroundColor: .red)
         }
     }
     
-    func updateMessage(_ newMessage: String) {
-        message = newMessage
-        print("[DEBUG] Message updated: \(newMessage)")
+    // Update message with background color and reset after a delay
+    func updateMessage(_ text: String, backgroundColor: Color) {
+        
+        message = text
+        messageBackgroundColor = backgroundColor
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            self.message = "Welcome to the Coin Exchange"
+            self.messageBackgroundColor = Color.gray // Reset to grey
+        }
     }
 
     // Convenience getters

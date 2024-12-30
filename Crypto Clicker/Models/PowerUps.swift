@@ -111,18 +111,32 @@ class PowerUps: ObservableObject, Codable {
         )
     ]
     
-    init() {
-        // Initialize all quantities to zero
+    private static var initialized = false
+    
+    private init() {
+        if Self.initialized {
+            fatalError("[ERROR] Multiple instances of PowerUps are being created!")
+        }
+        Self.initialized = true
+        print("[DEBUG] PowerUps instance initialized with ID: \(ObjectIdentifier(self).hashValue)")
+        
         for powerUp in Self.availablePowerUps {
             quantities[powerUp.name] = 0
         }
+    }
+
+    func resetAll() {
+        quantities = [:]
+        // Reset other properties if necessary
+        print("[DEBUG] PowerUps resetAll called. Instance ID: \(ObjectIdentifier(self).hashValue)")
     }
     
     func purchase(powerUp: PowerUp, coins: inout CryptoCoin, quantity: Int) -> Bool {
         
         let totalCost = powerUp.cost * quantity
         guard coins.value >= totalCost else { return false }
-        
+        print("[DEBUG] PowerUps purchase called. Instance ID: \(ObjectIdentifier(self).hashValue), PowerUp: \(powerUp.name), Quantity: \(quantity), Total Cost: \(totalCost)")
+
         coins.value -= totalCost
         quantities[powerUp.name, default: 0] += quantity
         return true
@@ -149,10 +163,47 @@ class PowerUps: ObservableObject, Codable {
     
     // For Achievements
     func getOwnedCount(for powerUpName: String) -> Int {
-        return quantities[powerUpName, default: 0]
+        guard let ownedCount = quantities[powerUpName] else {
+            print("[DEBUG] Power-up \(powerUpName) not found in quantities.")
+            return 0
+        }
+        print("[DEBUG] Found power-up \(powerUpName) with count: \(ownedCount)")
+        return ownedCount
+    }
+    
+    func calculateTotalOwned() -> Int {
+        let total = quantities.values.reduce(0, +) // Sum all owned counts
+        print("[DEBUG] Calculated total owned power-ups: \(total)")
+        return total
     }
 
-    var totalOwnedPowerUps: Int {
-        return quantities.values.reduce(0) { $0 + $1 }
+    /// Calculate the total coins per second from owned power-ups.
+    func calculateCoinsPerSecond() -> Int {
+        return PowerUps.availablePowerUps.reduce(0) { total, powerUp in
+            let quantity = quantities[powerUp.name, default: 0]
+            return total + (powerUp.coinsPerSecondIncrease * quantity)
+        }
+    }
+
+    /// Calculate the total coins per click from owned power-ups.
+    func calculateCoinsPerClick() -> Int {
+        return PowerUps.availablePowerUps.reduce(0) { total, powerUp in
+            let quantity = quantities[powerUp.name, default: 0]
+            return total + (powerUp.coinsPerClickIncrease * quantity)
+        }
+    }
+    
+    /// Outputs the quantity of all power-ups for debugging purposes.
+    func debugQuantities() {
+        
+        print("[DEBUG] Power-Up Quantities:")
+
+        for (key, value) in quantities {
+            print("[DEBUG] \(key): \(value)")
+        }
+        let total = quantities.values.reduce(0, +) // Sum all owned counts
+
+        print("[DEBUG] Calculated total owned power-ups: \(total)")
+
     }
 }

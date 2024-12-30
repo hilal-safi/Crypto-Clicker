@@ -27,29 +27,34 @@ struct ShopView: View {
                 
                 BackgroundView(type: .store)
 
-                VStack(spacing: 16) { // Reduced spacing for a more compact layout
+                VStack(spacing: 12) { // Reduced spacing for a more compact layout
                     
-                    // Popup for Purchase Messages
-                    ShopPopupView(model: model)
-
-                    // Display Current Coins
-                    Text("Coins: \(coins?.value ?? 0)")
-                        .font(.headline)
-                        .padding(.top)
+                    // Fixed MessageView for Purchase Messages
+                    ShopMessageView(coins: $coins)
+                        .environmentObject(model)
+                        .padding(.horizontal, 8)
+                        .padding(.top, -8)
 
                     // List of Power-Ups
                     ScrollView {
                         
-                        LazyVStack(spacing: 16) { // Reduced spacing between items
+                        LazyVStack(spacing: 20) {
                             
+                            // Add top padding to prevent shadow cutoff
+                            Spacer().frame(height: 2) // Add space above the first item
+
                             ForEach(PowerUps.availablePowerUps, id: \.name) { powerUp in
-                                ShopItemView(powerUp: powerUp, model: model)
+                            
+                                ShopItemView(powerUp: powerUp, coins: $coins)
+                                    .environmentObject(model)
+                                    .environmentObject(store)
                             }
                         }
                         .padding(.horizontal, 16) // Reduced horizontal padding
                     }
                 }
                 .padding(.horizontal, 12) // Overall padding for the entire view
+                .padding(.top, 20) // Add extra padding at the top
             }
             .navigationTitle("Store") // Title is now part of the NavigationStack
             .navigationBarTitleDisplayMode(.inline) // Keeps the title inline for a cleaner look
@@ -58,7 +63,9 @@ struct ShopView: View {
 }
 
 struct ShopView_Previews: PreviewProvider {
+    
     static var previews: some View {
+        
         let store = CryptoStore()
         let coins = CryptoCoin(value: 1000)
         return ShopView(store: store, coins: .constant(coins))

@@ -36,6 +36,7 @@ struct Crypto_ClickerApp: App {
     }
     
     var body: some Scene {
+        
         WindowGroup {
             
             ContentView(
