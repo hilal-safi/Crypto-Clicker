@@ -27,7 +27,7 @@ struct ShopItemView: View {
                 Text(powerUp.emoji)
                     .font(.system(size: 60))
                     .frame(width: 72, height: 68)
-                    .shadow(color: colorScheme == .dark ? Color.gray.opacity(0.8) : Color.black.opacity(0.3), radius: 10)
+                    .shadow(color: colorScheme == .dark ? Color.gray.opacity(0.8) : Color.black.opacity(0.3), radius: 12)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     // Power-Up Name
@@ -40,7 +40,7 @@ struct ShopItemView: View {
                         .font(.subheadline)
                         .padding(.vertical, 4)
                 }
-                Spacer()
+                .padding(.horizontal, 8)
             }
 
             // Quantity and Total Cost
@@ -83,7 +83,7 @@ struct ShopItemView: View {
                 }) {
                     Text("-1")
                         .frame(width: 40, height: 40)
-                        .background(Color.red.opacity(0.8))
+                        .background(Color.red.opacity(0.7))
                         .cornerRadius(8)
                         .foregroundColor(.white)
                         .bold()
@@ -94,7 +94,7 @@ struct ShopItemView: View {
                 }) {
                     Text("-20")
                         .frame(width: 48, height: 40)
-                        .background(Color.red.opacity(0.8))
+                        .background(Color.red.opacity(0.7))
                         .cornerRadius(8)
                         .foregroundColor(.white)
                         .bold()
@@ -104,8 +104,8 @@ struct ShopItemView: View {
                     quantity = max(1, quantity - 500)
                 }) {
                     Text("-500")
-                        .frame(width: 55, height: 40)
-                        .background(Color.red.opacity(0.8))
+                        .frame(width: 60, height: 40)
+                        .background(Color.red.opacity(0.7))
                         .cornerRadius(8)
                         .foregroundColor(.white)
                         .bold()
@@ -116,7 +116,7 @@ struct ShopItemView: View {
                 }) {
                     Text("+1")
                         .frame(width: 40, height: 40)
-                        .background(Color.green.opacity(0.8))
+                        .background(Color.green.opacity(0.7))
                         .cornerRadius(8)
                         .foregroundColor(.white)
                         .bold()
@@ -127,7 +127,7 @@ struct ShopItemView: View {
                 }) {
                     Text("+20")
                         .frame(width: 48, height: 40)
-                        .background(Color.green.opacity(0.8))
+                        .background(Color.green.opacity(0.7))
                         .cornerRadius(8)
                         .foregroundColor(.white)
                         .bold()
@@ -137,8 +137,8 @@ struct ShopItemView: View {
                     quantity += 500
                 }) {
                     Text("+500")
-                        .frame(width: 55, height: 40)
-                        .background(Color.green.opacity(0.8))
+                        .frame(width: 60, height: 40)
+                        .background(Color.green.opacity(0.7))
                         .cornerRadius(8)
                         .foregroundColor(.white)
                         .bold()

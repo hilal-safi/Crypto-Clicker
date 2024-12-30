@@ -24,7 +24,7 @@ struct CoinExchangeView: View {
                                         
                     ExchangeMessageView(coins: $coins) // Message Area
                         .padding(.horizontal, 8) // Overall padding for the entire view
-                        .padding(.top, -8)
+                        .padding(.top, -4)
                     
                     // List of Coin Exchanges
                     ScrollView {

@@ -33,7 +33,7 @@ struct ShopView: View {
                     ShopMessageView(coins: $coins)
                         .environmentObject(model)
                         .padding(.horizontal, 8)
-                        .padding(.top, -8)
+                        .padding(.top, -10)
 
                     // List of Power-Ups
                     ScrollView {
