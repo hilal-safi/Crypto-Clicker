@@ -56,7 +56,7 @@ struct MiniGamesView_Previews: PreviewProvider {
     static var previews: some View {
                 
         return MiniGamesView()
-            .environmentObject(CoinExchangeModel())
-            .environmentObject(BlackjackModel(exchangeModel: CoinExchangeModel()))
+            .environmentObject(CoinExchangeModel.shared)
+            .environmentObject(BlackjackModel(exchangeModel: CoinExchangeModel.shared))
     }
 }

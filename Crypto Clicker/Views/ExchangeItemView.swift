@@ -171,19 +171,19 @@ struct ExchangeItemView_Previews: PreviewProvider {
                 coinType: .dogecoin,
                 coins: .constant(coins)
             )
-            .environmentObject(CoinExchangeModel())
+            .environmentObject(CoinExchangeModel.shared)
 
             ExchangeItemView(
                 coinType: .ethereum,
                 coins: .constant(coins)
             )
-            .environmentObject(CoinExchangeModel())
+            .environmentObject(CoinExchangeModel.shared)
 
             ExchangeItemView(
                 coinType: .bitcoin,
                 coins: .constant(coins)
             )
-            .environmentObject(CoinExchangeModel())
+            .environmentObject(CoinExchangeModel.shared)
         }
         .previewLayout(.sizeThatFits)
         .padding()

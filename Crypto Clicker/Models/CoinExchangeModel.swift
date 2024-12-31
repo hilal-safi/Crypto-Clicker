@@ -9,7 +9,11 @@ import SwiftUI
 
 class CoinExchangeModel: ObservableObject {
     
-    static let shared = CoinExchangeModel() // Singleton instance
+    static let shared: CoinExchangeModel = {
+        let instance = CoinExchangeModel()
+        // Perform necessary setup here
+        return instance
+    }()
 
     /// A simple struct to represent a coin and its properties.
     struct CoinTypeInfo {
@@ -36,7 +40,7 @@ class CoinExchangeModel: ObservableObject {
     @Published var message: String = "Welcome to the Coin Exchange"
     @Published var messageBackgroundColor: Color = Color.gray // Default background color is grey
 
-    init() {
+    private init() {
 
         self.availableCoins = [
             CoinTypeInfo(
@@ -219,6 +223,15 @@ class CoinExchangeModel: ObservableObject {
     
     var allCoinViews: [CoinTypeInfo] {
         return availableCoins
+    }
+    
+    func resetExchangedCoins() {
+        
+        for index in availableCoins.indices {
+            availableCoins[index].count = 0
+        }
+        exchangedCoins.removeAll()
+        saveCoinsToUserDefaults() // Save changes
     }
     
     // MARK: - Update coin count dynamically and return the updated value

@@ -24,7 +24,8 @@ struct Crypto_ClickerApp: App {
         let st = CryptoStore()
         let ex = CoinExchangeModel.shared // Use singleton instance
         let set = SettingsModel()
-        let am = AchievementsModel(exchangeModel: ex, powerUps: st.powerUps)
+        let am = AchievementsModel.shared
+        am.configureDependencies(exchangeModel: ex, powerUps: st.powerUps)  // Inject dependencies after initializing shared instances
         let bm = BlackjackModel(exchangeModel: ex)
         
         // Wrap each local instance in a StateObject

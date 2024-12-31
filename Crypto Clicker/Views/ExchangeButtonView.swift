@@ -59,7 +59,7 @@ struct ExchangeButtonView_Previews: PreviewProvider {
         return NavigationView {
             ExchangeButtonView(coins: .constant(coins))
         }
-        .environmentObject(CoinExchangeModel())
+        .environmentObject(CoinExchangeModel.shared)
 
     }
 }

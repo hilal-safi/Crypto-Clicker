@@ -11,9 +11,14 @@ struct SettingsView: View {
     
     @Binding var coins: CryptoCoin?
     @ObservedObject var store: CryptoStore
+    @ObservedObject var powerUps: PowerUps
+    @EnvironmentObject var coinExchange: CoinExchangeModel
+    @EnvironmentObject var achievements: AchievementsModel
+    
     @ObservedObject var settings: SettingsModel
     
     @State private var showResetAlert = false
+    @State private var resetType: ResetType? = nil // Track the type of reset action
     @State private var refreshID = UUID() // Unique ID to refresh the view
 
     var body: some View {
@@ -67,44 +72,12 @@ struct SettingsView: View {
                 .padding()
                 Divider()
                 
-                // Reset Coins
-                Button(action: {
-                    showResetAlert = true
-                }) {
-                    Text("Reset Coins")
-                        .foregroundColor(.red)
-                        .padding()
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(10)
-                }
-                .alert("Are you sure?", isPresented: $showResetAlert) {
-                    Button("Cancel", role: .cancel) {}
-                    Button("Reset", role: .destructive) {
-                        store.resetCoinValue()
-                        coins?.value = 0
-                    }
-                } message: {
-                    Text("This will reset your coin value to 0.")
-                }
-                
-                // Reset Powerups
-                Button(action: {
-                    showResetAlert = true
-                }) {
-                    Text("Remove PowerUps")
-                        .foregroundColor(.red)
-                        .padding()
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(10)
-                }
-                .alert("Are you sure?", isPresented: $showResetAlert) {
-                    Button("Cancel", role: .cancel) {}
-                    Button("Reset", role: .destructive) {
-                        store.resetPowerUps()
-                    }
-                } message: {
-                    Text("This will remove all your powerups.")
-                }
+                // Reset Buttons
+                createResetButton(text: "Reset Coins", resetType: .coins, description: "This will reset your coin value to 0.")
+                createResetButton(text: "Remove PowerUps", resetType: .powerUps, description: "This will remove all your powerups.")
+                createResetButton(text: "Remove Exchanged Coins", resetType: .exchangedCoins, description: "This will reset all exchanged coins and remove ownership of any traded values.")
+                createResetButton(text: "Reset Achievements", resetType: .achievements, description: "This will reset all your achievements.")
+                createResetButton(text: "Remove All", resetType: .all, description: "This will reset all coins, power-ups, exchanged coins, and achievements.")
 
                 Spacer()
             }
@@ -112,15 +85,127 @@ struct SettingsView: View {
             .navigationTitle("Settings")
         }
         .id(refreshID) // Force view to refresh by changing the ID
+        .alert("Are you sure?", isPresented: $showResetAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset", role: .destructive) {
+                handleReset()
+            }
+        } message: {
+            Text(resetType?.description ?? "")
+        }
+    }
+    
+    private func createResetButton(text: String, resetType: ResetType, description: String) -> some View {
+        
+        Button(action: {
+            self.resetType = resetType
+            self.showResetAlert = true
+        }) {
+            Text(text)
+                .foregroundColor(.red)
+                .padding()
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(10)
+        }
+    }
+
+    private func handleReset() {
+        guard let resetType = resetType else { return }
+
+        switch resetType {
+        case .coins:
+            store.resetCoinValue()
+            coins?.value = 0
+            achievements.refreshProgress(coins: coins, coinsPerSecond: store.coinsPerSecond, coinsPerClick: store.coinsPerClick)
+
+        case .powerUps:
+            debugPowerUps()
+            store.resetPowerUps()
+            debugPowerUps()
+            achievements.refreshProgress(coins: coins, coinsPerSecond: store.coinsPerSecond, coinsPerClick: store.coinsPerClick)
+
+        case .exchangedCoins:
+            debugExchangedCoins()
+            coinExchange.resetExchangedCoins()
+            debugExchangedCoins()
+            achievements.refreshProgress(coins: coins, coinsPerSecond: store.coinsPerSecond, coinsPerClick: store.coinsPerClick)
+
+        case .achievements:
+            achievements.resetAchievements()
+
+        case .all:
+            // Reset everything
+            store.resetCoinValue()
+            coins?.value = 0
+            store.resetPowerUps()
+            coinExchange.resetExchangedCoins()
+            achievements.resetAchievements()
+            debugPowerUps()
+            debugExchangedCoins()
+        }
+    }
+
+    // Debug function for power-ups
+    private func debugPowerUps() {
+        print("[DEBUG] Power-Ups Quantities IN SETTINGS:")
+        for powerUp in PowerUps.availablePowerUps {
+            let ownedCount = powerUps.getOwnedCount(for: powerUp.name)
+            print("  - \(powerUp.name): \(ownedCount)")
+        }
+    }
+
+    // Debug function for exchanged coins
+    private func debugExchangedCoins() {
+        print("[DEBUG] Exchanged Coins Quantities IN SETTINGS:")
+        for coin in coinExchange.availableCoins {
+            let exchangedCount = coinExchange.getExchangedCount(for: coin.type)
+            print("  - \(coin.label): \(exchangedCount)")
+        }
+    }}
+
+enum ResetType {
+    
+    case coins, powerUps, exchangedCoins, achievements, all
+    
+    var description: String {
+        
+        switch self {
+            
+        case .coins: 
+            return "This will reset your coin value to 0."
+            
+        case .powerUps:
+            return "This will remove all your powerups."
+            
+        case .exchangedCoins:
+            return "This will reset all exchanged coins and remove ownership of any traded values."
+            
+        case .achievements:
+            return "This will reset all your achievements."
+            
+        case .all:
+            return "This will reset all coins, power-ups, exchanged coins, and achievements."
+        }
     }
 }
 
 struct SettingsView_Previews: PreviewProvider {
+    
     static var previews: some View {
+        
+        let ExchangeModel = CoinExchangeModel.shared
+        let PowerUps = PowerUps.shared
+        let Store = CryptoStore()
+        let Settings = SettingsModel()
+        let AchievementsModel = AchievementsModel.shared
+
         SettingsView(
             coins: .constant(CryptoCoin(value: 10)),
-            store: CryptoStore(),
-            settings: SettingsModel()
+            store: Store,
+            powerUps: PowerUps,
+            settings: Settings
         )
+        .environmentObject(ExchangeModel)
+        .environmentObject(AchievementsModel)
     }
 }

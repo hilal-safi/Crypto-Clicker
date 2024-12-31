@@ -55,6 +55,6 @@ struct CoinExchangeView_Previews: PreviewProvider {
         
         let coins = CryptoCoin(value: 1000)
         return CoinExchangeView(coins: .constant(coins))
-            .environmentObject(CoinExchangeModel())
+            .environmentObject(CoinExchangeModel.shared)
     }
 }

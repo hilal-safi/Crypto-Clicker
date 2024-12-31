@@ -78,7 +78,7 @@ struct ContentView: View {
                     // Top navigation bar buttons
                     ToolbarItem(placement: .navigationBarTrailing) {
                         
-                        NavigationLink(destination: SettingsView(coins: $coins, store: store, settings: settings)) {
+                        NavigationLink(destination: SettingsView(coins: $coins, store: store, powerUps: powerUps, settings: settings)) {
                             Image(systemName: "gearshape.fill")
                                 .imageScale(.large)
                         }
@@ -190,7 +190,7 @@ struct ContentView_Previews: PreviewProvider {
             saveAction: { store.incrementCoinValue() }
         )
         .environmentObject(SettingsModel())
-        .environmentObject(CoinExchangeModel())
+        .environmentObject(CoinExchangeModel.shared)
 
     }
 }

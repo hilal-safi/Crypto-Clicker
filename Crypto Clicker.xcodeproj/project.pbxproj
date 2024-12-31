@@ -50,6 +50,7 @@
 		9EEE79862D21DE3500FBC049 /* ExchangeMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79852D21DE2E00FBC049 /* ExchangeMessageView.swift */; };
 		9EEE79882D2342DB00FBC049 /* ShopMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79872D2342DB00FBC049 /* ShopMessageView.swift */; };
 		9EEE798A2D2343F200FBC049 /* BlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79892D2343F000FBC049 /* BlurView.swift */; };
+		9EEE798D2D248AAF00FBC049 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9EEE798C2D248AAF00FBC049 /* CoreAudio.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -117,6 +118,7 @@
 		9EEE79852D21DE2E00FBC049 /* ExchangeMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExchangeMessageView.swift; sourceTree = "<group>"; };
 		9EEE79872D2342DB00FBC049 /* ShopMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopMessageView.swift; sourceTree = "<group>"; };
 		9EEE79892D2343F000FBC049 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
+		9EEE798C2D248AAF00FBC049 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -124,6 +126,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9EEE798D2D248AAF00FBC049 /* CoreAudio.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -151,6 +154,7 @@
 				9EC1AC382C8FA0850055A38D /* Crypto Clicker */,
 				9EC1AC492C8FA0860055A38D /* Crypto ClickerTests */,
 				9EC1AC532C8FA0870055A38D /* Crypto ClickerUITests */,
+				9EEE798B2D248AAE00FBC049 /* Frameworks */,
 				9EC1AC372C8FA0850055A38D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -251,6 +255,14 @@
 				9E3970292CDD118800E461F6 /* ShopView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		9EEE798B2D248AAE00FBC049 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				9EEE798C2D248AAF00FBC049 /* CoreAudio.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

@@ -144,6 +144,6 @@ struct BlackjackTopView_Previews: PreviewProvider {
         // This preview uses a mock environment to display the view.
         // (The real app environment is defined in your @main App.)
         BlackjackTopView(selectedCoin: .constant(.dogecoin))
-            .environmentObject(CoinExchangeModel())
+            .environmentObject(CoinExchangeModel.shared)
     }
 }

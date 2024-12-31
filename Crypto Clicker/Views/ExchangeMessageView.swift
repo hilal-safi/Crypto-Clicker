@@ -41,7 +41,7 @@ struct ExchangeMessageView_Previews: PreviewProvider {
         
         let coins = CryptoCoin(value: 1000)
         ExchangeMessageView(coins: .constant(coins))
-            .environmentObject(CoinExchangeModel())
+            .environmentObject(CoinExchangeModel.shared)
             .padding()
             .previewLayout(.sizeThatFits)
     }

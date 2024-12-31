@@ -33,6 +33,8 @@ class SettingsModel: ObservableObject {
     }
 
     @Published var refreshTrigger: Int = 0 // Triggers a view refresh
+    
+    @Published var resetExchangedCoins: Bool = false // To reset exchanged coins
 
     @Published var enableHaptics: Bool {
         didSet {

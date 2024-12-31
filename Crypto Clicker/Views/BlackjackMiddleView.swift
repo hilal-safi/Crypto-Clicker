@@ -148,7 +148,7 @@ struct BlackjackMiddleView_Previews: PreviewProvider {
     
     static var previews: some View {
         
-        let exchangeModel = CoinExchangeModel()
+        let exchangeModel = CoinExchangeModel.shared
         let model = BlackjackModel(exchangeModel: exchangeModel)
         
         // Example data for preview

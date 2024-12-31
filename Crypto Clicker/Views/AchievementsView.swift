@@ -2,14 +2,14 @@
 //  AchievementsView.swift
 //  Crypto Clicker
 //
-//  Created by Hilal Safi on 2024-11-27.
+//  Created by Hilal Safi on 2024-12-15.
 //
 
 import SwiftUI
 
 struct AchievementsView: View {
     
-    @EnvironmentObject var achievements: AchievementsModel
+    @ObservedObject var achievementsModel = AchievementsModel.shared
     @Binding var coins: CryptoCoin?
 
     let store: CryptoStore
@@ -17,6 +17,7 @@ struct AchievementsView: View {
     let exchangeModel: CoinExchangeModel
     
     @State private var hasAppeared = false // Flag to track if the view has already appeared
+    @State private var viewID = UUID() // Unique ID to force view reload
 
     var body: some View {
         
@@ -37,25 +38,25 @@ struct AchievementsView: View {
                     // Achievements list
                     ScrollView {
                         
-                        LazyVStack(spacing: 12) {
+                        // Add top padding to prevent shadow cutoff
+                        Spacer().frame(height: 16) // Add space above the first item
+
+                        LazyVStack(spacing: 18) {
                             getAchievementsList()
                         }
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, 18)
                     }
                     .padding(.top, 8) // Reduce padding above the list to bring it closer to the title
                 }
-                .padding(.horizontal, 10)
+                .padding(.horizontal, 2)
             }
         }
+        .id(viewID) // Attach the unique ID to the view
         .onAppear {
-            // Only run the refresh when the page loads
-            if !hasAppeared {
-                
-                hasAppeared = true
-                achievements.refreshProgress(coins: coins,
-                                             coinsPerSecond: store.coinsPerSecond,
-                                             coinsPerClick: store.coinsPerClick)
-            }
+            hasAppeared = true
+            
+            // Ensure achievements are refreshed
+            refreshAchievements()
         }
         .onDisappear {
             hasAppeared = false // Reset the flag when the view disappears
@@ -64,15 +65,21 @@ struct AchievementsView: View {
     
     private func getAchievementsList() -> some View {
         
-        ForEach(achievements.achievements, id: \.name) { achievement in
-            
-            AchievementItemView(
-                achievement: achievement,
-                progress: achievements.getProgress(for: achievement.name)
-            )
+        ForEach(achievementsModel.achievements, id: \.id) { achievement in
+            AchievementItemView(achievement: achievement, achievementsModel: achievementsModel)
         }
     }
-
+    
+    private func refreshAchievements() {
+        
+        achievementsModel.loadProgress() // Reload achievements from storage
+        achievementsModel.refreshProgress(
+            coins: coins,
+            coinsPerSecond: store.coinsPerSecond,
+            coinsPerClick: store.coinsPerClick
+        )
+        viewID = UUID() // Force a unique view reload
+    }
 }
 
 struct AchievementsView_Previews: PreviewProvider {
@@ -80,11 +87,17 @@ struct AchievementsView_Previews: PreviewProvider {
     static var previews: some View {
         
         let mockCoins = CryptoCoin(value: 10000)
-        let mockExchangeModel = CoinExchangeModel()
+        let mockExchangeModel = CoinExchangeModel.shared // Use the shared instance
         let mockPowerUps = PowerUps.shared
         let mockStore = CryptoStore()
-        let mockAchievementsModel = AchievementsModel(exchangeModel: mockExchangeModel, powerUps: mockPowerUps)
-
+        
+        // Use AchievementsModel.shared for the singleton pattern
+        let mockAchievementsModel = AchievementsModel.shared
+        mockAchievementsModel.configureDependencies(
+            exchangeModel: mockExchangeModel,
+            powerUps: mockPowerUps
+        ) // Configure dependencies
+        
         return AchievementsView(
             coins: .constant(mockCoins),
             store: mockStore,
