@@ -16,17 +16,19 @@ struct Crypto_ClickerApp: App {
     @StateObject private var settings: SettingsModel
     @StateObject private var achievements: AchievementsModel
     @StateObject private var blackjackModel: BlackjackModel
-    
+
     @State private var errorWrapper: ErrorWrapper?
     
     init() {
         // Create local instances first (no references to `self`)
         let st = CryptoStore()
-        let ex = CoinExchangeModel.shared // Use singleton instance
+        let ex = CoinExchangeModel.shared
         let set = SettingsModel()
         let am = AchievementsModel.shared
-        am.configureDependencies(exchangeModel: ex, powerUps: st.powerUps)  // Inject dependencies after initializing shared instances
+        am.configureDependencies(exchangeModel: ex, powerUps: st.powerUps)
         let bm = BlackjackModel(exchangeModel: ex)
+        st.configureSettings(set)
+        ex.settings = set
         
         // Wrap each local instance in a StateObject
         _store = StateObject(wrappedValue: st)
@@ -56,10 +58,11 @@ struct Crypto_ClickerApp: App {
                 }
             )
             .environmentObject(settings)
-            .environmentObject(exchangeModel) // Ensure singleton is shared
+            .environmentObject(exchangeModel)
             .environmentObject(achievements)
             .environmentObject(blackjackModel)
-            
+            .environmentObject(PowerUps.shared) 
+
             .task {
                 do {
                     await store.loadCoins()

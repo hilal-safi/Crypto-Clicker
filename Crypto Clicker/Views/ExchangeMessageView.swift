@@ -39,7 +39,7 @@ struct ExchangeMessageView_Previews: PreviewProvider {
     
     static var previews: some View {
         
-        let coins = CryptoCoin(value: 1000)
+        let coins = CryptoCoin(value: Decimal(1000))
         ExchangeMessageView(coins: .constant(coins))
             .environmentObject(CoinExchangeModel.shared)
             .padding()

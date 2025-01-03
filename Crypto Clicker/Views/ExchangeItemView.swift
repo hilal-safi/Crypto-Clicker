@@ -20,36 +20,34 @@ struct ExchangeItemView: View {
             
             VStack(spacing: 12) {
                 
+                // Coin image / info
                 HStack {
-                    
-                    // Coin Image
                     Image(coinInfo.imageName)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 64, height: 64)
-                        .shadow(color: coinInfo.glowColor, radius: 10, x: 0, y: 0) // Glow effect
-
+                        .shadow(color: coinInfo.glowColor, radius: 10, x: 0, y: 0)
+                    
                     VStack(alignment: .leading, spacing: 4) {
-                        // Coin Label
                         Text(coinInfo.label)
                             .font(.title2)
                             .foregroundColor(coinInfo.textColor)
                             .bold()
-
-                        // Coin Count
+                        
                         Text("Exchanged: \(coinInfo.count)")
                             .font(.headline)
                             .foregroundColor(coinInfo.textColor)
-
-                        // Coin Cost
-                        Text("Cost per coin: \(coinInfo.cost) coins")
+                        
+                        // We can *display* the cost with difficulty as well
+                        let perCoinCost = exchangeModel.calculateCost(for: coinInfo, quantity: 1)
+                        Text("Cost per coin: \(formatted(perCoinCost)) coins")
                             .font(.headline)
                             .foregroundColor(coinInfo.textColor)
                     }
                     Spacer()
                 }
-
-                // Quantity and Total Cost
+                
+                // Quantity
                 HStack {
                     Text("Quantity:")
                         .font(.subheadline)
@@ -60,14 +58,17 @@ struct ExchangeItemView: View {
                         .font(.headline)
                         .foregroundColor(coinInfo.textColor)
                 }
-
+                
+                // Total cost using difficulty-based logic
+                let totalCost = exchangeModel.calculateCost(for: coinInfo, quantity: quantity)
+                
                 HStack {
                     Text("Total Cost:")
                         .font(.subheadline)
                         .bold()
                         .foregroundColor(coinInfo.textColor)
                     Spacer()
-                    Text("\(quantity * coinInfo.cost) coins")
+                    Text("\(formatted(totalCost)) coins")
                         .font(.headline)
                         .foregroundColor(coinInfo.textColor)
                 }
@@ -160,12 +161,21 @@ struct ExchangeItemView: View {
             .shadow(color: coinInfo.glowColor, radius: 5, x: 0, y: 0)
         }
     }
+    
+    // Format decimals with commas
+    private func formatted(_ value: Decimal) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = ","
+        formatter.maximumFractionDigits = 0
+        return formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
+    }
 }
 
 struct ExchangeItemView_Previews: PreviewProvider {
     static var previews: some View {
-        let coins = CryptoCoin(value: 1000)
-
+        let coins = CryptoCoin(value: Decimal(1000))
+        
         return VStack {
             ExchangeItemView(
                 coinType: .dogecoin,

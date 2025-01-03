@@ -10,7 +10,7 @@ import AudioToolbox
 
 struct CoinView: View {
     
-    @Binding var coinValue: Int
+    @Binding var coinValue: Decimal
     @ObservedObject var settings: SettingsModel // Observe changes in settings
     let incrementAction: () -> Void
     @State private var isCoinPressed = false // State to control animation

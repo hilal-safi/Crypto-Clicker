@@ -51,6 +51,7 @@
 		9EEE79882D2342DB00FBC049 /* ShopMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79872D2342DB00FBC049 /* ShopMessageView.swift */; };
 		9EEE798A2D2343F200FBC049 /* BlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79892D2343F000FBC049 /* BlurView.swift */; };
 		9EEE798D2D248AAF00FBC049 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9EEE798C2D248AAF00FBC049 /* CoreAudio.framework */; };
+		9EEE79912D286DB000FBC049 /* Decimal+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79902D286D9F00FBC049 /* Decimal+Extension.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -119,6 +120,7 @@
 		9EEE79872D2342DB00FBC049 /* ShopMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopMessageView.swift; sourceTree = "<group>"; };
 		9EEE79892D2343F000FBC049 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
 		9EEE798C2D248AAF00FBC049 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+		9EEE79902D286D9F00FBC049 /* Decimal+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Decimal+Extension.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -215,6 +217,7 @@
 				9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */,
 				9EC1AC652C8FC96B0055A38D /* CryptoCoin.swift */,
 				9EC1AC632C8FC9330055A38D /* CryptoStore.swift */,
+				9EEE79902D286D9F00FBC049 /* Decimal+Extension.swift */,
 				9EC1AC6A2C8FCAB60055A38D /* ErrorWrapper.swift */,
 				9E3970392CDF14C700E461F6 /* PowerUps.swift */,
 				9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */,
@@ -418,6 +421,7 @@
 				9EC1AC6B2C8FCAB60055A38D /* ErrorWrapper.swift in Sources */,
 				9E4CD08B2CFBD21900328F86 /* ExchangeItemView.swift in Sources */,
 				9E4CD0812CF817E800328F86 /* InfoView.swift in Sources */,
+				9EEE79912D286DB000FBC049 /* Decimal+Extension.swift in Sources */,
 				9EC6552A2D0FAE0900D94007 /* AchievementItemView.swift in Sources */,
 				9E39702A2CDD118B00E461F6 /* ShopView.swift in Sources */,
 				9EC655262D0F4C6400D94007 /* CoinNumberView.swift in Sources */,

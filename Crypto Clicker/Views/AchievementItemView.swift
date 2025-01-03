@@ -46,12 +46,15 @@ struct AchievementItemView: View {
             
             // Stars and Progress Number
             HStack {
+                
                 ForEach(achievement.tiers, id: \.self) { tier in
                     Text(achievement.currentProgress >= tier ? "⭐" : "☆")
                         .font(.largeTitle) // Bigger stars
                         .foregroundColor(starColor(for: tier, progress: achievement.currentProgress)) // Adjust star color
                 }
+                
                 Spacer()
+                
                 Text("\(achievement.currentProgress) / \(achievement.tiers.max() ?? 0)")
                     .font(.caption)
                     .foregroundColor(textColor(for: achievement.currentProgress))
@@ -130,17 +133,17 @@ struct AchievementItemView: View {
         case 1: // Bronze shine with enhanced glow
             return AnyView(
                 ZStack {
-                    Color(red: 205 / 255, green: 127 / 255, blue: 50 / 255) // Bronze base
-                        .shadow(color: Color.orange.opacity(1.0), radius: 40, x: 0, y: 0) // Strong bronze glow
-                        .shadow(color: Color.orange.opacity(0.9), radius: 60, x: 0, y: 0) // Additional layered glow
-                        .shadow(color: Color.orange.opacity(0.8), radius: 80, x: 0, y: 0) // Further layered glow
+                    Color(red: 150 / 255, green: 75 / 255, blue: 0 / 255) // A slightly brighter bronze base
+                        .shadow(color: Color(red: 165 / 255, green: 90 / 255, blue: 30 / 255).opacity(0.9), radius: 30, x: 0, y: 0) // Moderate bronze glow
+                        .shadow(color: Color(red: 165 / 255, green: 90 / 255, blue: 30 / 255).opacity(0.8), radius: 50, x: 0, y: 0) // Layered glow
+                        .shadow(color: Color(red: 165 / 255, green: 90 / 255, blue: 30 / 255).opacity(0.7), radius: 70, x: 0, y: 0) // Further layered glow
                     LinearGradient(
-                        gradient: Gradient(colors: [Color.white.opacity(0.9), Color.orange.opacity(0.6), Color.clear]),
+                        gradient: Gradient(colors: [Color.white.opacity(0.8), Color(red: 165 / 255, green: 90 / 255, blue: 30 / 255).opacity(0.6), Color.clear]),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                     .animation(
-                        Animation.linear(duration: 0.4).repeatForever(autoreverses: true), // Faster shimmer
+                        Animation.linear(duration: 0.5).repeatForever(autoreverses: true), // Moderate shimmer speed
                         value: completedTiers
                     )
                     .blendMode(.overlay)
@@ -156,32 +159,46 @@ struct AchievementItemView: View {
     
     // Determine text color based on background and color scheme
     private func textColor(for progress: Int) -> Color {
+        
         let completedTiers = achievement.tiers.filter { progress >= $0 }.count
-        if completedTiers == 0 {
+
+        if completedTiers == 1 { // Bronze tier
+            return .white // Make text color white
+            
+        } else if completedTiers == 0 {
             return colorScheme == .dark ? .white : .black // Use white for dark mode, black for light mode
+            
         } else {
-            return .black
+            return .black // Default for other tiers
         }
     }
     
     // Determine star color dynamically based on progress and background
     private func starColor(for tier: Int, progress: Int) -> Color {
+        
+        let completedTiers = achievement.tiers.filter { progress >= $0 }.count
+
         if progress >= tier {
             return .yellow // Filled star
+            
+        } else if completedTiers == 1 { // Bronze tier
+            return .white // Blank star color for bronze is white
+            
         } else {
-            return colorScheme == .dark ? .white : .black // Blank star based on color scheme
+            return colorScheme == .dark ? .white : .black // Default blank star color
         }
     }
     
     // Glow effect
     private func glowColor(for progress: Int) -> Color {
+        
         let completedTiers = achievement.tiers.filter { progress >= $0 }.count
 
         switch completedTiers {
         case 3:
             return Color.yellow
         case 2:
-            return Color.gray
+            return Color.white
         case 1:
             return Color.orange
         default:

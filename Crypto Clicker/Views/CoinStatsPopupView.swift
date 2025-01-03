@@ -9,9 +9,11 @@ import SwiftUI
 
 struct CoinStatsPopupView: View {
     
-    let coinsPerSecond: Int
-    let coinsPerClick: Int
-    let totalCoins: Int
+    let coinsPerSecond: Decimal
+    let coinsPerClick: Decimal
+    let totalCoins: Decimal
+    let totalPowerUpsOwned: Int
+    let totalExchangedCoins: Int
     let onClose: () -> Void
 
     @Environment(\.colorScheme) var colorScheme // Detect the system or app-specific color scheme
@@ -19,15 +21,15 @@ struct CoinStatsPopupView: View {
     var body: some View {
         
         ZStack {
-            // Add blur to everything behind the popup
-            Color.clear
-                .background(
-                    VisualEffectBlurView(blurStyle: colorScheme == .dark ? .systemUltraThinMaterialDark : .systemUltraThinMaterialLight)
-                )
-                .ignoresSafeArea()
-                .onTapGesture {
-                    onClose() // Dismiss popup when tapping outside
-                }
+            // Add blur to everything behind the popup using BlurView
+            BlurView(
+                style: colorScheme == .dark ? .systemUltraThinMaterialDark : .systemUltraThinMaterialLight,
+                reduction: 0.8 // Reduced intensity for softer blur
+            )
+            .ignoresSafeArea()
+            .onTapGesture {
+                onClose() // Dismiss popup when tapping outside
+            }
 
             // Popup content
             VStack(spacing: 20) {
@@ -54,6 +56,16 @@ struct CoinStatsPopupView: View {
                         value: totalCoins,
                         colorScheme: colorScheme
                     )
+                    StatisticRow(
+                        title: "Power-Ups Owned",
+                        value: Decimal(totalPowerUpsOwned),
+                        colorScheme: colorScheme
+                    )
+                    StatisticRow(
+                        title: "Exchanged Coins",
+                        value: Decimal(totalExchangedCoins),
+                        colorScheme: colorScheme
+                    )
                 }
 
                 Button("Close") {
@@ -67,33 +79,20 @@ struct CoinStatsPopupView: View {
                 
             }
             .padding()
-            .background(colorScheme == .dark ? Color.black : Color.white)
+            .background(colorScheme == .dark ? Color.black.opacity(0.8) : Color.white.opacity(0.9))
             .cornerRadius(16)
             .shadow(color: colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1), radius: 10)
-            .frame(width: UIScreen.main.bounds.width * 0.8) // 80% of screen width
+            .frame(width: UIScreen.main.bounds.width * 0.9) // 80% of screen width
             .offset(y: -UIScreen.main.bounds.height * 0.1) // Slightly higher but not cut off
         }
     }
 }
 
-// Helper view for applying the blur effect
-struct VisualEffectBlurView: UIViewRepresentable {
-    var blurStyle: UIBlurEffect.Style
-
-    func makeUIView(context: Context) -> UIVisualEffectView {
-        UIVisualEffectView(effect: UIBlurEffect(style: blurStyle))
-    }
-
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
-        uiView.effect = UIBlurEffect(style: blurStyle)
-    }
-}
-
-// Updated StatisticRow to accept the color scheme
+// Updated StatisticRow remains the same
 struct StatisticRow: View {
     
     let title: String
-    let value: Int
+    let value: Decimal
     let colorScheme: ColorScheme
 
     var body: some View {
@@ -123,6 +122,8 @@ struct CoinStatsPopupView_Previews: PreviewProvider {
             coinsPerSecond: 5_000_000,
             coinsPerClick: 10_000_000,
             totalCoins: 100_000_000,
+            totalPowerUpsOwned: 25,
+            totalExchangedCoins: 100,
             onClose: {}
         )
         .previewLayout(.sizeThatFits)
@@ -133,6 +134,8 @@ struct CoinStatsPopupView_Previews: PreviewProvider {
             coinsPerSecond: 5_000_000,
             coinsPerClick: 10_000_000,
             totalCoins: 100_000_000,
+            totalPowerUpsOwned: 25,
+            totalExchangedCoins: 100,
             onClose: {}
         )
         .previewLayout(.sizeThatFits)

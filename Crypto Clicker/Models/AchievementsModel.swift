@@ -33,13 +33,13 @@ class AchievementsModel: ObservableObject {
 
     // Remove direct dependency on CoinExchangeModel and PowerUps
     private init() {
+        
         self.exchangeModel = CoinExchangeModel.shared
         self.powerUps = PowerUps.shared
         
         defer {
             loadProgress()
         }
-        print("[DEBUG] AchievementsModel initialized with ID: \(ObjectIdentifier(self).hashValue)")
     }
 
     func configureDependencies(exchangeModel: CoinExchangeModel, powerUps: PowerUps) {
@@ -201,18 +201,11 @@ class AchievementsModel: ObservableObject {
     }
         
     // Refresh achievement progress
-    func refreshProgress(coins: CryptoCoin?, coinsPerSecond: Int, coinsPerClick: Int) {
+    func refreshProgress(coins: CryptoCoin?, coinsPerSecond: Decimal, coinsPerClick: Decimal) {
         
         guard let coins = coins else {
             return
         }
-
-        print("[DEBUG] Achievement progress BEFORE update:")
-        achievements.forEach { achievement in
-            print("  - \(achievement.name): \(achievement.currentProgress)")
-        }
-        
-        print(achievements)
 
         for i in 0..<achievements.count {
             let achievement = achievements[i]
@@ -221,18 +214,19 @@ class AchievementsModel: ObservableObject {
                 
             case "Mining Coins":
                 let value = coins.value
-                achievements[i].currentProgress = value
-                setProgress(for: "Mining Coins", value: value)
+                achievements[i].currentProgress = NSDecimalNumber(decimal: value).intValue
+                setProgressDecimal(for: "Mining Coins", value: value)
 
             case "Coins Per Second":
-                achievements[i].currentProgress = coinsPerSecond
-                setProgress(for: "Coins Per Second", value: coinsPerSecond)
+                achievements[i].currentProgress = NSDecimalNumber(decimal: coinsPerSecond).intValue
+                setProgressDecimal(for: "Coins Per Second", value: coinsPerSecond)
 
             case "Coins Per Click":
-                achievements[i].currentProgress = coinsPerClick
-                setProgress(for: "Coins Per Click", value: coinsPerClick)
+                achievements[i].currentProgress = NSDecimalNumber(decimal: coinsPerClick).intValue
+                setProgressDecimal(for: "Coins Per Click", value: coinsPerClick)
 
             case let name where name.contains("Exchanged"):
+                
                 let coinLabel = name.replacingOccurrences(of: "Exchanged ", with: "")
                 
                 if let coin = exchangeModel.availableCoins.first(where: { $0.label == coinLabel }) {
@@ -242,8 +236,10 @@ class AchievementsModel: ObservableObject {
                 }
 
             case let name where name.contains("Ownership"):
+                
                 let powerUpName = name.replacingOccurrences(of: " Ownership", with: "")
                 let ownedCount = powerUps.getOwnedCount(for: powerUpName)
+                
                 achievements[i].currentProgress = ownedCount
                 setProgress(for: name, value: ownedCount)
 
@@ -258,17 +254,18 @@ class AchievementsModel: ObservableObject {
                 setProgress(for: "Total Power-Ups Owned", value: totalPowerUpsOwned)
 
             default:
-                print("[DEBUG] No specific logic for '\(achievement.name)'.")
+                break
             }
         }
-
-        print("[DEBUG] Achievement progress AFTER update:")
-        achievements.forEach { achievement in
-            print("  - \(achievement.name): \(achievement.currentProgress)")
-        }
-        print(achievements)
-
         saveProgress()
+    }
+    
+    // Set progress for achievements using Decimal
+    func setProgressDecimal(for achievementName: String, value: Decimal) {
+        // Convert to Int for compatibility with existing progress dictionary
+        let intValue = NSDecimalNumber(decimal: value).intValue
+        let updatedValue = max(progress[achievementName] ?? 0, intValue)
+        progress[achievementName] = updatedValue
     }
     
     // Persistence

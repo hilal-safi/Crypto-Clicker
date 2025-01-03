@@ -38,7 +38,7 @@ struct ShopMessageView_Previews: PreviewProvider {
     static var previews: some View {
         
         let model = ShopModel(store: CryptoStore())
-        let coins = CryptoCoin(value: 1000)
+        let coins = CryptoCoin(value: Decimal(1000))
         
         return ShopMessageView(coins: .constant(coins))
             .environmentObject(model)

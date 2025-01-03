@@ -86,7 +86,7 @@ struct AchievementsView_Previews: PreviewProvider {
     
     static var previews: some View {
         
-        let mockCoins = CryptoCoin(value: 10000)
+        let mockCoins = CryptoCoin(value: Decimal(10000))
         let mockExchangeModel = CoinExchangeModel.shared // Use the shared instance
         let mockPowerUps = PowerUps.shared
         let mockStore = CryptoStore()

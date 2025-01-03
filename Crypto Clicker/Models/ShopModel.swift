@@ -64,4 +64,8 @@ class ShopModel: ObservableObject {
             self.messageBackgroundColor = .gray // Reset to default
         }
     }
+    
+    func clearAllQuantities() {
+        selectedQuantities.removeAll()
+    }
 }

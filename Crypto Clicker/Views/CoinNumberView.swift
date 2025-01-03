@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CoinNumberView: View {
     
-    @Binding var coinValue: Int
+    @Binding var coinValue: Decimal
     @Binding var showStatsPopup: Bool
 
     var body: some View {
@@ -37,10 +37,11 @@ struct CoinNumberView: View {
                     showStatsPopup = true // Show stats popup when clicked
                     
                 }) {
-                    Text("\(coinValue)")
+                    // Use the new `formattedCoinValue` to display commas
+                    Text(formattedCoinValue(coinValue))
                         .font(.system(size: 38, weight: .bold, design: .rounded))
                         .padding(.horizontal, 10) // Reduced padding
-                        .padding(.vertical, 6) // Reduced vertical padding
+                        .padding(.vertical, 6)    // Reduced vertical padding
                         .foregroundColor(.primary)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
@@ -60,6 +61,20 @@ struct CoinNumberView: View {
     }
 }
 
+// MARK: - Helper
+/// Convert a Decimal to a whole-number string with commas (e.g. "100,000,000").
+private func formattedCoinValue(_ value: Decimal) -> String {
+    // Create a NumberFormatter each time or store one as a static property
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .decimal
+    formatter.groupingSeparator = ","
+    formatter.maximumFractionDigits = 0
+    
+    let nsNumber = value as NSDecimalNumber
+    return formatter.string(from: nsNumber) ?? "\(value)"
+}
+
+// MARK: - Preview
 struct CoinNumberView_Previews: PreviewProvider {
     
     static var previews: some View {
@@ -75,7 +90,7 @@ struct CoinNumberView_Previews: PreviewProvider {
             .previewDisplayName("Zero Coin Value")
 
             CoinNumberView(
-                coinValue: .constant(100),
+                coinValue: .constant(100_000_000), // Demonstrate formatting
                 showStatsPopup: .constant(false)
             )
             .previewLayout(.sizeThatFits)

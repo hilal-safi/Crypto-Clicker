@@ -30,7 +30,6 @@ struct ContentView: View {
     var body: some View {
         
         ZStack {
-
             NavigationStack {
                 
                 VStack {
@@ -54,7 +53,6 @@ struct ContentView: View {
                         // Main Game Tab
                         gameContentView
                             .tabItem {
-                                
                                 VStack {
                                     Image(systemName: "bitcoinsign.circle.fill")
                                 }
@@ -64,7 +62,6 @@ struct ContentView: View {
                         // Mini Games Tab
                         MiniGamesView()
                             .tabItem {
-                                
                                 VStack {
                                     Image(systemName: "gamecontroller.fill")
                                     Text("Mini Games")
@@ -77,14 +74,12 @@ struct ContentView: View {
                 .toolbar {
                     // Top navigation bar buttons
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        
                         NavigationLink(destination: SettingsView(coins: $coins, store: store, powerUps: powerUps, settings: settings)) {
                             Image(systemName: "gearshape.fill")
                                 .imageScale(.large)
                         }
                     }
                     ToolbarItem(placement: .navigationBarLeading) {
-                        
                         Button(action: {
                             isInfoPresented = true
                         }) {
@@ -119,7 +114,7 @@ struct ContentView: View {
                 if coins == nil {
                     // Show Start Button if coin is not initialized
                     Button(action: {
-                        coins = CryptoCoin(value: 0)
+                        coins = CryptoCoin(value: Decimal(0))
                     }) {
                         Text("Start Game")
                             .font(.title2)
@@ -131,17 +126,16 @@ struct ContentView: View {
                 } else {
                     // Game content
                     CoinNumberView (
-                        
                         coinValue: Binding(
-                            get: { coins?.value ?? 0 },
-                            set: { coins?.value = $0 }
+                            get: { coins?.value ?? Decimal(0) }, // Directly use Decimal
+                            set: { newValue in coins?.value = newValue } // Ensure updates stay as Decimal
                         ),
                         showStatsPopup: $showStatsPopup // Pass the binding for the popup
                     )
                     
                     CoinView(
                         coinValue: Binding(
-                            get: { coins?.value ?? 0 },
+                            get: { coins?.value ?? Decimal(0) },
                             set: { coins?.value = $0 }
                         ),
                         settings: settings
@@ -163,7 +157,9 @@ struct ContentView: View {
                     
                     coinsPerSecond: store.coinsPerSecond,
                     coinsPerClick: store.coinsPerClick,
-                    totalCoins: coins?.value ?? 0,
+                    totalCoins: coins?.value ?? Decimal(0),
+                    totalPowerUpsOwned: powerUps.calculateTotalOwned(),
+                    totalExchangedCoins: exchangeModel.totalExchangedCoins(),
                     
                     onClose: {
                         showStatsPopup = false
@@ -180,10 +176,9 @@ struct ContentView_Previews: PreviewProvider {
         
         let store = CryptoStore()
         let powerUps = PowerUps.shared
-        store.coins = CryptoCoin(value: 100)
+        store.coins = CryptoCoin(value: Decimal(10015000300))
 
-        return ContentView (
-            
+        return ContentView(
             coins: .constant(store.coins),
             store: store,
             powerUps: powerUps,
@@ -191,6 +186,6 @@ struct ContentView_Previews: PreviewProvider {
         )
         .environmentObject(SettingsModel())
         .environmentObject(CoinExchangeModel.shared)
-
+        .environmentObject(powerUps)
     }
 }

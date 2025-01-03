@@ -9,7 +9,7 @@ import SwiftUI
 
 struct PowerUpScrollView: View {
     
-    let store: CryptoStore
+    @ObservedObject var store: CryptoStore // Ensure this observes changes in the store
 
     var body: some View {
         
@@ -22,6 +22,8 @@ struct PowerUpScrollView: View {
                     VStack {
                         Text(powerUp.emoji)
                             .font(.system(size: 45))
+                        
+                        // Dynamically bind to the updated quantity
                         Text("\(store.powerUps.quantity(for: powerUp.name))")
                             .font(.system(size: 24, weight: .semibold))
                     }

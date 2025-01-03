@@ -18,7 +18,7 @@ struct SettingsView: View {
     @ObservedObject var settings: SettingsModel
     
     @State private var showResetAlert = false
-    @State private var resetType: ResetType? = nil // Track the type of reset action
+    @State private var resetType: ResetType? = nil
     @State private var refreshID = UUID() // Unique ID to refresh the view
 
     var body: some View {
@@ -26,165 +26,162 @@ struct SettingsView: View {
         ZStack {
             
             BackgroundView(type: .settings)
-            
-            VStack {
+
+            ScrollView {
                 
-                // Enable Haptics Setting
-                Toggle(isOn: $settings.enableHaptics) {
-                    HStack {
-                        Image(systemName: "hand.tap.fill")
-                        Text("Enable Haptics")
-                            .font(.headline)
-                    }
-                }
-                .padding()
-                Divider()
-                
-                // Enable Sounds Setting
-                Toggle(isOn: $settings.enableSounds) {
-                    HStack {
-                        Image(systemName: "speaker.wave.2")
-                        Text("Enable Sounds")
-                            .font(.headline)
-                    }
-                }
-                .padding()
-                Divider()
-                
-                // Appearance Mode Setting
-                VStack(alignment: .leading) {
-                    HStack {
-                        Image(systemName: "moon.circle")
-                        Text("Appearance Mode")
-                            .font(.headline)
-                    }
+                VStack(spacing: 16) {
                     
-                    Picker("Appearance Mode", selection: $settings.appearanceMode) {
-                        ForEach(SettingsModel.AppearanceMode.allCases) { mode in
-                            Text(mode.rawValue.capitalized).tag(mode)
+                    settingsSection(title: "Haptics", icon: "hand.tap.fill") {
+                        
+                        Toggle(isOn: $settings.enableHaptics) {
+                            Text("Enable Haptics")
                         }
                     }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .onChange(of: settings.appearanceMode) {
-                        refreshID = UUID() // Trigger a view refresh when appearanceMode changes
+                    
+                    settingsSection(title: "Sounds", icon: "speaker.wave.2") {
+                        
+                        Toggle(isOn: $settings.enableSounds) {
+                            Text("Enable Sounds")
+                        }
+                    }
+                    
+                    settingsSection(title: "Appearance", icon: "paintpalette.fill") {
+                        
+                        Picker("Appearance Mode", selection: $settings.appearanceMode) {
+                            ForEach(SettingsModel.AppearanceMode.allCases) { mode in
+                                Text(mode.rawValue.capitalized).tag(mode)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                    }
+                    
+                    settingsSection(title: "Difficulty", icon: "tortoise.fill") {
+                        
+                        Picker("Difficulty", selection: $settings.difficulty) {
+                            ForEach(SettingsModel.Difficulty.allCases) { difficulty in
+                                Text(difficulty.rawValue.capitalized).tag(difficulty)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .onChange(of: settings.difficulty) {
+                            store.recalculateCoinsPerSecond()
+                            store.recalculateCoinsPerClick()
+                        }
+                    }
+                    
+                    settingsSection(title: "Reset Options", icon: "trash.fill") {
+                        
+                        ForEach(ResetType.allCases, id: \.self) { resetType in
+                            
+                            Button(action: {
+                                self.resetType = resetType
+                                showResetAlert = true
+                            }) {
+                                Text(resetType.buttonLabel)
+                                    .foregroundColor(.red)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(
+                                        BlurView(style: .systemMaterial)
+                                            .cornerRadius(10)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color.red, lineWidth: 1)
+                                    )
+                            }
+                        }
                     }
                 }
                 .padding()
-                Divider()
-                
-                // Reset Buttons
-                createResetButton(text: "Reset Coins", resetType: .coins, description: "This will reset your coin value to 0.")
-                createResetButton(text: "Remove PowerUps", resetType: .powerUps, description: "This will remove all your powerups.")
-                createResetButton(text: "Remove Exchanged Coins", resetType: .exchangedCoins, description: "This will reset all exchanged coins and remove ownership of any traded values.")
-                createResetButton(text: "Reset Achievements", resetType: .achievements, description: "This will reset all your achievements.")
-                createResetButton(text: "Remove All", resetType: .all, description: "This will reset all coins, power-ups, exchanged coins, and achievements.")
-
-                Spacer()
             }
-            .padding()
             .navigationTitle("Settings")
-        }
-        .id(refreshID) // Force view to refresh by changing the ID
-        .alert("Are you sure?", isPresented: $showResetAlert) {
-            Button("Cancel", role: .cancel) {}
-            Button("Reset", role: .destructive) {
-                handleReset()
+            .id(refreshID)
+            .alert("Reset Confirmation", isPresented: $showResetAlert) {
+                Button("Reset", role: .destructive) {
+                    handleReset()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(resetType?.description ?? "")
             }
-        } message: {
-            Text(resetType?.description ?? "")
         }
     }
     
-    private func createResetButton(text: String, resetType: ResetType, description: String) -> some View {
+    private func settingsSection(title: String, icon: String, @ViewBuilder content: () -> some View) -> some View {
         
-        Button(action: {
-            self.resetType = resetType
-            self.showResetAlert = true
-        }) {
-            Text(text)
-                .foregroundColor(.red)
-                .padding()
-                .background(Color.gray.opacity(0.2))
-                .cornerRadius(10)
+        VStack(alignment: .leading, spacing: 8) {
+            
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(.blue)
+                Text(title)
+                    .font(.headline)
+            }
+            .padding(.bottom, 4)
+            
+            content()
         }
+        .padding()
+        .background(
+            BlurView(style: .systemMaterial)
+                .cornerRadius(12)
+        )
     }
 
     private func handleReset() {
+        
         guard let resetType = resetType else { return }
-
+        
         switch resetType {
+            
         case .coins:
             store.resetCoinValue()
             coins?.value = 0
-            achievements.refreshProgress(coins: coins, coinsPerSecond: store.coinsPerSecond, coinsPerClick: store.coinsPerClick)
-
+            
         case .powerUps:
-            debugPowerUps()
             store.resetPowerUps()
-            debugPowerUps()
-            achievements.refreshProgress(coins: coins, coinsPerSecond: store.coinsPerSecond, coinsPerClick: store.coinsPerClick)
-
+            
         case .exchangedCoins:
-            debugExchangedCoins()
             coinExchange.resetExchangedCoins()
-            debugExchangedCoins()
-            achievements.refreshProgress(coins: coins, coinsPerSecond: store.coinsPerSecond, coinsPerClick: store.coinsPerClick)
-
+            
         case .achievements:
             achievements.resetAchievements()
-
+            
         case .all:
-            // Reset everything
             store.resetCoinValue()
-            coins?.value = 0
             store.resetPowerUps()
             coinExchange.resetExchangedCoins()
             achievements.resetAchievements()
-            debugPowerUps()
-            debugExchangedCoins()
         }
     }
+}
 
-    // Debug function for power-ups
-    private func debugPowerUps() {
-        print("[DEBUG] Power-Ups Quantities IN SETTINGS:")
-        for powerUp in PowerUps.availablePowerUps {
-            let ownedCount = powerUps.getOwnedCount(for: powerUp.name)
-            print("  - \(powerUp.name): \(ownedCount)")
-        }
-    }
-
-    // Debug function for exchanged coins
-    private func debugExchangedCoins() {
-        print("[DEBUG] Exchanged Coins Quantities IN SETTINGS:")
-        for coin in coinExchange.availableCoins {
-            let exchangedCount = coinExchange.getExchangedCount(for: coin.type)
-            print("  - \(coin.label): \(exchangedCount)")
-        }
-    }}
-
-enum ResetType {
+enum ResetType: CaseIterable {
     
     case coins, powerUps, exchangedCoins, achievements, all
-    
+
     var description: String {
         
         switch self {
             
-        case .coins: 
-            return "This will reset your coin value to 0."
+        case .coins: return "Reset your coin value to 0."
+        case .powerUps: return "Remove all your power-ups."
+        case .exchangedCoins: return "Reset all exchanged coins."
+        case .achievements: return "Reset all achievements."
+        case .all: return "Reset everything."
+        }
+    }
+
+    var buttonLabel: String {
+        
+        switch self {
             
-        case .powerUps:
-            return "This will remove all your powerups."
-            
-        case .exchangedCoins:
-            return "This will reset all exchanged coins and remove ownership of any traded values."
-            
-        case .achievements:
-            return "This will reset all your achievements."
-            
-        case .all:
-            return "This will reset all coins, power-ups, exchanged coins, and achievements."
+        case .coins: return "💰 Reset Coins 💰"
+        case .powerUps: return "💻 Remove Power-Ups 💻"
+        case .exchangedCoins: return " 🪙 Reset Exchanged Coins 🪙"
+        case .achievements: return "🏆 Reset Achievements 🏆"
+        case .all: return "⚠️ Remove All ⚠️"
         }
     }
 }
@@ -200,7 +197,7 @@ struct SettingsView_Previews: PreviewProvider {
         let AchievementsModel = AchievementsModel.shared
 
         SettingsView(
-            coins: .constant(CryptoCoin(value: 10)),
+            coins: .constant(CryptoCoin(value: Decimal(10))),
             store: Store,
             powerUps: PowerUps,
             settings: Settings

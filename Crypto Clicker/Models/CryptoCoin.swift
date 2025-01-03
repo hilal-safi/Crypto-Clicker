@@ -11,11 +11,11 @@ import Foundation
 struct CryptoCoin: Identifiable, Codable {
     
     let id: UUID
-    var value: Int
-    var coinsPerSecond: Int // Tracks coins generated per second
-    var coinsPerClick: Int // Tracks coins generated per second
+    var value: Decimal
+    var coinsPerSecond: Decimal // Tracks coins generated per second
+    var coinsPerClick: Decimal // Tracks coins generated per second
     
-    init(id: UUID = UUID(), value: Int, coinsPerSecond: Int = 0, coinsPerClick: Int = 1) {
+    init(id: UUID = UUID(), value: Decimal, coinsPerSecond: Decimal = 0, coinsPerClick: Decimal = 1) {
         
         self.id = id
         self.value = value
@@ -25,5 +25,5 @@ struct CryptoCoin: Identifiable, Codable {
 }
 
 extension CryptoCoin {
-    static let sampleData = CryptoCoin(value: 10, coinsPerSecond: 0)
+    static let sampleData = CryptoCoin(value: Decimal(10), coinsPerSecond: Decimal(0))
 }

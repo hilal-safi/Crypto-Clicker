@@ -11,11 +11,10 @@ class CoinExchangeModel: ObservableObject {
     
     static let shared: CoinExchangeModel = {
         let instance = CoinExchangeModel()
-        // Perform necessary setup here
         return instance
     }()
-
-    /// A simple struct to represent a coin and its properties.
+    
+    // A simple struct to represent a coin and its properties.
     struct CoinTypeInfo {
         
         let type: CoinType
@@ -30,9 +29,11 @@ class CoinExchangeModel: ObservableObject {
         let glowColor: Color
     }
     
-    @Published var availableCoins: [CoinTypeInfo]
-    
+    // Reference to difficulty settings and cost rounding
+    @Published var settings: SettingsModel? = nil
+        
     // Keep track of exchanged coins in a dictionary (optional)
+    @Published var availableCoins: [CoinTypeInfo]
     @Published var exchangedCoins: [String: Int] = [:]
     private let exchangeKey = "coin_exchange_data"
 
@@ -126,6 +127,7 @@ class CoinExchangeModel: ObservableObject {
     }
     
     private func saveCoinsToUserDefaults() {
+        
         for coinType in availableCoins {
             let key = "\(coinType.type.rawValue)_Count"
             UserDefaults.standard.set(coinType.count, forKey: key)
@@ -134,6 +136,7 @@ class CoinExchangeModel: ObservableObject {
     }
     
     private func loadExchangeData() {
+        
         for (index, coinType) in availableCoins.enumerated() {
             let key = "\(coinType.type.rawValue)_Count"
             let count = UserDefaults.standard.integer(forKey: key)
@@ -141,45 +144,60 @@ class CoinExchangeModel: ObservableObject {
         }
     }
     
-    // Perform the exchange based on the coin type
+    /// Returns the final cost for `quantity` coins of the given `coinType` after difficulty multiplier + rounding.
+    func calculateCost(for coinInfo: CoinTypeInfo, quantity: Int) -> Decimal {
+        
+        // 1) Multiply base cost by difficulty cost multiplier
+        let baseCost = Decimal(coinInfo.cost)
+        let costMultiplier = Decimal(settings?.difficulty.costMultiplier ?? 1.0)
+        
+        var perCoinCost = baseCost * costMultiplier
+        
+        // 2) Round per-coin cost
+        if let diff = settings?.difficulty {
+            perCoinCost = diff.roundValue(perCoinCost)
+        }
+        
+        // 3) Multiply by quantity
+        var totalCost = perCoinCost * Decimal(quantity)
+        
+        // 4) Optionally round final cost again
+        if let diff = settings?.difficulty {
+            totalCost = diff.roundValue(totalCost)
+        }
+        return totalCost
+    }
+    
+    /// Actually subtract the cost from user's coins and increment the coin count.
     func performExchange(for type: CoinType, quantity: Int, with coins: inout CryptoCoin?) {
         
-        guard var coins = coins else { // Make coins mutable here
+        guard var coins = coins else {
             updateMessage("Invalid coin data.", backgroundColor: .red)
             return
         }
-
-        // Find the index of the coin in availableCoins
         guard let index = availableCoins.firstIndex(where: { $0.type == type }) else {
             updateMessage("Coin type not found.", backgroundColor: .red)
             return
         }
-
-        var coinInfo = availableCoins[index] // Fetch coin info
-
-        // Calculate total cost
-        let totalCost = coinInfo.cost * quantity
-
-        // Check if the user has enough coins for the exchange
-        if coins.value >= totalCost {
-            // Deduct coins and update count
-            coins.value -= totalCost
-            coinInfo.count += quantity
-
-            // Update the availableCoins array
-            availableCoins[index] = coinInfo
-
-            // Save updated data to UserDefaults
-            saveCoinsToUserDefaults()
-
-            // Show success message
-            updateMessage("Successfully purchased \(quantity) \(coinInfo.label).", backgroundColor: .green)
-        } else {
-            // Show failure message
+        var coinInfo = availableCoins[index]
+        
+        let finalCost = calculateCost(for: coinInfo, quantity: quantity)
+        
+        // 5) Check if user has enough coins
+        guard coins.value >= finalCost else {
             updateMessage("Not enough coins for \(quantity) \(coinInfo.label).", backgroundColor: .red)
+            return
         }
+        coins.value -= finalCost
+        
+        // 6) Update count
+        coinInfo.count += quantity
+        availableCoins[index] = coinInfo
+        saveCoinsToUserDefaults()
+        
+        updateMessage("Successfully purchased \(quantity) \(coinInfo.label).", backgroundColor: .green)
     }
-    
+
     // Update message with background color and reset after a delay
     func updateMessage(_ text: String, backgroundColor: Color) {
         
@@ -192,7 +210,7 @@ class CoinExchangeModel: ObservableObject {
         }
     }
 
-    // Convenience getters
+    // MARK: - Convenience getters
     func count(for type: CoinType) -> Int {
         availableCoins.first(where: { $0.type == type })?.count ?? 0
     }
@@ -234,14 +252,13 @@ class CoinExchangeModel: ObservableObject {
         saveCoinsToUserDefaults() // Save changes
     }
     
-    // MARK: - Update coin count dynamically and return the updated value
+    // Update coin count dynamically
     func updateCoinCount(for type: CoinType, by amount: Int) {
 
         guard let index = availableCoins.firstIndex(where: { $0.type == type }) else {
             return
         }
         
-        // Reassign the array instead of doing an in-place mutation
         var newList = availableCoins
         var coinInfo = newList[index]
         
@@ -249,10 +266,7 @@ class CoinExchangeModel: ObservableObject {
         coinInfo.count = newCount
         newList[index] = coinInfo
         
-        // Reassigning availableCoins publishes the change to SwiftUI
         availableCoins = newList
-        
-        // Persist the updated coin count
         saveCoinsToUserDefaults()
     }
     
