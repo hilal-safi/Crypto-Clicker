@@ -1,13 +1,13 @@
 //
-//  Crypto_Clicker_Watch_Watch_AppUITestsLaunchTests.swift
-//  Crypto Clicker Watch Watch AppUITests
+//  Crypto_Clicker_Watch_AppUITestsLaunchTests.swift
+//  Crypto Clicker Watch AppUITests
 //
 //  Created by Hilal Safi on 2025-01-04.
 //
 
 import XCTest
 
-final class Crypto_Clicker_Watch_Watch_AppUITestsLaunchTests: XCTestCase {
+final class Crypto_Clicker_Watch_AppUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

@@ -14,6 +14,8 @@ struct CoinStatsPopupView: View {
     let totalCoins: Decimal
     let totalPowerUpsOwned: Int
     let totalExchangedCoins: Int
+    let totalSteps: Int
+    let totalCoinsFromSteps: Decimal
     let onClose: () -> Void
 
     @Environment(\.colorScheme) var colorScheme // Detect the system or app-specific color scheme
@@ -24,7 +26,7 @@ struct CoinStatsPopupView: View {
             // Add blur to everything behind the popup using BlurView
             BlurView(
                 style: colorScheme == .dark ? .systemUltraThinMaterialDark : .systemUltraThinMaterialLight,
-                reduction: 0.8 // Reduced intensity for softer blur
+                reduction: 0.9
             )
             .ignoresSafeArea()
             .onTapGesture {
@@ -66,6 +68,16 @@ struct CoinStatsPopupView: View {
                         value: Decimal(totalExchangedCoins),
                         colorScheme: colorScheme
                     )
+                    StatisticRow(
+                        title: "Total Steps",
+                        value: Decimal(totalSteps),
+                        colorScheme: colorScheme
+                    )
+                    StatisticRow(
+                        title: "Coins from Steps",
+                        value: totalCoinsFromSteps,
+                        colorScheme: colorScheme
+                    )
                 }
 
                 Button("Close") {
@@ -79,10 +91,10 @@ struct CoinStatsPopupView: View {
                 
             }
             .padding()
-            .background(colorScheme == .dark ? Color.black.opacity(0.8) : Color.white.opacity(0.9))
+            .background(colorScheme == .dark ? Color.black : Color.white)
             .cornerRadius(16)
             .shadow(color: colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1), radius: 10)
-            .frame(width: UIScreen.main.bounds.width * 0.9) // 80% of screen width
+            .frame(width: UIScreen.main.bounds.width * 0.9) // 90% of screen width
             .offset(y: -UIScreen.main.bounds.height * 0.1) // Slightly higher but not cut off
         }
     }
@@ -124,6 +136,8 @@ struct CoinStatsPopupView_Previews: PreviewProvider {
             totalCoins: 100_000_000,
             totalPowerUpsOwned: 25,
             totalExchangedCoins: 100,
+            totalSteps: 5000, // NEW: Example total steps
+            totalCoinsFromSteps: 50_000, // NEW: Example coins from steps
             onClose: {}
         )
         .previewLayout(.sizeThatFits)
@@ -136,6 +150,8 @@ struct CoinStatsPopupView_Previews: PreviewProvider {
             totalCoins: 100_000_000,
             totalPowerUpsOwned: 25,
             totalExchangedCoins: 100,
+            totalSteps: 5000, // NEW: Example total steps
+            totalCoinsFromSteps: 50_000, // NEW: Example coins from steps
             onClose: {}
         )
         .previewLayout(.sizeThatFits)

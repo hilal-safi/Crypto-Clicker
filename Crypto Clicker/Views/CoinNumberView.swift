@@ -21,16 +21,21 @@ struct CoinNumberView: View {
                 VStack(spacing: 5) {
                     
                     Text("Coin Value: 0")
-                        .font(.title2)
+                        .font(.title)
                         .fontWeight(.bold)
                         .foregroundColor(.red)
 
                     Text("Click the coin below to mine it and increase the value!")
-                        .font(.headline)
-                        .foregroundColor(.gray)
+                        .font(.title2)
+                        .foregroundColor(.blue)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
+                        .bold()
                 }
+                .padding(10)
+                .background(BlurView(style: .systemMaterial, reduction: 0.8))
+                .cornerRadius(12)
+
             } else {
                 
                 Button(action: {

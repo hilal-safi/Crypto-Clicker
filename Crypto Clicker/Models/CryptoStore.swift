@@ -14,8 +14,14 @@ class CryptoStore: ObservableObject {
     @Published var coins: CryptoCoin?
     @Published var powerUps = PowerUps.shared
 
+    // Coin-Related Properties
     @Published var coinsPerSecond: Decimal = 0
     @Published var coinsPerClick: Decimal = 1
+    @Published var coinsPerStep: Decimal = 1
+    
+    // Step-Related Properties
+    @Published var totalSteps: Int = 0
+    @Published var totalCoinsFromSteps: Decimal = 0
     
     // Hold a reference to the user's settings so we can access .difficulty.productionMultiplier and costMultiplier
     @Published var settings: SettingsModel?
@@ -27,10 +33,11 @@ class CryptoStore: ObservableObject {
         Task {
             await loadCoins()
             await loadPowerUps()
+            await loadStepStats()
         }
         startTimer()
     }
-    
+        
     // Call this from the App or ContentView to inject SettingsModel
     func configureSettings(_ settings: SettingsModel) {
         self.settings = settings
@@ -87,6 +94,7 @@ class CryptoStore: ObservableObject {
         powerUps.resetAll() // Reinitialize to default values by removing all powerups
         recalculateCoinsPerSecond()
         recalculateCoinsPerClick()
+        recalculateCoinsPerStep()
 
         Task {
             await savePowerUps()
@@ -119,6 +127,10 @@ class CryptoStore: ObservableObject {
 
         recalculateCoinsPerSecond()
         recalculateCoinsPerClick()
+        recalculateCoinsPerStep()
+
+        // **Push phone -> watch** so the watch sees new coin total
+        PhoneSessionManager.shared.pushCoinValueToWatch()
 
         Task {
             await saveCoins()
@@ -180,6 +192,63 @@ class CryptoStore: ObservableObject {
             newValue = diff.roundValue(newValue)
         }
         coinsPerClick = newValue
+    }
+    
+    // Recalculate coins.coinsPerStep based on any step-related powerUps.
+    func recalculateCoinsPerStep() {
+        
+        let baseStep = powerUps.quantities.reduce(Decimal(1)) { total, entry in
+            
+            let (powerUpName, quantity) = entry
+            
+            if let powerUp = PowerUps.availablePowerUps.first(where: { $0.name == powerUpName }) {
+                // Add up the total step-boost from that powerUp * quantity
+                let totalBoost = powerUp.coinsPerStepIncrease * quantity
+                return total + Decimal(totalBoost)
+            }
+            return total
+        }
+
+        let prodMult = Decimal(settings?.difficulty.productionMultiplier ?? 1.0)
+        var newValue = baseStep * prodMult
+        
+        if let diff = settings?.difficulty {
+            newValue = diff.roundValue(newValue)
+        }
+        
+        // Update both the store-level property and the coin struct
+        coinsPerStep = newValue
+        
+        if var currentCoin = coins {
+            currentCoin.coinsPerStep = newValue
+            coins = currentCoin
+        }
+    }
+
+    // Step-based methods: Called when new steps come in from watch or phone
+    func incrementCoinsFromSteps(_ steps: Int) {
+        
+        totalSteps += steps
+        
+        if var currentCoin = coins {
+            
+            let added = currentCoin.coinsPerStep * Decimal(steps)
+            
+            let newValue = currentCoin.value + added
+            currentCoin.value = min(newValue, Decimal.greatestFiniteMagnitude)
+                .roundedDownToWhole()
+            
+            coins = currentCoin
+            totalCoinsFromSteps += added
+        }
+        
+        // After updating coin from steps, push new coin value to watch
+        PhoneSessionManager.shared.pushCoinValueToWatch()
+        
+        // Persist step stats after each increment
+        Task {
+            await saveStepStats()
+        }
     }
 }
 
@@ -277,5 +346,32 @@ extension CryptoStore {
         } catch {
             print("Failed to load power-ups: \(error)")
         }
+    }
+    
+    // Saves totalSteps and totalCoinsFromSteps so they’re preserved between launches
+    func saveStepStats() async {
+        // A simple approach: store them in UserDefaults as basic keys
+        UserDefaults.standard.set(totalSteps, forKey: "totalSteps")
+        // Convert Decimal -> String for safe storage
+        UserDefaults.standard.set("\(totalCoinsFromSteps)", forKey: "totalCoinsFromSteps")
+        print("[CryptoStore] Saved step stats: totalSteps = \(totalSteps), totalCoinsFromSteps = \(totalCoinsFromSteps)")
+    }
+    
+    // Loads totalSteps and totalCoinsFromSteps from persistent storage
+    func loadStepStats() async {
+        let savedSteps = UserDefaults.standard.integer(forKey: "totalSteps")
+        let savedCoinsStr = UserDefaults.standard.string(forKey: "totalCoinsFromSteps") ?? "0"
+        
+        totalSteps = savedSteps
+        totalCoinsFromSteps = Decimal(string: savedCoinsStr) ?? 0
+        print("[CryptoStore] Loaded step stats: totalSteps = \(totalSteps), totalCoinsFromSteps = \(totalCoinsFromSteps)")
+    }
+
+    // Initialize Total Steps Without Incrementing Coins
+    func initializeTotalSteps(_ steps: Int) async {
+        totalSteps = steps
+        totalCoinsFromSteps = 0 // Reset or set as needed
+        await saveStepStats()
+        print("[CryptoStore] Initialized totalSteps to \(steps).")
     }
 }

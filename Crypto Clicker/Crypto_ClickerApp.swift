@@ -30,6 +30,9 @@ struct Crypto_ClickerApp: App {
         st.configureSettings(set)
         ex.settings = set
         
+        // Start the phone session manager
+        PhoneSessionManager.shared.startSession(with: st)
+        
         // Wrap each local instance in a StateObject
         _store = StateObject(wrappedValue: st)
         _exchangeModel = StateObject(wrappedValue: ex)

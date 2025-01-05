@@ -160,6 +160,8 @@ struct ContentView: View {
                     totalCoins: coins?.value ?? Decimal(0),
                     totalPowerUpsOwned: powerUps.calculateTotalOwned(),
                     totalExchangedCoins: exchangeModel.totalExchangedCoins(),
+                    totalSteps: store.totalSteps,
+                    totalCoinsFromSteps: store.totalCoinsFromSteps,
                     
                     onClose: {
                         showStatsPopup = false

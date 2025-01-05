@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -52,6 +52,8 @@
 		9EEE798A2D2343F200FBC049 /* BlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79892D2343F000FBC049 /* BlurView.swift */; };
 		9EEE798D2D248AAF00FBC049 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9EEE798C2D248AAF00FBC049 /* CoreAudio.framework */; };
 		9EEE79912D286DB000FBC049 /* Decimal+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79902D286D9F00FBC049 /* Decimal+Extension.swift */; };
+		9EEE79B92D29A75800FBC049 /* Crypto Clicker Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 9EEE79962D29A75500FBC049 /* Crypto Clicker Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9EEE79C52D29AAF500FBC049 /* PhoneSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE79C42D29AAF200FBC049 /* PhoneSessionManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,7 +71,42 @@
 			remoteGlobalIDString = 9EC1AC352C8FA0850055A38D;
 			remoteInfo = "Crypto Clicker";
 		};
+		9EEE79A62D29A75800FBC049 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9EC1AC2E2C8FA0850055A38D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9EEE79952D29A75500FBC049;
+			remoteInfo = "Crypto Clicker Watch Watch App";
+		};
+		9EEE79B02D29A75800FBC049 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9EC1AC2E2C8FA0850055A38D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9EEE79952D29A75500FBC049;
+			remoteInfo = "Crypto Clicker Watch Watch App";
+		};
+		9EEE79B72D29A75800FBC049 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9EC1AC2E2C8FA0850055A38D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9EEE79952D29A75500FBC049;
+			remoteInfo = "Crypto Clicker Watch Watch App";
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		9EEE79BD2D29A75800FBC049 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				9EEE79B92D29A75800FBC049 /* Crypto Clicker Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		9E3970292CDD118800E461F6 /* ShopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopView.swift; sourceTree = "<group>"; };
@@ -86,6 +123,7 @@
 		9E4CD0822CF81D0E00328F86 /* AchievementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementsView.swift; sourceTree = "<group>"; };
 		9E4CD0882CFBC3F600328F86 /* CoinStatsPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinStatsPopupView.swift; sourceTree = "<group>"; };
 		9E4CD08A2CFBD21200328F86 /* ExchangeItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExchangeItemView.swift; sourceTree = "<group>"; };
+		9EA5D65C2D2B18DF00C09529 /* Crypto Clicker.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Crypto Clicker.entitlements"; sourceTree = "<group>"; };
 		9EB1D9B22D08FB8600924994 /* PowerUpScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerUpScrollView.swift; sourceTree = "<group>"; };
 		9EC1AC362C8FA0850055A38D /* Crypto Clicker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Crypto Clicker.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		9EC1AC392C8FA0850055A38D /* Crypto_ClickerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Crypto_ClickerApp.swift; sourceTree = "<group>"; };
@@ -121,7 +159,17 @@
 		9EEE79892D2343F000FBC049 /* BlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurView.swift; sourceTree = "<group>"; };
 		9EEE798C2D248AAF00FBC049 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		9EEE79902D286D9F00FBC049 /* Decimal+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Decimal+Extension.swift"; sourceTree = "<group>"; };
+		9EEE79962D29A75500FBC049 /* Crypto Clicker Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Crypto Clicker Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9EEE79A52D29A75800FBC049 /* Crypto Clicker Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Crypto Clicker Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9EEE79AF2D29A75800FBC049 /* Crypto Clicker Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Crypto Clicker Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9EEE79C42D29AAF200FBC049 /* PhoneSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneSessionManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		9EEE79972D29A75500FBC049 /* Crypto Clicker Watch App */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Crypto Clicker Watch App"; sourceTree = "<group>"; };
+		9EEE79A82D29A75800FBC049 /* Crypto Clicker Watch AppTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Crypto Clicker Watch AppTests"; sourceTree = "<group>"; };
+		9EEE79B22D29A75800FBC049 /* Crypto Clicker Watch AppUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Crypto Clicker Watch AppUITests"; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		9EC1AC332C8FA0850055A38D /* Frameworks */ = {
@@ -146,6 +194,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9EEE79932D29A75500FBC049 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EEE79A22D29A75800FBC049 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EEE79AC2D29A75800FBC049 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -156,6 +225,9 @@
 				9EC1AC382C8FA0850055A38D /* Crypto Clicker */,
 				9EC1AC492C8FA0860055A38D /* Crypto ClickerTests */,
 				9EC1AC532C8FA0870055A38D /* Crypto ClickerUITests */,
+				9EEE79972D29A75500FBC049 /* Crypto Clicker Watch App */,
+				9EEE79A82D29A75800FBC049 /* Crypto Clicker Watch AppTests */,
+				9EEE79B22D29A75800FBC049 /* Crypto Clicker Watch AppUITests */,
 				9EEE798B2D248AAE00FBC049 /* Frameworks */,
 				9EC1AC372C8FA0850055A38D /* Products */,
 			);
@@ -167,6 +239,9 @@
 				9EC1AC362C8FA0850055A38D /* Crypto Clicker.app */,
 				9EC1AC462C8FA0860055A38D /* Crypto ClickerTests.xctest */,
 				9EC1AC502C8FA0870055A38D /* Crypto ClickerUITests.xctest */,
+				9EEE79962D29A75500FBC049 /* Crypto Clicker Watch App.app */,
+				9EEE79A52D29A75800FBC049 /* Crypto Clicker Watch AppTests.xctest */,
+				9EEE79AF2D29A75800FBC049 /* Crypto Clicker Watch AppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -174,6 +249,7 @@
 		9EC1AC382C8FA0850055A38D /* Crypto Clicker */ = {
 			isa = PBXGroup;
 			children = (
+				9EA5D65C2D2B18DF00C09529 /* Crypto Clicker.entitlements */,
 				9EC1AC392C8FA0850055A38D /* Crypto_ClickerApp.swift */,
 				9EC1AC682C8FCA870055A38D /* Models */,
 				9EC1AC692C8FCA8D0055A38D /* Views */,
@@ -219,6 +295,7 @@
 				9EC1AC632C8FC9330055A38D /* CryptoStore.swift */,
 				9EEE79902D286D9F00FBC049 /* Decimal+Extension.swift */,
 				9EC1AC6A2C8FCAB60055A38D /* ErrorWrapper.swift */,
+				9EEE79C42D29AAF200FBC049 /* PhoneSessionManager.swift */,
 				9E3970392CDF14C700E461F6 /* PowerUps.swift */,
 				9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */,
 				9E4CD0762CF5882000328F86 /* ShopModel.swift */,
@@ -278,10 +355,12 @@
 				9EC1AC322C8FA0850055A38D /* Sources */,
 				9EC1AC332C8FA0850055A38D /* Frameworks */,
 				9EC1AC342C8FA0850055A38D /* Resources */,
+				9EEE79BD2D29A75800FBC049 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				9EEE79B82D29A75800FBC049 /* PBXTargetDependency */,
 			);
 			name = "Crypto Clicker";
 			productName = "Crypto Clicker";
@@ -324,6 +403,74 @@
 			productReference = 9EC1AC502C8FA0870055A38D /* Crypto ClickerUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		9EEE79952D29A75500FBC049 /* Crypto Clicker Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9EEE79BA2D29A75800FBC049 /* Build configuration list for PBXNativeTarget "Crypto Clicker Watch App" */;
+			buildPhases = (
+				9EEE79922D29A75500FBC049 /* Sources */,
+				9EEE79932D29A75500FBC049 /* Frameworks */,
+				9EEE79942D29A75500FBC049 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				9EEE79972D29A75500FBC049 /* Crypto Clicker Watch App */,
+			);
+			name = "Crypto Clicker Watch App";
+			packageProductDependencies = (
+			);
+			productName = "Crypto Clicker Watch Watch App";
+			productReference = 9EEE79962D29A75500FBC049 /* Crypto Clicker Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9EEE79A42D29A75800FBC049 /* Crypto Clicker Watch AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9EEE79BE2D29A75800FBC049 /* Build configuration list for PBXNativeTarget "Crypto Clicker Watch AppTests" */;
+			buildPhases = (
+				9EEE79A12D29A75800FBC049 /* Sources */,
+				9EEE79A22D29A75800FBC049 /* Frameworks */,
+				9EEE79A32D29A75800FBC049 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9EEE79A72D29A75800FBC049 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				9EEE79A82D29A75800FBC049 /* Crypto Clicker Watch AppTests */,
+			);
+			name = "Crypto Clicker Watch AppTests";
+			packageProductDependencies = (
+			);
+			productName = "Crypto Clicker Watch Watch AppTests";
+			productReference = 9EEE79A52D29A75800FBC049 /* Crypto Clicker Watch AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		9EEE79AE2D29A75800FBC049 /* Crypto Clicker Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9EEE79C12D29A75800FBC049 /* Build configuration list for PBXNativeTarget "Crypto Clicker Watch AppUITests" */;
+			buildPhases = (
+				9EEE79AB2D29A75800FBC049 /* Sources */,
+				9EEE79AC2D29A75800FBC049 /* Frameworks */,
+				9EEE79AD2D29A75800FBC049 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9EEE79B12D29A75800FBC049 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				9EEE79B22D29A75800FBC049 /* Crypto Clicker Watch AppUITests */,
+			);
+			name = "Crypto Clicker Watch AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "Crypto Clicker Watch Watch AppUITests";
+			productReference = 9EEE79AF2D29A75800FBC049 /* Crypto Clicker Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -331,7 +478,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1540;
+				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1610;
 				TargetAttributes = {
 					9EC1AC352C8FA0850055A38D = {
@@ -344,6 +491,17 @@
 					9EC1AC4F2C8FA0870055A38D = {
 						CreatedOnToolsVersion = 15.4;
 						TestTargetID = 9EC1AC352C8FA0850055A38D;
+					};
+					9EEE79952D29A75500FBC049 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					9EEE79A42D29A75800FBC049 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 9EEE79952D29A75500FBC049;
+					};
+					9EEE79AE2D29A75800FBC049 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 9EEE79952D29A75500FBC049;
 					};
 				};
 			};
@@ -363,6 +521,9 @@
 				9EC1AC352C8FA0850055A38D /* Crypto Clicker */,
 				9EC1AC452C8FA0860055A38D /* Crypto ClickerTests */,
 				9EC1AC4F2C8FA0870055A38D /* Crypto ClickerUITests */,
+				9EEE79952D29A75500FBC049 /* Crypto Clicker Watch App */,
+				9EEE79A42D29A75800FBC049 /* Crypto Clicker Watch AppTests */,
+				9EEE79AE2D29A75800FBC049 /* Crypto Clicker Watch AppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -385,6 +546,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9EC1AC4E2C8FA0870055A38D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EEE79942D29A75500FBC049 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EEE79A32D29A75800FBC049 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EEE79AD2D29A75800FBC049 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -427,6 +609,7 @@
 				9EC655262D0F4C6400D94007 /* CoinNumberView.swift in Sources */,
 				9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */,
 				9EC1AC3A2C8FA0850055A38D /* Crypto_ClickerApp.swift in Sources */,
+				9EEE79C52D29AAF500FBC049 /* PhoneSessionManager.swift in Sources */,
 				9E3970362CDEB3FF00E461F6 /* PowerButtonView.swift in Sources */,
 				9EB1D9B32D08FB8F00924994 /* PowerUpScrollView.swift in Sources */,
 				9EC655372D14DDEA00D94007 /* BlackjackTopView.swift in Sources */,
@@ -457,6 +640,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9EEE79922D29A75500FBC049 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EEE79A12D29A75800FBC049 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EEE79AB2D29A75800FBC049 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -469,6 +673,21 @@
 			isa = PBXTargetDependency;
 			target = 9EC1AC352C8FA0850055A38D /* Crypto Clicker */;
 			targetProxy = 9EC1AC512C8FA0870055A38D /* PBXContainerItemProxy */;
+		};
+		9EEE79A72D29A75800FBC049 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9EEE79952D29A75500FBC049 /* Crypto Clicker Watch App */;
+			targetProxy = 9EEE79A62D29A75800FBC049 /* PBXContainerItemProxy */;
+		};
+		9EEE79B12D29A75800FBC049 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9EEE79952D29A75500FBC049 /* Crypto Clicker Watch App */;
+			targetProxy = 9EEE79B02D29A75800FBC049 /* PBXContainerItemProxy */;
+		};
+		9EEE79B82D29A75800FBC049 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9EEE79952D29A75500FBC049 /* Crypto Clicker Watch App */;
+			targetProxy = 9EEE79B72D29A75800FBC049 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -597,17 +816,21 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Crypto Clicker/Crypto Clicker.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Crypto Clicker/Preview Content\"";
 				DEVELOPMENT_TEAM = YVXA294VWX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSFileProviderDomainUsageDescription = "";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "This watch app uses your step count to reward coins in CryptoClicker";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -626,17 +849,21 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Crypto Clicker/Crypto Clicker.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Crypto Clicker/Preview Content\"";
 				DEVELOPMENT_TEAM = YVXA294VWX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSFileProviderDomainUsageDescription = "";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "This watch app uses your step count to reward coins in CryptoClicker";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -658,7 +885,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = YVXA294VWX;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-ClickerTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -677,7 +904,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = YVXA294VWX;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-ClickerTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -695,6 +922,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = YVXA294VWX;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-ClickerUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -712,6 +940,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = YVXA294VWX;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-ClickerUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -719,6 +948,148 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = "Crypto Clicker";
+			};
+			name = Release;
+		};
+		9EEE79BB2D29A75800FBC049 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Crypto Clicker Watch App/Crypto Clicker Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Crypto Clicker Watch App/Preview Content\"";
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Crypto Clicker Watch";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "This watch app uses your step count to reward coins in CryptoClicker";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "Hilal-Safi.Crypto-Clicker";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-Clicker.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+			};
+			name = Debug;
+		};
+		9EEE79BC2D29A75800FBC049 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Crypto Clicker Watch App/Crypto Clicker Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Crypto Clicker Watch App/Preview Content\"";
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Crypto Clicker Watch";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "This watch app uses your step count to reward coins in CryptoClicker";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "Hilal-Safi.Crypto-Clicker";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-Clicker.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+			};
+			name = Release;
+		};
+		9EEE79BF2D29A75800FBC049 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-Clicker-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Crypto Clicker Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Crypto Clicker Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+			};
+			name = Debug;
+		};
+		9EEE79C02D29A75800FBC049 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-Clicker-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Crypto Clicker Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Crypto Clicker Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+			};
+			name = Release;
+		};
+		9EEE79C22D29A75800FBC049 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-Clicker-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "Crypto Clicker Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+			};
+			name = Debug;
+		};
+		9EEE79C32D29A75800FBC049 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-Clicker-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "Crypto Clicker Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
 			};
 			name = Release;
 		};
@@ -757,6 +1128,33 @@
 			buildConfigurations = (
 				9EC1AC612C8FA0870055A38D /* Debug */,
 				9EC1AC622C8FA0870055A38D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9EEE79BA2D29A75800FBC049 /* Build configuration list for PBXNativeTarget "Crypto Clicker Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9EEE79BB2D29A75800FBC049 /* Debug */,
+				9EEE79BC2D29A75800FBC049 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9EEE79BE2D29A75800FBC049 /* Build configuration list for PBXNativeTarget "Crypto Clicker Watch AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9EEE79BF2D29A75800FBC049 /* Debug */,
+				9EEE79C02D29A75800FBC049 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9EEE79C12D29A75800FBC049 /* Build configuration list for PBXNativeTarget "Crypto Clicker Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9EEE79C22D29A75800FBC049 /* Debug */,
+				9EEE79C32D29A75800FBC049 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

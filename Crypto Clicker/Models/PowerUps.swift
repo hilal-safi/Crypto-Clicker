@@ -18,6 +18,7 @@ class PowerUps: ObservableObject, Codable {
         let cost: Int             // The "base cost"
         let coinsPerSecondIncrease: Int
         let coinsPerClickIncrease: Int
+        let coinsPerStepIncrease: Int
         let emoji: String
         let description: String
         let costMultiplier: Double  // Cost multiplier for exponential pricing
@@ -29,6 +30,7 @@ class PowerUps: ObservableObject, Codable {
             cost: Int,
             coinsPerSecondIncrease: Int,
             coinsPerClickIncrease: Int,
+            coinsPerStepIncrease: Int,
             emoji: String,
             description: String,
             costMultiplier: Double
@@ -38,6 +40,7 @@ class PowerUps: ObservableObject, Codable {
             self.cost = cost
             self.coinsPerSecondIncrease = coinsPerSecondIncrease
             self.coinsPerClickIncrease = coinsPerClickIncrease
+            self.coinsPerStepIncrease = coinsPerStepIncrease
             self.emoji = emoji
             self.description = description
             self.costMultiplier = costMultiplier
@@ -55,15 +58,27 @@ class PowerUps: ObservableObject, Codable {
             cost: 100, // Reduced starting cost
             coinsPerSecondIncrease: 0,
             coinsPerClickIncrease: 1,
+            coinsPerStepIncrease: 0,
             emoji: "👆",
             description: "A basic tap tool to earn a small boost per click. Ideal for early mining.",
             costMultiplier: 1.07 // ~7% increase each time
+        ),
+        PowerUp(
+            name: "Step Booster",
+            cost: 200,
+            coinsPerSecondIncrease: 0,
+            coinsPerClickIncrease: 0,
+            coinsPerStepIncrease: 1,
+            emoji: "🥾",
+            description: "Adds +1 coin per step each purchase.",
+            costMultiplier: 1.07
         ),
         PowerUp(
             name: "Chromebook",
             cost: 300,
             coinsPerSecondIncrease: 1,
             coinsPerClickIncrease: 0,
+            coinsPerStepIncrease: 0,
             emoji: "💻",
             description: "A trusty Chromebook for light-duty mining. Grants +1 coin/second.",
             costMultiplier: 1.07
@@ -73,6 +88,7 @@ class PowerUps: ObservableObject, Codable {
             cost: 1200,
             coinsPerSecondIncrease: 0,
             coinsPerClickIncrease: 10,
+            coinsPerStepIncrease: 0,
             emoji: "💪",
             description: "Enhances your clicks significantly, adding +10 coins/click.",
             costMultiplier: 1.09
@@ -82,8 +98,19 @@ class PowerUps: ObservableObject, Codable {
             cost: 3000,
             coinsPerSecondIncrease: 20,
             coinsPerClickIncrease: 0,
+            coinsPerStepIncrease: 0,
             emoji: "🖥️",
             description: "A powerful desktop for consistent mining, generating +20 coins/second.",
+            costMultiplier: 1.08
+        ),
+        PowerUp(
+            name: "Upgraded Step Booster",
+            cost: 15000,
+            coinsPerSecondIncrease: 0,
+            coinsPerClickIncrease: 0,
+            coinsPerStepIncrease: 50,
+            emoji: "👟",
+            description: "Adds +50 coins per step each purchase.",
             costMultiplier: 1.08
         ),
         PowerUp(
@@ -91,6 +118,7 @@ class PowerUps: ObservableObject, Codable {
             cost: 15000,
             coinsPerSecondIncrease: 100,
             coinsPerClickIncrease: 0,
+            coinsPerStepIncrease: 0,
             emoji: "📡",
             description: "A dedicated server for hefty yields, adding +100 coins/second.",
             costMultiplier: 1.10
@@ -100,6 +128,7 @@ class PowerUps: ObservableObject, Codable {
             cost: 70000,
             coinsPerSecondIncrease: 0,
             coinsPerClickIncrease: 500,
+            coinsPerStepIncrease: 0,
             emoji: "🦾",
             description: "Automates your clicking with +500 coins per manual click input.",
             costMultiplier: 1.10
@@ -109,15 +138,27 @@ class PowerUps: ObservableObject, Codable {
             cost: 500000,
             coinsPerSecondIncrease: 2000,
             coinsPerClickIncrease: 0,
+            coinsPerStepIncrease: 0,
             emoji: "⛏️",
             description: "A full-blown mining center, yielding +2,000 coins/second.",
             costMultiplier: 1.12
+        ),
+        PowerUp(
+            name: "Ultimate Step Booster",
+            cost: 500000,
+            coinsPerSecondIncrease: 0,
+            coinsPerClickIncrease: 0,
+            coinsPerStepIncrease: 1000,
+            emoji: "🦿",
+            description: "Adds +1000 coins per step each purchase.",
+            costMultiplier: 1.10
         ),
         PowerUp(
             name: "Robot Assistant",
             cost: 2000000,
             coinsPerSecondIncrease: 5000,
             coinsPerClickIncrease: 20000,
+            coinsPerStepIncrease: 0,
             emoji: "🤖",
             description: "A cutting-edge robot that mines +5,000 coins/second & boosts clicks by 20,000.",
             costMultiplier: 1.15
@@ -127,6 +168,7 @@ class PowerUps: ObservableObject, Codable {
             cost: 25000000,
             coinsPerSecondIncrease: 10000,
             coinsPerClickIncrease: 50000,
+            coinsPerStepIncrease: 0,
             emoji: "🧠",
             description: "Harness advanced AI to massively accelerate your cryptomining operations.",
             costMultiplier: 1.18
@@ -136,6 +178,7 @@ class PowerUps: ObservableObject, Codable {
             cost: 100000000,
             coinsPerSecondIncrease: 100000,
             coinsPerClickIncrease: 100000,
+            coinsPerStepIncrease: 0,
             emoji: "🔮",
             description: "Leverage quantum entanglement for mind-boggling mining speed.",
             costMultiplier: 1.20
@@ -145,6 +188,7 @@ class PowerUps: ObservableObject, Codable {
             cost: 1000000000,
             coinsPerSecondIncrease: 1000000,
             coinsPerClickIncrease: 1000000,
+            coinsPerStepIncrease: 0,
             emoji: "🚀",
             description: "Take your operation off-world to extract resources at a cosmic scale.",
             costMultiplier: 1.25
@@ -171,6 +215,7 @@ class PowerUps: ObservableObject, Codable {
     
     // MARK: - Next Cost for a Single Additional Power-Up
     func nextCost(for powerUp: PowerUp) -> Decimal {
+        
         let owned = quantities[powerUp.name, default: 0]
         
         // We'll get the cost of exactly one more item at index = owned
@@ -183,6 +228,7 @@ class PowerUps: ObservableObject, Codable {
 
     // MARK: - Total Cost for Purchasing a Specific Quantity
     func totalCost(for powerUp: PowerUp, quantity: Int) -> Decimal {
+        
         let owned = quantities[powerUp.name, default: 0]
         var total: Decimal = 0
         
@@ -204,8 +250,8 @@ class PowerUps: ObservableObject, Codable {
     
     // MARK: - Item Cost by Index
     // This is where we do piecewise logic:
-    //  - For index < 500 -> exponent-based
-    //  - For index >= 500 -> apply a small linear or minimal growth each item
+    ///  - For index < 500 -> exponent-based
+    ///  - For index >= 500 -> apply a small linear or minimal growth each item
     private func itemCost(powerUp: PowerUp, index: Int) -> Decimal {
         
         let base = Decimal(powerUp.cost).roundedDownToWhole()
@@ -214,10 +260,12 @@ class PowerUps: ObservableObject, Codable {
             // Normal exponent
             let effectiveMultiplier = adjustedMultiplier(powerUp.costMultiplier, index)
             var cost = base * powDecimal(effectiveMultiplier, index)
+            
             if cost > Decimal.greatestFiniteMagnitude {
                 cost = Decimal.greatestFiniteMagnitude
             }
             return cost.roundedDownToWhole()
+            
         } else {
             // Past 500, do minimal growth. For example, let’s do +1% each item beyond 1000
             // Or you could do linear increments, e.g. cost = costAt999 + (index - 999)*500
@@ -237,10 +285,14 @@ class PowerUps: ObservableObject, Codable {
 
     // MARK: - Custom Decimal exponent
     func powDecimal(_ base: Decimal, _ exponent: Int) -> Decimal {
+        
         if exponent <= 0 { return 1 }
         var result = Decimal(1)
+        
         for _ in 0..<exponent {
+            
             result *= base
+            
             if result > Decimal.greatestFiniteMagnitude {
                 return Decimal.greatestFiniteMagnitude
             }

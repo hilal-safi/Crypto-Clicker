@@ -168,6 +168,7 @@ extension ShopItemView {
     
     /// Calculate cost for the *next single* item (beyond the current quantity).
     private func piecewiseNextCost() -> Decimal {
+        
         let owned = powerUps.quantities[powerUp.name, default: 0]
         let indexForNextItem = owned + quantity
         
@@ -215,6 +216,7 @@ extension ShopItemView {
     
     // MARK: - 1) Summation for exponent zone
     private func exponentSumRange(startIndex: Int, endIndex: Int) -> Decimal {
+        
         guard startIndex <= endIndex else { return 0 }
         
         var total = Decimal(0)
@@ -231,6 +233,7 @@ extension ShopItemView {
     
     // MARK: - 2) Summation for minimal growth zone (index >= 500)
     private func minimalGrowthSumRange(startIndex: Int, endIndex: Int) -> Decimal {
+        
         guard startIndex <= endIndex else { return 0 }
         
         var total = Decimal(0)
@@ -278,8 +281,10 @@ extension ShopItemView {
     
     // Our improved exponent function
     private func powDecimal(_ base: Decimal, _ exponent: Int) -> Decimal {
+        
         if exponent <= 0 { return 1 }
         var result = Decimal(1)
+        
         for _ in 0..<exponent {
             result *= base
             if result > Decimal.greatestFiniteMagnitude {
