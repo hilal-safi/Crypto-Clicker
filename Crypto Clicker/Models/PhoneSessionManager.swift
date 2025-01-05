@@ -7,7 +7,6 @@
 
 import WatchConnectivity
 import Foundation
-import CryptoClickerShared
 
 @MainActor
 class PhoneSessionManager: NSObject, ObservableObject {
