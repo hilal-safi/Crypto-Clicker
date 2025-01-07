@@ -87,6 +87,18 @@ class CryptoStore: ObservableObject {
             coins = currentCoin
         }
     }
+    
+    // Reset step-related counters
+    func resetSteps() {
+        
+        totalSteps = 0
+        totalCoinsFromSteps = 0
+        
+        // Persist the reset values
+        Task {
+            await saveStepStats()
+        }
+    }
 
     // Reset all power-ups
     func resetPowerUps() {

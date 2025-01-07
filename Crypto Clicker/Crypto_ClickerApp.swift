@@ -25,7 +25,7 @@ struct Crypto_ClickerApp: App {
         let ex = CoinExchangeModel.shared
         let set = SettingsModel()
         let am = AchievementsModel.shared
-        am.configureDependencies(exchangeModel: ex, powerUps: st.powerUps)
+        am.configureDependencies(exchangeModel: ex, powerUps: st.powerUps, store: st)
         let bm = BlackjackModel(exchangeModel: ex)
         st.configureSettings(set)
         ex.settings = set

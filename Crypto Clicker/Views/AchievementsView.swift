@@ -95,7 +95,8 @@ struct AchievementsView_Previews: PreviewProvider {
         let mockAchievementsModel = AchievementsModel.shared
         mockAchievementsModel.configureDependencies(
             exchangeModel: mockExchangeModel,
-            powerUps: mockPowerUps
+            powerUps: mockPowerUps,
+            store: mockStore
         ) // Configure dependencies
         
         return AchievementsView(

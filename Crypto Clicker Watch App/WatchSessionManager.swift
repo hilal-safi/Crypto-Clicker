@@ -16,11 +16,16 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
 
     private let session = WCSession.default // The default WatchConnectivity session
     @Published var coinValue: Decimal = 0 // Local coin value on the watch
+    @Published var coinsPerSecond: Decimal = 0
+    @Published var coinsPerClick: Decimal = 0
+    @Published var totalPowerUpsOwned: Int = 0
+    @Published var totalExchangedCoins: Int = 0
     @Published var totalSteps: Int = 0 // Total steps from phone
     @Published var totalCoinsFromSteps: Decimal = 0 // Total coins from steps from phone
 
     /// Starts the WatchConnectivity session
     func startSession() {
+        
         guard WCSession.isSupported() else {
             print("[WatchSessionManager] WatchConnectivity not supported on this device.")
             return
@@ -32,11 +37,11 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     }
 
     /// Called when the session activation completes
-    func session(_ session: WCSession,
-                 activationDidCompleteWith activationState: WCSessionActivationState,
-                 error: Error?) {
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        
         if let error = error {
             print("[WatchSessionManager] Activation error: \(error)")
+            
         } else {
             print("[WatchSessionManager] Activation state: \(activationState.rawValue)")
         }
@@ -47,7 +52,9 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         
         // Update the coin value if it's sent from the phone
         if let valStr = message["phoneCoinValue"] as? String,
+           
            let val = Decimal(string: valStr) {
+            
             DispatchQueue.main.async {
                 self.coinValue = val
                 print("[WatchSessionManager] Updated coin value: \(val)")
@@ -56,7 +63,9 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         
         // Update totalSteps
         if let stepsStr = message["phoneTotalSteps"] as? String,
+           
            let steps = Int(stepsStr) {
+            
             DispatchQueue.main.async {
                 self.totalSteps = steps
                 print("[WatchSessionManager] Updated total steps: \(steps)")
@@ -65,7 +74,9 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         
         // Update totalCoinsFromSteps
         if let coinsFromStepsStr = message["phoneCoinsFromSteps"] as? String,
+           
            let coinsFromSteps = Decimal(string: coinsFromStepsStr) {
+            
             DispatchQueue.main.async {
                 self.totalCoinsFromSteps = coinsFromSteps
                 print("[WatchSessionManager] Updated coins from steps: \(coinsFromSteps)")
@@ -83,12 +94,15 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         let msg: [String: Any] = ["request": "tapCoin"] // Message to send
         
         session.sendMessage(msg, replyHandler: { reply in
+            
             if let updatedStr = reply["updatedCoinValue"] as? String,
+               
                let updated = Decimal(string: updatedStr) {
+                
                 DispatchQueue.main.async {
                     self.coinValue = updated
-                    print("[WatchSessionManager] Updated coin value after tap: \(updated)")
                 }
+                
             } else if let error = reply["error"] as? String {
                 print("[WatchSessionManager] tapCoin error from phone: \(error)")
             }
@@ -107,12 +121,15 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         let msg: [String: Any] = ["request": "addSteps", "steps": steps] // Message to send
         
         session.sendMessage(msg, replyHandler: { reply in
+            
             if let updatedCoinValue = reply["updatedCoinValue"] as? String,
+               
                let updatedValue = Decimal(string: updatedCoinValue) {
+                
                 DispatchQueue.main.async {
                     self.coinValue = updatedValue
-                    print("[WatchSessionManager] Updated coin value after addSteps: \(updatedValue)")
                 }
+                
             } else if let error = reply["error"] as? String {
                 print("[WatchSessionManager] addSteps error from phone: \(error)")
             }

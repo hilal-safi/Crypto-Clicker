@@ -11,6 +11,7 @@ import SwiftUI
 class SettingsModel: ObservableObject {
     
     enum AppearanceMode: String, CaseIterable, Identifiable {
+        
         case auto, light, dark
         
         var id: String { self.rawValue }

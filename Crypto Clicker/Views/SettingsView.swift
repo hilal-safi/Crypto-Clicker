@@ -148,6 +148,9 @@ struct SettingsView: View {
         case .achievements:
             achievements.resetAchievements()
             
+        case .steps:
+            store.resetSteps()
+            
         case .all:
             store.resetCoinValue()
             store.resetPowerUps()
@@ -159,7 +162,7 @@ struct SettingsView: View {
 
 enum ResetType: CaseIterable {
     
-    case coins, powerUps, exchangedCoins, achievements, all
+    case coins, powerUps, exchangedCoins, achievements, steps, all
 
     var description: String {
         
@@ -169,6 +172,7 @@ enum ResetType: CaseIterable {
         case .powerUps: return "Remove all your power-ups."
         case .exchangedCoins: return "Reset all exchanged coins."
         case .achievements: return "Reset all achievements."
+        case .steps: return "Reset total steps and coins from steps."
         case .all: return "Reset everything."
         }
     }
@@ -181,6 +185,7 @@ enum ResetType: CaseIterable {
         case .powerUps: return "💻 Remove Power-Ups 💻"
         case .exchangedCoins: return " 🪙 Reset Exchanged Coins 🪙"
         case .achievements: return "🏆 Reset Achievements 🏆"
+        case .steps: return "👟 Reset Steps 👟"
         case .all: return "⚠️ Remove All ⚠️"
         }
     }

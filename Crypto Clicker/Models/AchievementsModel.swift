@@ -25,6 +25,7 @@ class AchievementsModel: ObservableObject {
     @Published private var progress: [String: Int] = [:] // Tracks progress for each achievement
 
     var coins: CryptoCoin?
+    var store: CryptoStore? // Reference to the store for accessing steps data
     let exchangeModel: CoinExchangeModel
     @Published var powerUps: PowerUps = PowerUps.shared // Use the shared instance
 
@@ -42,7 +43,10 @@ class AchievementsModel: ObservableObject {
         }
     }
 
-    func configureDependencies(exchangeModel: CoinExchangeModel, powerUps: PowerUps) {
+    @MainActor
+    func configureDependencies(exchangeModel: CoinExchangeModel, powerUps: PowerUps, store: CryptoStore) {
+
+        self.store = store
         generateAchievements(exchangeModel: exchangeModel, powerUps: powerUps)
         syncInitialProgress(exchangeModel: exchangeModel, powerUps: powerUps)
     }
@@ -82,6 +86,26 @@ class AchievementsModel: ObservableObject {
             )
         )
         
+        // Step related achievements
+        achievements.append(
+            Achievement(
+                name: "Total Steps Taken",
+                description: "Achieve these steps milestones.",
+                tiers: [1000, 10000, 100000],
+                currentProgress: 0,
+                image: "👣"
+            )
+        )
+        achievements.append(
+            Achievement(
+                name: "Coins Earned from Steps",
+                description: "Earn these coins from your steps.",
+                tiers: [10000, 500000, 10000000],
+                currentProgress: 0,
+                image: "👞"
+            )
+        )
+
         // Add achievements for exchanged coins
         for coin in exchangeModel.availableCoins {
             
@@ -134,6 +158,7 @@ class AchievementsModel: ObservableObject {
     }
 
     // Sync initial progress with current state
+    @MainActor
     private func syncInitialProgress(exchangeModel: CoinExchangeModel, powerUps: PowerUps) {
 
         guard !hasSyncedInitialProgress else {
@@ -170,6 +195,17 @@ class AchievementsModel: ObservableObject {
         let coinsPerClick = powerUps.calculateCoinsPerClick()
         setProgress(for: "Coins Per Click", value: coinsPerClick)
 
+        
+        // Sync step-related achievements if store is available
+        if let store = self.store {
+            
+            let totalStepsTaken = store.totalSteps
+            setProgress(for: "Total Steps Taken", value: totalStepsTaken)
+            
+            let coinsFromStepsInt = NSDecimalNumber(decimal: store.totalCoinsFromSteps).intValue
+            setProgress(for: "Coins Earned from Steps", value: coinsFromStepsInt)
+        }
+
         saveProgress() // Save the updated progress
     }
     
@@ -201,6 +237,7 @@ class AchievementsModel: ObservableObject {
     }
         
     // Refresh achievement progress
+    @MainActor
     func refreshProgress(coins: CryptoCoin?, coinsPerSecond: Decimal, coinsPerClick: Decimal) {
         
         guard let coins = coins else {
@@ -208,6 +245,7 @@ class AchievementsModel: ObservableObject {
         }
 
         for i in 0..<achievements.count {
+            
             let achievement = achievements[i]
 
             switch achievement.name {
@@ -224,6 +262,20 @@ class AchievementsModel: ObservableObject {
             case "Coins Per Click":
                 achievements[i].currentProgress = NSDecimalNumber(decimal: coinsPerClick).intValue
                 setProgressDecimal(for: "Coins Per Click", value: coinsPerClick)
+                
+            case "Total Steps Taken":
+                if let store = self.store {
+                    let steps = store.totalSteps
+                    achievements[i].currentProgress = steps
+                    setProgress(for: "Total Steps Taken", value: steps)
+                }
+
+            case "Coins Earned from Steps":
+                if let store = self.store {
+                    let coinsFromSteps = NSDecimalNumber(decimal: store.totalCoinsFromSteps).intValue
+                    achievements[i].currentProgress = coinsFromSteps
+                    setProgress(for: "Coins Earned from Steps", value: coinsFromSteps)
+                }
 
             case let name where name.contains("Exchanged"):
                 
@@ -277,15 +329,6 @@ class AchievementsModel: ObservableObject {
         if let savedProgress = UserDefaults.standard.dictionary(forKey: progressKey) as? [String: Int] {
             progress = savedProgress
         }
-    }
-
-    // Test Method for Isolating AchievementsModel
-    func isolateAndTest() {
-        print("[DEBUG] Testing AchievementsModel in isolation...")
-        generateAchievements(exchangeModel: exchangeModel, powerUps: powerUps)
-        syncInitialProgress(exchangeModel: exchangeModel, powerUps: powerUps)
-        print("[DEBUG] Achievements: \(achievements)")
-        print("[DEBUG] Current Progress: \(progress)")
     }
     
     // Reset achievements completely

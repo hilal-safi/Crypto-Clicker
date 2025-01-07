@@ -53,6 +53,7 @@ extension PhoneSessionManager: WCSessionDelegate {
     
     // Handle incoming messages
     func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+        
         guard let request = message["request"] as? String else {
             print("[PhoneSessionManager] Received message without 'request' key.")
             replyHandler(["error": "No request key found"])
@@ -60,6 +61,7 @@ extension PhoneSessionManager: WCSessionDelegate {
         }
         
         switch request {
+            
         case "tapCoin":
             print("[PhoneSessionManager] Received 'tapCoin' request.")
             // Handle tapCoin request
@@ -130,27 +132,28 @@ extension PhoneSessionManager: WCSessionDelegate {
     
     /// Pushes the updated coin value, total steps, and coins from steps to the watch
     func pushCoinValueToWatch() {
+        
         guard session.isReachable else {
             print("[PhoneSessionManager] iPhone is not reachable. Cannot push coin data.")
             return
         }
         
-        guard let coins = store?.coins else {
-            print("[PhoneSessionManager] No coins data to push.")
+        guard let store = store, let coins = store.coins else {
+            print("[PhoneSessionManager] Missing store or coin data.")
             return
         }
-        let coinValueString = "\(coins.value)"
-        let stepsString = "\(store?.totalSteps ?? 0)"
-        let coinsFromStepsString = "\(store?.totalCoinsFromSteps ?? 0)"
         
-        let message: [String: Any] = [
-            "phoneCoinValue": coinValueString,
-            "phoneTotalSteps": stepsString,
-            "phoneCoinsFromSteps": coinsFromStepsString
+        let context: [String: Any] = [
+            "phoneCoinValue": "\(coins.value)",
+            "phoneTotalSteps": "\(store.totalSteps)",
+            "phoneCoinsFromSteps": "\(store.totalCoinsFromSteps)"
         ]
         
-        session.sendMessage(message, replyHandler: nil) { error in
-            print("[PhoneSessionManager] pushCoinValueToWatch error: \(error.localizedDescription)")
+        do {
+            try session.updateApplicationContext(context)
+            print("[PhoneSessionManager] Application context updated.")
+        } catch {
+            print("[PhoneSessionManager] Failed to update context: \(error.localizedDescription)")
         }
     }
 }
