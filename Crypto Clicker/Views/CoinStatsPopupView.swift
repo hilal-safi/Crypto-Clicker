@@ -25,7 +25,7 @@ struct CoinStatsPopupView: View {
         ZStack {
             // Add blur to everything behind the popup using BlurView
             BlurView(
-                style: colorScheme == .dark ? .systemThinMaterialDark : .systemThinMaterialLight,
+                style: colorScheme == .dark ? .systemMaterialDark : .systemMaterialLight,
                 reduction: 0.9
             )
             .ignoresSafeArea()

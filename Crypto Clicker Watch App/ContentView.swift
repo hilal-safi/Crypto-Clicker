@@ -13,8 +13,7 @@ struct ContentView: View {
     @ObservedObject var watchManager = WatchSessionManager.shared
     @StateObject var stepDetector = StepDetection() // Keep for step detection
     
-    // Controls stats popup
-    @State private var showStats = false
+    @State private var showStats = false // Controls stats popup
     @State private var isCoinPressed = false // For coin click animation
     
     var body: some View {
@@ -88,7 +87,7 @@ struct ContentView: View {
         }
         .onAppear {
             watchManager.startSession()
-            watchManager.requestCoinData()
+            watchManager.requestCoinData() // Fetch all stats from the phone
             
             // Optionally fetch steps immediately on first load
             stepDetector.fetchStepsSinceMidnight()
@@ -128,9 +127,9 @@ struct StatsView: View {
                     StatRow(title: "Coins from Steps", value: totalCoinsFromSteps)
                     StatRow(title: "Coins/Sec", value: coinsPerSecond)
                     StatRow(title: "Coins/Click", value: coinsPerClick)
-                    StatRow(title: "Total Coins", value: totalCoins)
                     StatRow(title: "Power-Ups Owned", value: Decimal(totalPowerUpsOwned))
                     StatRow(title: "Exchanged Coins", value: Decimal(totalExchangedCoins))
+                    StatRow(title: "Total Coins", value: totalCoins)
                 }
                 
                 Button("Close") {

@@ -13,8 +13,9 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     
     static let shared = WatchSessionManager() // Singleton instance
     private override init() { super.init() }
-
     private let session = WCSession.default // The default WatchConnectivity session
+    
+    // Various values for stats page
     @Published var coinValue: Decimal = 0 // Local coin value on the watch
     @Published var coinsPerSecond: Decimal = 0
     @Published var coinsPerClick: Decimal = 0
@@ -22,6 +23,8 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     @Published var totalExchangedCoins: Int = 0
     @Published var totalSteps: Int = 0 // Total steps from phone
     @Published var totalCoinsFromSteps: Decimal = 0 // Total coins from steps from phone
+    
+    private var syncTimer: Timer?
 
     /// Starts the WatchConnectivity session
     func startSession() {
@@ -34,52 +37,61 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         session.delegate = self
         session.activate()
         print("[WatchSessionManager] WatchConnectivity session activated.")
+        
+        startSyncTimer() // Trigger periodic syncs
     }
 
-    /// Called when the session activation completes
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+    /// Initializes step count on the iPhone
+    func initializeSteps(_ steps: Int) {
         
-        if let error = error {
-            print("[WatchSessionManager] Activation error: \(error)")
-            
-        } else {
-            print("[WatchSessionManager] Activation state: \(activationState.rawValue)")
+        guard session.isReachable else {
+            print("[WatchSessionManager] iPhone not reachable. Storing steps locally.")
+            totalSteps += steps // Locally update steps if the phone isn't reachable
+            return
         }
+        
+        let message: [String: Any] = ["request": "initializeSteps", "steps": steps]
+        
+        session.sendMessage(message, replyHandler: nil, errorHandler: { error in
+            print("[WatchSessionManager] Error initializing steps: \(error.localizedDescription)")
+        })
     }
 
     /// Handles messages received from the iPhone
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        updateStats(with: message)
+    }
+
+    /// Handles application context updates from the iPhone
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        updateStats(with: applicationContext)
+    }
+
+    /// Updates stats from a dictionary of values
+    private func updateStats(with data: [String: Any]) {
         
-        // Update the coin value if it's sent from the phone
-        if let valStr = message["phoneCoinValue"] as? String,
-           
-           let val = Decimal(string: valStr) {
+        DispatchQueue.main.async {
             
-            DispatchQueue.main.async {
-                self.coinValue = val
-                print("[WatchSessionManager] Updated coin value: \(val)")
+            if let coinValueStr = data["phoneCoinValue"] as? String, let value = Decimal(string: coinValueStr) {
+                self.coinValue = value
             }
-        }
-        
-        // Update totalSteps
-        if let stepsStr = message["phoneTotalSteps"] as? String,
-           
-           let steps = Int(stepsStr) {
-            
-            DispatchQueue.main.async {
-                self.totalSteps = steps
-                print("[WatchSessionManager] Updated total steps: \(steps)")
+            if let coinsPerSecondStr = data["phoneCoinsPerSecond"] as? String, let value = Decimal(string: coinsPerSecondStr) {
+                self.coinsPerSecond = value
             }
-        }
-        
-        // Update totalCoinsFromSteps
-        if let coinsFromStepsStr = message["phoneCoinsFromSteps"] as? String,
-           
-           let coinsFromSteps = Decimal(string: coinsFromStepsStr) {
-            
-            DispatchQueue.main.async {
-                self.totalCoinsFromSteps = coinsFromSteps
-                print("[WatchSessionManager] Updated coins from steps: \(coinsFromSteps)")
+            if let coinsPerClickStr = data["phoneCoinsPerClick"] as? String, let value = Decimal(string: coinsPerClickStr) {
+                self.coinsPerClick = value
+            }
+            if let totalPowerUpsOwnedStr = data["phoneTotalPowerUpsOwned"] as? String, let value = Int(totalPowerUpsOwnedStr) {
+                self.totalPowerUpsOwned = value
+            }
+            if let totalExchangedCoinsStr = data["phoneTotalExchangedCoins"] as? String, let value = Int(totalExchangedCoinsStr) {
+                self.totalExchangedCoins = value
+            }
+            if let totalStepsStr = data["phoneTotalSteps"] as? String, let value = Int(totalStepsStr) {
+                self.totalSteps = value
+            }
+            if let totalCoinsFromStepsStr = data["phoneCoinsFromSteps"] as? String, let value = Decimal(string: totalCoinsFromStepsStr) {
+                self.totalCoinsFromSteps = value
             }
         }
     }
@@ -88,23 +100,20 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     func tapCoin() {
         
         guard session.isReachable else {
-            print("[WatchSessionManager] iPhone not reachable. Cannot send tapCoin.")
+            print("[WatchSessionManager] iPhone not reachable. Incrementing coin locally.")
+            coinValue += coinsPerClick // Locally increment coin value if the phone isn't reachable
             return
         }
-        let msg: [String: Any] = ["request": "tapCoin"] // Message to send
         
-        session.sendMessage(msg, replyHandler: { reply in
+        let msg: [String: Any] = ["request": "tapCoin"]
+        
+        session.sendMessage(msg, replyHandler: { [weak self] reply in
             
-            if let updatedStr = reply["updatedCoinValue"] as? String,
-               
-               let updated = Decimal(string: updatedStr) {
+            if let updatedValue = reply["updatedCoinValue"] as? String, let value = Decimal(string: updatedValue) {
                 
                 DispatchQueue.main.async {
-                    self.coinValue = updated
+                    self?.coinValue = value
                 }
-                
-            } else if let error = reply["error"] as? String {
-                print("[WatchSessionManager] tapCoin error from phone: \(error)")
             }
         }, errorHandler: { error in
             print("[WatchSessionManager] tapCoin error: \(error.localizedDescription)")
@@ -115,87 +124,68 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     func addSteps(_ steps: Int) {
         
         guard session.isReachable else {
-            print("[WatchSessionManager] iPhone not reachable. Cannot send steps.")
+            print("[WatchSessionManager] iPhone not reachable. Incrementing steps locally.")
+            totalSteps += steps // Locally update steps if the phone isn't reachable
+            totalCoinsFromSteps += Decimal(steps) / 100 // Increment coins from steps locally
             return
         }
-        let msg: [String: Any] = ["request": "addSteps", "steps": steps] // Message to send
+        
+        let msg: [String: Any] = ["request": "addSteps", "steps": steps]
         
         session.sendMessage(msg, replyHandler: { reply in
             
-            if let updatedCoinValue = reply["updatedCoinValue"] as? String,
-               
-               let updatedValue = Decimal(string: updatedCoinValue) {
+            if let updatedValue = reply["updatedCoinValue"] as? String, let value = Decimal(string: updatedValue) {
                 
                 DispatchQueue.main.async {
-                    self.coinValue = updatedValue
+                    self.coinValue = value
                 }
-                
-            } else if let error = reply["error"] as? String {
-                print("[WatchSessionManager] addSteps error from phone: \(error)")
             }
         }, errorHandler: { error in
             print("[WatchSessionManager] addSteps error: \(error.localizedDescription)")
         })
     }
 
-    /// Requests the latest coin data from the iPhone
+    /// Requests all data from the iPhone
     func requestCoinData() {
         
         guard session.isReachable else {
             print("[WatchSessionManager] iPhone not reachable. Cannot request coin data.")
             return
         }
-        let msg = ["request": "requestCoinData"] // Message to request coin data
-        session.sendMessage(msg, replyHandler: { reply in
-            if let valStr = reply["phoneCoinValue"] as? String,
-               let val = Decimal(string: valStr) {
-                DispatchQueue.main.async {
-                    self.coinValue = val
-                    print("[WatchSessionManager] Received phoneCoinValue: \(val)")
-                }
-            }
-            if let stepsStr = reply["phoneTotalSteps"] as? String,
-               let steps = Int(stepsStr) {
-                DispatchQueue.main.async {
-                    self.totalSteps = steps
-                    print("[WatchSessionManager] Received phoneTotalSteps: \(steps)")
-                }
-            }
-            if let coinsFromStepsStr = reply["phoneCoinsFromSteps"] as? String,
-               let coinsFromSteps = Decimal(string: coinsFromStepsStr) {
-                DispatchQueue.main.async {
-                    self.totalCoinsFromSteps = coinsFromSteps
-                    print("[WatchSessionManager] Received phoneCoinsFromSteps: \(coinsFromSteps)")
-                }
-            }
-        }, errorHandler: { error in
+        
+        let msg = ["request": "requestCoinData"]
+        
+        session.sendMessage(msg, replyHandler: nil, errorHandler: { error in
             print("[WatchSessionManager] requestCoinData error: \(error.localizedDescription)")
         })
     }
-    
-    /// Initializes the total steps on the phone without incrementing coins
-    func initializeSteps(_ steps: Int) {
+
+    // MARK: - Periodic Sync Timer
+
+    /// Starts a periodic sync timer
+    private func startSyncTimer() {
         
-        guard session.isReachable else {
-            print("[WatchSessionManager] iPhone not reachable. Cannot send initializeSteps.")
-            return
+        // Syncs every 3 seconds
+        syncTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            self?.requestCoinData()
         }
-        let msg: [String: Any] = ["request": "initializeSteps", "steps": steps]
-        session.sendMessage(msg, replyHandler: { reply in
-            if let status = reply["status"] as? String {
-                print("[WatchSessionManager] initializeSteps status: \(status)")
-            } else if let error = reply["error"] as? String {
-                print("[WatchSessionManager] initializeSteps error from phone: \(error)")
-            }
-        }, errorHandler: { error in
-            print("[WatchSessionManager] initializeSteps error: \(error.localizedDescription)")
-        })
+    }
+
+    deinit {
+        syncTimer?.invalidate()
     }
 
     // MARK: - WCSessionDelegate Required Methods
 
-    /// Called when the session's reachability changes
     func sessionReachabilityDidChange(_ session: WCSession) {
         print("[WatchSessionManager] Reachability changed: \(session.isReachable)")
+    }
+
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        if let error = error {
+            print("[WatchSessionManager] Activation error: \(error.localizedDescription)")
+        } else {
+            print("[WatchSessionManager] Activation state: \(activationState.rawValue)")
+        }
     }
 }

@@ -18,22 +18,35 @@ class PhoneSessionManager: NSObject, ObservableObject {
     
     private var store: CryptoStore?
     private let session = WCSession.default
+    private var syncTimer: Timer?
     
+    /// Starts the WatchConnectivity session
     func startSession(with store: CryptoStore) {
         self.store = store
         session.delegate = self
         session.activate()
         print("[PhoneSessionManager] WatchConnectivity session activated.")
+        startSyncTimer()
+    }
+    
+    /// Periodic sync timer for faster updates
+    private func startSyncTimer() {
+        syncTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            self?.pushCoinValueToWatch()
+        }
+    }
+    
+    deinit {
+        syncTimer?.invalidate()
     }
 }
 
+// MARK: - WCSessionDelegate Methods
 extension PhoneSessionManager: WCSessionDelegate {
     
-    // MARK: - WCSessionDelegate Methods
-    
-    // MARK: Nonisolated Methods to Conform to WCSessionDelegate
-    
+    // Nonisolated Methods to Conform to WCSessionDelegate
     nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        
         if let error = error {
             print("[PhoneSessionManager] Activation error: \(error)")
         } else {
@@ -63,64 +76,19 @@ extension PhoneSessionManager: WCSessionDelegate {
         switch request {
             
         case "tapCoin":
-            print("[PhoneSessionManager] Received 'tapCoin' request.")
-            // Handle tapCoin request
-            if let newValue = store?.incrementCoinValue() {
-                print("[PhoneSessionManager] tapCoin handled. New coin value: \(newValue)")
-                replyHandler(["updatedCoinValue": "\(newValue)"])
-                pushCoinValueToWatch()
-            } else {
-                print("[PhoneSessionManager] Failed to increment coin value.")
-                replyHandler(["error": "Failed to increment coin value"])
-            }
+            handleTapCoin(replyHandler: replyHandler)
             
         case "addSteps":
-            // The watch detected steps
-            let steps = message["steps"] as? Int ?? 0
-            print("[PhoneSessionManager] Received 'addSteps' request with steps: \(steps)")
-            
-            // Update coin value based on steps
-            store?.incrementCoinsFromSteps(steps)
-            
-            // Push updated value to the watch
-            pushCoinValueToWatch()
-            
-            // Respond with the updated coin value
-            let newValue = store?.coins?.value ?? 0
-            print("[PhoneSessionManager] addSteps handled. New coin value: \(newValue)")
-            replyHandler(["updatedCoinValue": "\(newValue)"])
+            handleAddSteps(message: message, replyHandler: replyHandler)
             
         case "initializeSteps":
-            // Initialize totalSteps without incrementing coins
-            let steps = message["steps"] as? Int ?? 0
-            print("[PhoneSessionManager] Received 'initializeSteps' request with steps: \(steps)")
-            Task {
-                await store?.initializeTotalSteps(steps)
-                print("[PhoneSessionManager] Initialized totalSteps to \(steps).")
-            }
-            replyHandler(["status": "initialized"])
+            handleInitializeSteps(message: message, replyHandler: replyHandler)
             
         case "requestCoinData":
-            // The watch requests the current coin value and stats
-            let coinValue = store?.coins?.value ?? 0
-            let steps = store?.totalSteps ?? 0
-            let coinsFromSteps = store?.totalCoinsFromSteps ?? 0
-            print("[PhoneSessionManager] Received 'requestCoinData' request. Sending data.")
-            replyHandler([
-                "phoneCoinValue": "\(coinValue)",
-                "phoneTotalSteps": "\(steps)",
-                "phoneCoinsFromSteps": "\(coinsFromSteps)"
-            ])
+            sendAllStats(replyHandler: replyHandler)
             
         case "test":
-            // Handle test message
-            if let testMessage = message["message"] as? String {
-                print("[PhoneSessionManager] Received test message: \(testMessage)")
-                replyHandler(["response": "Hello from Phone"])
-            } else {
-                print("[PhoneSessionManager] Received test message without 'message' key.")
-                replyHandler(["error": "No message content"])
-            }
+            handleTestMessage(message: message, replyHandler: replyHandler)
             
         default:
             print("[PhoneSessionManager] Received unknown request: \(request)")
@@ -128,32 +96,107 @@ extension PhoneSessionManager: WCSessionDelegate {
         }
     }
     
+    // MARK: - Message Handlers
+    
+    private func handleTapCoin(replyHandler: @escaping ([String: Any]) -> Void) {
+        
+        print("[PhoneSessionManager] Received 'tapCoin' request.")
+        if let newValue = store?.incrementCoinValue() {
+            
+            DispatchQueue.main.async {
+                replyHandler(["updatedCoinValue": "\(newValue)"])
+                self.pushCoinValueToWatch()
+            }
+        } else {
+            replyHandler(["error": "Failed to increment coin value"])
+        }
+    }
+
+    private func handleAddSteps(message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        
+        let steps = message["steps"] as? Int ?? 0
+        print("[PhoneSessionManager] Received 'addSteps' request with steps: \(steps)")
+        
+        Task {
+            await store?.incrementCoinsFromSteps(steps)
+            
+            DispatchQueue.main.async {
+                
+                self.pushCoinValueToWatch()
+                let newValue = self.store?.coins?.value ?? 0
+                replyHandler(["updatedCoinValue": "\(newValue)"])
+            }
+        }
+    }
+    
+    private func handleInitializeSteps(message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        
+        let steps = message["steps"] as? Int ?? 0
+        print("[PhoneSessionManager] Received 'initializeSteps' request with steps: \(steps)")
+        
+        Task {
+            await store?.initializeTotalSteps(steps)
+            DispatchQueue.main.async {
+                replyHandler(["status": "initialized"])
+            }
+        }
+    }
+    
+    private func sendAllStats(replyHandler: @escaping ([String: Any]) -> Void) {
+        
+        guard let stats = collectStats() else {
+            replyHandler(["error": "Failed to collect stats."])
+            return
+        }
+        DispatchQueue.main.async {
+            replyHandler(stats)
+        }
+    }
+    
+    private func handleTestMessage(message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        
+        if let testMessage = message["message"] as? String {
+            
+            print("[PhoneSessionManager] Received test message: \(testMessage)")
+            replyHandler(["response": "Hello from Phone"])
+            
+        } else {
+            replyHandler(["error": "No message content"])
+        }
+    }
+    
     // MARK: - Helper Methods
     
-    /// Pushes the updated coin value, total steps, and coins from steps to the watch
     func pushCoinValueToWatch() {
         
         guard session.isReachable else {
             print("[PhoneSessionManager] iPhone is not reachable. Cannot push coin data.")
             return
         }
-        
-        guard let store = store, let coins = store.coins else {
-            print("[PhoneSessionManager] Missing store or coin data.")
+        guard let stats = collectStats() else {
+            print("[PhoneSessionManager] Failed to collect stats for push.")
             return
         }
-        
-        let context: [String: Any] = [
-            "phoneCoinValue": "\(coins.value)",
-            "phoneTotalSteps": "\(store.totalSteps)",
-            "phoneCoinsFromSteps": "\(store.totalCoinsFromSteps)"
-        ]
-        
         do {
-            try session.updateApplicationContext(context)
+            try session.updateApplicationContext(stats)
             print("[PhoneSessionManager] Application context updated.")
         } catch {
             print("[PhoneSessionManager] Failed to update context: \(error.localizedDescription)")
         }
+    }
+    
+    private func collectStats() -> [String: Any]? {
+        
+        guard let store = store else { return nil }
+        
+        return [
+            "phoneCoinValue": "\(store.coins?.value ?? 0)",
+            "phoneCoinsPerSecond": "\(store.coinsPerSecond)",
+            "phoneCoinsPerClick": "\(store.coinsPerClick)",
+            "phoneTotalSteps": "\(store.totalSteps)",
+            "phoneCoinsFromSteps": "\(store.totalCoinsFromSteps)",
+            "phoneTotalPowerUpsOwned": "\(store.powerUps.calculateTotalOwned())",
+            "phoneTotalExchangedCoins": "\(CoinExchangeModel.shared.totalExchangedCoins())"
+        ]
     }
 }

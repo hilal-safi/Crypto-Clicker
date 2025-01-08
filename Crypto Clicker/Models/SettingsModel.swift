@@ -36,10 +36,11 @@ class SettingsModel: ObservableObject {
         // - Normal = no change
         // - Hard = -15% to coin generation
         var productionMultiplier: Double {
+            
             switch self {
-            case .easy:   return 1.15
-            case .normal: return 1.0
-            case .hard:   return 0.85
+                case .easy:   return 1.15
+                case .normal: return 1.0
+                case .hard:   return 0.85
             }
         }
         
@@ -48,10 +49,11 @@ class SettingsModel: ObservableObject {
         // - Normal = no change
         // - Hard = +15% cost
         var costMultiplier: Double {
+            
             switch self {
-            case .easy:   return 0.85
-            case .normal: return 1.0
-            case .hard:   return 1.15
+                case .easy:   return 0.85
+                case .normal: return 1.0
+                case .hard:   return 1.15
             }
         }
         
@@ -61,12 +63,15 @@ class SettingsModel: ObservableObject {
         // - Hard => round down
         func roundValue(_ value: Decimal) -> Decimal {
             switch self {
-            case .easy:
-                return value.roundedUpToWhole()
-            case .normal:
-                return value.roundedDownToWhole()
-            case .hard:
-                return value.roundedDownToWhole()
+                
+                case .easy:
+                    return value.roundedUpToWhole()
+                
+                case .normal:
+                    return value.roundedDownToWhole()
+                
+                case .hard:
+                    return value.roundedDownToWhole()
             }
         }
     }
@@ -96,7 +101,7 @@ class SettingsModel: ObservableObject {
         }
     }
     
-    // NEW: Difficulty property
+    // Difficulty property
     @Published var difficulty: Difficulty {
         didSet {
             refreshTrigger += 1

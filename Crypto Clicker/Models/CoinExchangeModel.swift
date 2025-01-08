@@ -215,6 +215,7 @@ class CoinExchangeModel: ObservableObject {
         availableCoins.first(where: { $0.type == type })?.count ?? 0
     }
     
+    // Count of all the owned coins
     func totalExchangedCoins() -> Int {
         availableCoins.reduce(0) { $0 + $1.count }
     }
