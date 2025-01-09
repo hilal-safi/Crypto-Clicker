@@ -60,9 +60,10 @@ struct BlackjackMessageView_Previews: PreviewProvider {
     
     static var previews: some View {
         
-        let exchangeModel = CoinExchangeModel.shared // Use the singleton instance
-        let model = BlackjackModel(exchangeModel: exchangeModel)
-        
+        let exchangeModel = CoinExchangeModel.shared
+        let cryptoStore = CryptoStore()
+        let model = BlackjackModel(exchangeModel: exchangeModel, cryptoStore: cryptoStore)
+
         model.gameState = .waitingForBet
         
         return BlackjackMessageView()

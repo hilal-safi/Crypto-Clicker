@@ -15,10 +15,11 @@ class PowerUps: ObservableObject, Codable {
         
         let id: UUID
         let name: String
-        let cost: Int             // The "base cost"
+        let cost: Int   // The "base cost"
         let coinsPerSecondIncrease: Int
         let coinsPerClickIncrease: Int
         let coinsPerStepIncrease: Int
+        let miniGameMultiplierIncrease: Int
         let emoji: String
         let description: String
         let costMultiplier: Double  // Cost multiplier for exponential pricing
@@ -31,6 +32,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: Int,
             coinsPerClickIncrease: Int,
             coinsPerStepIncrease: Int,
+            miniGameMultiplierIncrease: Int,
             emoji: String,
             description: String,
             costMultiplier: Double
@@ -41,6 +43,7 @@ class PowerUps: ObservableObject, Codable {
             self.coinsPerSecondIncrease = coinsPerSecondIncrease
             self.coinsPerClickIncrease = coinsPerClickIncrease
             self.coinsPerStepIncrease = coinsPerStepIncrease
+            self.miniGameMultiplierIncrease = miniGameMultiplierIncrease
             self.emoji = emoji
             self.description = description
             self.costMultiplier = costMultiplier
@@ -59,6 +62,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 0,
             coinsPerClickIncrease: 1,
             coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 0,
             emoji: "👆",
             description: "A basic tap tool to earn a small boost per click. Ideal for early mining.",
             costMultiplier: 1.07 // ~7% increase each time
@@ -69,6 +73,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 0,
             coinsPerClickIncrease: 0,
             coinsPerStepIncrease: 1,
+            miniGameMultiplierIncrease: 0,
             emoji: "🥾",
             description: "Adds +1 coin per step each purchase.",
             costMultiplier: 1.07
@@ -79,9 +84,21 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 1,
             coinsPerClickIncrease: 0,
             coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 0,
             emoji: "💻",
             description: "A trusty Chromebook for light-duty mining. Grants +1 coin/second.",
             costMultiplier: 1.07
+        ),
+        PowerUp(
+            name: "5% Bonus Reward",
+            cost: 500,
+            coinsPerSecondIncrease: 0,
+            coinsPerClickIncrease: 0,
+            coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 5,
+            emoji: "🎉",
+            description: "Adds a 5% bonus to coin rewards after each game.",
+            costMultiplier: 1.10
         ),
         PowerUp(
             name: "Upgraded Clicker",
@@ -89,6 +106,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 0,
             coinsPerClickIncrease: 10,
             coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 0,
             emoji: "💪",
             description: "Enhances your clicks significantly, adding +10 coins/click.",
             costMultiplier: 1.09
@@ -99,9 +117,21 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 20,
             coinsPerClickIncrease: 0,
             coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 0,
             emoji: "🖥️",
             description: "A powerful desktop for consistent mining, generating +20 coins/second.",
             costMultiplier: 1.08
+        ),
+        PowerUp(
+            name: "25% Bonus Reward",
+            cost: 5000,
+            coinsPerSecondIncrease: 0,
+            coinsPerClickIncrease: 0,
+            coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 25,
+            emoji: "💎",
+            description: "Adds a 25% bonus to coin rewards after each game.",
+            costMultiplier: 1.12
         ),
         PowerUp(
             name: "Upgraded Step Booster",
@@ -109,9 +139,21 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 0,
             coinsPerClickIncrease: 0,
             coinsPerStepIncrease: 50,
+            miniGameMultiplierIncrease: 0,
             emoji: "👟",
             description: "Adds +50 coins per step each purchase.",
             costMultiplier: 1.08
+        ),
+        PowerUp(
+            name: "100% Bonus Reward",
+            cost: 20000,
+            coinsPerSecondIncrease: 0,
+            coinsPerClickIncrease: 0,
+            coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 100,
+            emoji: "🏆",
+            description: "Doubles the coin rewards after each game.",
+            costMultiplier: 1.15
         ),
         PowerUp(
             name: "Server",
@@ -119,6 +161,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 100,
             coinsPerClickIncrease: 0,
             coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 0,
             emoji: "📡",
             description: "A dedicated server for hefty yields, adding +100 coins/second.",
             costMultiplier: 1.10
@@ -129,6 +172,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 0,
             coinsPerClickIncrease: 500,
             coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 0,
             emoji: "🦾",
             description: "Automates your clicking with +500 coins per manual click input.",
             costMultiplier: 1.10
@@ -139,6 +183,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 2000,
             coinsPerClickIncrease: 0,
             coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 0,
             emoji: "⛏️",
             description: "A full-blown mining center, yielding +2,000 coins/second.",
             costMultiplier: 1.12
@@ -149,6 +194,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 0,
             coinsPerClickIncrease: 0,
             coinsPerStepIncrease: 1000,
+            miniGameMultiplierIncrease: 0,
             emoji: "🦿",
             description: "Adds +1000 coins per step each purchase.",
             costMultiplier: 1.10
@@ -159,6 +205,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 5000,
             coinsPerClickIncrease: 20000,
             coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 0,
             emoji: "🤖",
             description: "A cutting-edge robot that mines +5,000 coins/second & boosts clicks by 20,000.",
             costMultiplier: 1.15
@@ -169,6 +216,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 10000,
             coinsPerClickIncrease: 50000,
             coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 0,
             emoji: "🧠",
             description: "Harness advanced AI to massively accelerate your cryptomining operations.",
             costMultiplier: 1.18
@@ -179,6 +227,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 100000,
             coinsPerClickIncrease: 100000,
             coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 0,
             emoji: "🔮",
             description: "Leverage quantum entanglement for mind-boggling mining speed.",
             costMultiplier: 1.20
@@ -189,6 +238,7 @@ class PowerUps: ObservableObject, Codable {
             coinsPerSecondIncrease: 1000000,
             coinsPerClickIncrease: 1000000,
             coinsPerStepIncrease: 0,
+            miniGameMultiplierIncrease: 0,
             emoji: "🚀",
             description: "Take your operation off-world to extract resources at a cosmic scale.",
             costMultiplier: 1.25

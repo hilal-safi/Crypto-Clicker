@@ -50,15 +50,16 @@ class BlackjackModel: ObservableObject {
     
     // MARK: - Internal Data
     
-    // REMOVED `private` here so we can reference exchangeModel externally if needed:
-    let exchangeModel: CoinExchangeModel
-    
+    let exchangeModel: CoinExchangeModel     // Reference exchangeModel externally if needed:
+    let cryptoStore: CryptoStore // Access CryptoStore as a dependency
+
     var deck: [Card] = []
     
     // MARK: - Init
     
-    init(exchangeModel: CoinExchangeModel) {
+    init(exchangeModel: CoinExchangeModel, cryptoStore: CryptoStore) {
         self.exchangeModel = exchangeModel
+        self.cryptoStore = cryptoStore
         self.deck = createDeck().shuffled()
     }
     
@@ -231,6 +232,7 @@ class BlackjackModel: ObservableObject {
     
     // If the player has more hands to play, move to the next; otherwise do dealer.
     func nextHandOrDealer() {
+        
         if playerValue > 21 {
             // “Bust” message for this hand, if desired
         }
@@ -250,6 +252,7 @@ class BlackjackModel: ObservableObject {
     // MARK: - Dealer Actions
     
     func handleDealerTurn() {
+        
         guard gameState == .dealerTurn else { return }
         
         dealerSecondCardHidden = false
@@ -276,6 +279,7 @@ class BlackjackModel: ObservableObject {
     
     // REMOVED `private` so it can be used in BlackjackMiddleView:
     func calculateHandValue(for hand: [Card]) -> Int {
+        
         var total = 0
         var aceCount = 0
         
@@ -392,46 +396,69 @@ class BlackjackModel: ObservableObject {
         dealerValue: Int,
         bet: Int
     ) {
-        var reward = 0
-        
+        var exchangeReward = 0
+        var cryptoStoreReward: Decimal = 0
+
         switch result {
         case .blackjack:
-            reward = bet * 3
-            resultMessage = "You Win! Blackjack! You earned \(reward) \(selectedCoinType.rawValue)."
-            
+            exchangeReward = bet * 3
+            cryptoStoreReward = 1000
+            resultMessage = "You Win! Blackjack! You earned \(exchangeReward) \(selectedCoinType.rawValue) and 1000 coins."
+
         case .playerWin:
-            reward = bet * 2
-            resultMessage = "You Win! Your \(playerValue) beats the dealer's \(dealerValue). You earned \(reward) \(selectedCoinType.rawValue)."
+            exchangeReward = bet * 2
+            cryptoStoreReward = 500
+            resultMessage = "You Win! Your \(playerValue) beats the dealer's \(dealerValue). You earned \(exchangeReward) \(selectedCoinType.rawValue) and 500 coins."
 
         case .playerBust:
-            resultMessage = "You Lose! Bust with \(playerValue). You lost \(betAmount) \(selectedCoinType.rawValue)."
+            exchangeReward = 0
+            cryptoStoreReward = 0
+            resultMessage = "You Lose! Bust with \(playerValue). No coins earned."
 
         case .dealerWin:
-            resultMessage = "You Lose! Dealer's \(dealerValue) beats your \(playerValue). You lost \(betAmount) \(selectedCoinType.rawValue)."
+            exchangeReward = 0
+            cryptoStoreReward = 0
+            resultMessage = "You Lose! Dealer's \(dealerValue) beats your \(playerValue). No coins earned."
 
         case .dealerBust:
-            reward = bet * 2
-            resultMessage = "You Win! Dealer busted with \(dealerValue). You earned \(reward) \(selectedCoinType.rawValue)."
+            exchangeReward = bet * 2
+            cryptoStoreReward = 500
+            resultMessage = "You Win! Dealer busted with \(dealerValue). You earned \(exchangeReward) \(selectedCoinType.rawValue) and 500 coins."
 
         case .tie:
-            reward = bet
-            resultMessage = "It's a Tie! Both you and the dealer scored \(playerValue)."
+            exchangeReward = bet
+            cryptoStoreReward = 0
+            resultMessage = "It's a Tie! Both you and the dealer scored \(playerValue). No coins earned."
         }
-        
-        exchangeModel.updateCoinCount(for: selectedCoinType, by: reward)
+
+        // Update exchange coin rewards
+        exchangeModel.updateCoinCount(for: selectedCoinType, by: exchangeReward)
+
+        // Update CryptoStore rewards using DispatchQueue
+        DispatchQueue.main.async {
+            self.cryptoStore.addCoinsFromMiniGame(cryptoStoreReward)
+        }
     }
     
     func finalizeGame(withResult result: BlackjackGameResult,
                       playerValue: Int,
                       dealerValue: Int) {
-        
         gameOver = true
         gameState = .gameOver
-        
+
         if result == .blackjack {
-            let reward = betAmount * 3
-            exchangeModel.updateCoinCount(for: selectedCoinType, by: reward)
-            resultMessage = "You got a Blackjack! +\(reward) \(selectedCoinType.rawValue)."
+            let exchangeReward = betAmount * 3
+            let cryptoStoreReward: Decimal = 1000
+
+            // Update exchange coin rewards
+            exchangeModel.updateCoinCount(for: selectedCoinType, by: exchangeReward)
+
+            // Update CryptoStore rewards using DispatchQueue
+            DispatchQueue.main.async {
+                self.cryptoStore.addCoinsFromMiniGame(cryptoStoreReward)
+            }
+
+            resultMessage = "You got a Blackjack! You earned \(exchangeReward) \(selectedCoinType.rawValue) and 1000 coins."
         }
     }
     

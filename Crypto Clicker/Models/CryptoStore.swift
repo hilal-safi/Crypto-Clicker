@@ -13,7 +13,7 @@ class CryptoStore: ObservableObject {
     
     @Published var coins: CryptoCoin?
     @Published var powerUps = PowerUps.shared
-
+    
     // Coin-Related Properties
     @Published var coinsPerSecond: Decimal = 0
     @Published var coinsPerClick: Decimal = 1
@@ -21,11 +21,19 @@ class CryptoStore: ObservableObject {
     
     // Step-Related Properties
     @Published var totalSteps: Int = 0
+    
+    // Tracking coins earned from various avenues
     @Published var totalCoinsFromSteps: Decimal = 0
+    @Published var totalCoinsFromMiniGames: Decimal = 0
+    @Published var totalCoinsFromClicks: Decimal = 0
+    @Published var totalCoinsFromIdle: Decimal = 0
+    @Published var totalCoinsEverEarned: Decimal = 0
+    
+    @Published var miniGameWinMultiplier: Decimal = 0
     
     // Hold a reference to the user's settings so we can access .difficulty.productionMultiplier and costMultiplier
     @Published var settings: SettingsModel?
-
+    
     private var timer: Timer?
     
     // Initializer
@@ -37,12 +45,12 @@ class CryptoStore: ObservableObject {
         }
         startTimer()
     }
-        
+    
     // Call this from the App or ContentView to inject SettingsModel
     func configureSettings(_ settings: SettingsModel) {
         self.settings = settings
     }
-
+    
     // Timer to increment coins based on coinsPerSecond
     private func startTimer() {
         
@@ -52,33 +60,94 @@ class CryptoStore: ObservableObject {
             }
         }
     }
-
+    
     // Increcment the coin value automatically per second
     private func incrementCoinsPerSec() {
         
         if var currentCoin = coins {
             
             let newValue = currentCoin.value + coinsPerSecond
-            
             currentCoin.value = min(newValue, Decimal.greatestFiniteMagnitude)
                 .roundedDownToWhole()
+            
             coins = currentCoin
+            totalCoinsFromIdle += coinsPerSecond // Track coins from idle
+            totalCoinsEverEarned += coinsPerSecond // Track total coins ever earned
+            
+            updateAndSaveCoins()
         }
     }
-
+    
     // Increment coin value by clicking the coin
     func incrementCoinValue() {
         
         if var currentCoin = coins {
             
             let newValue = currentCoin.value + coinsPerClick
-            
             currentCoin.value = min(newValue, Decimal.greatestFiniteMagnitude)
                 .roundedDownToWhole()
-            coins = currentCoin
+            
+            DispatchQueue.main.async {
+                self.coins = currentCoin
+                self.totalCoinsFromClicks += self.coinsPerClick
+                self.totalCoinsEverEarned += self.coinsPerClick
+                self.updateAndSaveCoins()
+            }
+
+            updateAndSaveCoins()
         }
     }
+    
+    // Increcment the coin value after playing mini games
+    func addCoinsFromMiniGame(_ baseCoins: Decimal) {
+        
+        guard let currentCoin = coins else { return }
 
+        // Only use the multiplier if it's greater than 0, otherwise default to no multiplier (1x)
+        let multiplier = currentCoin.miniGameWinMultiplier > 0 ? 1 + (currentCoin.miniGameWinMultiplier / 100) : 1
+        let adjustedReward = (baseCoins * multiplier).roundedDownToWhole() // Apply multiplier and round down
+
+        // Ensure at least the baseCoins are rewarded even if the multiplier is 0
+        let finalReward = adjustedReward > 0 ? adjustedReward : baseCoins.roundedDownToWhole()
+
+        var updatedCoin = currentCoin
+        updatedCoin.value += finalReward
+        coins = updatedCoin // Update coins in store
+
+        totalCoinsFromMiniGames += finalReward
+        totalCoinsEverEarned += finalReward // Track total coins ever earned
+        
+        updateAndSaveCoins()
+    }
+    
+    // Step-based methods: Called when new steps come in from watch or phone
+    func incrementCoinsFromSteps(_ steps: Int) async {
+        
+        totalSteps += steps
+        
+        if var currentCoin = coins {
+            // Calculate added coins based on the updated coinsPerStep
+            let addedCoins = coinsPerStep * Decimal(steps)
+            
+            // Update the coin value and totalCoinsFromSteps
+            currentCoin.value += addedCoins
+            
+            // Ensure the values are whole and valid
+            currentCoin.value = min(currentCoin.value, Decimal.greatestFiniteMagnitude).roundedDownToWhole()
+            coins = currentCoin
+
+            totalCoinsFromSteps += addedCoins
+            totalCoinsEverEarned += addedCoins
+        }
+        
+        // Push updated coin stats to the watch
+        PhoneSessionManager.shared.pushCoinValueToWatch()
+        
+        // Save the updated stats
+        await saveStepStats()
+        updateAndSaveCoins()
+    }
+    
     // Reset coin value
     func resetCoinValue() {
         
@@ -99,69 +168,67 @@ class CryptoStore: ObservableObject {
             await saveStepStats()
         }
     }
-
+    
     // Reset all power-ups
     func resetPowerUps() {
         
         powerUps.resetAll() // Reinitialize to default values by removing all powerups
+        
         recalculateCoinsPerSecond()
         recalculateCoinsPerClick()
         recalculateCoinsPerStep()
-
+        recalculateMiniGameWinMultiplier()
+        
         Task {
             await savePowerUps()
         }
     }
-
+    
     // Purchase a power-up
     func purchasePowerUp(powerUp: PowerUps.PowerUp, quantity: Int) -> Bool {
         
         guard let currentCoins = coins else { return false }
-
-        // Base total cost from "PowerUps" is exponential, but we can also incorporate the difficulty costMultiplier here if desired.
-        // For now, let's keep the "PowerUps" formula and add difficulty cost multiplier:
         
         // Original base cost (exponential sum):
         let baseCost = powerUps.totalCost(for: powerUp, quantity: quantity)
         
+        // Base total cost from "PowerUps" is exponential, and incorporates the difficulty costMultiplier.
         let costMultiplier = Decimal(settings?.difficulty.costMultiplier ?? 1.0)
         let finalCost = baseCost * costMultiplier
-
-        guard currentCoins.value >= finalCost else {
-            return false
-        }
-
+        
+        guard currentCoins.value >= finalCost else { return false }
+        
         // Subtract cost, rounding down to ensure whole
         coins?.value = (currentCoins.value - finalCost)
             .roundedDownToWhole()
-
         powerUps.quantities[powerUp.name, default: 0] += quantity
-
+        
         recalculateCoinsPerSecond()
         recalculateCoinsPerClick()
         recalculateCoinsPerStep()
-
+        recalculateMiniGameWinMultiplier()
+        
         // **Push phone -> watch** so the watch sees new coin total
         PhoneSessionManager.shared.pushCoinValueToWatch()
-
+        
         Task {
             await saveCoins()
             await savePowerUps()
         }
-
+        
         return true
     }
-
+    
     deinit {
         timer?.invalidate()
     }
-
+    
     // Recalculate coinsPerSecond based on power-ups
     func recalculateCoinsPerSecond() {
-
+        
         // Sum the base production from all power-ups
         let baseProduction = powerUps.quantities.reduce(Decimal(0)) { total, entry in
-
+            
             let (powerUpName, quantity) = entry
             
             if let powerUp = PowerUps.availablePowerUps.first(where: { $0.name == powerUpName }) {
@@ -169,7 +236,7 @@ class CryptoStore: ObservableObject {
             }
             return total
         }
-
+        
         // Multiply by difficulty's production multiplier
         let productionMultiplier = Decimal(settings?.difficulty.productionMultiplier ?? 1.0)
         var newValue = baseProduction * productionMultiplier
@@ -180,12 +247,15 @@ class CryptoStore: ObservableObject {
         }
         coinsPerSecond = newValue
     }
-
+    
     // Recalculate coinsPerClick based on power-ups
     func recalculateCoinsPerClick() {
         
-        // Start at 1 by default
-        let baseClick = powerUps.quantities.reduce(Decimal(1)) { total, entry in
+        // Start with base value 1
+        var newValue: Decimal = 1
+        
+        // Add any bonuses from power-ups
+        newValue += powerUps.quantities.reduce(Decimal(0)) { total, entry in
             
             let (powerUpName, quantity) = entry
             
@@ -194,79 +264,87 @@ class CryptoStore: ObservableObject {
             }
             return total
         }
-
-        // Multiply by difficulty's production multiplier
-        let productionMultiplier = Decimal(settings?.difficulty.productionMultiplier ?? 1.0)
-        var newValue = baseClick * productionMultiplier
         
-        // Round according to difficulty
+        // Apply the production multiplier from settings
+        let productionMultiplier = Decimal(settings?.difficulty.productionMultiplier ?? 1.0)
+        newValue *= productionMultiplier
+        
+        // Round the value as per the difficulty settings
         if let diff = settings?.difficulty {
             newValue = diff.roundValue(newValue)
         }
+        
+        // Update coinsPerClick
         coinsPerClick = newValue
     }
     
     // Recalculate coins.coinsPerStep based on any step-related powerUps.
     func recalculateCoinsPerStep() {
+        // Start with base value 1
+        var newValue: Decimal = 1
         
-        let baseStep = powerUps.quantities.reduce(Decimal(1)) { total, entry in
+        // Add bonuses from power-ups
+        newValue += powerUps.quantities.reduce(Decimal(0)) { total, entry in
             
             let (powerUpName, quantity) = entry
             
             if let powerUp = PowerUps.availablePowerUps.first(where: { $0.name == powerUpName }) {
-                // Add up the total step-boost from that powerUp * quantity
-                let totalBoost = powerUp.coinsPerStepIncrease * quantity
-                return total + Decimal(totalBoost)
+                return total + Decimal(powerUp.coinsPerStepIncrease * quantity)
             }
             return total
         }
-
-        let prodMult = Decimal(settings?.difficulty.productionMultiplier ?? 1.0)
-        var newValue = baseStep * prodMult
         
+        // Apply the production multiplier from settings
+        let productionMultiplier = Decimal(settings?.difficulty.productionMultiplier ?? 1.0)
+        newValue *= productionMultiplier
+        
+        // Round the value as per the difficulty settings
         if let diff = settings?.difficulty {
             newValue = diff.roundValue(newValue)
         }
         
-        // Update both the store-level property and the coin struct
+        // Update coinsPerStep
         coinsPerStep = newValue
         
+        // Also update the coins struct, if initialized
         if var currentCoin = coins {
             currentCoin.coinsPerStep = newValue
             coins = currentCoin
         }
     }
-
-    // Step-based methods: Called when new steps come in from watch or phone
-    func incrementCoinsFromSteps(_ steps: Int) {
+    
+    func recalculateMiniGameWinMultiplier() {
         
-        totalSteps += steps
+        guard var currentCoin = coins else { return }
         
-        if var currentCoin = coins {
-            
-            let added = currentCoin.coinsPerStep * Decimal(steps)
-            
-            let newValue = currentCoin.value + added
-            currentCoin.value = min(newValue, Decimal.greatestFiniteMagnitude)
-                .roundedDownToWhole()
-            
-            coins = currentCoin
-            totalCoinsFromSteps += added
+        // Sum the miniGameMultiplierIncrease from all power-ups
+        let newMultiplier = powerUps.quantities.reduce(Decimal(0)) { total, entry in
+            let (powerUpName, quantity) = entry
+            if let powerUp = PowerUps.availablePowerUps.first(where: { $0.name == powerUpName }) {
+                return total + (Decimal(powerUp.miniGameMultiplierIncrease) * Decimal(quantity))
+            }
+            return total
         }
         
-        // After updating coin from steps, push new coin value to watch
-        PhoneSessionManager.shared.pushCoinValueToWatch()
-        
-        // Persist step stats after each increment
-        Task {
-            await saveStepStats()
-        }
+        // Update the CryptoCoin property and Multiplier stat
+        currentCoin.miniGameWinMultiplier = newMultiplier
+        coins = currentCoin
+        miniGameWinMultiplier = newMultiplier
     }
 }
 
 // MARK: - Persistence Extensions
 extension CryptoStore {
     
+    
+    // Update and Save Coins
+    private func updateAndSaveCoins() {
+        Task {
+            await saveCoins()
+            await saveStats()
+        }
+    }
+
     private static func coinsFileURL() throws -> URL {
         
         try FileManager.default.url(for: .documentDirectory,
@@ -285,12 +363,20 @@ extension CryptoStore {
         .appendingPathComponent("powerUps.data")
     }
     
+    private static func statsFileURL() throws -> URL {
+        
+        try FileManager.default.url(for: .documentDirectory,
+                                    in: .userDomainMask,
+                                    appropriateFor: nil,
+                                    create: false)
+        .appendingPathComponent("stats.data")
+    }
+    
     func saveCoins() async {
         
         guard let coins = coins else { return }
         
         do {
-            
             let data = try JSONEncoder().encode(coins)
             let fileURL = try Self.coinsFileURL()
             try data.write(to: fileURL)
@@ -303,7 +389,6 @@ extension CryptoStore {
     func loadCoins() async {
         
         do {
-            
             let fileURL = try Self.coinsFileURL()
             
             guard let data = try? Data(contentsOf: fileURL) else {
@@ -327,7 +412,6 @@ extension CryptoStore {
     func savePowerUps() async {
         
         do {
-            
             let data = try JSONEncoder().encode(powerUps)
             let fileURL = try Self.powerUpsFileURL()
             try data.write(to: fileURL)
@@ -360,30 +444,99 @@ extension CryptoStore {
         }
     }
     
+    // Persistence methods for saving and loading stats
+    func saveStats() async {
+        
+        let stats = Stats(
+            totalCoinsFromSteps: totalCoinsFromSteps,
+            totalCoinsFromMiniGames: totalCoinsFromMiniGames,
+            totalCoinsFromClicks: totalCoinsFromClicks,
+            totalCoinsFromIdle: totalCoinsFromIdle,
+            miniGameWinMultiplier: miniGameWinMultiplier,
+            totalCoinsEverEarned: totalCoinsEverEarned,
+            totalSteps: totalSteps
+        )
+        do {
+            let data = try JSONEncoder().encode(stats)
+            let fileURL = try Self.statsFileURL()
+            try data.write(to: fileURL)
+            
+        } catch {
+            print("[ERROR] Failed to save stats: \(error)")
+        }
+    }
+    
+    func loadStats() async {
+        
+        do {
+            
+            let fileURL = try Self.statsFileURL()
+            
+            guard let data = try? Data(contentsOf: fileURL) else {
+                resetStatsToDefault() // Optional fallback
+                return
+            }
+            
+            let loadedStats = try JSONDecoder().decode(Stats.self, from: data)
+
+            totalCoinsFromSteps = loadedStats.totalCoinsFromSteps
+            totalCoinsFromMiniGames = loadedStats.totalCoinsFromMiniGames
+            totalCoinsFromClicks = loadedStats.totalCoinsFromClicks
+            totalCoinsFromIdle = loadedStats.totalCoinsFromIdle
+            miniGameWinMultiplier = loadedStats.miniGameWinMultiplier
+            totalCoinsEverEarned = loadedStats.totalCoinsEverEarned
+            totalSteps = loadedStats.totalSteps
+            
+        } catch {
+            print("[ERROR] Failed to load stats: \(error)")
+            resetStatsToDefault() // Optional fallback
+        }
+    }
+
+    // Fallback to reset stats
+    private func resetStatsToDefault() {
+        totalCoinsFromSteps = 0
+        totalCoinsFromMiniGames = 0
+        totalCoinsFromClicks = 0
+        totalCoinsFromIdle = 0
+        miniGameWinMultiplier = 0
+        totalCoinsEverEarned = 0
+        totalSteps = 0
+    }
+    
     // Saves totalSteps and totalCoinsFromSteps so they’re preserved between launches
     func saveStepStats() async {
         // A simple approach: store them in UserDefaults as basic keys
         UserDefaults.standard.set(totalSteps, forKey: "totalSteps")
         // Convert Decimal -> String for safe storage
         UserDefaults.standard.set("\(totalCoinsFromSteps)", forKey: "totalCoinsFromSteps")
-        print("[CryptoStore] Saved step stats: totalSteps = \(totalSteps), totalCoinsFromSteps = \(totalCoinsFromSteps)")
     }
     
     // Loads totalSteps and totalCoinsFromSteps from persistent storage
     func loadStepStats() async {
+        
         let savedSteps = UserDefaults.standard.integer(forKey: "totalSteps")
         let savedCoinsStr = UserDefaults.standard.string(forKey: "totalCoinsFromSteps") ?? "0"
         
         totalSteps = savedSteps
         totalCoinsFromSteps = Decimal(string: savedCoinsStr) ?? 0
-        print("[CryptoStore] Loaded step stats: totalSteps = \(totalSteps), totalCoinsFromSteps = \(totalCoinsFromSteps)")
     }
 
     // Initialize Total Steps Without Incrementing Coins
     func initializeTotalSteps(_ steps: Int) async {
-        totalSteps = steps
-        totalCoinsFromSteps = 0 // Reset or set as needed
+        
+        totalSteps = max(totalSteps, steps) // Avoid resetting to a lower value
         await saveStepStats()
-        print("[CryptoStore] Initialized totalSteps to \(steps).")
     }
+}
+
+// Stats model for persistence
+struct Stats: Codable {
+    let totalCoinsFromSteps: Decimal
+    let totalCoinsFromMiniGames: Decimal
+    let totalCoinsFromClicks: Decimal
+    let totalCoinsFromIdle: Decimal
+    let miniGameWinMultiplier: Decimal
+    let totalCoinsEverEarned: Decimal
+    let totalSteps: Int
 }

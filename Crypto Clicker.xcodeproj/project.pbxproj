@@ -12,6 +12,8 @@
 		9E3970322CDD7EF700E461F6 /* SettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */; };
 		9E3970362CDEB3FF00E461F6 /* PowerButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */; };
 		9E39703A2CDF14D100E461F6 /* PowerUps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3970392CDF14C700E461F6 /* PowerUps.swift */; };
+		9E3F2A5E2D2DF94200F195FA /* TetrisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A5D2D2DF93800F195FA /* TetrisView.swift */; };
+		9E3F2A602D2DF96800F195FA /* TetrisModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A5F2D2DF96100F195FA /* TetrisModel.swift */; };
 		9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0762CF5882000328F86 /* ShopModel.swift */; };
 		9E4CD0792CF5885500328F86 /* ShopItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0782CF5884C00328F86 /* ShopItemView.swift */; };
 		9E4CD07B2CF8081E00328F86 /* CoinExchangeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */; };
@@ -114,6 +116,8 @@
 		9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsModel.swift; sourceTree = "<group>"; };
 		9E3970352CDEB3EB00E461F6 /* PowerButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerButtonView.swift; sourceTree = "<group>"; };
 		9E3970392CDF14C700E461F6 /* PowerUps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerUps.swift; sourceTree = "<group>"; };
+		9E3F2A5D2D2DF93800F195FA /* TetrisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisView.swift; sourceTree = "<group>"; };
+		9E3F2A5F2D2DF96100F195FA /* TetrisModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisModel.swift; sourceTree = "<group>"; };
 		9E4CD0762CF5882000328F86 /* ShopModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopModel.swift; sourceTree = "<group>"; };
 		9E4CD0782CF5884C00328F86 /* ShopItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopItemView.swift; sourceTree = "<group>"; };
 		9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinExchangeModel.swift; sourceTree = "<group>"; };
@@ -299,6 +303,7 @@
 				9E3970392CDF14C700E461F6 /* PowerUps.swift */,
 				9E3970312CDD7EEF00E461F6 /* SettingsModel.swift */,
 				9E4CD0762CF5882000328F86 /* ShopModel.swift */,
+				9E3F2A5F2D2DF96100F195FA /* TetrisModel.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -333,6 +338,7 @@
 				9E4CD0782CF5884C00328F86 /* ShopItemView.swift */,
 				9EEE79872D2342DB00FBC049 /* ShopMessageView.swift */,
 				9E3970292CDD118800E461F6 /* ShopView.swift */,
+				9E3F2A5D2D2DF93800F195FA /* TetrisView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -599,6 +605,7 @@
 				9EC1AC662C8FC96B0055A38D /* CryptoCoin.swift in Sources */,
 				9EEE79882D2342DB00FBC049 /* ShopMessageView.swift in Sources */,
 				9EC1AC3C2C8FA0850055A38D /* ContentView.swift in Sources */,
+				9E3F2A5E2D2DF94200F195FA /* TetrisView.swift in Sources */,
 				9EC6552E2D13BB4200D94007 /* BlackjackModel.swift in Sources */,
 				9EC1AC6B2C8FCAB60055A38D /* ErrorWrapper.swift in Sources */,
 				9E4CD08B2CFBD21900328F86 /* ExchangeItemView.swift in Sources */,
@@ -607,6 +614,7 @@
 				9EC6552A2D0FAE0900D94007 /* AchievementItemView.swift in Sources */,
 				9E39702A2CDD118B00E461F6 /* ShopView.swift in Sources */,
 				9EC655262D0F4C6400D94007 /* CoinNumberView.swift in Sources */,
+				9E3F2A602D2DF96800F195FA /* TetrisModel.swift in Sources */,
 				9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */,
 				9EC1AC3A2C8FA0850055A38D /* Crypto_ClickerApp.swift in Sources */,
 				9EEE79C52D29AAF500FBC049 /* PhoneSessionManager.swift in Sources */,

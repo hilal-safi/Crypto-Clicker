@@ -78,19 +78,26 @@ struct ContentView: View {
                 isPresented: $showStats,
                 coinsPerSecond: watchManager.coinsPerSecond,
                 coinsPerClick: watchManager.coinsPerClick,
+                coinsPerStep: watchManager.coinsPerStep,
                 totalCoins: watchManager.coinValue,
                 totalPowerUpsOwned: watchManager.totalPowerUpsOwned,
                 totalExchangedCoins: watchManager.totalExchangedCoins,
                 totalSteps: watchManager.totalSteps,
-                totalCoinsFromSteps: watchManager.totalCoinsFromSteps
+                totalCoinsFromSteps: watchManager.totalCoinsFromSteps,
+                totalCoinsFromMiniGames: watchManager.totalCoinsFromMiniGames,
+                totalCoinsFromClicks: watchManager.totalCoinsFromClicks,
+                totalCoinsFromIdle: watchManager.totalCoinsFromIdle,
+                totalCoinsEverEarned: watchManager.totalCoinsEverEarned,
+                miniGameWinMultiplier: watchManager.miniGameWinMultiplier
             )
         }
         .onAppear {
             watchManager.startSession()
             watchManager.requestCoinData() // Fetch all stats from the phone
-            
-            // Optionally fetch steps immediately on first load
+
+            // Fetch steps immediately on first load
             stepDetector.fetchStepsSinceMidnight()
+            print("[ContentView] Fetching initial step and coin data.")
         }
         .onDisappear {
             stepDetector.saveData() // Save steps and coins before exiting
@@ -106,16 +113,24 @@ struct StatsView: View {
     // All stats to display
     let coinsPerSecond: Decimal
     let coinsPerClick: Decimal
+    let coinsPerStep: Decimal
     let totalCoins: Decimal
     let totalPowerUpsOwned: Int
     let totalExchangedCoins: Int
     let totalSteps: Int
     let totalCoinsFromSteps: Decimal
+    let totalCoinsFromMiniGames: Decimal
+    let totalCoinsFromClicks: Decimal
+    let totalCoinsFromIdle: Decimal
+    let totalCoinsEverEarned: Decimal
+    let miniGameWinMultiplier: Decimal
     
     var body: some View {
         
         ScrollView {
+            
             VStack(spacing: 15) {
+                
                 Text("Stats")
                     .font(.title2)
                     .bold()
@@ -127,9 +142,15 @@ struct StatsView: View {
                     StatRow(title: "Coins from Steps", value: totalCoinsFromSteps)
                     StatRow(title: "Coins/Sec", value: coinsPerSecond)
                     StatRow(title: "Coins/Click", value: coinsPerClick)
+                    StatRow(title: "Coins from Clicks", value: totalCoinsFromClicks)
+                    StatRow(title: "Coins from Idle", value: totalCoinsFromIdle)
+                    StatRow(title: "Coins/Step", value: coinsPerStep)
                     StatRow(title: "Power-Ups Owned", value: Decimal(totalPowerUpsOwned))
                     StatRow(title: "Exchanged Coins", value: Decimal(totalExchangedCoins))
-                    StatRow(title: "Total Coins", value: totalCoins)
+                    StatRow(title: "Coins from Mini Games", value: totalCoinsFromMiniGames)
+                    StatRow(title: "Mini Game Coin Reward Multiplier (%)", value: miniGameWinMultiplier)
+                    StatRow(title: "Current Coins", value: totalCoins)
+                    StatRow(title: "Total Coins Ever Earned", value: totalCoinsEverEarned)
                 }
                 
                 Button("Close") {
@@ -158,6 +179,7 @@ struct StatRow: View {
                 .font(.headline)
                 .foregroundColor(.primary)
             
+            // Display the value as an integer
             Text("\(Double(truncating: value as NSNumber), specifier: "%.0f")")
                 .font(.body)
                 .foregroundColor(.secondary)

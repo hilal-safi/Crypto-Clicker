@@ -157,12 +157,22 @@ struct ContentView: View {
                     
                     coinsPerSecond: store.coinsPerSecond,
                     coinsPerClick: store.coinsPerClick,
+                    coinsPerStep: store.coinsPerStep,
+                    
                     totalCoins: coins?.value ?? Decimal(0),
+                    totalSteps: store.totalSteps,
+                    
                     totalPowerUpsOwned: powerUps.calculateTotalOwned(),
                     totalExchangedCoins: exchangeModel.totalExchangedCoins(),
-                    totalSteps: store.totalSteps,
-                    totalCoinsFromSteps: store.totalCoinsFromSteps,
                     
+                    totalCoinsFromSteps: store.totalCoinsFromSteps,
+                    totalCoinsFromMiniGames: store.totalCoinsFromMiniGames,
+                    totalCoinsFromClicks: store.totalCoinsFromClicks,
+                    totalCoinsFromIdle: store.totalCoinsFromIdle,
+                    
+                    totalCoinsEverEarned: store.totalCoinsEverEarned,
+                    miniGameWinMultiplier: store.miniGameWinMultiplier,
+
                     onClose: {
                         showStatsPopup = false
                     }

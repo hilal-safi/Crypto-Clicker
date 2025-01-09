@@ -29,10 +29,10 @@ struct CoinNumberView: View {
                         .font(.title2)
                         .foregroundColor(.blue)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
                         .bold()
+                        .fixedSize(horizontal: false, vertical: true) // Ensures the text expands vertically
+                        .padding(.horizontal, 16) // Provide enough padding for clarity
                 }
-                .padding(10)
                 .background(BlurView(style: .systemMaterial, reduction: 0.8))
                 .cornerRadius(12)
 

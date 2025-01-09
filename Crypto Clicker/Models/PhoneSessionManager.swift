@@ -100,10 +100,14 @@ extension PhoneSessionManager: WCSessionDelegate {
     
     private func handleTapCoin(replyHandler: @escaping ([String: Any]) -> Void) {
         
-        print("[PhoneSessionManager] Received 'tapCoin' request.")
+        print("[PhoneSessionManager] handleTapCoin: Incrementing coin value.")
+        
         if let newValue = store?.incrementCoinValue() {
             
             DispatchQueue.main.async {
+                
+                print("[PhoneSessionManager] handleTapCoin: Sending updated coin value: \(newValue)")
+                
                 replyHandler(["updatedCoinValue": "\(newValue)"])
                 self.pushCoinValueToWatch()
             }
@@ -111,20 +115,22 @@ extension PhoneSessionManager: WCSessionDelegate {
             replyHandler(["error": "Failed to increment coin value"])
         }
     }
-
+    
     private func handleAddSteps(message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         
         let steps = message["steps"] as? Int ?? 0
-        print("[PhoneSessionManager] Received 'addSteps' request with steps: \(steps)")
+        print("[PhoneSessionManager] Received addSteps with \(steps) steps.")
         
         Task {
             await store?.incrementCoinsFromSteps(steps)
             
             DispatchQueue.main.async {
                 
+                let updatedValue = self.store?.coins?.value ?? Decimal(0)
                 self.pushCoinValueToWatch()
-                let newValue = self.store?.coins?.value ?? 0
-                replyHandler(["updatedCoinValue": "\(newValue)"])
+                
+                print("[PhoneSessionManager] Steps processed. Updated coin value: \(updatedValue)")
+                replyHandler(["updatedCoinValue": "\(updatedValue)"])
             }
         }
     }
@@ -132,8 +138,7 @@ extension PhoneSessionManager: WCSessionDelegate {
     private func handleInitializeSteps(message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         
         let steps = message["steps"] as? Int ?? 0
-        print("[PhoneSessionManager] Received 'initializeSteps' request with steps: \(steps)")
-        
+
         Task {
             await store?.initializeTotalSteps(steps)
             DispatchQueue.main.async {
@@ -170,7 +175,6 @@ extension PhoneSessionManager: WCSessionDelegate {
     func pushCoinValueToWatch() {
         
         guard session.isReachable else {
-            print("[PhoneSessionManager] iPhone is not reachable. Cannot push coin data.")
             return
         }
         guard let stats = collectStats() else {
@@ -189,14 +193,16 @@ extension PhoneSessionManager: WCSessionDelegate {
         
         guard let store = store else { return nil }
         
-        return [
+        let stats: [String: Any] = [
             "phoneCoinValue": "\(store.coins?.value ?? 0)",
             "phoneCoinsPerSecond": "\(store.coinsPerSecond)",
             "phoneCoinsPerClick": "\(store.coinsPerClick)",
+            "phoneCoinsPerStep": "\(store.coinsPerStep)",
             "phoneTotalSteps": "\(store.totalSteps)",
             "phoneCoinsFromSteps": "\(store.totalCoinsFromSteps)",
             "phoneTotalPowerUpsOwned": "\(store.powerUps.calculateTotalOwned())",
             "phoneTotalExchangedCoins": "\(CoinExchangeModel.shared.totalExchangedCoins())"
         ]
+        return stats
     }
 }

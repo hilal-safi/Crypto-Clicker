@@ -22,16 +22,16 @@ struct MiniGamesView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 16) {
+                    
                     Text("Mini Games")
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                        .padding(.top)
-                    
-                    Spacer()
+                        .padding(.top, -12)
 
+                    Spacer()
+                    
                     // Navigation link to the Blackjack game
-                    NavigationLink(destination: BlackjackView()
-                    ) {
+                    NavigationLink(destination: BlackjackView()) {
                         Text("Play Blackjack")
                             .font(.title2)
                             .padding()
@@ -40,13 +40,21 @@ struct MiniGamesView: View {
                             .foregroundColor(.white) // Button text color
                             .cornerRadius(8) // Rounded corners
                     }
+                                        
+                    NavigationLink(destination: TetrisView()) {
+                        Text("Play Tetris")
+                            .font(.title2)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.orange)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
                     
                     Spacer()
                 }
                 .padding(.horizontal, 12)
             }
-            .navigationTitle("Mini Games")
-            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
@@ -54,9 +62,13 @@ struct MiniGamesView: View {
 struct MiniGamesView_Previews: PreviewProvider {
     
     static var previews: some View {
+        
+        let exchangeModel = CoinExchangeModel.shared
+        let cryptoStore = CryptoStore()
+        let model = BlackjackModel(exchangeModel: exchangeModel, cryptoStore: cryptoStore)
                 
         return MiniGamesView()
             .environmentObject(CoinExchangeModel.shared)
-            .environmentObject(BlackjackModel(exchangeModel: CoinExchangeModel.shared))
+            .environmentObject(model)
     }
 }

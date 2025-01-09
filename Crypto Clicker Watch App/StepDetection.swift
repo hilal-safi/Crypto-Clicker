@@ -37,24 +37,27 @@ class StepDetection: ObservableObject {
     }
 
     // MARK: - Authorization
-
     private func requestAuthorization() {
+        
         guard HKHealthStore.isHealthDataAvailable() else { return }
         
         let stepType = HKObjectType.quantityType(forIdentifier: .stepCount)!
         let readTypes = Set([stepType])
         
         healthStore.requestAuthorization(toShare: [], read: readTypes) { success, error in
+            
             if let error = error {
                 print("[StepDetection] HealthKit auth error: \(error)")
+                
             } else if success {
                 print("[StepDetection] HealthKit authorized for stepCount")
                 
-                // Start the observer + anchored queries
-                Task { @MainActor in
+                DispatchQueue.main.async {
                     self.startObservingSteps()
                     self.startAnchoredQuery()
                 }
+            } else {
+                print("[StepDetection] HealthKit authorization failed.")
             }
         }
     }
@@ -62,6 +65,7 @@ class StepDetection: ObservableObject {
     // MARK: - Observer Query (background notifications)
 
     private func startObservingSteps() {
+        
         guard let stepType = HKObjectType.quantityType(forIdentifier: .stepCount) else { return }
 
         let query = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, _, error in
@@ -93,40 +97,42 @@ class StepDetection: ObservableObject {
         
         guard let stepType = HKObjectType.quantityType(forIdentifier: .stepCount) else { return }
 
-        // If anchor is nil, it means we're starting fresh.
-        let newQuery = HKAnchoredObjectQuery(type: stepType,
-                                             predicate: nil,
-                                             anchor: anchor,
-                                             limit: HKObjectQueryNoLimit) { [weak self] _, samplesOrNil, _, newAnchor, error in
+        // Create an anchored query
+        let query = HKAnchoredObjectQuery(type: stepType, predicate: nil, anchor: anchor, limit: HKObjectQueryNoLimit) {
+            
+            [weak self] query, samples, deletedObjects, newAnchor, error in
+            
             guard let self = self else { return }
+
             if let error = error {
                 print("[StepDetection] Anchored Query error: \(error)")
                 return
             }
+
             Task { @MainActor in
-                self.processNewSamples(samplesOrNil)
+                self.processNewSamples(samples)
                 self.anchor = newAnchor
-                self.saveAnchorToDefaults(newAnchor)
+                self.saveAnchorToDefaults(newAnchor) // Save anchor for future use
             }
         }
-        
-        // We also set updateHandler so it’s called whenever new data arrives while this query is active:
-        newQuery.updateHandler = { [weak self] _, samplesOrNil, _, newAnchor, error in
-            
+
+        // Update handler for real-time updates
+        query.updateHandler = { [weak self] query, samples, deletedObjects, newAnchor, error in
             guard let self = self else { return }
-            
+
             if let error = error {
                 print("[StepDetection] Anchored Query update error: \(error)")
                 return
             }
+
             Task { @MainActor in
-                self.processNewSamples(samplesOrNil)
+                self.processNewSamples(samples)
                 self.anchor = newAnchor
                 self.saveAnchorToDefaults(newAnchor)
             }
         }
 
-        healthStore.execute(newQuery)
+        healthStore.execute(query)
     }
     
     /// Tells HealthKit to re-run the anchored query to catch up on new data.
@@ -140,39 +146,33 @@ class StepDetection: ObservableObject {
     @MainActor
     private func processNewSamples(_ samplesOrNil: [HKSample]?) {
         
-        guard let samples = samplesOrNil else { return }
+        guard let samples = samplesOrNil else {
+            print("[StepDetection] No samples returned.")
+            return
+        }
         
         var totalNewSteps = 0
         
         for sample in samples {
+            
             guard let quantitySample = sample as? HKQuantitySample else { continue }
-            // Double-check it's stepCount
+
+            // Verify it’s stepCount
             if quantitySample.quantityType.identifier == HKQuantityTypeIdentifier.stepCount.rawValue {
                 let stepValue = Int(quantitySample.quantity.doubleValue(for: .count()))
                 totalNewSteps += stepValue
+                print("[StepDetection] Processed sample with \(stepValue) steps.")
             }
         }
         
         if totalNewSteps > 0 {
             
-            if self.anchor == nil {
-                
-                // First run: Initialize lastStepCount without incrementing coins
-                self.lastStepCount = totalNewSteps
-                print("[StepDetection] Initializing step count to \(totalNewSteps). No coins added.")
-                
-                // Send initialization message to phone
-                WatchSessionManager.shared.initializeSteps(totalNewSteps)
-                
-            } else {
-                
-                // Subsequent runs: Increment coins based on new steps
-                print("[StepDetection] Anchored Query found \(totalNewSteps) new step(s).")
-                
-                let delta = totalNewSteps
-                self.lastStepCount += delta
-                self.incrementCoinsFromSteps(delta)
-            }
+            print("[StepDetection] New steps detected: \(totalNewSteps)")
+            self.lastStepCount += totalNewSteps
+            self.incrementCoinsFromSteps(totalNewSteps)
+            
+        } else {
+            print("[StepDetection] No new steps in samples.")
         }
     }
     
@@ -181,8 +181,11 @@ class StepDetection: ObservableObject {
     /// If you want an additional fallback that re-checks with HKStatisticsQuery,
     /// you can keep or remove this. For example, if anchored query isn't working reliably:
     private func startRepeatingFetch() {
+        
         stepUpdateTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            
             guard let self = self else { return }
+            
             // A fallback approach
             Task { @MainActor in
                 self.fetchStepsSinceMidnight()
@@ -192,23 +195,36 @@ class StepDetection: ObservableObject {
 
     /// This uses a simple HKStatisticsQuery. You might not need it now that you have an anchored query.
     func fetchStepsSinceMidnight() {
+        
         guard let stepType = HKObjectType.quantityType(forIdentifier: .stepCount) else { return }
         
         let now = Date()
         let startOfDay = Calendar.current.startOfDay(for: now)
         let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: now, options: .strictStartDate)
         
-        let query = HKStatisticsQuery(quantityType: stepType,
-                                      quantitySamplePredicate: predicate,
-                                      options: .cumulativeSum) { [weak self] _, stats, error in
+        let query = HKStatisticsQuery(quantityType: stepType, quantitySamplePredicate: predicate, options: .cumulativeSum) { [weak self] _, stats, error in
+            
             Task { @MainActor in
+                
+                if let error = error {
+                    print("[StepDetection] Statistics Query error: \(error)")
+                    return
+                }
+                
                 if let sum = stats?.sumQuantity() {
+                    
                     let stepsSoFar = Int(sum.doubleValue(for: HKUnit.count()))
-                    let delta = stepsSoFar - (self?.lastStepCount ?? 0) // Corrected optional unwrapping
+                    let delta = stepsSoFar - (self?.lastStepCount ?? 0)
+                    
                     if delta > 0 {
+                        
+                        print("[StepDetection] Fallback detected new steps: \(delta)")
                         self?.lastStepCount = stepsSoFar
                         self?.incrementCoinsFromSteps(delta)
                     }
+                    
+                } else {
+                    print("[StepDetection] No step data available.")
                 }
             }
         }
@@ -216,11 +232,13 @@ class StepDetection: ObservableObject {
     }
     
     // MARK: - Step & Coin Increments
-
     func incrementCoinsFromSteps(_ steps: Int) {
-        let coinsEarned = Decimal(steps) / 100 // 1 coin per 100 steps (example)
-        totalCoinsFromSteps += coinsEarned
         
+        let coinsEarned = Decimal(steps) / 100 // 1 coin per 100 steps
+        print("[StepDetection] Incrementing coins from \(steps) steps: +\(coinsEarned) coins.")
+        
+        totalCoinsFromSteps += coinsEarned
+
         // Send step data to the phone
         WatchSessionManager.shared.addSteps(steps)
         

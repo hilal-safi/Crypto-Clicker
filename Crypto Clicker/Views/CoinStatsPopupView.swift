@@ -1,161 +1,169 @@
-//
-//  CoinStatsPopupView.swift
-//  Crypto Clicker
-//
-//  Created by Hilal Safi on 2024-11-30.
-//
-
 import SwiftUI
 
 struct CoinStatsPopupView: View {
     
     let coinsPerSecond: Decimal
     let coinsPerClick: Decimal
+    let coinsPerStep: Decimal
+    
     let totalCoins: Decimal
+    let totalSteps: Int
+
     let totalPowerUpsOwned: Int
     let totalExchangedCoins: Int
-    let totalSteps: Int
+        
     let totalCoinsFromSteps: Decimal
-    let onClose: () -> Void
+    let totalCoinsFromMiniGames: Decimal
+    let totalCoinsFromClicks: Decimal
+    let totalCoinsFromIdle: Decimal
+    let totalCoinsEverEarned: Decimal
+    
+    let miniGameWinMultiplier: Decimal
 
+    let onClose: () -> Void
     @Environment(\.colorScheme) var colorScheme // Detect the system or app-specific color scheme
 
     var body: some View {
-        
         ZStack {
-            // Add blur to everything behind the popup using BlurView
+            // Blur the background
             BlurView(
                 style: colorScheme == .dark ? .systemMaterialDark : .systemMaterialLight,
                 reduction: 0.9
             )
             .ignoresSafeArea()
             .onTapGesture {
-                onClose() // Dismiss popup when tapping outside
+                onClose() // Close the popup when tapping outside
             }
 
-            // Popup content
             VStack(spacing: 20) {
-                
                 Text("Statistics")
                     .font(.title)
                     .fontWeight(.bold)
-                    .foregroundColor(colorScheme == .dark ? .white : .black) // Adjust text color
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
                     .padding(.bottom, 10)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    StatisticRow(
-                        title: "Coins/Sec",
-                        value: coinsPerSecond,
-                        colorScheme: colorScheme
-                    )
-                    StatisticRow(
-                        title: "Coins/Click",
-                        value: coinsPerClick,
-                        colorScheme: colorScheme
-                    )
-                    StatisticRow(
-                        title: "Total Coins",
-                        value: totalCoins,
-                        colorScheme: colorScheme
-                    )
-                    StatisticRow(
-                        title: "Power-Ups Owned",
-                        value: Decimal(totalPowerUpsOwned),
-                        colorScheme: colorScheme
-                    )
-                    StatisticRow(
-                        title: "Exchanged Coins",
-                        value: Decimal(totalExchangedCoins),
-                        colorScheme: colorScheme
-                    )
-                    StatisticRow(
-                        title: "Total Steps",
-                        value: Decimal(totalSteps),
-                        colorScheme: colorScheme
-                    )
-                    StatisticRow(
-                        title: "Coins from Steps",
-                        value: totalCoinsFromSteps,
-                        colorScheme: colorScheme
-                    )
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        StatisticRow(title: "Coins/Sec", value: coinsPerSecond)
+                        StatisticRow(title: "Coins/Click", value: coinsPerClick)
+                        StatisticRow(title: "Coins/Step", value: coinsPerStep)
+                        StatisticRow(title: "Current Coins", value: totalCoins)
+                        StatisticRow(title: "Total Steps", value: Decimal(totalSteps))
+                        StatisticRow(title: "Coins from Steps", value: totalCoinsFromSteps)
+                        StatisticRow(title: "Coins from Mini-Games", value: totalCoinsFromMiniGames)
+                        StatisticRow(title: "Coins from Clicking", value: totalCoinsFromClicks)
+                        StatisticRow(title: "Coins from Idle", value: totalCoinsFromIdle)
+                        StatisticRow(title: "Power-Ups Owned", value: Decimal(totalPowerUpsOwned))
+                        StatisticRow(title: "Exchanged Coins", value: Decimal(totalExchangedCoins))
+                        StatisticRow(title: "Mini Game Coin Reward Multiplier", value: miniGameWinMultiplier, suffix: "%")
+                        StatisticRow(title: "Total Coins Earned", value: totalCoinsEverEarned)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
                 }
-
+                .frame(maxHeight: UIScreen.main.bounds.height * 0.5) // Limit scroll height to 50%
+                .frame(maxWidth: UIScreen.main.bounds.width * 0.8) // Limit scroll width to 80%
+                
                 Button("Close") {
-                    onClose() // Dismiss popup
+                    onClose()
                 }
                 .font(.headline)
                 .padding()
                 .background(Color.blue.opacity(0.8))
                 .foregroundColor(.white)
                 .cornerRadius(8)
-                
             }
             .padding()
             .background(colorScheme == .dark ? Color.black : Color.white)
             .cornerRadius(16)
-            .shadow(color: colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1), radius: 10)
-            .frame(width: UIScreen.main.bounds.width * 0.9) // 90% of screen width
-            .offset(y: -UIScreen.main.bounds.height * 0.1) // Slightly higher but not cut off
+            .shadow(color: colorScheme == .dark ? .white.opacity(0.1) : .black.opacity(0.1), radius: 10)
         }
     }
 }
 
-// Updated StatisticRow remains the same
 struct StatisticRow: View {
     
     let title: String
     let value: Decimal
-    let colorScheme: ColorScheme
+    let suffix: String?
+
+    init(title: String, value: Decimal, suffix: String? = nil) {
+        self.title = title
+        self.value = value
+        self.suffix = suffix
+    }
 
     var body: some View {
-        HStack {
-            Text("\(title):")
-                .font(.headline)
-                .foregroundColor(colorScheme == .dark ? .white : .black)
-                .multilineTextAlignment(.leading)
+        
+        VStack(alignment: .leading, spacing: 4) {
+            
+            Text(title)
+                .font(.title3)
+                .bold()
+                .foregroundColor(.primary)
 
-            Spacer()
-
-            Text("\(value)")
+            Text(formattedValue())
                 .font(.headline)
-                .foregroundColor(colorScheme == .dark ? .white : .black)
-                .multilineTextAlignment(.trailing)
-                .lineLimit(nil) // Allow multiline wrapping for large values
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .lineLimit(nil) // Allow wrapping if needed
         }
-        .frame(maxWidth: .infinity)
+        .padding(.bottom, 5) // Space between rows
+    }
+
+    private func formattedValue() -> String {
+        
+        let formatter = NumberFormatter()
+        
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 2
+        
+        let formatted = formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
+        
+        return suffix != nil ? "\(formatted) \(suffix!)" : formatted
     }
 }
 
 struct CoinStatsPopupView_Previews: PreviewProvider {
     
     static var previews: some View {
+        
         CoinStatsPopupView(
             coinsPerSecond: 5_000_000,
             coinsPerClick: 10_000_000,
+            coinsPerStep: 800,
             totalCoins: 100_000_000,
+            totalSteps: 5000,
             totalPowerUpsOwned: 25,
             totalExchangedCoins: 100,
-            totalSteps: 5000, // NEW: Example total steps
-            totalCoinsFromSteps: 50_000, // NEW: Example coins from steps
+            totalCoinsFromSteps: 50_000,
+            totalCoinsFromMiniGames: 1_000_000,
+            totalCoinsFromClicks: 2_000_000,
+            totalCoinsFromIdle: 3_000_000,
+            totalCoinsEverEarned: 200_000_000,
+            miniGameWinMultiplier: 50,
             onClose: {}
         )
         .previewLayout(.sizeThatFits)
-        .environment(\.colorScheme, .dark) // Preview in dark mode
-        .previewDisplayName("Dark Mode")
+        .environment(\.colorScheme, .light)
+        .previewDisplayName("Light Mode")
 
         CoinStatsPopupView(
             coinsPerSecond: 5_000_000,
             coinsPerClick: 10_000_000,
+            coinsPerStep: 800,
             totalCoins: 100_000_000,
+            totalSteps: 5000,
             totalPowerUpsOwned: 25,
             totalExchangedCoins: 100,
-            totalSteps: 5000, // NEW: Example total steps
-            totalCoinsFromSteps: 50_000, // NEW: Example coins from steps
+            totalCoinsFromSteps: 50_000,
+            totalCoinsFromMiniGames: 1_000_000,
+            totalCoinsFromClicks: 2_000_000,
+            totalCoinsFromIdle: 3_000_000,
+            totalCoinsEverEarned: 200_000_000,
+            miniGameWinMultiplier: 50,
             onClose: {}
         )
         .previewLayout(.sizeThatFits)
-        .environment(\.colorScheme, .light) // Preview in light mode
-        .previewDisplayName("Light Mode")
+        .environment(\.colorScheme, .dark)
+        .previewDisplayName("Dark Mode")
     }
 }

@@ -154,6 +154,7 @@ struct SettingsView: View {
         case .all:
             store.resetCoinValue()
             store.resetPowerUps()
+            store.resetSteps()
             coinExchange.resetExchangedCoins()
             achievements.resetAchievements()
         }

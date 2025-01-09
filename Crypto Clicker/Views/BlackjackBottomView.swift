@@ -190,8 +190,9 @@ struct BlackjackBottomView_Previews: PreviewProvider {
     static var previews: some View {
         
         let exchangeModel = CoinExchangeModel.shared
-        let model = BlackjackModel(exchangeModel: exchangeModel)
-            
+        let cryptoStore = CryptoStore()
+        let model = BlackjackModel(exchangeModel: exchangeModel, cryptoStore: cryptoStore)
+        
         BlackjackBottomView()
             .environmentObject(model)
     }

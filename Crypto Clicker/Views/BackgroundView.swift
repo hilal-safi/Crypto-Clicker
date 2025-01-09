@@ -18,6 +18,7 @@ struct BackgroundView: View {
     let type: BackgroundType
     
     var body: some View {
+        
         GeometryReader { geometry in
             ZStack {
                 backgroundImage(for: type, geometry: geometry)

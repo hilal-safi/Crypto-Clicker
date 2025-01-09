@@ -56,8 +56,9 @@ struct BlackjackView_Previews: PreviewProvider {
     
     static var previews: some View {
         
-        let exchangeModel = CoinExchangeModel.shared // Use the singleton instance
-        let model = BlackjackModel(exchangeModel: exchangeModel)
+        let exchangeModel = CoinExchangeModel.shared
+        let cryptoStore = CryptoStore()
+        let model = BlackjackModel(exchangeModel: exchangeModel, cryptoStore: cryptoStore)
 
         // Configure the shared instance for preview
         exchangeModel.setExampleCount(for: .dogecoin, count: 1000) // Set Dogecoin count to 1000

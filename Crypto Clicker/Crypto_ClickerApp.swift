@@ -16,6 +16,7 @@ struct Crypto_ClickerApp: App {
     @StateObject private var settings: SettingsModel
     @StateObject private var achievements: AchievementsModel
     @StateObject private var blackjackModel: BlackjackModel
+    @StateObject private var tetrisModel: TetrisModel
 
     @State private var errorWrapper: ErrorWrapper?
     
@@ -26,7 +27,8 @@ struct Crypto_ClickerApp: App {
         let set = SettingsModel()
         let am = AchievementsModel.shared
         am.configureDependencies(exchangeModel: ex, powerUps: st.powerUps, store: st)
-        let bm = BlackjackModel(exchangeModel: ex)
+        let bm = BlackjackModel(exchangeModel: ex, cryptoStore: st)
+        let tm = TetrisModel(cryptoStore: st)
         st.configureSettings(set)
         ex.settings = set
         
@@ -39,6 +41,7 @@ struct Crypto_ClickerApp: App {
         _settings = StateObject(wrappedValue: set)
         _achievements = StateObject(wrappedValue: am)
         _blackjackModel = StateObject(wrappedValue: bm)
+        _tetrisModel = StateObject(wrappedValue: tm)
     }
     
     var body: some Scene {
@@ -54,6 +57,7 @@ struct Crypto_ClickerApp: App {
                         do {
                             await store.saveCoins()
                             await store.savePowerUps()
+                            await store.saveStats()
                         } catch {
                             errorWrapper = ErrorWrapper(error: error, guidance: "Try again later.")
                         }
@@ -64,12 +68,14 @@ struct Crypto_ClickerApp: App {
             .environmentObject(exchangeModel)
             .environmentObject(achievements)
             .environmentObject(blackjackModel)
-            .environmentObject(PowerUps.shared) 
+            .environmentObject(tetrisModel)
+            .environmentObject(PowerUps.shared)
 
             .task {
                 do {
                     await store.loadCoins()
                     await store.loadPowerUps()
+                    await store.loadStats()
                 } catch {
                     errorWrapper = ErrorWrapper(error: error, guidance: "Crypto Clicker will load sample data and continue.")
                 }
