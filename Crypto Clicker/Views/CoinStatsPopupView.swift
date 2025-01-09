@@ -44,25 +44,25 @@ struct CoinStatsPopupView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        StatisticRow(title: "Coins/Sec", value: coinsPerSecond)
-                        StatisticRow(title: "Coins/Click", value: coinsPerClick)
-                        StatisticRow(title: "Coins/Step", value: coinsPerStep)
-                        StatisticRow(title: "Current Coins", value: totalCoins)
-                        StatisticRow(title: "Total Steps", value: Decimal(totalSteps))
-                        StatisticRow(title: "Coins from Steps", value: totalCoinsFromSteps)
-                        StatisticRow(title: "Coins from Mini-Games", value: totalCoinsFromMiniGames)
-                        StatisticRow(title: "Coins from Clicking", value: totalCoinsFromClicks)
-                        StatisticRow(title: "Coins from Idle", value: totalCoinsFromIdle)
-                        StatisticRow(title: "Power-Ups Owned", value: Decimal(totalPowerUpsOwned))
-                        StatisticRow(title: "Exchanged Coins", value: Decimal(totalExchangedCoins))
-                        StatisticRow(title: "Mini Game Coin Reward Multiplier", value: miniGameWinMultiplier, suffix: "%")
-                        StatisticRow(title: "Total Coins Earned", value: totalCoinsEverEarned)
+                        StatisticRow(title: "⏱️ Coins Gained Per Second", value: coinsPerSecond)
+                        StatisticRow(title: "👆 Coins Gained Per Click", value: coinsPerClick)
+                        StatisticRow(title: "👣 Coins Gained Per Step", value: coinsPerStep)
+                        StatisticRow(title: "🪙 Current Coins", value: totalCoins)
+                        StatisticRow(title: "👟 Total Steps Taken", value: Decimal(totalSteps))
+                        StatisticRow(title: "🦵 Coins Earned From Steps", value: totalCoinsFromSteps)
+                        StatisticRow(title: "🕹️ Coins Earned From Mini Games", value: totalCoinsFromMiniGames)
+                        StatisticRow(title: "⛏️ Coins Earned By Clicking", value: totalCoinsFromClicks)
+                        StatisticRow(title: "🕰️ Coins Earned From Idle", value: totalCoinsFromIdle)
+                        StatisticRow(title: "💻 Total Power-Ups Owned", value: Decimal(totalPowerUpsOwned))
+                        StatisticRow(title: "🔄 Total Exchanged Coins", value: Decimal(totalExchangedCoins))
+                        StatisticRow(title: "🎲 Mini Game Coin Reward Multiplier", value: miniGameWinMultiplier, suffix: "%")
+                        StatisticRow(title: "💰 Total Coins Earned", value: totalCoinsEverEarned)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 4)
                 }
                 .frame(maxHeight: UIScreen.main.bounds.height * 0.5) // Limit scroll height to 50%
-                .frame(maxWidth: UIScreen.main.bounds.width * 0.8) // Limit scroll width to 80%
+                .frame(maxWidth: UIScreen.main.bounds.width * 0.85) // Limit scroll width to 85%
                 
                 Button("Close") {
                     onClose()

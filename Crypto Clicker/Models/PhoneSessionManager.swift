@@ -31,8 +31,12 @@ class PhoneSessionManager: NSObject, ObservableObject {
     
     /// Periodic sync timer for faster updates
     private func startSyncTimer() {
+        
         syncTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            self?.pushCoinValueToWatch()
+            
+            Task { @MainActor in
+                self?.pushCoinValueToWatch()
+            }
         }
     }
     
@@ -65,37 +69,49 @@ extension PhoneSessionManager: WCSessionDelegate {
     }
     
     // Handle incoming messages
-    func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         
+        // Process the message content
         guard let request = message["request"] as? String else {
             print("[PhoneSessionManager] Received message without 'request' key.")
             replyHandler(["error": "No request key found"])
             return
         }
-        
+
+        // Handle the request
         switch request {
             
         case "tapCoin":
-            handleTapCoin(replyHandler: replyHandler)
-            
+            Task { @MainActor in
+                handleTapCoin(replyHandler: replyHandler)
+            }
+
         case "addSteps":
-            handleAddSteps(message: message, replyHandler: replyHandler)
-            
+            Task { @MainActor in
+                handleAddSteps(message: message, replyHandler: replyHandler)
+            }
+
         case "initializeSteps":
-            handleInitializeSteps(message: message, replyHandler: replyHandler)
-            
+            Task { @MainActor in
+                handleInitializeSteps(message: message, replyHandler: replyHandler)
+            }
+
         case "requestCoinData":
-            sendAllStats(replyHandler: replyHandler)
-            
+            Task { @MainActor in
+                sendAllStats(replyHandler: replyHandler)
+            }
+
         case "test":
-            handleTestMessage(message: message, replyHandler: replyHandler)
-            
+            Task { @MainActor in
+                handleTestMessage(message: message, replyHandler: replyHandler)
+            }
+
         default:
             print("[PhoneSessionManager] Received unknown request: \(request)")
             replyHandler(["error": "Unknown request: \(request)"])
         }
     }
-    
+
     // MARK: - Message Handlers
     
     private func handleTapCoin(replyHandler: @escaping ([String: Any]) -> Void) {
@@ -120,17 +136,13 @@ extension PhoneSessionManager: WCSessionDelegate {
         
         let steps = message["steps"] as? Int ?? 0
         print("[PhoneSessionManager] Received addSteps with \(steps) steps.")
-        
+
         Task {
             await store?.incrementCoinsFromSteps(steps)
             
             DispatchQueue.main.async {
-                
-                let updatedValue = self.store?.coins?.value ?? Decimal(0)
-                self.pushCoinValueToWatch()
-                
-                print("[PhoneSessionManager] Steps processed. Updated coin value: \(updatedValue)")
-                replyHandler(["updatedCoinValue": "\(updatedValue)"])
+                let updatedSteps = self.store?.totalSteps ?? 0
+                replyHandler(["updatedSteps": updatedSteps])
             }
         }
     }
@@ -192,7 +204,7 @@ extension PhoneSessionManager: WCSessionDelegate {
     private func collectStats() -> [String: Any]? {
         
         guard let store = store else { return nil }
-        
+
         let stats: [String: Any] = [
             "phoneCoinValue": "\(store.coins?.value ?? 0)",
             "phoneCoinsPerSecond": "\(store.coinsPerSecond)",
@@ -201,8 +213,8 @@ extension PhoneSessionManager: WCSessionDelegate {
             "phoneTotalSteps": "\(store.totalSteps)",
             "phoneCoinsFromSteps": "\(store.totalCoinsFromSteps)",
             "phoneTotalPowerUpsOwned": "\(store.powerUps.calculateTotalOwned())",
-            "phoneTotalExchangedCoins": "\(CoinExchangeModel.shared.totalExchangedCoins())"
+            "phoneTotalExchangedCoins": "\(CoinExchangeModel.shared.totalExchangedCoins())",
+            "phoneTotalCoinsEverEarned": "\(store.totalCoinsEverEarned)" // Add this line
         ]
         return stats
-    }
-}
+    }}

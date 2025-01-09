@@ -35,6 +35,7 @@ struct CoinNumberView: View {
                 }
                 .background(BlurView(style: .systemMaterial, reduction: 0.8))
                 .cornerRadius(12)
+                .padding(4)
 
             } else {
                 

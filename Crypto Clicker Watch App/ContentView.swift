@@ -131,28 +131,28 @@ struct StatsView: View {
             
             VStack(spacing: 15) {
                 
-                Text("Stats")
+                Text("Statistics")
                     .font(.title2)
                     .bold()
                     .padding(.bottom, 10)
                 
                 // Display all stats
                 VStack(alignment: .leading, spacing: 10) {
-                    StatRow(title: "Total Steps", value: Decimal(totalSteps))
-                    StatRow(title: "Coins from Steps", value: totalCoinsFromSteps)
-                    StatRow(title: "Coins/Sec", value: coinsPerSecond)
-                    StatRow(title: "Coins/Click", value: coinsPerClick)
-                    StatRow(title: "Coins from Clicks", value: totalCoinsFromClicks)
-                    StatRow(title: "Coins from Idle", value: totalCoinsFromIdle)
-                    StatRow(title: "Coins/Step", value: coinsPerStep)
-                    StatRow(title: "Power-Ups Owned", value: Decimal(totalPowerUpsOwned))
-                    StatRow(title: "Exchanged Coins", value: Decimal(totalExchangedCoins))
-                    StatRow(title: "Coins from Mini Games", value: totalCoinsFromMiniGames)
-                    StatRow(title: "Mini Game Coin Reward Multiplier (%)", value: miniGameWinMultiplier)
-                    StatRow(title: "Current Coins", value: totalCoins)
-                    StatRow(title: "Total Coins Ever Earned", value: totalCoinsEverEarned)
+                    StatRow(title: "👟 Total Steps Taken", value: Decimal(totalSteps))
+                    StatRow(title: "🦵 Coins Earned from Steps", value: totalCoinsFromSteps)
+                    StatRow(title: "👣 Coins Gained Per Step", value: coinsPerStep)
+                    StatRow(title: "⏱️ Coins Gained Per Second", value: coinsPerSecond)
+                    StatRow(title: "👆 Coins Gained Per Click", value: coinsPerClick)
+                    StatRow(title: "⛏️ Coins Earned By Clicking", value: totalCoinsFromClicks)
+                    StatRow(title: "🕰️ Coins Earned From Idle", value: totalCoinsFromIdle)
+                    StatRow(title: "💻 Total Power-Ups Owned", value: Decimal(totalPowerUpsOwned))
+                    StatRow(title: "🔄 Total Exchanged Coins Owned", value: Decimal(totalExchangedCoins))
+                    StatRow(title: "🕹️ Coins Earned From Mini Games", value: totalCoinsFromMiniGames)
+                    StatRow(title: "🎲 Mini Game Reward Multiplier (%)", value: miniGameWinMultiplier)
+                    StatRow(title: "🪙 Current Coins", value: totalCoins)
+                    StatRow(title: "💰 Total Coins Earned", value: totalCoinsEverEarned)
                 }
-                
+
                 Button("Close") {
                     isPresented = false
                 }

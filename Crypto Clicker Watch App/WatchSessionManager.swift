@@ -137,7 +137,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
                 let value = Decimal(string: totalCoinsEverEarnedStr) {
                 self.totalCoinsEverEarned = value
             }
-            
+
             if let miniGameWinMultiplierStr = data["phoneMiniGameWinMultiplier"] as? String,
                 let value = Decimal(string: miniGameWinMultiplierStr) {
                 self.miniGameWinMultiplier = value
@@ -174,9 +174,8 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     
     /// Sends step data to the iPhone
     func addSteps(_ steps: Int) {
-        
         guard session.isReachable else {
-            // If unreachable, update local values and queue data
+            // Only update locally if the phone is unreachable
             DispatchQueue.main.async {
                 self.totalSteps += steps
                 self.totalCoinsFromSteps += Decimal(steps) / 100
@@ -185,27 +184,23 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             return
         }
 
-        // Prepare data payload
+        // Send the steps to the phone without updating locally
         let data: [String: Any] = [
             "request": "addSteps",
-            "steps": steps,
-            "coinValue": "\(coinValue)",
-            "totalSteps": "\(totalSteps + steps)",
-            "coinsFromSteps": "\(totalCoinsFromSteps + Decimal(steps) / 100)"
+            "steps": steps
         ]
 
         session.sendMessage(data, replyHandler: { response in
-            print("[WatchSessionManager] addSteps response: \(response)")
+            // Only update local values if the phone acknowledges the steps
+            if let updatedSteps = response["updatedSteps"] as? Int {
+                DispatchQueue.main.async {
+                    self.totalSteps = updatedSteps
+                    print("[WatchSessionManager] Steps synchronized. Updated total steps: \(updatedSteps).")
+                }
+            }
         }, errorHandler: { error in
             print("[WatchSessionManager] Failed to send steps: \(error.localizedDescription)")
         })
-
-        // Update local state
-        DispatchQueue.main.async {
-            self.totalSteps += steps
-            self.totalCoinsFromSteps += Decimal(steps) / 100
-            print("[WatchSessionManager] Sent steps: \(steps). Updated local totalSteps: \(self.totalSteps), totalCoinsFromSteps: \(self.totalCoinsFromSteps).")
-        }
     }
     
     /// Requests essential data from the iPhone
@@ -280,8 +275,10 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     }
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        
         if let error = error {
             print("[WatchSessionManager] Activation error: \(error.localizedDescription)")
+            
         } else {
             print("[WatchSessionManager] Activation state: \(activationState.rawValue)")
         }

@@ -20,13 +20,13 @@ struct SettingsView: View {
     @State private var showResetAlert = false
     @State private var resetType: ResetType? = nil
     @State private var refreshID = UUID() // Unique ID to refresh the view
-
+    
     var body: some View {
         
         ZStack {
             
             BackgroundView(type: .settings)
-
+            
             ScrollView {
                 
                 VStack(spacing: 16) {
@@ -128,7 +128,7 @@ struct SettingsView: View {
                 .cornerRadius(12)
         )
     }
-
+    
     private func handleReset() {
         
         guard let resetType = resetType else { return }
@@ -137,7 +137,6 @@ struct SettingsView: View {
             
         case .coins:
             store.resetCoinValue()
-            coins?.value = 0
             
         case .powerUps:
             store.resetPowerUps()
@@ -152,15 +151,17 @@ struct SettingsView: View {
             store.resetSteps()
             
         case .all:
+            
+            // Reset everything
             store.resetCoinValue()
             store.resetPowerUps()
             store.resetSteps()
             coinExchange.resetExchangedCoins()
             achievements.resetAchievements()
+            store.resetStats() // Resets all other stats
         }
     }
 }
-
 enum ResetType: CaseIterable {
     
     case coins, powerUps, exchangedCoins, achievements, steps, all
@@ -169,12 +170,23 @@ enum ResetType: CaseIterable {
         
         switch self {
             
-        case .coins: return "Reset your coin value to 0."
-        case .powerUps: return "Remove all your power-ups."
-        case .exchangedCoins: return "Reset all exchanged coins."
-        case .achievements: return "Reset all achievements."
-        case .steps: return "Reset total steps and coins from steps."
-        case .all: return "Reset everything."
+        case .coins: 
+            return "Reset your coin value to 0."
+            
+        case .powerUps:
+            return "Remove all your power-ups."
+            
+        case .exchangedCoins:
+            return "Reset all exchanged coins."
+            
+        case .achievements:
+            return "Reset all achievements."
+            
+        case .steps:
+            return "Reset total steps and coins from steps."
+            
+        case .all:
+            return "Reset everything."
         }
     }
 
@@ -182,12 +194,23 @@ enum ResetType: CaseIterable {
         
         switch self {
             
-        case .coins: return "💰 Reset Coins 💰"
-        case .powerUps: return "💻 Remove Power-Ups 💻"
-        case .exchangedCoins: return " 🪙 Reset Exchanged Coins 🪙"
-        case .achievements: return "🏆 Reset Achievements 🏆"
-        case .steps: return "👟 Reset Steps 👟"
-        case .all: return "⚠️ Remove All ⚠️"
+        case .coins: 
+            return "💰 Reset Coins 💰"
+            
+        case .powerUps: 
+            return "💻 Remove Power-Ups 💻"
+            
+        case .exchangedCoins:
+            return " 🪙 Reset Exchanged Coins 🪙"
+            
+        case .achievements:
+            return "🏆 Reset Achievements 🏆"
+            
+        case .steps:
+            return "👟 Reset Steps 👟"
+            
+        case .all:
+            return "⚠️ Remove All ⚠️"
         }
     }
 }

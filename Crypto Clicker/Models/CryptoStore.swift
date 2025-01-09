@@ -147,7 +147,7 @@ class CryptoStore: ObservableObject {
         await saveStepStats()
         updateAndSaveCoins()
     }
-    
+
     // Reset coin value
     func resetCoinValue() {
         
@@ -181,6 +181,16 @@ class CryptoStore: ObservableObject {
         
         Task {
             await savePowerUps()
+        }
+    }
+    
+    // Reset all statistics stats
+    func resetStats() {
+        
+        resetStatsToDefault()
+        
+        Task {
+            await saveStats() // Ensure the reset stats are persisted
         }
     }
     
@@ -335,7 +345,6 @@ class CryptoStore: ObservableObject {
 
 // MARK: - Persistence Extensions
 extension CryptoStore {
-    
     
     // Update and Save Coins
     private func updateAndSaveCoins() {
