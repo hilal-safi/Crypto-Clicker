@@ -15,6 +15,12 @@
 		9E3F2A5E2D2DF94200F195FA /* TetrisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A5D2D2DF93800F195FA /* TetrisView.swift */; };
 		9E3F2A602D2DF96800F195FA /* TetrisModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A5F2D2DF96100F195FA /* TetrisModel.swift */; };
 		9E3F2A622D3069C600F195FA /* MiniGamesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A612D3069C200F195FA /* MiniGamesModel.swift */; };
+		9E3F2A642D30A37500F195FA /* TetrisTopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A632D30A37500F195FA /* TetrisTopView.swift */; };
+		9E3F2A662D30A38200F195FA /* TetrisMiddleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A652D30A38200F195FA /* TetrisMiddleView.swift */; };
+		9E3F2A682D30A39800F195FA /* TetrisBottomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A672D30A39800F195FA /* TetrisBottomView.swift */; };
+		9E3F2A6A2D30A3FB00F195FA /* TetrisGameOverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A692D30A3FB00F195FA /* TetrisGameOverView.swift */; };
+		9E3F2A6C2D30A40D00F195FA /* TetrisBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A6B2D30A40D00F195FA /* TetrisBoardView.swift */; };
+		9E3F2A6E2D30A4FA00F195FA /* TetrisPieceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A6D2D30A4FA00F195FA /* TetrisPieceView.swift */; };
 		9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0762CF5882000328F86 /* ShopModel.swift */; };
 		9E4CD0792CF5885500328F86 /* ShopItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0782CF5884C00328F86 /* ShopItemView.swift */; };
 		9E4CD07B2CF8081E00328F86 /* CoinExchangeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */; };
@@ -120,6 +126,12 @@
 		9E3F2A5D2D2DF93800F195FA /* TetrisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisView.swift; sourceTree = "<group>"; };
 		9E3F2A5F2D2DF96100F195FA /* TetrisModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisModel.swift; sourceTree = "<group>"; };
 		9E3F2A612D3069C200F195FA /* MiniGamesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniGamesModel.swift; sourceTree = "<group>"; };
+		9E3F2A632D30A37500F195FA /* TetrisTopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisTopView.swift; sourceTree = "<group>"; };
+		9E3F2A652D30A38200F195FA /* TetrisMiddleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisMiddleView.swift; sourceTree = "<group>"; };
+		9E3F2A672D30A39800F195FA /* TetrisBottomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisBottomView.swift; sourceTree = "<group>"; };
+		9E3F2A692D30A3FB00F195FA /* TetrisGameOverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisGameOverView.swift; sourceTree = "<group>"; };
+		9E3F2A6B2D30A40D00F195FA /* TetrisBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisBoardView.swift; sourceTree = "<group>"; };
+		9E3F2A6D2D30A4FA00F195FA /* TetrisPieceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisPieceView.swift; sourceTree = "<group>"; };
 		9E4CD0762CF5882000328F86 /* ShopModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopModel.swift; sourceTree = "<group>"; };
 		9E4CD0782CF5884C00328F86 /* ShopItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopItemView.swift; sourceTree = "<group>"; };
 		9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinExchangeModel.swift; sourceTree = "<group>"; };
@@ -321,8 +333,8 @@
 				9EC655302D13BB7C00D94007 /* BlackjackCardView.swift */,
 				9EC655402D19DD6E00D94007 /* BlackjackMessageView.swift */,
 				9EC655382D14DDF800D94007 /* BlackjackMiddleView.swift */,
-				9EC655342D13BCE400D94007 /* BlackjackView.swift */,
 				9EC655362D14DDE500D94007 /* BlackjackTopView.swift */,
+				9EC655342D13BCE400D94007 /* BlackjackView.swift */,
 				9EEE79892D2343F000FBC049 /* BlurView.swift */,
 				9E4CD07C2CF808B000328F86 /* CoinExchangeView.swift */,
 				9EC655252D0F4C5A00D94007 /* CoinNumberView.swift */,
@@ -341,6 +353,12 @@
 				9E4CD0782CF5884C00328F86 /* ShopItemView.swift */,
 				9EEE79872D2342DB00FBC049 /* ShopMessageView.swift */,
 				9E3970292CDD118800E461F6 /* ShopView.swift */,
+				9E3F2A6B2D30A40D00F195FA /* TetrisBoardView.swift */,
+				9E3F2A672D30A39800F195FA /* TetrisBottomView.swift */,
+				9E3F2A692D30A3FB00F195FA /* TetrisGameOverView.swift */,
+				9E3F2A652D30A38200F195FA /* TetrisMiddleView.swift */,
+				9E3F2A6D2D30A4FA00F195FA /* TetrisPieceView.swift */,
+				9E3F2A632D30A37500F195FA /* TetrisTopView.swift */,
 				9E3F2A5D2D2DF93800F195FA /* TetrisView.swift */,
 			);
 			path = Views;
@@ -604,12 +622,15 @@
 				9EC1AC6F2C8FCE800055A38D /* CoinView.swift in Sources */,
 				9EC6553B2D14DE3700D94007 /* BlackjackBottomView.swift in Sources */,
 				9EEE79862D21DE3500FBC049 /* ExchangeMessageView.swift in Sources */,
+				9E3F2A642D30A37500F195FA /* TetrisTopView.swift in Sources */,
 				9E39702E2CDD552A00E461F6 /* BackgroundView.swift in Sources */,
 				9EC655282D0FABC800D94007 /* AchievementsModel.swift in Sources */,
 				9EC1AC662C8FC96B0055A38D /* CryptoCoin.swift in Sources */,
 				9EEE79882D2342DB00FBC049 /* ShopMessageView.swift in Sources */,
+				9E3F2A682D30A39800F195FA /* TetrisBottomView.swift in Sources */,
 				9EC1AC3C2C8FA0850055A38D /* ContentView.swift in Sources */,
 				9E3F2A5E2D2DF94200F195FA /* TetrisView.swift in Sources */,
+				9E3F2A662D30A38200F195FA /* TetrisMiddleView.swift in Sources */,
 				9EC6552E2D13BB4200D94007 /* BlackjackModel.swift in Sources */,
 				9EC1AC6B2C8FCAB60055A38D /* ErrorWrapper.swift in Sources */,
 				9E4CD08B2CFBD21900328F86 /* ExchangeItemView.swift in Sources */,
@@ -619,6 +640,7 @@
 				9E39702A2CDD118B00E461F6 /* ShopView.swift in Sources */,
 				9EC655262D0F4C6400D94007 /* CoinNumberView.swift in Sources */,
 				9E3F2A602D2DF96800F195FA /* TetrisModel.swift in Sources */,
+				9E3F2A6E2D30A4FA00F195FA /* TetrisPieceView.swift in Sources */,
 				9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */,
 				9EC1AC3A2C8FA0850055A38D /* Crypto_ClickerApp.swift in Sources */,
 				9EEE79C52D29AAF500FBC049 /* PhoneSessionManager.swift in Sources */,
@@ -629,8 +651,10 @@
 				9E4CD0792CF5885500328F86 /* ShopItemView.swift in Sources */,
 				9E39703A2CDF14D100E461F6 /* PowerUps.swift in Sources */,
 				9EEE798A2D2343F200FBC049 /* BlurView.swift in Sources */,
+				9E3F2A6A2D30A3FB00F195FA /* TetrisGameOverView.swift in Sources */,
 				9E4CD0832CF81D1C00328F86 /* AchievementsView.swift in Sources */,
 				9E3970322CDD7EF700E461F6 /* SettingsModel.swift in Sources */,
+				9E3F2A6C2D30A40D00F195FA /* TetrisBoardView.swift in Sources */,
 				9EC655352D13BCEB00D94007 /* BlackjackView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

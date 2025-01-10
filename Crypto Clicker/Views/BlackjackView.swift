@@ -49,6 +49,7 @@ struct BlackjackView: View {
                 }
             }
         }
+        .navigationTitle("Blackjack")
     }
 }
 

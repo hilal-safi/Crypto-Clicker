@@ -61,6 +61,7 @@ struct ContentView: View {
 
                         // Mini Games Tab
                         MiniGamesView()
+                            .environmentObject(store) // Inject CryptoStore here
                             .tabItem {
                                 VStack {
                                     Image(systemName: "gamecontroller.fill")

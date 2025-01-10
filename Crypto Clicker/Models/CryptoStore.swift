@@ -229,6 +229,39 @@ class CryptoStore: ObservableObject {
         return true
     }
     
+    /// Attempts to purchase and unlock a mini-game
+    /// - Parameters:
+    ///   - game: The mini-game to unlock
+    ///   - miniGamesModel: The MiniGamesModel managing game states
+    /// - Returns: Boolean indicating success of the transaction
+    func purchaseMiniGame(game: MiniGamesModel.MiniGame, miniGamesModel: MiniGamesModel) -> Bool {
+        
+        guard let currentCoins = coins else { return false }
+        
+        // Retrieve the cost of unlocking the mini-game
+        let baseCost = miniGamesModel.unlockCost(for: game)
+        
+        // Apply any cost multipliers from settings (if applicable)
+        let costMultiplier = Decimal(settings?.difficulty.costMultiplier ?? 1.0)
+        let finalCost = baseCost * costMultiplier
+        
+        // Check if the user has enough coins
+        guard currentCoins.value >= finalCost else { return false }
+        
+        // Deduct the cost from the user's coins
+        coins?.value = (currentCoins.value - finalCost).roundedDownToWhole()
+        
+        // Mark the mini-game as unlocked
+        miniGamesModel.markAsUnlocked(game)
+        
+        // Save the updated coin state
+        Task {
+            await saveCoins()
+        }
+        
+        return true
+    }
+    
     deinit {
         timer?.invalidate()
     }

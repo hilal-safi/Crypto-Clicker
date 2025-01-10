@@ -13,63 +13,85 @@ enum TetrisGameState {
 }
 
 // The tetris shapes
-enum TetrominoType: CaseIterable {
-    case I, O, T, S, Z, J, L
+enum TetrominoType: Int, CaseIterable {
     
+    case I = 1, O, T, S, Z, J, L
+
     // Block layouts in a 4x4 grid for the initial rotation state
     var shape: [[Int]] {
+        
         switch self {
-        case .I:
-            return [
-                [0,0,0,0],
-                [1,1,1,1],
-                [0,0,0,0],
-                [0,0,0,0]
-            ]
-        case .O:
-            return [
-                [0,1,1,0],
-                [0,1,1,0],
-                [0,0,0,0],
-                [0,0,0,0]
-            ]
-        case .T:
-            return [
-                [0,1,0,0],
-                [1,1,1,0],
-                [0,0,0,0],
-                [0,0,0,0]
-            ]
-        case .S:
-            return [
-                [0,1,1,0],
-                [1,1,0,0],
-                [0,0,0,0],
-                [0,0,0,0]
-            ]
-        case .Z:
-            return [
-                [1,1,0,0],
-                [0,1,1,0],
-                [0,0,0,0],
-                [0,0,0,0]
-            ]
-        case .J:
-            return [
-                [1,0,0,0],
-                [1,1,1,0],
-                [0,0,0,0],
-                [0,0,0,0]
-            ]
-        case .L:
-            return [
-                [0,0,1,0],
-                [1,1,1,0],
-                [0,0,0,0],
-                [0,0,0,0]
-            ]
+            
+            case .I:
+                return [
+                    [1,1,1,1],
+                    [0,0,0,0],
+                    [0,0,0,0],
+                    [0,0,0,0]
+                ]
+            case .O:
+                return [
+                    [0,1,1,0],
+                    [0,1,1,0],
+                    [0,0,0,0],
+                    [0,0,0,0]
+                ]
+            case .T:
+                return [
+                    [0,1,0,0],
+                    [1,1,1,0],
+                    [0,0,0,0],
+                    [0,0,0,0]
+                ]
+            case .S:
+                return [
+                    [0,1,1,0],
+                    [1,1,0,0],
+                    [0,0,0,0],
+                    [0,0,0,0]
+                ]
+            case .Z:
+                return [
+                    [1,1,0,0],
+                    [0,1,1,0],
+                    [0,0,0,0],
+                    [0,0,0,0]
+                ]
+            case .J:
+                return [
+                    [1,0,0,0],
+                    [1,1,1,0],
+                    [0,0,0,0],
+                    [0,0,0,0]
+                ]
+            case .L:
+                return [
+                    [0,0,1,0],
+                    [1,1,1,0],
+                    [0,0,0,0],
+                    [0,0,0,0]
+                ]
         }
     }
+    
+    var color: Color {
+        
+        switch self {
+            
+            case .I: return .cyan
+            case .O: return .yellow
+            case .T: return .purple
+            case .S: return .green
+            case .Z: return .red
+            case .J: return .blue
+            case .L: return .orange
+        }
+    }
+
+    var previewColor: Color {
+        color.opacity(0.6) // Lighter shade for the preview
+    }
+
 }
 
 struct TetrisPiece {
@@ -80,6 +102,7 @@ struct TetrisPiece {
     var col: Int
     
     init(type: TetrominoType, row: Int, col: Int) {
+        
         self.type = type
         self.shape = type.shape
         self.row = row
@@ -88,8 +111,10 @@ struct TetrisPiece {
     
     // Rotate the piece clockwise
     mutating func rotate() {
+        
         let n = shape.count
         var newShape = Array(repeating: Array(repeating: 0, count: n), count: n)
+        
         // Perform matrix rotation
         for i in 0..<n {
             for j in 0..<n {
@@ -97,6 +122,22 @@ struct TetrisPiece {
             }
         }
         shape = newShape
+    }
+    
+    // For the TetrisView
+    func nextPieceOffset() -> CGSize {
+        switch type {
+        case .I:
+            return CGSize(width: 0, height: 30) // Move lower for "I"
+        case .T:
+            return CGSize(width: 10, height: 20) // Move to the right for "T"
+        case .O:
+            return CGSize(width: 0, height: 20) // Slightly down
+        case .S, .Z:
+            return CGSize(width: 10, height: 20) // Slightly right and down
+        case .J, .L:
+            return CGSize(width: 10, height: 20) // Slightly right and down
+        }
     }
 }
 
@@ -309,20 +350,28 @@ class TetrisModel: ObservableObject {
     
     // Check if the current piece can move downwards without collision
     private func canMoveDown(piece: TetrisPiece) -> Bool {
+        
         var testPiece = piece
         testPiece.row += 1
+        
         return isValidPosition(piece: testPiece)
     }
     
     // Lock the piece into the board state when it can no longer move down
     private func lockPiece(piece: TetrisPiece) {
+        
         for r in 0..<piece.shape.count {
+            
             for c in 0..<piece.shape[r].count {
+                
                 if piece.shape[r][c] != 0 {
+                    
                     let boardRow = piece.row + r
                     let boardCol = piece.col + c
+                    
                     if boardRow >= 0 && boardRow < rows && boardCol >= 0 && boardCol < columns {
-                        board[boardRow][boardCol] = 1
+                        // Store the type of the tetromino (using rawValue for compatibility)
+                        board[boardRow][boardCol] = piece.type.rawValue
                     }
                 }
             }
@@ -333,8 +382,11 @@ class TetrisModel: ObservableObject {
     
     // Attempt to move the current piece left if possible
     func moveCurrentPieceLeft() {
+        
         guard var piece = currentPiece else { return }
+        
         piece.col -= 1
+        
         if isValidPosition(piece: piece) {
             currentPiece = piece
         }
@@ -342,8 +394,11 @@ class TetrisModel: ObservableObject {
     
     // Attempt to move the current piece right if possible
     func moveCurrentPieceRight() {
+        
         guard var piece = currentPiece else { return }
+        
         piece.col += 1
+        
         if isValidPosition(piece: piece) {
             currentPiece = piece
         }
@@ -353,6 +408,7 @@ class TetrisModel: ObservableObject {
     private func clearLines() {
         // Iterate over rows to check for complete lines
         for row in (0..<rows).reversed() {
+            
             if board[row].allSatisfy({ $0 != 0 }) {
                 // Remove the full line
                 board.remove(at: row)
@@ -365,7 +421,9 @@ class TetrisModel: ObservableObject {
     }
     
     private func calculateLandingPosition(for piece: TetrisPiece) -> Int {
+        
         var testPiece = piece
+        
         while isValidPosition(piece: testPiece) {
             testPiece.row += 1
         }
@@ -373,9 +431,12 @@ class TetrisModel: ObservableObject {
     }
     
     func getLandingPiece() -> TetrisPiece? {
+        
         guard let piece = currentPiece else { return nil }
+        
         var landingPiece = piece
         landingPiece.row = calculateLandingPosition(for: piece)
+        
         return landingPiece
     }
     
