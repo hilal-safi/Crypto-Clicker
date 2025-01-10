@@ -66,6 +66,7 @@ class BlackjackModel: ObservableObject {
     // MARK: - Deck and Card Management
     
     func createDeck() -> [Card] {
+        
         let suits = ["♠", "♥", "♦", "♣"]
         let values = (1...13).map { $0 }
         
@@ -78,6 +79,7 @@ class BlackjackModel: ObservableObject {
     }
     
     func drawCard() -> Card {
+        
         if deck.isEmpty {
             deck = createDeck().shuffled()
         }
@@ -137,6 +139,7 @@ class BlackjackModel: ObservableObject {
     // MARK: - Player Actions
     
     func hitPlayer() {
+        
         guard betPlaced, !gameOver, gameState == .playerTurn else { return }
         
         currentPlayerHand.append(drawCard())
@@ -156,7 +159,11 @@ class BlackjackModel: ObservableObject {
     }
     
     func stand() {
+        
         guard betPlaced, !gameOver, gameState == .playerTurn else { return }
+        
+        // Force calculation of values using only the high value
+        calculateValues()
         nextHandOrDealer()
     }
     
@@ -277,40 +284,75 @@ class BlackjackModel: ObservableObject {
     
     // MARK: - Value Calculations
     
-    // REMOVED `private` so it can be used in BlackjackMiddleView:
-    func calculateHandValue(for hand: [Card]) -> Int {
+    // Update calculateHandValue to return both high and low values.
+    func calculateHandValue(for hand: [Card]) -> (high: Int, low: Int) {
         
-        var total = 0
+        var totalHigh = 0
+        var totalLow = 0
         var aceCount = 0
-        
+
         for card in hand {
-            // Aces as 11 initially
+            
             if card.value == 1 {
                 aceCount += 1
-                total += 11
-            }
-            else if card.value >= 10 {
-                total += 10
-            }
-            else {
-                total += card.value
+                totalHigh += 11
+                totalLow += 1
+                
+            } else if card.value >= 10 {
+                totalHigh += 10
+                totalLow += 10
+                
+            } else {
+                totalHigh += card.value
+                totalLow += card.value
             }
         }
-        
-        // If we bust but have aces counting as 11, reduce them to 1
-        while total > 21 && aceCount > 0 {
-            total -= 10
+
+        while totalHigh > 21 && aceCount > 0 {
+            totalHigh -= 10
             aceCount -= 1
         }
-        
-        return total
+
+        if totalHigh > 21 {
+            return (totalLow, totalLow)
+        }
+        return (totalHigh, totalLow)
     }
-    
+
     func calculateValues() {
-        // Update the dealer’s display value
-        dealerValue = calculateHandValue(for: dealerHand)
-        // Update the player's current-hand display value
-        playerValue = calculateHandValue(for: currentPlayerHand)
+        
+        let dealerResult = calculateHandValue(for: dealerHand)
+        let playerResult = calculateHandValue(for: currentPlayerHand)
+
+        dealerValue = dealerResult.high // Keep high value for dealer
+
+        if gameState == .playerTurn {
+            
+            // During player's turn, show both high and low values if applicable
+            if playerResult.high == 21 && playerResult.low != 21 && currentPlayerHand.count == 2 {
+                
+                // If player has a Blackjack, show only 21
+                playerValue = 21
+                
+            } else if playerResult.high != playerResult.low {
+                
+                // Show both values during the player's turn
+                playerValue = playerResult.high
+                
+            } else {
+                playerValue = playerResult.high
+            }
+            
+        } else if gameState == .dealerTurn || gameState == .gameOver {
+            
+            // After standing, only use the highest valid value <= 21
+            if playerResult.high <= 21 {
+                playerValue = playerResult.high
+                
+            } else {
+                playerValue = playerResult.low
+            }
+        }
     }
     
     func canSplit(hand: [Card]) -> Bool {
@@ -330,21 +372,30 @@ class BlackjackModel: ObservableObject {
     // MARK: - Special Checks
     
     func checkForBlackjack() {
+        
+        let playerResult = calculateHandValue(for: playerHands[0])
+
         // If the very first player hand is exactly 21:
-        if calculateHandValue(for: playerHands[0]) == 21 {
+        if playerResult.high == 21 {
             finalizeGame(withResult: .blackjack,
-                         playerValue: 21,
+                         playerValue: playerResult.high,
                          dealerValue: dealerValue)
         }
     }
     
     func checkWinCondition() {
         
-        let dealerFinalValue = calculateHandValue(for: dealerHand)
-        
+        // If the player has multiple hands (split case), skip individual finalization
+        if playerHands.count > 1 {
+            finalizeGameWithSplits()
+            return
+        }
+
+        let dealerFinalValue = calculateHandValue(for: dealerHand).high
+
         for (handIndex, hand) in playerHands.enumerated() {
-            
-            let playerFinalValue = calculateHandValue(for: hand)
+
+            let playerFinalValue = calculateHandValue(for: hand).high
             let betForHand = playerBets[handIndex]
             
             if playerFinalValue > 21 {
@@ -447,6 +498,7 @@ class BlackjackModel: ObservableObject {
         gameState = .gameOver
 
         if result == .blackjack {
+            
             let exchangeReward = betAmount * 3
             let cryptoStoreReward: Decimal = 1000
 
@@ -460,6 +512,81 @@ class BlackjackModel: ObservableObject {
 
             resultMessage = "You got a Blackjack! You earned \(exchangeReward) \(selectedCoinType.rawValue) and 1000 coins."
         }
+    }
+    
+    func finalizeGameWithSplits() {
+        
+        gameOver = true
+        gameState = .gameOver
+
+        var winCount = 0
+        var loseCount = 0
+        var tieCount = 0
+        var totalCryptoReward: Int = 0
+        var totalExchangeReward: Int = 0
+
+        for (index, hand) in playerHands.enumerated() {
+            
+            let playerFinalValue = calculateHandValue(for: hand).high
+            let dealerFinalValue = calculateHandValue(for: dealerHand).high
+            let betForHand = playerBets[index]
+            
+            // Player busts
+            if playerFinalValue > 21 {
+                loseCount += 1
+                
+            // Player wins
+            } else if dealerFinalValue > 21 || playerFinalValue > dealerFinalValue {
+                
+                winCount += 1
+                totalCryptoReward += 500
+                totalExchangeReward += betForHand * 2
+                
+            // Tie
+            } else if dealerFinalValue == playerFinalValue {
+                tieCount += 1
+                totalExchangeReward += betForHand
+                
+            // Dealer wins
+            } else {
+                loseCount += 1
+            }
+        }
+
+        // Update models with the rewards
+        exchangeModel.updateCoinCount(for: selectedCoinType, by: totalExchangeReward)
+        DispatchQueue.main.async {
+            self.cryptoStore.addCoinsFromMiniGame(Decimal(totalCryptoReward))
+        }
+
+        // Generate the message
+        var message: String
+        if winCount == 2 {
+            message = "You won both hands, congratulations!"
+            
+        } else if loseCount == 2 {
+            message = "You lost both hands!"
+            
+        } else if tieCount == 2 {
+            message = "You tied both hands!"
+            
+        } else if winCount == 1 && loseCount == 1 {
+            message = "You won one hand and lost one hand!"
+            
+        } else if winCount == 1 && tieCount == 1 {
+            message = "You won one hand and tied one hand!"
+            
+        } else if loseCount == 1 && tieCount == 1 {
+            message = "You tied one hand and lost one hand!"
+            
+        } else {
+            message = "Unexpected result!"
+        }
+
+        // Append the coin rewards
+        message += " \(selectedCoinType.rawValue.capitalized) Earned: \(totalExchangeReward). Coins Earned: \(totalCryptoReward)."
+
+        resultMessage = message
     }
     
     func endGame() {
@@ -498,6 +625,7 @@ class BlackjackModel: ObservableObject {
         if let resultMessage = resultMessage {
             
             switch resultMessage {
+                
             case _ where resultMessage.contains("Win"):
                 return (resultMessage, .win)
                 
@@ -516,23 +644,24 @@ class BlackjackModel: ObservableObject {
         switch gameState {
             
         case .waitingForBet:
-            return ("Place your bet to start!", .info)
+            return ("Place your bet using the selector buttons below to start!", .info)
             
         case .playerTurn:
             // If multiple hands, specify which hand is active
             if playerHands.count > 1 {
-                let message = "Now playing Hand #\(currentHandIndex + 1) of \(playerHands.count)."
+                let message = "You split! Now playing Hand #\(currentHandIndex + 1) of \(playerHands.count)."
                 return (message, .info)
+                
             } else {
                 // Single hand
-                return ("Your turn! Hit, stand, split, or double down.", .info)
+                return ("Its your turn! Use the below buttons to hit, stand, split, or double down.", .info)
             }
             
         case .dealerTurn:
-            return ("Dealer's turn. Please wait...", .info)
+            return ("Its the dealer's turn. Please wait...", .info)
             
         case .gameOver:
-            return ("Game over. Reset to start a new round.", .info)
+            return ("Game over! Reset to start a new round.", .info)
         }
     }
 }

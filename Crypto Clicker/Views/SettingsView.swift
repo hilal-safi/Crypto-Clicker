@@ -14,11 +14,12 @@ struct SettingsView: View {
     @ObservedObject var powerUps: PowerUps
     @EnvironmentObject var coinExchange: CoinExchangeModel
     @EnvironmentObject var achievements: AchievementsModel
-    
+    @StateObject private var miniGames = MiniGamesModel()
+
     @ObservedObject var settings: SettingsModel
     
     @State private var showResetAlert = false
-    @State private var resetType: ResetType? = nil
+    @State private var resetType: SettingsModel.ResetType?
     @State private var refreshID = UUID() // Unique ID to refresh the view
     
     var body: some View {
@@ -71,7 +72,7 @@ struct SettingsView: View {
                     
                     settingsSection(title: "Reset Options", icon: "trash.fill") {
                         
-                        ForEach(ResetType.allCases, id: \.self) { resetType in
+                        ForEach(SettingsModel.ResetType.allCases, id: \.self) { resetType in
                             
                             Button(action: {
                                 self.resetType = resetType
@@ -96,10 +97,21 @@ struct SettingsView: View {
                 .padding()
             }
             .navigationTitle("Settings")
-            .id(refreshID)
             .alert("Reset Confirmation", isPresented: $showResetAlert) {
+                
                 Button("Reset", role: .destructive) {
-                    handleReset()
+                    
+                    if let resetType = resetType {
+                        
+                        settings.handleReset(
+                            type: resetType,
+                            store: store,
+                            powerUps: powerUps,
+                            coinExchange: coinExchange,
+                            achievements: achievements,
+                            miniGames: miniGames
+                        )
+                    }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
@@ -107,7 +119,7 @@ struct SettingsView: View {
             }
         }
     }
-    
+
     private func settingsSection(title: String, icon: String, @ViewBuilder content: () -> some View) -> some View {
         
         VStack(alignment: .leading, spacing: 8) {
@@ -127,91 +139,6 @@ struct SettingsView: View {
             BlurView(style: .systemMaterial)
                 .cornerRadius(12)
         )
-    }
-    
-    private func handleReset() {
-        
-        guard let resetType = resetType else { return }
-        
-        switch resetType {
-            
-        case .coins:
-            store.resetCoinValue()
-            
-        case .powerUps:
-            store.resetPowerUps()
-            
-        case .exchangedCoins:
-            coinExchange.resetExchangedCoins()
-            
-        case .achievements:
-            achievements.resetAchievements()
-            
-        case .steps:
-            store.resetSteps()
-            
-        case .all:
-            
-            // Reset everything
-            store.resetCoinValue()
-            store.resetPowerUps()
-            store.resetSteps()
-            coinExchange.resetExchangedCoins()
-            achievements.resetAchievements()
-            store.resetStats() // Resets all other stats
-        }
-    }
-}
-enum ResetType: CaseIterable {
-    
-    case coins, powerUps, exchangedCoins, achievements, steps, all
-
-    var description: String {
-        
-        switch self {
-            
-        case .coins: 
-            return "Reset your coin value to 0."
-            
-        case .powerUps:
-            return "Remove all your power-ups."
-            
-        case .exchangedCoins:
-            return "Reset all exchanged coins."
-            
-        case .achievements:
-            return "Reset all achievements."
-            
-        case .steps:
-            return "Reset total steps and coins from steps."
-            
-        case .all:
-            return "Reset everything."
-        }
-    }
-
-    var buttonLabel: String {
-        
-        switch self {
-            
-        case .coins: 
-            return "💰 Reset Coins 💰"
-            
-        case .powerUps: 
-            return "💻 Remove Power-Ups 💻"
-            
-        case .exchangedCoins:
-            return " 🪙 Reset Exchanged Coins 🪙"
-            
-        case .achievements:
-            return "🏆 Reset Achievements 🏆"
-            
-        case .steps:
-            return "👟 Reset Steps 👟"
-            
-        case .all:
-            return "⚠️ Remove All ⚠️"
-        }
     }
 }
 

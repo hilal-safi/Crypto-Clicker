@@ -22,17 +22,22 @@ struct BlackjackMiddleView: View {
                 VStack {
                     // Dealer's value
                     if model.gameState == .waitingForBet {
+                        
                         Text("Dealer's Value: ??")
                             .font(.title3)
                             .bold()
+                        
                     } else if model.dealerSecondCardHidden {
+                        
                         // Dealer's face-up card is hidden
                         if let firstCard = model.dealerHand.first, firstCard.value == 1 {
+                            
                             // Dealer's first card is an Ace
                             Text("Dealer's Value: 1 or 11 + ??")
                                 .font(.title3)
                                 .bold()
                         } else {
+                            
                             // Normal case
                             Text("Dealer's Value: \(model.dealerHand.first?.value ?? 0) + ??")
                                 .font(.title3)
@@ -47,17 +52,24 @@ struct BlackjackMiddleView: View {
                     
                     // Dealer's cards
                     ScrollView(.horizontal, showsIndicators: false) {
+                        
                         HStack(spacing: 10) {
+                            
                             if model.gameState == .waitingForBet {
+                                
                                 // Show two placeholders before the game starts
                                 ForEach(0..<2, id: \.self) { _ in
                                     BlackjackCardView(card: Card(suit: "🂠", value: 0))
                                 }
+                                
                             } else {
+                                
                                 // Show dealer's cards, hiding the second if needed
                                 ForEach(model.dealerHand.indices, id: \.self) { index in
+                                    
                                     if index == 1 && model.dealerSecondCardHidden {
                                         BlackjackCardView(card: Card(suit: "🂠", value: 0))
+                                        
                                     } else {
                                         BlackjackCardView(card: model.dealerHand[index])
                                     }
@@ -77,6 +89,7 @@ struct BlackjackMiddleView: View {
                     
                     // Placeholder for player's hand before bet
                     HStack(spacing: 10) {
+                        
                         ForEach(0..<2, id: \.self) { _ in
                             BlackjackCardView(card: Card(suit: "🂠", value: 0))
                         }
@@ -92,13 +105,16 @@ struct BlackjackMiddleView: View {
                     
                     // Scrollable layout for player hands
                     ScrollView(.horizontal, showsIndicators: false) {
+                        
                         HStack(spacing: 16) {
                             
                             ForEach(model.playerHands.indices, id: \.self) { handIndex in
                                 
                                 // Highlight the active hand only if split
                                 VStack {
+                                    
                                     HStack(spacing: 10) {
+                                        
                                         ForEach(model.playerHands[handIndex], id: \.self) { card in
                                             BlackjackCardView(card: card)
                                         }
@@ -114,9 +130,8 @@ struct BlackjackMiddleView: View {
                                             )
                                     )
                                     
-                                    // Show value for this hand
-                                    let value = model.calculateHandValue(for: model.playerHands[handIndex])
-                                    Text("Value: \(value)")
+                                    // Update to display both hand values if applicable.
+                                    Text("Value: \(model.calculateHandValue(for: model.playerHands[handIndex]).high == model.calculateHandValue(for: model.playerHands[handIndex]).low ? "\(model.calculateHandValue(for: model.playerHands[handIndex]).high)" : "\(model.calculateHandValue(for: model.playerHands[handIndex]).high) or \(model.calculateHandValue(for: model.playerHands[handIndex]).low)")")
                                         .font(.title3)
                                         .bold()
                                 }

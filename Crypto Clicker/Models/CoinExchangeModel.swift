@@ -14,7 +14,11 @@ class CoinExchangeModel: ObservableObject {
         return instance
     }()
     
-    private var store: CryptoStore? // Add a reference to CryptoStore
+    private(set) var store: CryptoStore? // Make it private(set) to prevent external modification
+    
+    func configureStore(_ store: CryptoStore) {
+        self.store = store
+    }
 
     // A simple struct to represent a coin and its properties.
     struct CoinTypeInfo {

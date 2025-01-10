@@ -555,6 +555,7 @@ extension CryptoStore {
         totalCoinsFromIdle = 0
         miniGameWinMultiplier = 0
         totalCoinsEverEarned = 0
+        totalCoinsSpent = 0
         totalSteps = 0
     }
     

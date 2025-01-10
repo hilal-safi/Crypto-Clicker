@@ -245,7 +245,7 @@ class StepDetection: ObservableObject {
     }
     
     
-    // MARK: - Step & Coin Increments
+    // Step & Coin Increments
     func incrementCoinsFromSteps(_ steps: Int) {
         
         let coinsEarned = Decimal(steps) / 100 // 1 coin per 100 steps

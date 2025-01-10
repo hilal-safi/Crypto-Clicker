@@ -17,9 +17,11 @@ struct BlackjackMessageView: View {
         let (text, type) = model.currentMessage()
         
         // Display the message with appropriate color
+        
         ScrollView { // Allows scrolling for very long text
+            
             Text(text)
-                .font(.title2)
+                .font(.title3)
                 .foregroundColor(getTextColor(for: type))
                 .bold()
                 .multilineTextAlignment(.center) // Aligns the text to the center

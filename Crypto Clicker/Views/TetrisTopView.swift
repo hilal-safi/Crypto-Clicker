@@ -23,7 +23,7 @@ struct TetrisTopView: View {
                 
                 Text(tetrisModel.gameState == .paused ? "Resume" : "Pause")
                     .font(.body)
-                    .padding(7)
+                    .padding(7.5)
                     .bold()
                     .background(tetrisModel.gameState == .notStarted ? Color.gray : Color.blue)
                     .foregroundColor(.white)
@@ -31,7 +31,8 @@ struct TetrisTopView: View {
             }
             .disabled(tetrisModel.gameState == .notStarted) // Disable when the game hasn't started
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 14)
+        .padding(.bottom, -4)
     }
 }
 

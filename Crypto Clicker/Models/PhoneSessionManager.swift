@@ -137,7 +137,7 @@ extension PhoneSessionManager: WCSessionDelegate {
         let steps = message["steps"] as? Int ?? 0
         let currentSteps = message["currentSteps"] as? Int ?? 0
 
-        // Merge the current steps from the Watch with the Phone's totalSteps
+        // Merge watch and phone steps
         let updatedSteps = max(store?.totalSteps ?? 0, currentSteps + steps)
 
         print("[PhoneSessionManager] Received addSteps. Steps: \(steps), CurrentSteps: \(currentSteps), UpdatedSteps: \(updatedSteps)")
@@ -146,7 +146,7 @@ extension PhoneSessionManager: WCSessionDelegate {
             await store?.incrementCoinsFromSteps(updatedSteps - (store?.totalSteps ?? 0)) // Increment only the difference
             store?.totalSteps = updatedSteps // Update the total steps
             DispatchQueue.main.async {
-                replyHandler(["updatedSteps": updatedSteps]) // Respond with the updated step count
+                replyHandler(["updatedSteps": updatedSteps]) // Respond with updated steps
             }
         }
     }

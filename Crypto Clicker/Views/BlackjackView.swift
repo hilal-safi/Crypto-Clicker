@@ -41,6 +41,7 @@ struct BlackjackView: View {
                         .frame(maxHeight: geometry.size.height * 0.09) // Maximum 9% height for messages
                         .padding(.top, 14)
                         .padding(.bottom, 6)
+                        .padding(.horizontal, 8)
 
                     // Bottom View: Manages all controls (betting, hit, stand)
                     BlackjackBottomView()

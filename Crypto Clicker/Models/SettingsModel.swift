@@ -10,10 +10,27 @@ import SwiftUI
 
 class SettingsModel: ObservableObject {
     
+    // MARK: - Initializer
+
+    init() {
+        // Appearance mode
+        self.appearanceMode = AppearanceMode(rawValue: UserDefaults.standard.string(forKey: "appearanceMode") ?? "auto") ?? .auto
+        
+        // Haptics & Sounds
+        self.enableHaptics = UserDefaults.standard.object(forKey: "enableHaptics") as? Bool ?? true
+        self.enableSounds  = UserDefaults.standard.object(forKey: "enableSounds")  as? Bool ?? false
+        
+        // Difficulty
+        let storedDifficulty = UserDefaults.standard.string(forKey: "difficulty") ?? "normal"
+        self.difficulty = Difficulty(rawValue: storedDifficulty) ?? .normal
+    }
+    
+    // MARK: - Enums
+    
+    // Light, dark and auto themes
     enum AppearanceMode: String, CaseIterable, Identifiable {
         
         case auto, light, dark
-        
         var id: String { self.rawValue }
         
         var colorScheme: ColorScheme? {
@@ -25,59 +42,86 @@ class SettingsModel: ObservableObject {
         }
     }
     
-    // NEW: Difficulty setting
+    // Difficulty setting
     enum Difficulty: String, CaseIterable, Identifiable {
-        case easy, normal, hard
         
+        case easy, normal, hard
         var id: String { self.rawValue }
         
         // Production multiplier:
-        // - Easy = +15% to coin generation
-        // - Normal = no change
-        // - Hard = -15% to coin generation
         var productionMultiplier: Double {
             
             switch self {
-                case .easy:   return 1.15
-                case .normal: return 1.0
-                case .hard:   return 0.85
+                case .easy:   return 1.15 // Easy = 15% extra to coin generation
+                case .normal: return 1.0 // Normal = no change
+                case .hard:   return 0.85 // Hard = 15% less to coin generation
             }
         }
         
         // Cost multiplier:
-        // - Easy = -15% cheaper costs
-        // - Normal = no change
-        // - Hard = +15% cost
         var costMultiplier: Double {
             
             switch self {
-                case .easy:   return 0.85
-                case .normal: return 1.0
-                case .hard:   return 1.15
+                case .easy:   return 0.85 // Easy = 15% cheaper costs
+                case .normal: return 1.0 // Normal = no change
+                case .hard:   return 1.15 // Hard = 15% higher costs
             }
         }
         
         // Round the value according to difficulty:
-        // - Easy => round **up** (ceil)
-        // - Normal => round down
-        // - Hard => round down
         func roundValue(_ value: Decimal) -> Decimal {
+            
             switch self {
                 
+                // Easy => round **up** (ceil)
                 case .easy:
                     return value.roundedUpToWhole()
                 
+                // Normal => round down
                 case .normal:
                     return value.roundedDownToWhole()
                 
+                // Hard => round down
                 case .hard:
                     return value.roundedDownToWhole()
             }
         }
     }
     
+    enum ResetType: CaseIterable {
+        
+        case coins, powerUps, exchangedCoins, achievements, steps, miniGames, all
+
+        var description: String {
+            switch self {
+            case .coins: return "Reset your coin value to 0."
+            case .powerUps: return "Remove all your power-ups."
+            case .exchangedCoins: return "Reset all exchanged coins."
+            case .achievements: return "Reset all achievements."
+            case .steps: return "Reset total steps and coins from steps."
+            case .miniGames: return "Reset all unlocked mini-games."
+            case .all: return "Reset everything."
+            }
+        }
+
+        var buttonLabel: String {
+            switch self {
+            case .coins: return "💰 Reset Coins 💰"
+            case .powerUps: return "💻 Remove Power-Ups 💻"
+            case .exchangedCoins: return "🪙 Reset Exchanged Coins 🪙"
+            case .achievements: return "🏆 Reset Achievements 🏆"
+            case .steps: return "👟 Reset Steps 👟"
+            case .miniGames: return "🎮 Reset Mini-Games 🎮"
+            case .all: return "⚠️ Remove All ⚠️"
+            }
+        }
+    }
+
     // MARK: - Published Properties
     
+    @Published var refreshTrigger: Int = 0 // Triggers a view refresh
+    @Published var resetExchangedCoins: Bool = false // To reset exchanged coins
+
     @Published var appearanceMode: AppearanceMode {
         didSet {
             refreshTrigger += 1 // Force refresh on change
@@ -85,10 +129,6 @@ class SettingsModel: ObservableObject {
         }
     }
     
-    @Published var refreshTrigger: Int = 0 // Triggers a view refresh
-    
-    @Published var resetExchangedCoins: Bool = false // To reset exchanged coins
-
     @Published var enableHaptics: Bool {
         didSet {
             UserDefaults.standard.set(enableHaptics, forKey: "enableHaptics")
@@ -108,19 +148,47 @@ class SettingsModel: ObservableObject {
             UserDefaults.standard.set(difficulty.rawValue, forKey: "difficulty")
         }
     }
-        
-    // MARK: - Initializer
     
-    init() {
-        // Appearance mode
-        self.appearanceMode = AppearanceMode(rawValue: UserDefaults.standard.string(forKey: "appearanceMode") ?? "auto") ?? .auto
-        
-        // Haptics & Sounds
-        self.enableHaptics = UserDefaults.standard.object(forKey: "enableHaptics") as? Bool ?? true
-        self.enableSounds  = UserDefaults.standard.object(forKey: "enableSounds")  as? Bool ?? false
-        
-        // Difficulty
-        let storedDifficulty = UserDefaults.standard.string(forKey: "difficulty") ?? "normal"
-        self.difficulty = Difficulty(rawValue: storedDifficulty) ?? .normal
+    // MARK: - Other methods
+    
+    // Reset handler logic centralized in the model
+    @MainActor
+    func handleReset(
+        type: ResetType,
+        store: CryptoStore,
+        powerUps: PowerUps,
+        coinExchange: CoinExchangeModel,
+        achievements: AchievementsModel,
+        miniGames: MiniGamesModel
+    ) {
+        switch type {
+            case .coins:
+                store.resetCoinValue()
+            
+            case .powerUps:
+                store.resetPowerUps()
+            
+            case .exchangedCoins:
+                coinExchange.resetExchangedCoins()
+            
+            case .achievements:
+                achievements.resetAchievements()
+            
+            case .steps:
+                store.resetSteps()
+            
+            case .miniGames:
+                miniGames.resetMiniGames()
+            
+            case .all:
+                store.resetCoinValue()
+                store.resetPowerUps()
+                store.resetSteps()
+                coinExchange.resetExchangedCoins()
+                achievements.resetAchievements()
+                miniGames.resetMiniGames() // Locks the minigames previously unlocked
+                store.resetStats() // Resets all other stats
+            }
     }
+
 }

@@ -82,7 +82,7 @@ struct ContentView: View {
                 totalCoins: watchManager.coinValue,
                 totalPowerUpsOwned: watchManager.totalPowerUpsOwned,
                 totalExchangedCoins: watchManager.totalExchangedCoins,
-                totalSteps: watchManager.totalSteps,
+                localSteps: watchManager.localSteps,
                 totalCoinsFromSteps: watchManager.totalCoinsFromSteps,
                 totalCoinsFromMiniGames: watchManager.totalCoinsFromMiniGames,
                 totalCoinsFromClicks: watchManager.totalCoinsFromClicks,
@@ -118,7 +118,7 @@ struct StatsView: View {
     let totalCoins: Decimal
     let totalPowerUpsOwned: Int
     let totalExchangedCoins: Int
-    let totalSteps: Int
+    let localSteps: Int // Local steps from watch
     let totalCoinsFromSteps: Decimal
     let totalCoinsFromMiniGames: Decimal
     let totalCoinsFromClicks: Decimal
@@ -140,7 +140,7 @@ struct StatsView: View {
                 
                 // Display all stats
                 VStack(alignment: .leading, spacing: 10) {
-                    StatRow(title: "👟 Total Steps Taken", value: Decimal(totalSteps))
+                    StatRow(title: "👟 Total Steps Taken", value: Decimal(localSteps))
                     StatRow(title: "🦵 Coins Earned from Steps", value: totalCoinsFromSteps)
                     StatRow(title: "👣 Coins Gained Per Step", value: coinsPerStep)
                     StatRow(title: "⏱️ Coins Gained Per Second", value: coinsPerSecond)

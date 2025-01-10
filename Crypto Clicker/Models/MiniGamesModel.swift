@@ -14,6 +14,10 @@ class MiniGamesModel: ObservableObject {
         case tetris
     }
 
+    init() {
+        loadUnlockedStates()
+    }
+
     @Published var isBlackjackUnlocked: Bool = false
     @Published var isTetrisUnlocked: Bool = false
 
@@ -80,8 +84,11 @@ class MiniGamesModel: ObservableObject {
         isBlackjackUnlocked = unlockedStates[.blackjack] ?? false
         isTetrisUnlocked = unlockedStates[.tetris] ?? false
     }
-
-    init() {
-        loadUnlockedStates()
+    
+    // Resets all mini-games to locked state
+    func resetMiniGames() {
+        isBlackjackUnlocked = false
+        isTetrisUnlocked = false
+        saveUnlockedStates()
     }
 }

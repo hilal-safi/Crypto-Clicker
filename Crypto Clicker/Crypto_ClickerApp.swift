@@ -24,6 +24,7 @@ struct Crypto_ClickerApp: App {
         // Create local instances first (no references to `self`)
         let st = CryptoStore()
         let ex = CoinExchangeModel.shared
+        ex.configureStore(st) // Configure the store for CoinExchangeModel
         let set = SettingsModel()
         let am = AchievementsModel.shared
         am.configureDependencies(exchangeModel: ex, powerUps: st.powerUps, store: st)
