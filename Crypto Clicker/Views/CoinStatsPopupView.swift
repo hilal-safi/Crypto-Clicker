@@ -19,11 +19,13 @@ struct CoinStatsPopupView: View {
     let totalCoinsEverEarned: Decimal
     
     let miniGameWinMultiplier: Decimal
-
+    let totalCoinsSpent: Decimal
+    
     let onClose: () -> Void
     @Environment(\.colorScheme) var colorScheme // Detect the system or app-specific color scheme
 
     var body: some View {
+        
         ZStack {
             // Blur the background
             BlurView(
@@ -56,6 +58,7 @@ struct CoinStatsPopupView: View {
                         StatisticRow(title: "💻 Total Power-Ups Owned", value: Decimal(totalPowerUpsOwned))
                         StatisticRow(title: "🔄 Total Exchanged Coins", value: Decimal(totalExchangedCoins))
                         StatisticRow(title: "🪙 Current Coins", value: totalCoins)
+                        StatisticRow(title: "🛒 Total Coins Spent", value: totalCoinsSpent)
                         StatisticRow(title: "💰 Total Coins Earned", value: totalCoinsEverEarned)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -140,6 +143,7 @@ struct CoinStatsPopupView_Previews: PreviewProvider {
             totalCoinsFromIdle: 3_000_000,
             totalCoinsEverEarned: 200_000_000,
             miniGameWinMultiplier: 50,
+            totalCoinsSpent: 9999999,
             onClose: {}
         )
         .previewLayout(.sizeThatFits)
@@ -160,6 +164,7 @@ struct CoinStatsPopupView_Previews: PreviewProvider {
             totalCoinsFromIdle: 3_000_000,
             totalCoinsEverEarned: 200_000_000,
             miniGameWinMultiplier: 50,
+            totalCoinsSpent: 9999999,
             onClose: {}
         )
         .previewLayout(.sizeThatFits)

@@ -14,6 +14,8 @@ class CoinExchangeModel: ObservableObject {
         return instance
     }()
     
+    private var store: CryptoStore? // Add a reference to CryptoStore
+
     // A simple struct to represent a coin and its properties.
     struct CoinTypeInfo {
         
@@ -171,26 +173,36 @@ class CoinExchangeModel: ObservableObject {
     /// Actually subtract the cost from user's coins and increment the coin count.
     func performExchange(for type: CoinType, quantity: Int, with coins: inout CryptoCoin?) {
         
-        guard var coins = coins else {
+        guard let store = store else {
+            updateMessage("Error: Store not configured.", backgroundColor: .red)
+            return
+        }
+
+        guard let coins = coins else {
             updateMessage("Invalid coin data.", backgroundColor: .red)
             return
         }
+        
         guard let index = availableCoins.firstIndex(where: { $0.type == type }) else {
             updateMessage("Coin type not found.", backgroundColor: .red)
             return
         }
+        
         var coinInfo = availableCoins[index]
         
         let finalCost = calculateCost(for: coinInfo, quantity: quantity)
         
-        // 5) Check if user has enough coins
+        // Check if user has enough coins
         guard coins.value >= finalCost else {
             updateMessage("Not enough coins for \(quantity) \(coinInfo.label).", backgroundColor: .red)
             return
         }
-        coins.value -= finalCost
         
-        // 6) Update count
+        Task { @MainActor in
+            store.spendCoins(amount: finalCost) // Call spendCoins on the main actor
+        }
+
+        // Update count
         coinInfo.count += quantity
         availableCoins[index] = coinInfo
         saveCoinsToUserDefaults()

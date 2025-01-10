@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct TetrisBottomView: View {
     
@@ -17,7 +18,10 @@ struct TetrisBottomView: View {
             
             if tetrisModel.gameState == .notStarted || tetrisModel.gameState == .gameOver {
                 // Start game button
-                Button(action: { tetrisModel.startGame() }) {
+                Button(action: {
+                    HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
+                    tetrisModel.startGame()
+                }) {
                     Text("Start Game")
                         .font(.title2) // Match font size to control buttons
                         .padding()
@@ -31,21 +35,33 @@ struct TetrisBottomView: View {
             } else {
                 // Control buttons during the game
                 controlButton(symbol: "arrow.left",
-                              action: { tetrisModel.moveCurrentPieceLeft() },
+                              action: {
+                                      HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
+                                      tetrisModel.moveCurrentPieceLeft()
+                              },
                               disabled: tetrisModel.gameState == .paused)
                 
                 controlButton(symbol: "arrow.clockwise",
-                              action: { tetrisModel.rotateCurrentPiece() },
+                              action: {
+                                      HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
+                                      tetrisModel.rotateCurrentPiece()
+                              },
                               disabled: tetrisModel.gameState == .paused,
                               color: .orange)
                 
                 controlButton(symbol: "arrow.down.circle",
-                              action: { tetrisModel.fastDrop() },
+                              action: {
+                                    HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
+                                    tetrisModel.fastDrop()
+                              },
                               disabled: tetrisModel.gameState == .paused,
                               color: .red)
                 
                 controlButton(symbol: "arrow.right",
-                              action: { tetrisModel.moveCurrentPieceRight() },
+                              action: {
+                                    HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
+                                    tetrisModel.moveCurrentPieceRight()
+                              },
                               disabled: tetrisModel.gameState == .paused)
             }
         }

@@ -11,15 +11,17 @@ struct BlackjackBottomView: View {
     
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var model: BlackjackModel
-
+    
     var body: some View {
         
         VStack(spacing: 10) {
             
             // Display current bet
             HStack {
+                
                 Text("Bet Amount:")
                     .font(.title2)
+                
                 Text("\(model.betAmount)")
                     .font(.title2)
                     .bold()
@@ -27,6 +29,7 @@ struct BlackjackBottomView: View {
             
             // Bet Adjustment (only if waitingForBet)
             if model.gameState == .waitingForBet {
+                
                 HStack(spacing: 15) {
                     betAdjustmentView(amount: 1)
                     Spacer()
@@ -35,11 +38,12 @@ struct BlackjackBottomView: View {
                     betAdjustmentView(amount: 10)
                 }
             }
-
+            
             HStack(spacing: 5) {
                 
                 if model.gameOver {
                     Button(action: {
+                        HapticFeedbackModel.triggerNormalHaptic() // Normal haptic feedback
                         model.resetGame()
                     }) {
                         Text("New Game")
@@ -55,10 +59,14 @@ struct BlackjackBottomView: View {
                     
                     // Place Bet (only visible if waiting)
                     if model.gameState == .waitingForBet {
+                        
                         HStack {
+                            
                             betAdjustmentView(amount: 500)
                             Spacer()
+                            
                             Button("Place Bet") {
+                                HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
                                 model.placeBet(amount: model.betAmount)
                             }
                             .font(.headline)
@@ -75,6 +83,7 @@ struct BlackjackBottomView: View {
                     if model.gameState == .playerTurn {
                         
                         Button("Hit") {
+                            HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
                             model.hitPlayer()
                         }
                         .font(.headline)
@@ -84,6 +93,7 @@ struct BlackjackBottomView: View {
                         .cornerRadius(8)
                         
                         Button("Stand") {
+                            HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
                             model.stand()
                         }
                         .font(.headline)
@@ -91,8 +101,9 @@ struct BlackjackBottomView: View {
                         .background(Color.red)
                         .foregroundColor(.black)
                         .cornerRadius(8)
-
+                        
                         Button("Double Down") {
+                            HapticFeedbackModel.triggerNormalHaptic() // Normal haptic feedback
                             model.doubleDown()
                         }
                         .font(.headline)
@@ -103,6 +114,7 @@ struct BlackjackBottomView: View {
                         .disabled(!canDoubleDown)
                         
                         Button("Split") {
+                            HapticFeedbackModel.triggerNormalHaptic() // Normal haptic feedback
                             model.split()
                         }
                         .font(.headline)
@@ -121,6 +133,7 @@ struct BlackjackBottomView: View {
     // MARK: - Private Helpers
     
     private var canDoubleDown: Bool {
+        
         guard model.gameState == .playerTurn else { return false }
         guard model.currentPlayerHand.count == 2 else { return false }
         guard !model.hasDoubledDown else { return false }
@@ -132,6 +145,7 @@ struct BlackjackBottomView: View {
     }
     
     private var canSplit: Bool {
+        
         guard model.gameState == .playerTurn else { return false }
         guard model.currentPlayerHand.count == 2 else { return false }
         guard !model.hasSplit else { return false }
@@ -140,8 +154,11 @@ struct BlackjackBottomView: View {
     }
     
     private func betAdjustmentView(amount: Int) -> some View {
+        
         HStack(spacing: 2) {
+            
             Button(action: {
+                HapticFeedbackModel.triggerLightHaptic() // Light haptic feedback
                 model.betAmount = max(1, model.betAmount - amount)
             }) {
                 Text("-")
@@ -155,12 +172,13 @@ struct BlackjackBottomView: View {
                             .stroke(Color.gray, lineWidth: 2)
                     )
             }
-
+            
             Text("\(amount)")
                 .font(.headline)
                 .frame(width: dynamicWidth(for: amount), height: 30)
-
+            
             Button(action: {
+                HapticFeedbackModel.triggerLightHaptic() // Light haptic feedback
                 model.betAmount += amount
             }) {
                 Text("+")
@@ -178,12 +196,15 @@ struct BlackjackBottomView: View {
     }
     
     private func dynamicWidth(for amount: Int) -> CGFloat {
+        
         if amount <= 10 {
             return 25 // Slightly larger width for 1 and 5
         }
+        
         let digitCount = String(amount).count
         return CGFloat(digitCount * 12) // Standard dynamic width for other values
-    }}
+    }
+}
 
 struct BlackjackBottomView_Previews: PreviewProvider {
     

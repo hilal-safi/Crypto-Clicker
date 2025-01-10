@@ -135,14 +135,18 @@ extension PhoneSessionManager: WCSessionDelegate {
     private func handleAddSteps(message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         
         let steps = message["steps"] as? Int ?? 0
-        print("[PhoneSessionManager] Received addSteps with \(steps) steps.")
+        let currentSteps = message["currentSteps"] as? Int ?? 0
+
+        // Merge the current steps from the Watch with the Phone's totalSteps
+        let updatedSteps = max(store?.totalSteps ?? 0, currentSteps + steps)
+
+        print("[PhoneSessionManager] Received addSteps. Steps: \(steps), CurrentSteps: \(currentSteps), UpdatedSteps: \(updatedSteps)")
 
         Task {
-            await store?.incrementCoinsFromSteps(steps)
-            
+            await store?.incrementCoinsFromSteps(updatedSteps - (store?.totalSteps ?? 0)) // Increment only the difference
+            store?.totalSteps = updatedSteps // Update the total steps
             DispatchQueue.main.async {
-                let updatedSteps = self.store?.totalSteps ?? 0
-                replyHandler(["updatedSteps": updatedSteps])
+                replyHandler(["updatedSteps": updatedSteps]) // Respond with the updated step count
             }
         }
     }
@@ -151,10 +155,14 @@ extension PhoneSessionManager: WCSessionDelegate {
         
         let steps = message["steps"] as? Int ?? 0
 
+        // Merge Watch steps with Phone steps
+        let updatedSteps = max(store?.totalSteps ?? 0, steps)
+
         Task {
-            await store?.initializeTotalSteps(steps)
+            store?.totalSteps = updatedSteps
+            await store?.saveStepStats()
             DispatchQueue.main.async {
-                replyHandler(["status": "initialized"])
+                replyHandler(["updatedSteps": updatedSteps])
             }
         }
     }
@@ -214,7 +222,8 @@ extension PhoneSessionManager: WCSessionDelegate {
             "phoneCoinsFromSteps": "\(store.totalCoinsFromSteps)",
             "phoneTotalPowerUpsOwned": "\(store.powerUps.calculateTotalOwned())",
             "phoneTotalExchangedCoins": "\(CoinExchangeModel.shared.totalExchangedCoins())",
-            "phoneTotalCoinsEverEarned": "\(store.totalCoinsEverEarned)" // Add this line
+            "phoneTotalCoinsEverEarned": "\(store.totalCoinsEverEarned)",
+            "phoneTotalCoinsSpent": "\(store.totalCoinsSpent)"
         ]
         return stats
     }}

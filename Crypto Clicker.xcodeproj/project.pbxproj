@@ -21,6 +21,7 @@
 		9E3F2A6A2D30A3FB00F195FA /* TetrisGameOverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A692D30A3FB00F195FA /* TetrisGameOverView.swift */; };
 		9E3F2A6C2D30A40D00F195FA /* TetrisBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A6B2D30A40D00F195FA /* TetrisBoardView.swift */; };
 		9E3F2A6E2D30A4FA00F195FA /* TetrisPieceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A6D2D30A4FA00F195FA /* TetrisPieceView.swift */; };
+		9E3F2A702D30BC3800F195FA /* HapticFeedbackModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3F2A6F2D30BC3800F195FA /* HapticFeedbackModel.swift */; };
 		9E4CD0772CF5882600328F86 /* ShopModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0762CF5882000328F86 /* ShopModel.swift */; };
 		9E4CD0792CF5885500328F86 /* ShopItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD0782CF5884C00328F86 /* ShopItemView.swift */; };
 		9E4CD07B2CF8081E00328F86 /* CoinExchangeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */; };
@@ -132,6 +133,7 @@
 		9E3F2A692D30A3FB00F195FA /* TetrisGameOverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisGameOverView.swift; sourceTree = "<group>"; };
 		9E3F2A6B2D30A40D00F195FA /* TetrisBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisBoardView.swift; sourceTree = "<group>"; };
 		9E3F2A6D2D30A4FA00F195FA /* TetrisPieceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisPieceView.swift; sourceTree = "<group>"; };
+		9E3F2A6F2D30BC3800F195FA /* HapticFeedbackModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticFeedbackModel.swift; sourceTree = "<group>"; };
 		9E4CD0762CF5882000328F86 /* ShopModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopModel.swift; sourceTree = "<group>"; };
 		9E4CD0782CF5884C00328F86 /* ShopItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopItemView.swift; sourceTree = "<group>"; };
 		9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinExchangeModel.swift; sourceTree = "<group>"; };
@@ -313,6 +315,7 @@
 				9EC1AC632C8FC9330055A38D /* CryptoStore.swift */,
 				9EEE79902D286D9F00FBC049 /* Decimal+Extension.swift */,
 				9EC1AC6A2C8FCAB60055A38D /* ErrorWrapper.swift */,
+				9E3F2A6F2D30BC3800F195FA /* HapticFeedbackModel.swift */,
 				9E3F2A612D3069C200F195FA /* MiniGamesModel.swift */,
 				9EEE79C42D29AAF200FBC049 /* PhoneSessionManager.swift */,
 				9E3970392CDF14C700E461F6 /* PowerUps.swift */,
@@ -626,6 +629,7 @@
 				9E39702E2CDD552A00E461F6 /* BackgroundView.swift in Sources */,
 				9EC655282D0FABC800D94007 /* AchievementsModel.swift in Sources */,
 				9EC1AC662C8FC96B0055A38D /* CryptoCoin.swift in Sources */,
+				9E3F2A702D30BC3800F195FA /* HapticFeedbackModel.swift in Sources */,
 				9EEE79882D2342DB00FBC049 /* ShopMessageView.swift in Sources */,
 				9E3F2A682D30A39800F195FA /* TetrisBottomView.swift in Sources */,
 				9EC1AC3C2C8FA0850055A38D /* ContentView.swift in Sources */,

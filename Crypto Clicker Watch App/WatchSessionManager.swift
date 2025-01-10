@@ -24,11 +24,12 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     @Published var totalExchangedCoins: Int = 0
     @Published var totalSteps: Int = 0 // Total steps from phone
     @Published var totalCoinsFromSteps: Decimal = 0 // Total coins from steps from phone
-    @Published var totalCoinsFromMiniGames: Decimal = 0 // **Add this missing property**
+    @Published var totalCoinsFromMiniGames: Decimal = 0
     @Published var totalCoinsFromClicks: Decimal = 0
     @Published var totalCoinsFromIdle: Decimal = 0
     @Published var totalCoinsEverEarned: Decimal = 0
     @Published var miniGameWinMultiplier: Decimal = 0
+    @Published var totalCoinsSpent: Decimal = 0
 
     private var syncTimer: Timer?
     private var unsyncedUpdates: [[String: Any]] = []
@@ -62,6 +63,29 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         })
     }
 
+    func synchronizeSteps() {
+        
+        guard session.isReachable else { return }
+
+        let data: [String: Any] = [
+            "request": "initializeSteps",
+            "steps": totalSteps // Send the local step count
+        ]
+
+        session.sendMessage(data, replyHandler: { response in
+            
+            if let updatedSteps = response["updatedSteps"] as? Int {
+                
+                DispatchQueue.main.async {
+                    self.totalSteps = updatedSteps
+                    print("[WatchSessionManager] Steps synchronized on launch. Total steps: \(updatedSteps).")
+                }
+            }
+        }, errorHandler: { error in
+            print("[WatchSessionManager] Failed to synchronize steps: \(error.localizedDescription)")
+        })
+    }
+    
     /// Handles messages received from the iPhone
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         updateStats(with: message)
@@ -142,6 +166,11 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
                 let value = Decimal(string: miniGameWinMultiplierStr) {
                 self.miniGameWinMultiplier = value
             }
+            
+            if let totalCoinsSpentStr = data["phoneTotalCoinsSpent"] as? String,
+               let value = Decimal(string: totalCoinsSpentStr) {
+                self.totalCoinsSpent = value
+            }
         }
     }
     
@@ -174,6 +203,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     
     /// Sends step data to the iPhone
     func addSteps(_ steps: Int) {
+        
         guard session.isReachable else {
             // Only update locally if the phone is unreachable
             DispatchQueue.main.async {
@@ -187,15 +217,18 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         // Send the steps to the phone without updating locally
         let data: [String: Any] = [
             "request": "addSteps",
-            "steps": steps
+            "steps": steps,
+            "currentSteps": totalSteps // Send current steps to ensure synchronization
         ]
 
         session.sendMessage(data, replyHandler: { response in
-            // Only update local values if the phone acknowledges the steps
+            
             if let updatedSteps = response["updatedSteps"] as? Int {
+                
                 DispatchQueue.main.async {
-                    self.totalSteps = updatedSteps
-                    print("[WatchSessionManager] Steps synchronized. Updated total steps: \(updatedSteps).")
+                    // Always merge the new steps with the current count
+                    self.totalSteps = max(self.totalSteps, updatedSteps)
+                    print("[WatchSessionManager] Steps synchronized. Updated total steps: \(self.totalSteps).")
                 }
             }
         }, errorHandler: { error in

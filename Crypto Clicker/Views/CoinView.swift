@@ -38,7 +38,7 @@ struct CoinView: View {
             
             // Trigger haptic feedback if enabled
             if settings.enableHaptics {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
             }
             
         }) {

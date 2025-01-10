@@ -29,8 +29,10 @@ class CryptoStore: ObservableObject {
     @Published var totalCoinsFromIdle: Decimal = 0
     @Published var totalCoinsEverEarned: Decimal = 0
     
+    // Other Statistics
     @Published var miniGameWinMultiplier: Decimal = 0
-    
+    @Published var totalCoinsSpent: Decimal = 0
+
     // Hold a reference to the user's settings so we can access .difficulty.productionMultiplier and costMultiplier
     @Published var settings: SettingsModel?
     
@@ -123,15 +125,17 @@ class CryptoStore: ObservableObject {
     // Step-based methods: Called when new steps come in from watch or phone
     func incrementCoinsFromSteps(_ steps: Int) async {
         
+        guard steps > 0 else { return } // Avoid processing zero or negative steps
+
         totalSteps += steps
-        
+
         if var currentCoin = coins {
             // Calculate added coins based on the updated coinsPerStep
             let addedCoins = coinsPerStep * Decimal(steps)
-            
+
             // Update the coin value and totalCoinsFromSteps
             currentCoin.value += addedCoins
-            
+
             // Ensure the values are whole and valid
             currentCoin.value = min(currentCoin.value, Decimal.greatestFiniteMagnitude).roundedDownToWhole()
             coins = currentCoin
@@ -139,13 +143,21 @@ class CryptoStore: ObservableObject {
             totalCoinsFromSteps += addedCoins
             totalCoinsEverEarned += addedCoins
         }
-        
-        // Push updated coin stats to the watch
-        PhoneSessionManager.shared.pushCoinValueToWatch()
-        
+
         // Save the updated stats
         await saveStepStats()
         updateAndSaveCoins()
+
+        // Push updated coin stats to the watch
+        PhoneSessionManager.shared.pushCoinValueToWatch()
+    }
+    
+    // Modify coin spending logic to increment `totalCoinsSpent`
+    func spendCoins(amount: Decimal) {
+        
+        let roundedAmount = amount.roundedDownToWhole() // Ensure the amount is rounded
+        totalCoinsSpent += roundedAmount // Track the amount of coins spent
+        coins?.value -= roundedAmount // Deduct the coin value after purchase
     }
 
     // Reset coin value
@@ -208,9 +220,7 @@ class CryptoStore: ObservableObject {
         
         guard currentCoins.value >= finalCost else { return false }
         
-        // Subtract cost, rounding down to ensure whole
-        coins?.value = (currentCoins.value - finalCost)
-            .roundedDownToWhole()
+        spendCoins(amount: finalCost) // Call spendCoins
         powerUps.quantities[powerUp.name, default: 0] += quantity
         
         recalculateCoinsPerSecond()
@@ -249,8 +259,8 @@ class CryptoStore: ObservableObject {
         guard currentCoins.value >= finalCost else { return false }
         
         // Deduct the cost from the user's coins
-        coins?.value = (currentCoins.value - finalCost).roundedDownToWhole()
-        
+        spendCoins(amount: finalCost) // Call spendCoins
+
         // Mark the mini-game as unlocked
         miniGamesModel.markAsUnlocked(game)
         
@@ -496,6 +506,7 @@ extension CryptoStore {
             totalCoinsFromIdle: totalCoinsFromIdle,
             miniGameWinMultiplier: miniGameWinMultiplier,
             totalCoinsEverEarned: totalCoinsEverEarned,
+            totalCoinsSpent: totalCoinsSpent,
             totalSteps: totalSteps
         )
         do {
@@ -527,6 +538,7 @@ extension CryptoStore {
             totalCoinsFromIdle = loadedStats.totalCoinsFromIdle
             miniGameWinMultiplier = loadedStats.miniGameWinMultiplier
             totalCoinsEverEarned = loadedStats.totalCoinsEverEarned
+            totalCoinsSpent = loadedStats.totalCoinsSpent
             totalSteps = loadedStats.totalSteps
             
         } catch {
@@ -580,5 +592,6 @@ struct Stats: Codable {
     let totalCoinsFromIdle: Decimal
     let miniGameWinMultiplier: Decimal
     let totalCoinsEverEarned: Decimal
+    let totalCoinsSpent: Decimal
     let totalSteps: Int
 }

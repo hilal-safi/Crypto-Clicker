@@ -139,6 +139,18 @@ struct TetrisPiece {
             return CGSize(width: 10, height: 20) // Slightly right and down
         }
     }
+    
+    mutating func rotateCounterclockwise() {
+        let n = shape.count
+        var newShape = Array(repeating: Array(repeating: 0, count: n), count: n)
+        // Perform counterclockwise matrix rotation
+        for i in 0..<n {
+            for j in 0..<n {
+                newShape[n - j - 1][i] = shape[i][j]
+            }
+        }
+        shape = newShape
+    }
 }
 
 class TetrisModel: ObservableObject {
@@ -319,8 +331,31 @@ class TetrisModel: ObservableObject {
     
     // Rotate the current piece if possible
     func rotateCurrentPiece() {
+        
         guard var piece = currentPiece else { return }
+
+        // Attempt clockwise rotation
         piece.rotate()
+
+        if isValidPosition(piece: piece) {
+            currentPiece = piece
+            return
+        }
+
+        // Attempt to nudge inward by shifting left or right
+        for offset in [-1, 1] {
+            
+            var nudgedPiece = piece
+            nudgedPiece.col += offset
+            
+            if isValidPosition(piece: nudgedPiece) {
+                currentPiece = nudgedPiece
+                return
+            }
+        }
+
+        // Attempt counterclockwise rotation as a fallback
+        piece.rotateCounterclockwise()
         if isValidPosition(piece: piece) {
             currentPiece = piece
         }
@@ -335,10 +370,14 @@ class TetrisModel: ObservableObject {
     
     // Move the current piece one row downwards
     private func moveCurrentPieceDown() {
+        
         guard var piece = currentPiece else { return }
+        
         piece.row += 1
+        
         if isValidPosition(piece: piece) {
             currentPiece = piece
+            
         } else {
             // Cannot move further down: lock piece in place
             piece.row -= 1

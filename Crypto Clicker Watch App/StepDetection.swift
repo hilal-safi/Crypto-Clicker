@@ -58,9 +58,11 @@ class StepDetection: ObservableObject {
             } else if success {
                 print("[StepDetection] HealthKit authorized for stepCount")
                 
-                // Enable background delivery
-                self.enableBackgroundDelivery(for: stepType)
-                
+                // Enable background delivery on the main actor
+                Task { @MainActor in
+                    self.enableBackgroundDelivery(for: stepType)
+                }
+
                 // Start observing and querying steps
                 DispatchQueue.main.async {
                     self.startObservingSteps()

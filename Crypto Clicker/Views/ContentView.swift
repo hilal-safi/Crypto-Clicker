@@ -30,6 +30,7 @@ struct ContentView: View {
     var body: some View {
         
         ZStack {
+            
             NavigationStack {
                 
                 VStack {
@@ -71,18 +72,27 @@ struct ContentView: View {
                             .tag(Tab.minigames)
                     }
                     .background(Color.clear) // Ensure TabView background doesn't override the ZStack
+                    .onChange(of: selectedTab) {
+                        HapticFeedbackModel.triggerLightHaptic()
+                    }
                 }
                 .toolbar {
                     // Top navigation bar buttons
                     ToolbarItem(placement: .navigationBarTrailing) {
+                        
                         NavigationLink(destination: SettingsView(coins: $coins, store: store, powerUps: powerUps, settings: settings)) {
                             Image(systemName: "gearshape.fill")
                                 .imageScale(.large)
                         }
+                        .onTapGesture {
+                            HapticFeedbackModel.triggerLightHaptic()
+                        }
                     }
                     ToolbarItem(placement: .navigationBarLeading) {
+                        
                         Button(action: {
                             isInfoPresented = true
+                            HapticFeedbackModel.triggerLightHaptic()
                         }) {
                             Image(systemName: "info.circle")
                                 .imageScale(.large)
@@ -133,7 +143,11 @@ struct ContentView: View {
                         ),
                         showStatsPopup: $showStatsPopup // Pass the binding for the popup
                     )
-                    
+                    .onTapGesture {
+                        showStatsPopup = true
+                        HapticFeedbackModel.triggerLightHaptic()
+                    }
+
                     CoinView(
                         coinValue: Binding(
                             get: { coins?.value ?? Decimal(0) },
@@ -146,9 +160,15 @@ struct ContentView: View {
                     
                     PowerButtonView(store: store, coins: $coins)
                         .frame(width: UIScreen.main.bounds.width * 0.85)
-                    
+                        .onTapGesture {
+                            HapticFeedbackModel.triggerNormalHaptic()
+                        }
+
                     ExchangeButtonView(coins: $coins)
                         .frame(width: UIScreen.main.bounds.width * 0.85)
+                        .onTapGesture {
+                            HapticFeedbackModel.triggerNormalHaptic()
+                        }
                 }
             }
             // Popup overlay for coin stats
@@ -173,9 +193,11 @@ struct ContentView: View {
                     
                     totalCoinsEverEarned: store.totalCoinsEverEarned,
                     miniGameWinMultiplier: store.miniGameWinMultiplier,
-
+                    totalCoinsSpent: store.totalCoinsSpent,
+                    
                     onClose: {
                         showStatsPopup = false
+                        HapticFeedbackModel.triggerLightHaptic()
                     }
                 )
             }

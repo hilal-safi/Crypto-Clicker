@@ -31,11 +31,14 @@ class MiniGamesModel: ObservableObject {
     /// Marks a mini-game as unlocked and persists the state
     /// - Parameter game: The mini-game to unlock
     func markAsUnlocked(_ game: MiniGame) {
+        
         switch game {
-        case .blackjack:
-            isBlackjackUnlocked = true
-        case .tetris:
-            isTetrisUnlocked = true
+            
+            case .blackjack:
+                isBlackjackUnlocked = true
+            
+            case .tetris:
+                isTetrisUnlocked = true
         }
         saveUnlockedStates()
     }
@@ -44,16 +47,20 @@ class MiniGamesModel: ObservableObject {
     /// - Parameter game: The mini-game to check
     /// - Returns: True if the game is unlocked
     func isUnlocked(_ game: MiniGame) -> Bool {
+        
         switch game {
-        case .blackjack:
-            return isBlackjackUnlocked
-        case .tetris:
-            return isTetrisUnlocked
+            
+            case .blackjack:
+                return isBlackjackUnlocked
+            
+            case .tetris:
+                return isTetrisUnlocked
         }
     }
 
     /// Save unlocked states to UserDefaults
     func saveUnlockedStates() {
+        
         let unlockedStates = [
             MiniGame.blackjack: isBlackjackUnlocked,
             MiniGame.tetris: isTetrisUnlocked
@@ -65,6 +72,7 @@ class MiniGamesModel: ObservableObject {
 
     /// Load unlocked states from UserDefaults
     func loadUnlockedStates() {
+        
         guard let data = UserDefaults.standard.data(forKey: "MiniGamesUnlockedStates"),
               let unlockedStates = try? JSONDecoder().decode([MiniGame: Bool].self, from: data) else {
             return

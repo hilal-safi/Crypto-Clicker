@@ -68,6 +68,7 @@ struct BlackjackTopView: View {
             selectedCoin = coin.type
             
         } label: {
+            
             VStack {
                 Image(coin.imageName)
                     .resizable()

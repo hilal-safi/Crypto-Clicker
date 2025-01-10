@@ -88,7 +88,8 @@ struct ContentView: View {
                 totalCoinsFromClicks: watchManager.totalCoinsFromClicks,
                 totalCoinsFromIdle: watchManager.totalCoinsFromIdle,
                 totalCoinsEverEarned: watchManager.totalCoinsEverEarned,
-                miniGameWinMultiplier: watchManager.miniGameWinMultiplier
+                miniGameWinMultiplier: watchManager.miniGameWinMultiplier,
+                totalCoinsSpent: watchManager.totalCoinsSpent
             )
         }
         .onAppear {
@@ -124,6 +125,7 @@ struct StatsView: View {
     let totalCoinsFromIdle: Decimal
     let totalCoinsEverEarned: Decimal
     let miniGameWinMultiplier: Decimal
+    let totalCoinsSpent: Decimal
     
     var body: some View {
         
@@ -150,6 +152,7 @@ struct StatsView: View {
                     StatRow(title: "🕹️ Coins Earned From Mini Games", value: totalCoinsFromMiniGames)
                     StatRow(title: "🎲 Mini Game Reward Multiplier (%)", value: miniGameWinMultiplier)
                     StatRow(title: "🪙 Current Coins", value: totalCoins)
+                    StatRow(title: "🛒 Total Coins Spent", value: totalCoinsSpent)
                     StatRow(title: "💰 Total Coins Earned", value: totalCoinsEverEarned)
                 }
 
