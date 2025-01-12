@@ -97,11 +97,11 @@ struct ContentView: View {
             watchManager.requestCoinData() // Fetch all stats from the phone
 
             // Fetch steps immediately on first load
-            stepDetector.fetchStepsSinceMidnight()
+            //stepDetector.fetchStepsSinceMidnight()
             print("[ContentView] Fetching initial step and coin data.")
         }
         .onDisappear {
-            stepDetector.saveData() // Save steps and coins before exiting
+            WatchSessionManager.shared.syncPendingSteps()
         }
     }
 }

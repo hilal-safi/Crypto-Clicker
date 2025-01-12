@@ -142,14 +142,16 @@ class CryptoStore: ObservableObject {
 
             totalCoinsFromSteps += addedCoins
             totalCoinsEverEarned += addedCoins
+            
+            // Push updated stats to the watch without delay
+            PhoneSessionManager.shared.pushCoinValueToWatch()
         }
 
-        // Save the updated stats
-        await saveStepStats()
-        updateAndSaveCoins()
-
-        // Push updated coin stats to the watch
-        PhoneSessionManager.shared.pushCoinValueToWatch()
+        // Save step stats asynchronously
+        Task {
+            await saveStepStats()
+            updateAndSaveCoins()
+        }
     }
     
     // Modify coin spending logic to increment `totalCoinsSpent`

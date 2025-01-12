@@ -176,7 +176,8 @@ class SettingsModel: ObservableObject {
             
             case .steps:
                 store.resetSteps()
-            
+                PhoneSessionManager.shared.resetWatchLocalSteps()
+
             case .miniGames:
                 miniGames.resetMiniGames()
             
@@ -184,6 +185,7 @@ class SettingsModel: ObservableObject {
                 store.resetCoinValue()
                 store.resetPowerUps()
                 store.resetSteps()
+                PhoneSessionManager.shared.resetWatchLocalSteps()
                 coinExchange.resetExchangedCoins()
                 achievements.resetAchievements()
                 miniGames.resetMiniGames() // Locks the minigames previously unlocked
