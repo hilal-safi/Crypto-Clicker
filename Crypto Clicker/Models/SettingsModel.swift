@@ -192,5 +192,4 @@ class SettingsModel: ObservableObject {
                 store.resetStats() // Resets all other stats
             }
     }
-
 }

@@ -134,6 +134,7 @@
 		9E3F2A6B2D30A40D00F195FA /* TetrisBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisBoardView.swift; sourceTree = "<group>"; };
 		9E3F2A6D2D30A4FA00F195FA /* TetrisPieceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TetrisPieceView.swift; sourceTree = "<group>"; };
 		9E3F2A6F2D30BC3800F195FA /* HapticFeedbackModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticFeedbackModel.swift; sourceTree = "<group>"; };
+		9E3F2A712D34E2E600F195FA /* Crypto-Clicker-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Crypto-Clicker-Info.plist"; sourceTree = SOURCE_ROOT; };
 		9E4CD0762CF5882000328F86 /* ShopModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopModel.swift; sourceTree = "<group>"; };
 		9E4CD0782CF5884C00328F86 /* ShopItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopItemView.swift; sourceTree = "<group>"; };
 		9E4CD07A2CF8081400328F86 /* CoinExchangeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinExchangeModel.swift; sourceTree = "<group>"; };
@@ -269,6 +270,7 @@
 		9EC1AC382C8FA0850055A38D /* Crypto Clicker */ = {
 			isa = PBXGroup;
 			children = (
+				9E3F2A712D34E2E600F195FA /* Crypto-Clicker-Info.plist */,
 				9EA5D65C2D2B18DF00C09529 /* Crypto Clicker.entitlements */,
 				9EC1AC392C8FA0850055A38D /* Crypto_ClickerApp.swift */,
 				9EC1AC682C8FCA870055A38D /* Models */,
@@ -863,6 +865,7 @@
 				DEVELOPMENT_TEAM = YVXA294VWX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Crypto-Clicker-Info.plist";
 				INFOPLIST_KEY_NSFileProviderDomainUsageDescription = "";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This watch app uses your step count to reward coins in CryptoClicker";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -896,6 +899,7 @@
 				DEVELOPMENT_TEAM = YVXA294VWX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Crypto-Clicker-Info.plist";
 				INFOPLIST_KEY_NSFileProviderDomainUsageDescription = "";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This watch app uses your step count to reward coins in CryptoClicker";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

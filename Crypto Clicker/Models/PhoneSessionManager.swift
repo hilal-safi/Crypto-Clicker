@@ -25,6 +25,10 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     /// The active WatchConnectivity session on iPhone
     private let session = WCSession.default
     
+    // Track the watch coinValue from the last sync so we can see how many new coins were added.
+    @Published var lastSyncedWatchCoinValue: Decimal = 0
+    @Published var lastSyncedWatchCoinsFromSteps: Decimal = 0
+    
     /// Optional timer that periodically pushes data to the watch
     private var syncTimer: Timer?
     
@@ -153,63 +157,75 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
     
+    // handle user-info deliveries in the background
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
+        guard let request = userInfo["request"] as? String else {
+            print("[PhoneSessionManager] (didReceiveUserInfo) => no request key.")
+            return
+        }
+        switch request {
+        case "addSteps":
+            // There's no replyHandler for userInfo, so we just do background awarding
+            Task { @MainActor in
+                await handleAddStepsInBackground(userInfo)
+            }
+            
+        default:
+            print("[PhoneSessionManager] (didReceiveUserInfo) => unknown request \(request)")
+        }
+    }
+
     // MARK: - Message Handlers (MainActor)
     @MainActor
-    private func handleTapCoin(replyHandler: @escaping ([String: Any]) -> Void) {
-        
-        print("[PhoneSessionManager] handleTapCoin: awarding coin for watch tap.")
+    private func handleAddSteps(message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         
         guard let store = store else {
             replyHandler(["error": "No store available"])
             return
         }
         
-        // 1) Increment coin on phone
-        store.incrementCoinValue()
+        let steps = message["steps"] as? Int ?? 0
+        print("[PhoneSessionManager] handleAddSteps => steps=\(steps)")
         
-        // 2) Gather new phone coin value
+        Task {
+            await store.incrementCoinsFromSteps(steps)
+        }
+        
         let updatedValue = store.coins?.value ?? 0
-        print("[PhoneSessionManager] Updated coin value after tap: \(updatedValue)")
+        // Return phone’s coinValue + phone’s totalSteps
+        replyHandler([
+            "updatedSteps": store.totalSteps,
+            "updatedCoinValue": "\(updatedValue)"
+        ])
         
-        // 3) Return it immediately to watch
-        replyHandler(["updatedCoinValue": "\(updatedValue)"])
-        
-        // 4) Push full stats to watch as fallback
+        // Save step stats, push stats
+        Task {
+            await store.saveStepStats()
+        }
         pushCoinValueToWatch()
     }
-    
+
     @MainActor
-    private func handleAddSteps(message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        guard let store = store else {
-            replyHandler(["error": "No store available"])
-            return
-        }
+    private func handleAddStepsInBackground(_ userInfo: [String: Any]) async {
+        
+        guard let store = store else { return }
+        let steps = userInfo["steps"] as? Int ?? 0
+        
+        if steps > 0 {
+            // Award steps in the same way as handleAddSteps
+            print("[PhoneSessionManager] handleAddStepsInBackground => steps=\(steps)")
 
-        let steps = message["steps"] as? Int ?? 0
-        let watchCurrentSteps = message["currentSteps"] as? Int ?? 0
+            // We do the usual awarding
+            await store.incrementCoinsFromSteps(steps)
 
-        let newTotal = max(store.totalSteps, watchCurrentSteps + steps)
-        let diff = newTotal - store.totalSteps
-
-        if diff > 0 {
-            Task {
-                await store.incrementCoinsFromSteps(diff)
-                let updatedCoinValue = store.coins?.value ?? 0
-                replyHandler([
-                    "updatedSteps": newTotal,
-                    "updatedCoinValue": "\(updatedCoinValue)"
-                ])
-            }
-        } else {
-            store.totalSteps = newTotal
-            replyHandler(["updatedSteps": newTotal])
+            // Optionally: no direct reply to userInfo. We can push updated stats to watch
+            pushCoinValueToWatch()
         }
     }
-    
+
     @MainActor
-    private func handleInitializeSteps(message: [String: Any],
-                                       replyHandler: @escaping ([String: Any]) -> Void) {
-        
+    private func handleInitializeSteps(message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+
         print("[PhoneSessionManager] handleInitializeSteps called.")
         
         guard let store = store else {
@@ -235,6 +251,30 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         pushCoinValueToWatch()
     }
     
+    @MainActor
+    private func handleTapCoin(replyHandler: @escaping ([String: Any]) -> Void) {
+        
+        print("[PhoneSessionManager] handleTapCoin: awarding coin for watch tap.")
+        
+        guard let store = store else {
+            replyHandler(["error": "No store available"])
+            return
+        }
+        
+        // 1) Increment coin on phone
+        store.incrementCoinValue()
+        
+        // 2) Gather new phone coin value
+        let updatedValue = store.coins?.value ?? 0
+        print("[PhoneSessionManager] Updated coin value after tap: \(updatedValue)")
+        
+        // 3) Return it immediately to watch
+        replyHandler(["updatedCoinValue": "\(updatedValue)"])
+        
+        // 4) Push full stats to watch as fallback
+        pushCoinValueToWatch()
+    }
+
     @MainActor
     private func sendAllStats(replyHandler: @escaping ([String: Any]) -> Void) {
         

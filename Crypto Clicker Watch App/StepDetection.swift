@@ -13,19 +13,17 @@ import SwiftUI
 class StepDetection: ObservableObject {
     
     private let healthStore = HKHealthStore()
-    @Published var lastStepCount: Int = 0
+    
+    // Holds the total steps we’ve awarded so far
+    private var cumulativeSteps: Int = 0
     
     private var anchor: HKQueryAnchor?
-    private var lastProcessedSampleDate: Date?
-    
-    init() {
-        loadSavedData()
-        loadAnchorFromDefaults()
-        requestAuthorization()
-    }
 
-    deinit {
-        // If you had a repeating timer, invalidate it here.
+    init() {
+        loadAnchorFromDefaults()
+        let savedCumulative = UserDefaults.standard.integer(forKey: "cumulativeStepsKey")
+        cumulativeSteps = savedCumulative // Load persistent cumulativeSteps
+        requestAuthorization()
     }
     
     // MARK: - Authorization
@@ -154,42 +152,45 @@ class StepDetection: ObservableObject {
     }
     
     // MARK: - Process Samples
-    // Push steps to the phone immediately after processing
     private func processNewSamples(_ samplesOrNil: [HKSample]?) {
         
         guard let samples = samplesOrNil else { return }
+
         var totalNewSteps = 0
 
         for sample in samples {
+            
             guard let quantitySample = sample as? HKQuantitySample else { continue }
+            
             if quantitySample.quantityType.identifier == HKQuantityTypeIdentifier.stepCount.rawValue {
                 let stepsInSample = Int(quantitySample.quantity.doubleValue(for: .count()))
                 totalNewSteps += stepsInSample
             }
         }
 
-        if totalNewSteps > 0 {
-            print("[StepDetection] New steps detected: \(totalNewSteps)")
-            lastStepCount += totalNewSteps
-            WatchSessionManager.shared.addSteps(totalNewSteps) // Push to phone
-        }
+        let currentTotalSteps = totalNewSteps
+        let newStepsToAward = currentTotalSteps - cumulativeSteps
 
-        saveData()
+        // 1) Update cumulativeSteps in memory
+        cumulativeSteps = currentTotalSteps
+
+        // 2) **Persist** cumulativeSteps so it survives app restarts
+        UserDefaults.standard.set(cumulativeSteps, forKey: "cumulativeStepsKey")
+
+        // 3) Award new steps
+        if newStepsToAward > 0 {
+            print("[StepDetection] New steps to award: \(newStepsToAward)")
+            Task { @MainActor in
+                WatchSessionManager.shared.addSteps(newStepsToAward)
+            }
+        }
     }
     
-    // MARK: - Persistence
-    private func saveData() {
-        UserDefaults.standard.set(lastStepCount, forKey: "lastStepCount")
-    }
-    
-    private func loadSavedData() {
-        lastStepCount = UserDefaults.standard.integer(forKey: "lastStepCount")
-    }
-    
+    // MARK: - Background Delivery
     private func enableBackgroundDelivery(for sampleType: HKSampleType) {
         
         healthStore.enableBackgroundDelivery(for: sampleType, frequency: .immediate) { success, error in
-
+            
             if success {
                 print("[StepDetection] Background delivery enabled for \(sampleType.identifier).")
                 
@@ -210,8 +211,11 @@ class StepDetection: ObservableObject {
     
     private func loadAnchorFromDefaults() {
         
-        guard let data = UserDefaults.standard.data(forKey: "HKAnchorData"),
-              let savedAnchor = try? NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: data) else {
+        guard
+            let data = UserDefaults.standard.data(forKey: "HKAnchorData"),
+            let savedAnchor = try? NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: data)
+                
+        else {
             return
         }
         self.anchor = savedAnchor
