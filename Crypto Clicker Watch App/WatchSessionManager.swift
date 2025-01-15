@@ -36,7 +36,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     // For add steps method
     private var accumulatedSteps = 0
     private var lastStepSendDate = Date()
-
+    
     // Thresholds for updates
     private let stepSendThreshold = 1 // 1 step
     private let stepSendInterval: TimeInterval = 5 // 5 seconds
@@ -47,13 +47,14 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     @Published var localSteps: Int = 0 {
         didSet { saveLocalSteps() }
     }
-
+    
     // MARK: - Initializer
     private override init() {
         super.init()
         loadLocalSteps() // Load watch’s last-known local steps
+        loadCachedCoinValue()
     }
-
+    
     // MARK: - Start Session
     func startSession() {
         
@@ -65,19 +66,19 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         // Periodically request coin data from phone. (30s is enough to reduce spam.)
         startSyncTimer()
     }
-
-    // Periodic timer (every 10s) to sync steps & request stats
+    
+    // Periodic timer (every 60s) to sync steps & request stats
     private func startSyncTimer() {
-        syncTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+        syncTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.syncPendingSteps()       // flush step delta
             self?.requestCoinData()        // also poll phone for stats
         }
     }
-
+    
     deinit {
         syncTimer?.invalidate()
     }
-
+    
     // MARK: - Step Counting
     /// Called by StepDetection whenever new steps appear.
     /// **Sends only the 'delta'** to the phone—no local awarding.
@@ -85,22 +86,16 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         
         guard steps > 0 else { return }
         
-        // 1) We do not award coins here
         accumulatedSteps += steps
-        
-        // 2) For UI display on watch
-        localSteps += steps
-        
         let now = Date()
         
         if accumulatedSteps >= stepSendThreshold || now.timeIntervalSince(lastStepSendDate) > stepSendInterval {
             syncPendingSteps()
-            
         } else {
             print("[WatchSessionManager] Buffering steps => \(accumulatedSteps)")
         }
     }
-
+    
     /// Actually sends the buffered step delta to phone
     func syncPendingSteps() {
         
@@ -148,7 +143,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             print("[WatchSessionManager] transferUserInfo used. Steps=\(toSend)")
         }
     }
-
+    
     // Call syncPendingSteps when walking stops
     func walkingStopped() {
         if accumulatedSteps > 0 {
@@ -172,7 +167,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             print("[WatchSessionManager] initializeSteps error: \(error.localizedDescription)")
         })
     }
-
+    
     /// Sync local steps with phone if reachable
     func synchronizeSteps() {
         
@@ -196,7 +191,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             print("[WatchSessionManager] syncSteps error: \(err.localizedDescription)")
         })
     }
-
+    
     // MARK: - Tap Coin
     /// The watch "taps coin," but the phone does the actual awarding.
     func tapCoin() {
@@ -215,7 +210,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             
             if let updatedValue = reply["updatedCoinValue"] as? String,
                
-               let val = Decimal(string: updatedValue) {
+                let val = Decimal(string: updatedValue) {
                 
                 DispatchQueue.main.async {
                     self.coinValue = val
@@ -225,7 +220,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             print("[WatchSessionManager] tapCoin error: \(err.localizedDescription)")
         })
     }
-
+    
     // MARK: - Request Coin Data (polling or on demand)
     func requestCoinData() {
         
@@ -243,7 +238,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             print("[WatchSessionManager] requestCoinData error: \(error.localizedDescription)")
         })
     }
-
+    
     // MARK: - Update Stats from phone
     private func updateStats(with data: [String: Any]) {
         
@@ -254,72 +249,77 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             if let coinValueStr = data["phoneCoinValue"] as? String,
                let value = Decimal(string: coinValueStr) {
                 self.coinValue = value
+                UserDefaults.standard.set("\(value)", forKey: "lastKnownCoinValue") // Cache coin value
             }
-            
-            if let cpsStr = data["phoneCoinsPerSecond"] as? String,
-               let value = Decimal(string: cpsStr) {
+
+            if let phoneCoinsPerSecond = data["phoneCoinsPerSecond"] as? String,
+               let value = Decimal(string: phoneCoinsPerSecond) {
                 self.coinsPerSecond = value
             }
             
-            if let cpcStr = data["phoneCoinsPerClick"] as? String,
-               let value = Decimal(string: cpcStr) {
+            if let phoneCoinsPerClick = data["phoneCoinsPerClick"] as? String,
+               let value = Decimal(string: phoneCoinsPerClick) {
                 self.coinsPerClick = value
             }
             
-            if let cpsStepStr = data["phoneCoinsPerStep"] as? String,
-               let value = Decimal(string: cpsStepStr) {
+            if let phoneCoinsPerStep = data["phoneCoinsPerStep"] as? String,
+               let value = Decimal(string: phoneCoinsPerStep) {
                 self.coinsPerStep = value
             }
             
-            if let tpuStr = data["phoneTotalPowerUpsOwned"] as? String,
-               let tpuVal = Int(tpuStr) {
-                self.totalPowerUpsOwned = tpuVal
+            if let phoneTotalPowerUpsOwned = data["phoneTotalPowerUpsOwned"] as? String,
+               let value = Int(phoneTotalPowerUpsOwned) {
+                self.totalPowerUpsOwned = value
             }
             
             if let totalExchangedCoinsStr = data["phoneTotalExchangedCoins"] as? String,
-               let tecVal = Int(totalExchangedCoinsStr) {
-                self.totalExchangedCoins = tecVal
+               let value = Int(totalExchangedCoinsStr) {
+                self.totalExchangedCoins = value
             }
             
             if let totalStepsStr = data["phoneTotalSteps"] as? String,
-               let tsVal = Int(totalStepsStr) {
-                self.totalSteps = tsVal
+               let value = Int(totalStepsStr) {
+                self.totalSteps = value
             }
             
             if let coinsFromStepsStr = data["phoneCoinsFromSteps"] as? String,
-               let cfsVal = Decimal(string: coinsFromStepsStr) {
-                self.totalCoinsFromSteps = cfsVal
+               let value = Decimal(string: coinsFromStepsStr) {
+                self.totalCoinsFromSteps = value
             }
             
             if let totalCoinsFromMiniGamesStr = data["phoneCoinsFromMiniGames"] as? String,
-               let val = Decimal(string: totalCoinsFromMiniGamesStr) {
-                self.totalCoinsFromMiniGames = val
+               let value = Decimal(string: totalCoinsFromMiniGamesStr) {
+                self.totalCoinsFromMiniGames = value
             }
             
             if let totalCoinsFromClicksStr = data["phoneCoinsFromClicksStr"] as? String,
-               let val = Decimal(string: totalCoinsFromClicksStr) {
-                self.totalCoinsFromClicks = val
+               let value = Decimal(string: totalCoinsFromClicksStr) {
+                self.totalCoinsFromClicks = value
             }
             
             if let totalCoinsFromIdleStr = data["phoneCoinsFromIdle"] as? String,
-               let val = Decimal(string: totalCoinsFromIdleStr) {
-                self.totalCoinsFromIdle = val
+               let value = Decimal(string: totalCoinsFromIdleStr) {
+                self.totalCoinsFromIdle = value
             }
             
             if let totalCoinsEverEarnedStr = data["phoneTotalCoinsEverEarned"] as? String,
-               let val = Decimal(string: totalCoinsEverEarnedStr) {
-                self.totalCoinsEverEarned = val
+               let value = Decimal(string: totalCoinsEverEarnedStr) {
+                self.totalCoinsEverEarned = value
             }
             
             if let miniGameMultiplierStr = data["phoneMiniGameWinMultiplier"] as? String,
-               let val = Decimal(string: miniGameMultiplierStr) {
-                self.miniGameWinMultiplier = val
+               let value = Decimal(string: miniGameMultiplierStr) {
+                self.miniGameWinMultiplier = value
             }
             
             if let totalCoinsSpentStr = data["phoneTotalCoinsSpent"] as? String,
-               let val = Decimal(string: totalCoinsSpentStr) {
-                self.totalCoinsSpent = val
+               let value = Decimal(string: totalCoinsSpentStr) {
+                self.totalCoinsSpent = value
             }
+            
+            // Cache the last updated data for quick retrieval
+            UserDefaults.standard.set(data, forKey: "lastUpdatedStats")
+            print("[WatchSessionManager] Stats updated and cached.")
         }
     }
     
@@ -341,13 +341,13 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     func flushUnsyncedUpdates() {
         
         guard session.isReachable else { return }
-
+        
         unsyncedUpdates.forEach { data in
             session.sendMessage(data, replyHandler: nil, errorHandler: { error in
                 print("[WatchSessionManager] Failed to resend data: \(error.localizedDescription)")
             })
         }
-                
+        
         // Sync steps explicitly to avoid missed updates
         unsyncedUpdates.removeAll()
         synchronizeSteps()
@@ -365,13 +365,13 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     }
     
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-
+        
         // Check if there's a request key
         guard let request = message["request"] as? String else {
             updateStats(with: message)
             return
         }
-
+        
         switch request {
             
         case "resetLocalSteps":
@@ -407,5 +407,21 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     
     private func loadLocalSteps() {
         localSteps = UserDefaults.standard.integer(forKey: localStepsKey)
+    }
+    
+    private func loadCachedCoinValue() {
+        // Retrieve the saved coin value string from UserDefaults
+        let savedCoinString = UserDefaults.standard.string(forKey: "lastKnownCoinValue") ?? "0"
+        
+        // Attempt to parse the saved string into a Decimal value
+        if let decimalValue = Decimal(string: savedCoinString) {
+            // Update the `coinValue` property with the loaded value
+            self.coinValue = decimalValue
+            print("[WatchSessionManager] Loaded cached coinValue: \(decimalValue)")
+        } else {
+            // If parsing fails, log a warning and set coinValue to 0 as a fallback
+            self.coinValue = 0
+            print("[WatchSessionManager] Failed to parse cached coinValue, defaulting to 0.")
+        }
     }
 }

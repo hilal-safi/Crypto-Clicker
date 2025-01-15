@@ -24,6 +24,7 @@ struct CoinNumberView: View {
                         .font(.title)
                         .fontWeight(.bold)
                         .foregroundColor(.red)
+                        .padding(.top, 9)
 
                     Text("Click the coin below to mine it and increase the value!")
                         .font(.title2)
@@ -32,11 +33,14 @@ struct CoinNumberView: View {
                         .bold()
                         .fixedSize(horizontal: false, vertical: true) // Ensures the text expands vertically
                         .padding(.horizontal, 16) // Provide enough padding for clarity
+                        .padding(.bottom, 9)
                 }
                 .background(BlurView(style: .systemMaterial, reduction: 0.8))
                 .cornerRadius(12)
-                .padding(4)
-
+                .padding(8)
+                .padding(.top, -8)
+                .padding(.bottom, -22)
+                
             } else {
                 
                 Button(action: {

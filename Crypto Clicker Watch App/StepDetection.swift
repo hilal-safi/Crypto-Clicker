@@ -18,14 +18,32 @@ class StepDetection: ObservableObject {
     private var cumulativeSteps: Int = 0
     
     private var anchor: HKQueryAnchor?
+    
+    // To prevent overcounting of steps
+    private var lastProcessedEndDate: Date? {
+        didSet {
+            // Persist in UserDefaults so we don't re-award after app restarts
+            if let date = lastProcessedEndDate {
+                UserDefaults.standard.set(date.timeIntervalSince1970, forKey: "lastProcessedEndDate")
+            }
+        }
+    }
 
     init() {
         loadAnchorFromDefaults()
+        
         let savedCumulative = UserDefaults.standard.integer(forKey: "cumulativeStepsKey")
-        cumulativeSteps = savedCumulative // Load persistent cumulativeSteps
+        cumulativeSteps = savedCumulative
+        
+        // Load last processed end-date (to skip awarding duplicates)
+        let savedEndDate = UserDefaults.standard.double(forKey: "lastProcessedEndDate")
+        if savedEndDate > 0 {
+            self.lastProcessedEndDate = Date(timeIntervalSince1970: savedEndDate)
+        }
+        
         requestAuthorization()
     }
-    
+
     // MARK: - Authorization
     private func requestAuthorization() {
         
@@ -73,10 +91,8 @@ class StepDetection: ObservableObject {
     
     private func startAnchoredQuery(for stepType: HKQuantityType) {
         
-        let query = HKAnchoredObjectQuery(type: stepType,
-                                          predicate: nil,
-                                          anchor: anchor,
-                                          limit: HKObjectQueryNoLimit) { [weak self] _, samples, deleted, newAnchor, error in
+        let query = HKAnchoredObjectQuery(type: stepType, predicate: nil, anchor: anchor, limit: HKObjectQueryNoLimit) {
+            [weak self] _, samples, deleted, newAnchor, error in
             
             guard let self = self else { return }
             
@@ -84,7 +100,7 @@ class StepDetection: ObservableObject {
                 print("[StepDetection] Anchored Query error: \(error)")
                 return
             }
-            
+
             Task { @MainActor in
                 self.processNewSamples(samples)
                 self.anchor = newAnchor
@@ -107,16 +123,13 @@ class StepDetection: ObservableObject {
                 self.saveAnchorToDefaults(newAnchor)
             }
         }
-        
         healthStore.execute(query)
     }
     
     private func runAnchoredQuery(for stepType: HKQuantityType) {
         
-        let query = HKAnchoredObjectQuery(type: stepType,
-                                          predicate: nil,
-                                          anchor: anchor,
-                                          limit: HKObjectQueryNoLimit) { [weak self] _, samples, deleted, newAnchor, error in
+        let query = HKAnchoredObjectQuery(type: stepType, predicate: nil, anchor: anchor, limit: HKObjectQueryNoLimit) {
+            [weak self] _, samples, deleted, newAnchor, error in
             
             guard let self = self else { return }
             
@@ -147,7 +160,6 @@ class StepDetection: ObservableObject {
                 self.saveAnchorToDefaults(newAnchor)
             }
         }
-        
         healthStore.execute(query)
     }
     
@@ -156,32 +168,54 @@ class StepDetection: ObservableObject {
         
         guard let samples = samplesOrNil else { return }
 
-        var totalNewSteps = 0
+        var batchSteps = 0
+        var newestEndDate: Date? = nil
+
+        // Use a Set to track processed sample IDs (ensures no duplicate samples are processed)
+        var processedSampleIDs = Set<String>()
 
         for sample in samples {
-            
             guard let quantitySample = sample as? HKQuantitySample else { continue }
+
+            // Check if the sample has been processed before
+            if processedSampleIDs.contains(quantitySample.uuid.uuidString) {
+                continue
+            }
             
+            // Add sample UUID to the processed set
+            processedSampleIDs.insert(quantitySample.uuid.uuidString)
+
             if quantitySample.quantityType.identifier == HKQuantityTypeIdentifier.stepCount.rawValue {
+                let endDate = quantitySample.endDate
+
+                // Skip if sample ends on/before lastProcessedEndDate
+                if let lastDate = lastProcessedEndDate, endDate <= lastDate {
+                    continue
+                }
+
                 let stepsInSample = Int(quantitySample.quantity.doubleValue(for: .count()))
-                totalNewSteps += stepsInSample
+                batchSteps += stepsInSample
+
+                // Track the farthest endDate we've seen
+                if newestEndDate == nil || endDate > newestEndDate! {
+                    newestEndDate = endDate
+                }
             }
         }
 
-        let currentTotalSteps = totalNewSteps
-        let newStepsToAward = currentTotalSteps - cumulativeSteps
+        if batchSteps > 0 {
+            print("[StepDetection] Detected new steps = \(batchSteps). Sending to phone.")
+            cumulativeSteps += batchSteps
+            UserDefaults.standard.set(cumulativeSteps, forKey: "cumulativeStepsKey")
 
-        // 1) Update cumulativeSteps in memory
-        cumulativeSteps = currentTotalSteps
+            // Update lastProcessedEndDate to skip these samples in the future
+            if let endDate = newestEndDate {
+                lastProcessedEndDate = endDate
+            }
 
-        // 2) **Persist** cumulativeSteps so it survives app restarts
-        UserDefaults.standard.set(cumulativeSteps, forKey: "cumulativeStepsKey")
-
-        // 3) Award new steps
-        if newStepsToAward > 0 {
-            print("[StepDetection] New steps to award: \(newStepsToAward)")
+            // Send only this batch to the phone
             Task { @MainActor in
-                WatchSessionManager.shared.addSteps(newStepsToAward)
+                WatchSessionManager.shared.addSteps(batchSteps)
             }
         }
     }

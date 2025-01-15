@@ -178,7 +178,7 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     // MARK: - Message Handlers (MainActor)
     @MainActor
     private func handleAddSteps(message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        
+        // We get `steps` as a delta, so no need to do total-lifetime subtractions
         guard let store = store else {
             replyHandler(["error": "No store available"])
             return
@@ -192,19 +192,20 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         }
         
         let updatedValue = store.coins?.value ?? 0
-        // Return phone’s coinValue + phone’s totalSteps
+        let updatedSteps = store.totalSteps
+        
         replyHandler([
-            "updatedSteps": store.totalSteps,
+            "updatedSteps": updatedSteps,
             "updatedCoinValue": "\(updatedValue)"
         ])
         
-        // Save step stats, push stats
+        // Then push fresh stats
         Task {
             await store.saveStepStats()
         }
         pushCoinValueToWatch()
     }
-
+    
     @MainActor
     private func handleAddStepsInBackground(_ userInfo: [String: Any]) async {
         

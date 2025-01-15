@@ -94,10 +94,7 @@ struct ContentView: View {
         }
         .onAppear {
             watchManager.startSession()
-            watchManager.requestCoinData() // Fetch all stats from the phone
-
-            // Fetch steps immediately on first load
-            //stepDetector.fetchStepsSinceMidnight()
+            watchManager.requestCoinData() // Force a fresh data pull from iPhone
             print("[ContentView] Fetching initial step and coin data.")
         }
         .onDisappear {
@@ -140,7 +137,7 @@ struct StatsView: View {
                 
                 // Display all stats
                 VStack(alignment: .leading, spacing: 10) {
-                    StatRow(title: "👟 Total Steps Taken", value: Decimal(localSteps))
+                    StatRow(title: "👟 Total Steps Taken", value: Decimal(WatchSessionManager.shared.totalSteps))
                     StatRow(title: "🦵 Coins Earned from Steps", value: totalCoinsFromSteps)
                     StatRow(title: "👣 Coins Gained Per Step", value: coinsPerStep)
                     StatRow(title: "⏱️ Coins Gained Per Second", value: coinsPerSecond)

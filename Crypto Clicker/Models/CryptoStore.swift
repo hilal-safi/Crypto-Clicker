@@ -181,6 +181,9 @@ class CryptoStore: ObservableObject {
         Task {
             await saveStepStats()
         }
+        
+        // Notify the watch to reset its local steps
+        PhoneSessionManager.shared.resetWatchLocalSteps()
     }
     
     // Reset all power-ups
