@@ -40,7 +40,7 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         session.delegate = self   // Assign 'self' as WCSessionDelegate
         session.activate()        // Activate the session
         
-        print("[PhoneSessionManager] WatchConnectivity session activated.")
+        //print("[PhoneSessionManager] WatchConnectivity session activated.")
         
         // Optionally start a repeating timer that pushes stats to watch
         startSyncTimer()
@@ -67,7 +67,7 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     func pushCoinValueToWatch() {
         
         guard session.isReachable else {
-            print("[PhoneSessionManager] Session is not reachable; skipping push.")
+            //print("[PhoneSessionManager] Session is not reachable; skipping push.")
             return
         }
         
@@ -78,11 +78,22 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         
         do {
             try session.updateApplicationContext(stats)
-            print("[PhoneSessionManager] Application context updated with stats.")
+            //print("[PhoneSessionManager] Application context updated with stats.")
             
         } catch {
-            print("[PhoneSessionManager] Failed to update context: \(error.localizedDescription)")
+            //print("[PhoneSessionManager] Failed to update context: \(error.localizedDescription)")
         }
+    }
+    
+    func requestWatchFetchStepsNow() {
+        guard session.isReachable else {
+            //print("[PhoneSessionManager] Watch not reachable; cannot fetch steps now.")
+            return
+        }
+        let msg: [String: Any] = ["request": "fetchStepsNow"]
+        session.sendMessage(msg, replyHandler: nil, errorHandler: { err in
+            //print("[PhoneSessionManager] requestWatchFetchStepsNow error: \(err.localizedDescription)")
+        })
     }
     
     // MARK: - WCSessionDelegate Methods
@@ -93,9 +104,9 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
                  error: Error?) {
         
         if let error = error {
-            print("[PhoneSessionManager] Activation error: \(error.localizedDescription)")
+            //print("[PhoneSessionManager] Activation error: \(error.localizedDescription)")
         } else {
-            print("[PhoneSessionManager] Activation state: \(activationState.rawValue)")
+            //print("[PhoneSessionManager] Activation state: \(activationState.rawValue)")
         }
     }
     
@@ -111,7 +122,7 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     
     /// Called whenever reachability changes (e.g., watch is reachable/unreachable).
     func sessionReachabilityDidChange(_ session: WCSession) {
-        print("[PhoneSessionManager] Reachability changed: \(session.isReachable)")
+        //print("[PhoneSessionManager] Reachability changed: \(session.isReachable)")
     }
     
     /// Called when the watch sends a message with sendMessage(_:replyHandler:errorHandler:). We parse the 'request' key and dispatch to relevant handlers.
@@ -120,7 +131,7 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
                  replyHandler: @escaping ([String : Any]) -> Void) {
         
         guard let request = message["request"] as? String else {
-            print("[PhoneSessionManager] No 'request' key found in message.")
+            //print("[PhoneSessionManager] No 'request' key found in message.")
             replyHandler(["error": "No request key found"])
             return
         }
@@ -160,7 +171,7 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     // handle user-info deliveries in the background
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
         guard let request = userInfo["request"] as? String else {
-            print("[PhoneSessionManager] (didReceiveUserInfo) => no request key.")
+            //print("[PhoneSessionManager] (didReceiveUserInfo) => no request key.")
             return
         }
         switch request {
@@ -185,7 +196,7 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         }
         
         let steps = message["steps"] as? Int ?? 0
-        print("[PhoneSessionManager] handleAddSteps => steps=\(steps)")
+        //print("[PhoneSessionManager] handleAddSteps => steps=\(steps)")
         
         Task {
             await store.incrementCoinsFromSteps(steps)
@@ -214,7 +225,7 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         
         if steps > 0 {
             // Award steps in the same way as handleAddSteps
-            print("[PhoneSessionManager] handleAddStepsInBackground => steps=\(steps)")
+            //print("[PhoneSessionManager] handleAddStepsInBackground => steps=\(steps)")
 
             // We do the usual awarding
             await store.incrementCoinsFromSteps(steps)
@@ -225,37 +236,58 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     @MainActor
-    private func handleInitializeSteps(message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-
-        print("[PhoneSessionManager] handleInitializeSteps called.")
+    private func handleInitializeSteps( message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        
+        //print("[PhoneSessionManager] handleInitializeSteps called.")
         
         guard let store = store else {
             replyHandler(["error": "No store available"])
             return
         }
         
-        let steps = message["steps"] as? Int ?? 0
+        let watchSteps = message["steps"] as? Int ?? 0
+        let phoneSteps = store.totalSteps
         
-        // Just set phone’s total steps to the max of what watch says
-        let updatedSteps = max(store.totalSteps, steps)
-        store.totalSteps = updatedSteps
+        // If the watch is ahead of the phone’s total,
+        // we award the difference so the phone’s stats match the watch.
+        if watchSteps > phoneSteps {
+            
+            let difference = watchSteps - phoneSteps
+            
+            //print("[PhoneSessionManager] (initializeSteps) => phone steps behind watch: awarding difference=\(difference).")
+            
+            // Let the phone store do its normal coin awarding logic,
+            // which respects power-ups & coinsPerStep.
+            Task {
+                await store.incrementCoinsFromSteps(difference)
+            }
+        } else {
+            // If watch is <= phone’s total, do nothing (avoid double-counting).
+            //print("[PhoneSessionManager] (initializeSteps) => watch steps (\(watchSteps)) <= phone (\(phoneSteps)). Doing nothing.")
+        }
         
-        // Save step stats, but no awarding here
+        // Now respond with the phone’s updated stats.
+        let updatedValue = store.coins?.value ?? 0
+        let updatedSteps = store.totalSteps
+        
+        replyHandler([
+            "updatedSteps": updatedSteps,
+            "updatedCoinValue": "\(updatedValue)"
+        ])
+        
+        // Optionally save steps/coins
         Task {
             await store.saveStepStats()
         }
         
-        print("[PhoneSessionManager] handleInitializeSteps: set totalSteps to \(updatedSteps)")
-        replyHandler(["updatedSteps": updatedSteps])
-        
-        // Then push updated stats to the watch
+        // Push updated stats to the watch
         pushCoinValueToWatch()
     }
     
     @MainActor
     private func handleTapCoin(replyHandler: @escaping ([String: Any]) -> Void) {
         
-        print("[PhoneSessionManager] handleTapCoin: awarding coin for watch tap.")
+        //print("[PhoneSessionManager] handleTapCoin: awarding coin for watch tap.")
         
         guard let store = store else {
             replyHandler(["error": "No store available"])
@@ -267,7 +299,7 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         
         // 2) Gather new phone coin value
         let updatedValue = store.coins?.value ?? 0
-        print("[PhoneSessionManager] Updated coin value after tap: \(updatedValue)")
+        //print("[PhoneSessionManager] Updated coin value after tap: \(updatedValue)")
         
         // 3) Return it immediately to watch
         replyHandler(["updatedCoinValue": "\(updatedValue)"])
@@ -290,14 +322,14 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     func resetWatchLocalSteps() {
         
         guard session.isReachable else {
-            print("[PhoneSessionManager] Watch is not reachable; cannot reset local steps now.")
+            //print("[PhoneSessionManager] Watch is not reachable; cannot reset local steps now.")
             return
         }
         
         let data: [String: Any] = ["request": "resetLocalSteps"]
         
         session.sendMessage(data, replyHandler: nil, errorHandler: { error in
-            print("[PhoneSessionManager] Failed to request watch reset local steps: \(error.localizedDescription)")
+            //print("[PhoneSessionManager] Failed to request watch reset local steps: \(error.localizedDescription)")
         })
     }
     

@@ -14,6 +14,12 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     static let shared = WatchSessionManager() // Singleton instance
     private let session = WCSession.default // The default WatchConnectivity session
     
+    private var stepDetector: StepDetection?
+
+    func setStepDetector(_ detector: StepDetection) {
+        self.stepDetector = detector
+    }
+
     // Various values for stats page (purely for display on the watch)
     @Published var coinValue: Decimal = 0
     @Published var coinsPerSecond: Decimal = 0
@@ -35,12 +41,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     
     // For add steps method
     private var accumulatedSteps = 0
-    private var lastStepSendDate = Date()
-    
-    // Thresholds for updates
-    private let stepSendThreshold = 1 // 1 step
-    private let stepSendInterval: TimeInterval = 5 // 5 seconds
-    
+        
     // Local steps tracked by the watch
     private let localStepsKey = "localSteps"
     
@@ -64,11 +65,12 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         session.activate()
         
         // Periodically request coin data from phone. (30s is enough to reduce spam.)
-        startSyncTimer()
+        //startSyncTimer()
     }
     
     // Periodic timer (every 60s) to sync steps & request stats
     private func startSyncTimer() {
+        
         syncTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.syncPendingSteps()       // flush step delta
             self?.requestCoinData()        // also poll phone for stats
@@ -80,42 +82,34 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     }
     
     // MARK: - Step Counting
-    /// Called by StepDetection whenever new steps appear.
-    /// **Sends only the 'delta'** to the phone—no local awarding.
+    /// Called by StepDetection whenever new steps appear. **Sends only the 'delta'** to the phone—no local awarding.
     func addSteps(_ steps: Int) {
         
         guard steps > 0 else { return }
         
+        // Immediately accumulate steps and sync them without waiting
         accumulatedSteps += steps
-        let now = Date()
-        
-        if accumulatedSteps >= stepSendThreshold || now.timeIntervalSince(lastStepSendDate) > stepSendInterval {
-            syncPendingSteps()
-        } else {
-            print("[WatchSessionManager] Buffering steps => \(accumulatedSteps)")
-        }
+        syncPendingSteps()
     }
     
     /// Actually sends the buffered step delta to phone
     func syncPendingSteps() {
         
         guard accumulatedSteps > 0 else {
-            print("[syncPendingSteps] No steps to sync. Exiting.")
+            //print("[syncPendingSteps] No steps to sync. Exiting.")
             return
         }
-        
-        let toSend = accumulatedSteps
-        accumulatedSteps = 0
-        lastStepSendDate = Date()
-        
-        // Create the dictionary of steps to send
+
+        let stepsToSend = accumulatedSteps
+        accumulatedSteps = 0 // Reset only after successful sync
+
         let stepData: [String: Any] = [
             "request": "addSteps",
-            "steps": toSend
+            "steps": stepsToSend
         ]
-        
+
         if session.isReachable {
-            // If phone is reachable, we can just do sendMessage
+            
             session.sendMessage(stepData, replyHandler: { response in
                 
                 DispatchQueue.main.async {
@@ -132,20 +126,19 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
                 }
                 
             }, errorHandler: { error in
-                self.accumulatedSteps += toSend
-                print("[WatchSessionManager] sendMessage error: \(error.localizedDescription)")
+                self.accumulatedSteps += stepsToSend // Re-add steps if sync fails
+                //print("[WatchSessionManager] sendMessage error: \(error.localizedDescription)")
             })
             
         } else {
-            // If phone is NOT reachable, do transferUserInfo so that it
-            // will arrive in the background when iPhone wakes up
-            session.transferUserInfo(stepData)
-            print("[WatchSessionManager] transferUserInfo used. Steps=\(toSend)")
+            session.transferUserInfo(stepData) // Fallback for background updates
+            //print("[WatchSessionManager] transferUserInfo used. Steps=\(stepsToSend)")
         }
     }
     
     // Call syncPendingSteps when walking stops
     func walkingStopped() {
+        
         if accumulatedSteps > 0 {
             syncPendingSteps()
         }
@@ -164,7 +157,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         let data: [String: Any] = ["request": "initializeSteps", "steps": steps]
         
         session.sendMessage(data, replyHandler: nil, errorHandler: { error in
-            print("[WatchSessionManager] initializeSteps error: \(error.localizedDescription)")
+            //print("[WatchSessionManager] initializeSteps error: \(error.localizedDescription)")
         })
     }
     
@@ -188,7 +181,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
                 }
             }
         }, errorHandler: { err in
-            print("[WatchSessionManager] syncSteps error: \(err.localizedDescription)")
+            //print("[WatchSessionManager] syncSteps error: \(err.localizedDescription)")
         })
     }
     
@@ -225,7 +218,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     func requestCoinData() {
         
         guard session.isReachable else {
-            print("[WatchSessionManager] iPhone not reachable. Skipping coin data request.")
+            //print("[WatchSessionManager] iPhone not reachable. Skipping coin data request.")
             return
         }
         
@@ -235,7 +228,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             self.updateStats(with: response)
             
         }, errorHandler: { error in
-            print("[WatchSessionManager] requestCoinData error: \(error.localizedDescription)")
+            //print("[WatchSessionManager] requestCoinData error: \(error.localizedDescription)")
         })
     }
     
@@ -319,7 +312,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             
             // Cache the last updated data for quick retrieval
             UserDefaults.standard.set(data, forKey: "lastUpdatedStats")
-            print("[WatchSessionManager] Stats updated and cached.")
+            //print("[WatchSessionManager] Stats updated and cached.")
         }
     }
     
@@ -329,11 +322,11 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         guard session.isReachable else {
             
             unsyncedUpdates.append(data)
-            print("[WatchSessionManager] Data queued: \(data)")
+            //print("[WatchSessionManager] Data queued: \(data)")
             return
         }
         session.sendMessage(data, replyHandler: nil, errorHandler: { error in
-            print("[WatchSessionManager] sendMessage error: \(error.localizedDescription)")
+            //print("[WatchSessionManager] sendMessage error: \(error.localizedDescription)")
             self.unsyncedUpdates.append(data)
         })
     }
@@ -344,7 +337,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         
         unsyncedUpdates.forEach { data in
             session.sendMessage(data, replyHandler: nil, errorHandler: { error in
-                print("[WatchSessionManager] Failed to resend data: \(error.localizedDescription)")
+                //print("[WatchSessionManager] Failed to resend data: \(error.localizedDescription)")
             })
         }
         
@@ -357,10 +350,10 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         
         if let error = error {
-            print("[WatchSessionManager] Activation error: \(error.localizedDescription)")
+            //print("[WatchSessionManager] Activation error: \(error.localizedDescription)")
             
         } else {
-            print("[WatchSessionManager] Activation state: \(activationState.rawValue)")
+            //print("[WatchSessionManager] Activation state: \(activationState.rawValue)")
         }
     }
     
@@ -373,17 +366,29 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         }
         
         switch request {
-            
+        
+        case "fetchStepsNow":
+            //print("[WatchSessionManager] Received fetchStepsNow request from iPhone.")
+            Task { @MainActor in
+                stepDetector?.fetchStepsNow() // triggers anchored query => awarding steps
+            }
+
         case "resetLocalSteps":
             // Reset local and total steps
             DispatchQueue.main.async {
                 
                 self.localSteps = 0
                 self.totalSteps = 0
-                print("[WatchSessionManager] Reset localSteps and totalSteps to 0.")
+                //print("[WatchSessionManager] Reset localSteps and totalSteps to 0.")
                 
-                // Optionally save the reset state to persist
+                // Save reset values to persistent storage
                 self.saveLocalSteps()
+                
+                // Push reset state to the phone to ensure consistency
+                let resetData: [String: Any] = ["request": "initializeSteps", "steps": 0]
+                self.session.sendMessage(resetData, replyHandler: nil, errorHandler: { error in
+                   // print("[WatchSessionManager] Failed to send reset state to phone: \(error.localizedDescription)")
+                })
             }
         default:
             // Process other updates or stats
@@ -397,7 +402,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     
     func sessionReachabilityDidChange(_ session: WCSession) {
         flushUnsyncedUpdates()
-        print("[WatchSessionManager] Reachability changed: \(session.isReachable)")
+        //print("[WatchSessionManager] Reachability changed: \(session.isReachable)")
     }
     
     // MARK: - Local Persistence
@@ -417,11 +422,11 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         if let decimalValue = Decimal(string: savedCoinString) {
             // Update the `coinValue` property with the loaded value
             self.coinValue = decimalValue
-            print("[WatchSessionManager] Loaded cached coinValue: \(decimalValue)")
+            //print("[WatchSessionManager] Loaded cached coinValue: \(decimalValue)")
         } else {
             // If parsing fails, log a warning and set coinValue to 0 as a fallback
             self.coinValue = 0
-            print("[WatchSessionManager] Failed to parse cached coinValue, defaulting to 0.")
+            //print("[WatchSessionManager] Failed to parse cached coinValue, defaulting to 0.")
         }
     }
 }

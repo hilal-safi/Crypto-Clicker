@@ -106,6 +106,7 @@ struct ContentView: View {
         }
         .preferredColorScheme(settings.appearanceMode.colorScheme) // Dynamically apply appearance mode
         .onChange(of: scenePhase) {
+            // When iPhone app becomes inactive, save coin data
             if scenePhase == .inactive {
                 saveAction()
             }

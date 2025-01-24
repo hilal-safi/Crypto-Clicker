@@ -19,6 +19,7 @@ struct Crypto_ClickerApp: App {
     @StateObject private var tetrisModel: TetrisModel
 
     @State private var errorWrapper: ErrorWrapper?
+    @Environment(\.scenePhase) private var scenePhase
     
     init() {
         // Create local instances first (no references to `self`)
@@ -49,11 +50,7 @@ struct Crypto_ClickerApp: App {
         
         WindowGroup {
             
-            ContentView(
-                coins: $store.coins,
-                store: store,
-                powerUps: store.powerUps,
-                saveAction: {
+            ContentView(coins: $store.coins, store: store, powerUps: store.powerUps, saveAction: {
                     Task {
                         do {
                             await store.saveCoins()
@@ -81,6 +78,14 @@ struct Crypto_ClickerApp: App {
                     errorWrapper = ErrorWrapper(error: error, guidance: "Crypto Clicker will load sample data and continue.")
                 }
             }
+            
+            .onChange(of: scenePhase) {
+                if scenePhase == .active {
+                    // Each time the phone app becomes active, we request fresh steps
+                    PhoneSessionManager.shared.requestWatchFetchStepsNow()
+                }
+            }
+
             .sheet(item: $errorWrapper) {
                 // Fallback data
                 store.coins = CryptoCoin.sampleData
