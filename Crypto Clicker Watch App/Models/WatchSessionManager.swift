@@ -237,7 +237,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         
         DispatchQueue.main.async {
             
-            print("[WatchSessionManager] updateStats called with data: \(data)")
+            //print("[WatchSessionManager] updateStats called with data: \(data)")
             
             if let coinValueStr = data["phoneCoinValue"] as? String,
                let value = Decimal(string: coinValueStr) {

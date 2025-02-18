@@ -115,9 +115,9 @@ struct ShopItemView: View {
             // MARK: - Quantity Selector + Purchase Button
             HStack(spacing: 12) {
                 
-                quantityButton(label: "-1",   step: -1,   width: 40, color: .red)
-                quantityButton(label: "-20",  step: -20,  width: 48, color: .red)
-                
+                quantityButton(label: "-5",  step: -5,  width: 44, color: .red)
+                quantityButton(label: "-1",   step: -1,   width: 44, color: .red)
+
                 Button(action: {
                     guard quantity > 0 else {
                         shopModel.updateMessage(
@@ -147,8 +147,8 @@ struct ShopItemView: View {
                         .cornerRadius(8)
                 }
                 
-                quantityButton(label: "+1",   step: 1,   width: 40, color: .green)
-                quantityButton(label: "+20",  step: 20,  width: 48, color: .green)
+                quantityButton(label: "+1",   step: 1,   width: 44, color: .green)
+                quantityButton(label: "+5",  step: 5,  width: 44, color: .green)
             }
         }
         .padding()
@@ -182,6 +182,7 @@ extension ShopItemView {
     
     /// Calculate total cost for the entire "quantity" in a more performant piecewise way.
     private func piecewiseTotalCost() -> Decimal {
+        
         guard quantity > 0 else { return 0 }
         
         let owned = powerUps.quantities[powerUp.name, default: 0]
@@ -220,9 +221,12 @@ extension ShopItemView {
         guard startIndex <= endIndex else { return 0 }
         
         var total = Decimal(0)
+        
         for i in startIndex...endIndex {
+            
             let c = clampAndRound(itemCost(index: i))
             let newSum = total + c
+            
             if newSum > Decimal.greatestFiniteMagnitude {
                 return Decimal.greatestFiniteMagnitude
             }
@@ -235,11 +239,14 @@ extension ShopItemView {
     private func minimalGrowthSumRange(startIndex: Int, endIndex: Int) -> Decimal {
         
         guard startIndex <= endIndex else { return 0 }
-        
+    
         var total = Decimal(0)
+        
         for i in startIndex...endIndex {
+            
             let c = clampAndRound(itemCost(index: i))
             let newSum = total + c
+            
             if newSum > Decimal.greatestFiniteMagnitude {
                 return Decimal.greatestFiniteMagnitude
             }
@@ -251,12 +258,14 @@ extension ShopItemView {
     /// itemCost for a given index
     /// If `index < 500`, exponent-based; else minimal growth logic.
     private func itemCost(index: Int) -> Decimal {
+        
         let base = Decimal(powerUp.cost)
         
         if index < 500 {
             // Normal exponent zone
             let cost = base * powDecimal(Decimal(powerUp.costMultiplier), index)
             return clampAndRound(cost)
+            
         } else {
             // Minimal growth after 500
             let costAt499 = base * powDecimal(Decimal(powerUp.costMultiplier), 499)
@@ -310,6 +319,7 @@ extension ShopItemView {
     // Show large or short text with vertical expansion
     @ViewBuilder
     private func dynamicHStack(label: String, value: Decimal, color: Color) -> some View {
+        
         let clamped = (value > Decimal.greatestFiniteMagnitude)
             ? Decimal.greatestFiniteMagnitude
             : value
@@ -332,12 +342,15 @@ extension ShopItemView {
     }
     
     private func quantityButton(label: String, step: Int, width: CGFloat, color: Color) -> some View {
+        
         Button {
-            let newQ = max(0, quantity + step)
+            let newQ = min(100, max(0, quantity + step))
             quantity = newQ
             // Update next cost each time quantity changes
             nextCost = piecewiseNextCost()
+            
         } label: {
+            
             Text(label)
                 .frame(width: width, height: 40)
                 .background(color.opacity(0.7))
@@ -350,7 +363,9 @@ extension ShopItemView {
 
 // MARK: - Preview
 struct ShopItemView_Previews: PreviewProvider {
+    
     static var previews: some View {
+        
         let mockCoins = CryptoCoin(value: Decimal(1000))
         let mockStore = CryptoStore()
         

@@ -16,13 +16,18 @@ class SettingsModel: ObservableObject {
         // Appearance mode
         self.appearanceMode = AppearanceMode(rawValue: UserDefaults.standard.string(forKey: "appearanceMode") ?? "auto") ?? .auto
         
-        // Haptics & Sounds
+        // Load haptics from UserDefaults or default to true
         self.enableHaptics = UserDefaults.standard.object(forKey: "enableHaptics") as? Bool ?? true
+        
+        // Sounds
         self.enableSounds  = UserDefaults.standard.object(forKey: "enableSounds")  as? Bool ?? false
         
         // Difficulty
         let storedDifficulty = UserDefaults.standard.string(forKey: "difficulty") ?? "normal"
         self.difficulty = Difficulty(rawValue: storedDifficulty) ?? .normal
+        
+        // Make sure the initial state is reflected
+        HapticFeedbackModel.hapticsEnabled = enableHaptics
     }
     
     // MARK: - Enums
@@ -131,10 +136,12 @@ class SettingsModel: ObservableObject {
     
     @Published var enableHaptics: Bool {
         didSet {
-            UserDefaults.standard.set(enableHaptics, forKey: "enableHaptics")
+            // Whenever the user toggles haptics in Settings,
+            // update the static flag in HapticFeedbackModel.
+            HapticFeedbackModel.hapticsEnabled = enableHaptics
         }
     }
-    
+
     @Published var enableSounds: Bool {
         didSet {
             UserDefaults.standard.set(enableSounds, forKey: "enableSounds")
@@ -148,9 +155,7 @@ class SettingsModel: ObservableObject {
             UserDefaults.standard.set(difficulty.rawValue, forKey: "difficulty")
         }
     }
-    
-    // MARK: - Other methods
-    
+        
     // Reset handler logic centralized in the model
     @MainActor
     func handleReset(
