@@ -11,6 +11,7 @@ import UIKit
 struct TetrisBottomView: View {
     
     @EnvironmentObject var tetrisModel: TetrisModel
+    @State private var isButtonDisabled = false // Prevents multiple rapid clicks
 
     var body: some View {
         
@@ -19,8 +20,15 @@ struct TetrisBottomView: View {
             if tetrisModel.gameState == .notStarted || tetrisModel.gameState == .gameOver {
                 // Start game button
                 Button(action: {
+                    guard !isButtonDisabled else { return } // Prevent multiple clicks
+                    isButtonDisabled = true
                     HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
+                    
                     tetrisModel.startGame()
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { // Re-enable after 1.5s
+                        isButtonDisabled = false
+                    }
                 }) {
                     Text("Start Game")
                         .font(.title2) // Match font size to control buttons
@@ -29,52 +37,53 @@ struct TetrisBottomView: View {
                         .background(Color.green)
                         .foregroundColor(.white)
                         .cornerRadius(8)
+                        .accessibilityLabel("Start new Tetris game")
                 }
                 .padding(.top, -12) // Smaller top padding
                 
             } else {
                 // Control buttons during the game
                 controlButton(symbol: "arrow.left",
-                              action: {
-                                      HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
-                                      tetrisModel.moveCurrentPieceLeft()
-                              },
-                              disabled: tetrisModel.gameState == .paused)
-                
+                              action: tetrisModel.moveCurrentPieceLeft,
+                              disabled: tetrisModel.gameState == .paused,
+                              label: "Move Left")
+
                 controlButton(symbol: "arrow.clockwise",
-                              action: {
-                                      HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
-                                      tetrisModel.rotateCurrentPiece()
-                              },
+                              action: tetrisModel.rotateCurrentPiece,
                               disabled: tetrisModel.gameState == .paused,
-                              color: .orange)
-                
+                              color: .orange,
+                              label: "Rotate Piece")
+
                 controlButton(symbol: "arrow.down.circle",
-                              action: {
-                                    HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
-                                    tetrisModel.fastDrop()
-                              },
+                              action: tetrisModel.fastDrop,
                               disabled: tetrisModel.gameState == .paused,
-                              color: .red)
-                
+                              color: .red,
+                              label: "Fast Drop")
+
                 controlButton(symbol: "arrow.right",
-                              action: {
-                                    HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
-                                    tetrisModel.moveCurrentPieceRight()
-                              },
-                              disabled: tetrisModel.gameState == .paused)
+                              action: tetrisModel.moveCurrentPieceRight,
+                              disabled: tetrisModel.gameState == .paused,
+                              label: "Move Right")
             }
         }
         .padding(.horizontal, 12)
         .frame(maxWidth: .infinity)
+        .animation(.easeInOut(duration: 0.2), value: tetrisModel.gameState)
     }
 
-    /// Creates a styled button with conditional disabling and greyed-out appearance
-    private func controlButton(symbol: String, action: @escaping () -> Void, disabled: Bool, color: Color = Color.blue) -> some View {
+    /// Creates a styled button with conditional disabling, accessibility, and color adjustments
+    private func controlButton(symbol: String, action: @escaping () -> Void, disabled: Bool, color: Color = Color.blue, label: String) -> some View {
         
-        Button(action: action) {
+        Button(action: {
+            guard !isButtonDisabled else { return } // Prevent spam clicks
+            isButtonDisabled = true
+            HapticFeedbackModel.triggerStrongHaptic()
+            action()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { isButtonDisabled = false } // Delay re-enabling
+        }) {
             Image(systemName: symbol)
                 .font(.title) // Adjust icon size for better visibility
+                .accessibilityLabel(label)
         }
         .padding()
         .frame(width: 80, height: 50) // Fixed size for all buttons

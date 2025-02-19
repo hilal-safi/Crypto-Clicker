@@ -50,6 +50,8 @@ struct CoinView: View {
                 .foregroundColor(.yellow)
                 .shadow(radius: 10)
                 .padding()
+                .accessibilityLabel("Tap to collect coins") // VoiceOver label
+                .accessibilityHint("Increases your coin balance when tapped") // VoiceOver hint
         }
         .buttonStyle(PlainButtonStyle()) // Prevent default button styling
     }

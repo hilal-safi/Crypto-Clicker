@@ -9,14 +9,19 @@ import SwiftUI
 
 struct InfoView: View {
     
+    @Environment(\.dismiss) var dismiss // Environment variable to dismiss the sheet
+
     var body: some View {
         
-        VStack(alignment: .center) {
+        VStack(alignment: .center, spacing: 16) {
             
             Text("Welcome to Crypto Clicker!")
                 .font(.largeTitle)
+                .bold()
+                .multilineTextAlignment(.center)
                 .padding()
-
+                .accessibilityLabel("Welcome to Crypto Clicker!") // VoiceOver
+            
             Text("""
                  This game allows you to generate and manage your own cryptocurrency.
                  Tap the coin to increase its value, purchase power-ups to automate earnings,
@@ -25,16 +30,23 @@ struct InfoView: View {
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .padding()
-
+                .accessibilityLabel("Crypto Clicker lets you mine, upgrade, and exchange cryptocurrency in the game.") // VoiceOver summary
+            
             Spacer()
 
-            Button("Close") {
-                // Dismiss the sheet (auto-handled by SwiftUI)
+            Button(action: {
+                dismiss() // Dismiss the view when tapped
+            }) {
+                Text("Close")
+                    .font(.headline)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
             }
-            .padding()
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(10)
+            .padding(.horizontal, 20)
+            .accessibilityLabel("Close information screen") // VoiceOver
         }
         .padding()
     }

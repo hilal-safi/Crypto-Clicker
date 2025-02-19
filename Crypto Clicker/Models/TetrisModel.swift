@@ -92,6 +92,17 @@ enum TetrominoType: Int, CaseIterable {
         color.opacity(0.6) // Lighter shade for the preview
     }
 
+    var name: String {
+        switch self {
+        case .I: return "I"
+        case .O: return "O"
+        case .T: return "T"
+        case .S: return "S"
+        case .Z: return "Z"
+        case .J: return "J"
+        case .L: return "L"
+        }
+    }
 }
 
 struct TetrisPiece {

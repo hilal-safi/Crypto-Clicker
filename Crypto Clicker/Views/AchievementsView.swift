@@ -34,6 +34,7 @@ struct AchievementsView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .padding(.top, -12)
+                        .accessibilityLabel("Achievements Screen") // VoiceOver: Descriptive screen title
                     
                     // Achievements list
                     ScrollView {
@@ -47,6 +48,7 @@ struct AchievementsView: View {
                         .padding(.horizontal, 18)
                     }
                     .padding(.top, 8) // Reduce padding above the list to bring it closer to the title
+                    .accessibilityHint("Scroll through to view unlocked and pending achievements") // VoiceOver hint
                 }
                 .padding(.horizontal, 2)
             }
@@ -55,8 +57,12 @@ struct AchievementsView: View {
         .onAppear {
             hasAppeared = true
             
-            // Ensure achievements are refreshed
-            refreshAchievements()
+            // Ensure achievements are refreshed safely
+            do {
+                try refreshAchievements()
+            } catch {
+                print("Error refreshing achievements: \(error.localizedDescription)") // Error handling
+            }
         }
         .onDisappear {
             hasAppeared = false // Reset the flag when the view disappears
@@ -67,12 +73,21 @@ struct AchievementsView: View {
         
         ForEach(achievementsModel.achievements, id: \.id) { achievement in
             AchievementItemView(achievement: achievement, achievementsModel: achievementsModel)
+                .accessibilityLabel("Achievement: \(achievement.name)") // VoiceOver: Achievement name
+                .accessibilityHint("Progress: \(achievement.currentProgress) out of \(achievement.tiers.max() ?? 0)") // VoiceOver progress hint
         }
     }
     
-    private func refreshAchievements() {
+    /// Refreshes the achievements by reloading progress
+    /// Ensures safe execution by catching potential errors
+    private func refreshAchievements() throws {
         
         achievementsModel.loadProgress() // Reload achievements from storage
+        
+        guard let coins = coins else {
+            throw NSError(domain: "CryptoClicker", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to retrieve coins data."]) // Error handling
+        }
+        
         achievementsModel.refreshProgress(
             coins: coins,
             coinsPerSecond: store.coinsPerSecond,

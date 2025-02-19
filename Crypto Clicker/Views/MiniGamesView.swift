@@ -20,9 +20,10 @@ struct MiniGamesView: View {
         NavigationStack {
             
             ZStack {
-                // Background
+
                 BackgroundView(type: .minigames)
                     .ignoresSafeArea()
+                    .accessibilityHidden(true) // Prevents VoiceOver from reading the background
 
                 VStack(spacing: 16) {
                     
@@ -30,12 +31,14 @@ struct MiniGamesView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .padding(.top, -12)
+                        .accessibilityLabel("Mini Games section") // VoiceOver
 
                     // Coins Display
                     if let coins = cryptoStore.coins {
                         Text("Coins: \(coins.value.formatted(.number))")
                             .font(.title3)
                             .bold()
+                            .accessibilityLabel("Current balance: \(coins.value.formatted(.number)) coins")
                     }
 
                     Spacer()
@@ -53,34 +56,14 @@ struct MiniGamesView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
                         }
+                        .accessibilityLabel("Play Blackjack")
+                        
                     } else {
-                        Button(action: {
-                            let success = cryptoStore.purchaseMiniGame(game: .blackjack, miniGamesModel: miniGamesModel)
-                            
-                            if success {
-                                bannerMessage = "Blackjack Unlocked!"
-                                isSuccessBanner = true
-                                showBanner = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
-                                    showBanner = false
-                                }
-                            } else {
-                                bannerMessage = "Not Enough Coins for Blackjack!"
-                                isSuccessBanner = false
-                                showBanner = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
-                                    showBanner = false
-                                }
-                            }
-                        }) {
-                            Text("Unlock Blackjack (\(miniGamesModel.unlockCost(for: .blackjack)) Coins)")
-                                .font(.title2)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.gray)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                        }
+                        unlockButton(
+                            title: "Unlock Blackjack",
+                            cost: miniGamesModel.unlockCost(for: .blackjack),
+                            action: { purchaseMiniGame(MiniGamesModel.MiniGame.blackjack) }
+                        )
                     }
 
                     // Tetris
@@ -88,7 +71,7 @@ struct MiniGamesView: View {
                         
                         NavigationLink(destination: TetrisView()
                             .environmentObject(cryptoStore)) {
-
+                                
                             Text("Play Tetris")
                                 .font(.title2)
                                 .padding()
@@ -97,35 +80,15 @@ struct MiniGamesView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
                         }
+                        .accessibilityLabel("Play Tetris")
+                        
                     } else {
                         
-                        Button(action: {
-                            let success = cryptoStore.purchaseMiniGame(game: .tetris, miniGamesModel: miniGamesModel)
-                            
-                            if success {
-                                bannerMessage = "Tetris Unlocked!"
-                                isSuccessBanner = true
-                                showBanner = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                    showBanner = false
-                                }
-                            } else {
-                                bannerMessage = "Not Enough Coins for Tetris!"
-                                isSuccessBanner = false
-                                showBanner = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                    showBanner = false
-                                }
-                            }
-                        }) {
-                            Text("Unlock Tetris (\(miniGamesModel.unlockCost(for: .tetris)) Coins)")
-                                .font(.title2)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.gray)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                        }
+                        unlockButton(
+                            title: "Unlock Tetris",
+                            cost: miniGamesModel.unlockCost(for: .tetris),
+                            action: { purchaseMiniGame(MiniGamesModel.MiniGame.tetris) }
+                        )
                     }
                     Spacer()
                 }
@@ -135,6 +98,7 @@ struct MiniGamesView: View {
                 if showBanner {
                     
                     VStack {
+                        
                         Text(bannerMessage)
                             .font(.headline)
                             .padding()
@@ -144,14 +108,52 @@ struct MiniGamesView: View {
                             .cornerRadius(8)
                             .shadow(radius: 4)
                             .padding(.horizontal, 16)
-                            .transition(.move(edge: .top)) // Animation for sliding in/out
+                            .transition(.move(edge: .top))
                             .animation(.easeInOut(duration: 0.5), value: showBanner)
+                            .accessibilityLabel(bannerMessage)
                         Spacer()
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
             }
         }
+    }
+    
+    /// Handles purchasing a mini-game and updates the banner message
+    private func purchaseMiniGame(_ game: MiniGamesModel.MiniGame) {
+        
+        let success = cryptoStore.purchaseMiniGame(game: game, miniGamesModel: miniGamesModel)
+        
+        if success {
+            bannerMessage = "\(game.rawValue.capitalized) Unlocked!"
+            isSuccessBanner = true
+            
+        } else {
+            bannerMessage = "Not Enough Coins for \(game.rawValue.capitalized)!"
+            isSuccessBanner = false
+            
+        }
+        showBanner = true
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            showBanner = false
+        }
+    }
+    
+    /// Creates a button for unlocking mini-games
+    private func unlockButton(title: String, cost: Decimal, action: @escaping () -> Void) -> some View {
+        
+        Button(action: action) {
+            
+            Text("\(title) (\(cost.formatted(.number)) Coins)")
+                .font(.title2)
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color.gray)
+                .foregroundColor(.white)
+                .cornerRadius(8)
+        }
+        .accessibilityLabel("\(title), costs \(cost.formatted(.number)) coins")
     }
 }
 
@@ -160,9 +162,9 @@ struct MiniGamesView_Previews: PreviewProvider {
     static var previews: some View {
         
         let cryptoStore = CryptoStore()
-        cryptoStore.coins = CryptoCoin(value: Decimal(10000)) // Add initial coins for testing
-
+        cryptoStore.coins = CryptoCoin(value: Decimal(10000))
+        
         return MiniGamesView()
-            .environmentObject(cryptoStore) // Inject into the environment
+            .environmentObject(cryptoStore)
     }
 }

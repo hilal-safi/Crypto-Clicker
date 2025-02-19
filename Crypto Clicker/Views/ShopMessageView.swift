@@ -14,22 +14,24 @@ struct ShopMessageView: View {
 
     var body: some View {
         VStack {
-
+            
             // Display Message
-            Text(model.purchaseMessage)
+            Text(model.purchaseMessage.isEmpty ? "No recent purchases" : model.purchaseMessage)
                 .font(.headline)
                 .foregroundColor(.white)
                 .padding(.vertical, 2)
-            
-            Text("Coins: \(coins?.value ?? 0)")
+                .accessibilityLabel("Purchase Message: \(model.purchaseMessage.isEmpty ? "No recent purchases" : model.purchaseMessage)")
+
+            Text("Coins: \(coins?.value.formattedCoinValue() ?? "0")")
                 .font(.headline)
                 .foregroundColor(.white)
+                .accessibilityLabel("Current Coins: \(coins?.value.formattedCoinValue() ?? "0")")
         }
         .padding()
         .frame(maxWidth: .infinity)
         .background(model.messageBackgroundColor)
         .cornerRadius(8)
-        .animation(.easeInOut, value: model.messageBackgroundColor)
+        .animation(.easeInOut(duration: 0.3), value: model.messageBackgroundColor)
     }
 }
 

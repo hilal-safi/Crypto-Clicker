@@ -25,17 +25,20 @@ struct AchievementItemView: View {
                 Text(achievement.name)
                     .font(.headline)
                     .foregroundColor(textColor(for: achievement.currentProgress))
-                
+                    .accessibilityLabel("Achievement: \(achievement.name)") // VoiceOver description
+
                 Spacer() // Push image to the right
                 
                 if isEmoji(achievement.image) {
                     Text(achievement.image)
                         .font(.largeTitle) // Emoji size
+                        .accessibilityLabel("Achievement icon: \(achievement.image)") // VoiceOver
                 } else {
                     Image(achievement.image)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 40, height: 40) // Adjust the size of the image
+                        .accessibilityLabel("Achievement icon") // VoiceOver
                 }
             }
 
@@ -43,6 +46,7 @@ struct AchievementItemView: View {
             Text(achievement.description)
                 .font(.subheadline)
                 .foregroundColor(textColor(for: achievement.currentProgress).opacity(0.8))
+                .accessibilityLabel("Description: \(achievement.description)") // VoiceOver
             
             // Stars and Progress Number
             HStack {
@@ -51,6 +55,7 @@ struct AchievementItemView: View {
                     Text(achievement.currentProgress >= tier ? "⭐" : "☆")
                         .font(.largeTitle) // Bigger stars
                         .foregroundColor(starColor(for: tier, progress: achievement.currentProgress)) // Adjust star color
+                        .accessibilityLabel(achievement.currentProgress >= tier ? "Achieved tier \(tier)" : "Pending tier \(tier)") // VoiceOver
                 }
                 
                 Spacer()
@@ -58,6 +63,7 @@ struct AchievementItemView: View {
                 Text("\(achievement.currentProgress) / \(achievement.tiers.max() ?? 0)")
                     .font(.caption)
                     .foregroundColor(textColor(for: achievement.currentProgress))
+                    .accessibilityLabel("Progress: \(achievement.currentProgress) out of \(achievement.tiers.max() ?? 0)") // VoiceOver
             }
             
             // Progress Bar
@@ -66,6 +72,7 @@ struct AchievementItemView: View {
                 .scaleEffect(x: 1, y: 2, anchor: .center)
                 .frame(maxWidth: .infinity) // Make the progress bar span the full width
                 .padding(.top, 8) // Add spacing between stars and progress bar
+                .accessibilityLabel("Progress bar showing \(Int(calculateProgressPercentage(for: achievement.currentProgress) * 100)) percent completed") // VoiceOver
         }
         .padding()
         .background(background(for: achievement.currentProgress)) // Dynamic background
@@ -84,14 +91,53 @@ struct AchievementItemView: View {
         return min(Double(progress) / Double(maxTier), 1.0)
     }
 
+    // Determine text color based on progress and color scheme
+    private func textColor(for progress: Int) -> Color {
+        
+        let completedTiers = achievement.tiers.filter { progress >= $0 }.count
+
+        if completedTiers == 1 { // Bronze tier
+            return .white // Make text color white
+            
+        } else if completedTiers == 0 {
+            return colorScheme == .dark ? .white : .black // Use white for dark mode, black for light mode
+            
+        } else {
+            return .black // Default for other tiers
+        }
+    }
+
+    // Determine star color dynamically based on progress
+    private func starColor(for tier: Int, progress: Int) -> Color {
+        return progress >= tier ? .yellow : (colorScheme == .dark ? .white : .black)
+    }
+
+    // Glow effect based on progress
+    private func glowColor(for progress: Int) -> Color {
+        
+        let completedTiers = achievement.tiers.filter { progress >= $0 }.count
+        
+        switch completedTiers {
+            
+            case 3: return Color.yellow
+            case 2: return Color.white
+            case 1: return Color.orange
+                
+            default: return .clear
+        }
+    }
+    
     // Determine background color based on completed tiers with stronger shine
     private func background(for progress: Int) -> some View {
         
         let completedTiers = achievement.tiers.filter { progress >= $0 }.count
 
         switch completedTiers {
+            
         case 3: // Gold shine with enhanced glow
+            
             return AnyView(
+                
                 ZStack {
                     Color.yellow
                         .shadow(color: Color.yellow.opacity(1.0), radius: 40, x: 0, y: 0) // Strong gold glow
@@ -110,8 +156,11 @@ struct AchievementItemView: View {
                 }
                 .cornerRadius(10)
             )
+            
         case 2: // Silver shine with enhanced glow
+            
             return AnyView(
+                
                 ZStack {
                     Color(red: 211 / 255, green: 211 / 255, blue: 211 / 255) // Silver base
                         .shadow(color: Color.gray.opacity(1.0), radius: 40, x: 0, y: 0) // Strong silver glow
@@ -130,8 +179,11 @@ struct AchievementItemView: View {
                 }
                 .cornerRadius(10)
             )
+            
         case 1: // Bronze shine with enhanced glow
+            
             return AnyView(
+                
                 ZStack {
                     Color(red: 150 / 255, green: 75 / 255, blue: 0 / 255) // A slightly brighter bronze base
                         .shadow(color: Color(red: 165 / 255, green: 90 / 255, blue: 30 / 255).opacity(0.9), radius: 30, x: 0, y: 0) // Moderate bronze glow
@@ -150,59 +202,11 @@ struct AchievementItemView: View {
                 }
                 .cornerRadius(10)
             )
+            
         default: // Default blurred background
             return AnyView(
                 BlurView(style: .systemMaterial, reduction: 0.8)
             )
-        }
-    }
-    
-    // Determine text color based on background and color scheme
-    private func textColor(for progress: Int) -> Color {
-        
-        let completedTiers = achievement.tiers.filter { progress >= $0 }.count
-
-        if completedTiers == 1 { // Bronze tier
-            return .white // Make text color white
-            
-        } else if completedTiers == 0 {
-            return colorScheme == .dark ? .white : .black // Use white for dark mode, black for light mode
-            
-        } else {
-            return .black // Default for other tiers
-        }
-    }
-    
-    // Determine star color dynamically based on progress and background
-    private func starColor(for tier: Int, progress: Int) -> Color {
-        
-        let completedTiers = achievement.tiers.filter { progress >= $0 }.count
-
-        if progress >= tier {
-            return .yellow // Filled star
-            
-        } else if completedTiers == 1 { // Bronze tier
-            return .white // Blank star color for bronze is white
-            
-        } else {
-            return colorScheme == .dark ? .white : .black // Default blank star color
-        }
-    }
-    
-    // Glow effect
-    private func glowColor(for progress: Int) -> Color {
-        
-        let completedTiers = achievement.tiers.filter { progress >= $0 }.count
-
-        switch completedTiers {
-        case 3:
-            return Color.yellow
-        case 2:
-            return Color.white
-        case 1:
-            return Color.orange
-        default:
-            return .clear
         }
     }
 }

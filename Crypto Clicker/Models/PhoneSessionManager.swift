@@ -52,7 +52,7 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         syncTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             // Use a Task to hop into the MainActor if needed for UI or store calls
             Task {
-                self?.pushCoinValueToWatch()
+                await self?.pushCoinValueToWatch()
             }
         }
     }
@@ -103,7 +103,7 @@ class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
         
-        if let error = error {
+        if error != nil {
             //print("[PhoneSessionManager] Activation error: \(error.localizedDescription)")
         } else {
             //print("[PhoneSessionManager] Activation state: \(activationState.rawValue)")

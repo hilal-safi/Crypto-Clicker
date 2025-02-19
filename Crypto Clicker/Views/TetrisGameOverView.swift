@@ -11,6 +11,7 @@ struct TetrisGameOverView: View {
     
     @EnvironmentObject var tetrisModel: TetrisModel
     @State private var reward: Decimal = 0
+    @State private var isButtonDisabled = false // Prevents multiple clicks
 
     var body: some View {
         
@@ -22,17 +23,31 @@ struct TetrisGameOverView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
-
-                Text("Your Score: \(tetrisModel.score)")
+                    .accessibilityLabel("Game Over Screen")
+                
+                Text("Your Score: \(formattedScore(tetrisModel.score))")
                     .font(.title2)
                     .foregroundColor(.primary)
-
+                    .accessibilityLabel("Your score is \(formattedScore(tetrisModel.score))")
+                
                 Text("You earned \(reward.formatted(.number)) coins!")
                     .font(.title2)
                     .foregroundColor(.primary)
-
+                    .accessibilityLabel("You earned \(reward.formatted(.number)) coins.")
+                
                 Button(action: {
-                    tetrisModel.gameState = .notStarted
+                    
+                    guard !isButtonDisabled else { return } // Prevent rapid multiple clicks
+                    
+                    isButtonDisabled = true
+                    
+                    HapticFeedbackModel.triggerStrongHaptic() // Provide haptic feedback
+                    
+                    tetrisModel.startGame() // Use startGame() to reset the game
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        isButtonDisabled = false
+                    }
                 }) {
                     Text("Play Again")
                         .font(.title2)
@@ -40,9 +55,12 @@ struct TetrisGameOverView: View {
                         .background(Color.green)
                         .foregroundColor(.white)
                         .cornerRadius(8)
+                        .accessibilityLabel("Play Again Button")
                 }
+                .disabled(isButtonDisabled)
             }
             .padding(32)
+            
             .background(
                 ZStack {
                     BlurView(style: .systemMaterial)
@@ -56,8 +74,19 @@ struct TetrisGameOverView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(BlurView(style: .systemMaterial).ignoresSafeArea())
         .onAppear {
-            reward = tetrisModel.calculateReward()
+            if tetrisModel.gameState == .gameOver {
+                reward = tetrisModel.calculateReward()
+            }
         }
+    }
+    
+    /// Formats the score for accessibility and readability.
+    private func formattedScore(_ score: Int) -> String {
+        
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        
+        return formatter.string(from: NSNumber(value: score)) ?? "\(score)"
     }
 }
 
@@ -66,6 +95,7 @@ struct TetrisGameOverView_Previews: PreviewProvider {
     static var previews: some View {
         
         let model = TetrisModel(cryptoStore: CryptoStore())
+        
         return TetrisGameOverView()
             .environmentObject(model)
     }

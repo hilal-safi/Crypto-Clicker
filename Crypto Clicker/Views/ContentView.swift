@@ -50,6 +50,7 @@ struct ContentView: View {
                             }
                         }
                         .tag(Tab.achievements)
+                        .accessibilityLabel("Achievements tab") // VoiceOver
 
                         // Main Game Tab
                         gameContentView
@@ -59,6 +60,7 @@ struct ContentView: View {
                                 }
                             }
                             .tag(Tab.content)
+                            .accessibilityLabel("Game tab") // VoiceOver
 
                         // Mini Games Tab
                         MiniGamesView()
@@ -70,6 +72,7 @@ struct ContentView: View {
                                 }
                             }
                             .tag(Tab.minigames)
+                            .accessibilityLabel("Mini Games tab") // VoiceOver
                     }
                     .background(Color.clear) // Ensure TabView background doesn't override the ZStack
                     .onChange(of: selectedTab) {
@@ -87,6 +90,7 @@ struct ContentView: View {
                         .onTapGesture {
                             HapticFeedbackModel.triggerLightHaptic()
                         }
+                        .accessibilityLabel("Open settings") // VoiceOver
                     }
                     ToolbarItem(placement: .navigationBarLeading) {
                         
@@ -100,6 +104,7 @@ struct ContentView: View {
                         .sheet(isPresented: $isInfoPresented) {
                             InfoView()
                         }
+                        .accessibilityLabel("Open game information") // VoiceOver
                     }
                 }
             }
@@ -120,6 +125,7 @@ struct ContentView: View {
             // Background view always visible
             BackgroundView(type: .default)
                 .ignoresSafeArea()
+                .accessibilityHidden(true) // Prevent unnecessary VoiceOver focus
 
             VStack(spacing: 12) {
                 
@@ -135,6 +141,8 @@ struct ContentView: View {
                             .foregroundColor(.white)
                             .cornerRadius(8)
                     }
+                    .accessibilityLabel("Start Game button") // VoiceOver
+
                 } else {
                     // Game content
                     CoinNumberView (
@@ -148,6 +156,7 @@ struct ContentView: View {
                         showStatsPopup = true
                         HapticFeedbackModel.triggerLightHaptic()
                     }
+                    .accessibilityLabel("Current coin value: \(coins?.value ?? Decimal(0))") // VoiceOver
 
                     CoinView(
                         coinValue: Binding(
@@ -158,18 +167,21 @@ struct ContentView: View {
                     ) {
                         store.incrementCoinValue()
                     }
+                    .accessibilityLabel("Tap to mine coins") // VoiceOver hint
                     
                     PowerButtonView(store: store, coins: $coins)
                         .frame(width: UIScreen.main.bounds.width * 0.85)
                         .onTapGesture {
                             HapticFeedbackModel.triggerNormalHaptic()
                         }
+                        .accessibilityLabel("Power-up store button") // VoiceOver
 
                     ExchangeButtonView(coins: $coins)
                         .frame(width: UIScreen.main.bounds.width * 0.85)
                         .onTapGesture {
                             HapticFeedbackModel.triggerNormalHaptic()
                         }
+                        .accessibilityLabel("Exchange coins button") // VoiceOver
                 }
             }
             // Popup overlay for coin stats
@@ -201,6 +213,7 @@ struct ContentView: View {
                         HapticFeedbackModel.triggerLightHaptic()
                     }
                 )
+                .accessibilityLabel("Statistics popup with detailed coin stats") // VoiceOver
             }
         }
     }

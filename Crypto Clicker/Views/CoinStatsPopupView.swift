@@ -1,3 +1,10 @@
+//
+//  CoinStatsPopupView.swift
+//  Crypto Clicker
+//
+//  Created by Hilal Safi on 2024-11-30.
+//
+
 import SwiftUI
 
 struct CoinStatsPopupView: View {
@@ -36,6 +43,7 @@ struct CoinStatsPopupView: View {
             .onTapGesture {
                 onClose() // Close the popup when tapping outside
             }
+            .accessibilityHidden(true) // Prevent VoiceOver from reading the background
 
             VStack(spacing: 20) {
                 Text("Statistics")
@@ -43,6 +51,7 @@ struct CoinStatsPopupView: View {
                     .fontWeight(.bold)
                     .foregroundColor(colorScheme == .dark ? .white : .black)
                     .padding(.bottom, 10)
+                    .accessibilityLabel("Statistics popup") // VoiceOver
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
@@ -66,6 +75,7 @@ struct CoinStatsPopupView: View {
                 }
                 .frame(maxHeight: UIScreen.main.bounds.height * 0.5) // Limit scroll height to 50%
                 .frame(maxWidth: UIScreen.main.bounds.width * 0.85) // Limit scroll width to 85%
+                .accessibilityHint("Scroll to see all statistics") // VoiceOver hint
                 
                 Button("Close") {
                     onClose()
@@ -75,6 +85,7 @@ struct CoinStatsPopupView: View {
                 .background(Color.blue.opacity(0.8))
                 .foregroundColor(.white)
                 .cornerRadius(8)
+                .accessibilityLabel("Close statistics popup") // VoiceOver
             }
             .padding()
             .background(colorScheme == .dark ? Color.black : Color.white)
@@ -104,10 +115,12 @@ struct StatisticRow: View {
                 .font(.title3)
                 .bold()
                 .foregroundColor(.primary)
+                .accessibilityLabel(title) // VoiceOver
 
             Text(formattedValue())
                 .font(.headline)
                 .lineLimit(nil) // Allow wrapping if needed
+                .accessibilityLabel("\(formattedValue())") // VoiceOver
         }
         .padding(.bottom, 5) // Space between rows
     }

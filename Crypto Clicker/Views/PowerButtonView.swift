@@ -22,20 +22,26 @@ struct PowerButtonView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.blue.opacity(0.1))
                     .frame(height: 100)
+                    .accessibilityHidden(true) // Hide background from VoiceOver
 
                 PowerUpScrollView(store: store)
                     .frame(height: 100)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityLabel("Power-ups list") // VoiceOver for power-ups
             }
+            
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.blue, lineWidth: 1)
             )
+            
             .onAppear {
                 store.recalculateCoinsPerSecond()
                 store.recalculateCoinsPerClick()
             }
         }
+        .accessibilityLabel("Open Power-ups Shop") // VoiceOver label
+        .accessibilityHint("Tap to purchase and upgrade power-ups") // VoiceOver hint
     }
 }
 

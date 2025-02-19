@@ -25,6 +25,7 @@ struct CoinNumberView: View {
                         .fontWeight(.bold)
                         .foregroundColor(.red)
                         .padding(.top, 9)
+                        .accessibilityLabel("Coin value is zero") // VoiceOver
 
                     Text("Click the coin below to mine it and increase the value!")
                         .font(.title2)
@@ -34,6 +35,7 @@ struct CoinNumberView: View {
                         .fixedSize(horizontal: false, vertical: true) // Ensures the text expands vertically
                         .padding(.horizontal, 16) // Provide enough padding for clarity
                         .padding(.bottom, 9)
+                        .accessibilityLabel("Click the coin below to mine and increase its value") // VoiceOver hint
                 }
                 .background(BlurView(style: .systemMaterial, reduction: 0.8))
                 .cornerRadius(12)
@@ -47,8 +49,8 @@ struct CoinNumberView: View {
                     showStatsPopup = true // Show stats popup when clicked
                     
                 }) {
-                    // Use the new `formattedCoinValue` to display commas
-                    Text(formattedCoinValue(coinValue))
+                    // Use the new `formattedCoinValue` extension method
+                    Text(coinValue.formattedCoinValue())
                         .font(.system(size: 38, weight: .bold, design: .rounded))
                         .padding(.horizontal, 10) // Reduced padding
                         .padding(.vertical, 6)    // Reduced vertical padding
@@ -64,24 +66,13 @@ struct CoinNumberView: View {
                         .shadow(color: Color.gray.opacity(0.2), radius: 3, x: 0, y: 2) // Light shadow
                         .scaleEffect(showStatsPopup ? 1.05 : 1.0) // Small scale animation
                         .animation(.easeInOut(duration: 0.2), value: showStatsPopup)
+                        .accessibilityLabel("Current coin value: \(coinValue.formattedCoinValue())") // VoiceOver
+                        .accessibilityHint("Tap to view statistics") // VoiceOver hint
                 }
                 .buttonStyle(PlainButtonStyle())
             }
         }
     }
-}
-
-// MARK: - Helper
-/// Convert a Decimal to a whole-number string with commas (e.g. "100,000,000").
-private func formattedCoinValue(_ value: Decimal) -> String {
-    // Create a NumberFormatter each time or store one as a static property
-    let formatter = NumberFormatter()
-    formatter.numberStyle = .decimal
-    formatter.groupingSeparator = ","
-    formatter.maximumFractionDigits = 0
-    
-    let nsNumber = value as NSDecimalNumber
-    return formatter.string(from: nsNumber) ?? "\(value)"
 }
 
 // MARK: - Preview

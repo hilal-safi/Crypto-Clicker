@@ -9,7 +9,7 @@ import SwiftUI
 
 struct PowerUpScrollView: View {
     
-    @ObservedObject var store: CryptoStore // Ensure this observes changes in the store
+    @ObservedObject var store: CryptoStore // Observes changes in the store to reflect updates
 
     var body: some View {
         
@@ -20,17 +20,23 @@ struct PowerUpScrollView: View {
                 ForEach(PowerUps.availablePowerUps, id: \.name) { powerUp in
                     
                     VStack {
+                        
                         Text(powerUp.emoji)
                             .font(.system(size: 45))
+                            .accessibilityLabel("\(powerUp.name) icon") // VoiceOver description
                         
-                        // Dynamically bind to the updated quantity
-                        Text("\(store.powerUps.quantity(for: powerUp.name))")
+                        // Since quantity(for:) returns an Int, no optional binding is needed.
+                        let quantity = store.powerUps.quantity(for: powerUp.name)
+                        
+                        Text("\(quantity)")
                             .font(.system(size: 24, weight: .semibold))
+                            .accessibilityLabel("\(quantity) \(powerUp.name) owned") // VoiceOver
                     }
                 }
             }
             .padding(.horizontal)
         }
+        .accessibilityLabel("Power-ups scrollable list") // VoiceOver hint
     }
 }
 

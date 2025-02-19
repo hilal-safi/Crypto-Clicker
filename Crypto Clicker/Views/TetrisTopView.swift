@@ -13,29 +13,50 @@ struct TetrisTopView: View {
     var body: some View {
         
         HStack {
-            Text("Score: \(tetrisModel.score)")
+            Text("Score: \(formattedScore())")
                 .font(.title3)
                 .bold()
-            
+                .accessibilityLabel("Current Score: \(formattedScore())")
+
             Spacer()
             
-            Button(action: { tetrisModel.pauseGame() }) {
-                
+            Button(action: {
+                if tetrisModel.gameState != .notStarted {
+                    HapticFeedbackModel.triggerLightHaptic() // Haptic feedback for interaction
+                    tetrisModel.pauseGame()
+                }
+            }) {
                 Text(tetrisModel.gameState == .paused ? "Resume" : "Pause")
                     .font(.body)
-                    .padding(7.5)
+                    .padding(10) // Increased padding for better tap area
                     .bold()
-                    .background(tetrisModel.gameState == .notStarted ? Color.gray : Color.blue)
+                    .background(buttonBackgroundColor())
                     .foregroundColor(.white)
                     .cornerRadius(8)
+                    .accessibilityLabel(tetrisModel.gameState == .paused ? "Resume Game" : "Pause Game")
             }
             .disabled(tetrisModel.gameState == .notStarted) // Disable when the game hasn't started
         }
         .padding(.horizontal, 14)
-        .padding(.bottom, -4)
+        .padding(.bottom, 4) // Adjusted padding for layout consistency
     }
 }
 
+// MARK: - Helper Functions
+extension TetrisTopView {
+
+    /// Ensures the score is always valid and formatted
+    private func formattedScore() -> String {
+        return max(0, tetrisModel.score).formatted(.number)
+    }
+
+    /// Determines the button color based on the game state
+    private func buttonBackgroundColor() -> Color {
+        return tetrisModel.gameState == .notStarted ? Color.gray.opacity(0.6) : Color.blue
+    }
+}
+
+// MARK: - Preview
 struct TetrisTopView_Previews: PreviewProvider {
     
     static var previews: some View {

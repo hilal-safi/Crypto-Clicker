@@ -45,6 +45,7 @@ struct BlackjackTopView: View {
     
     // MARK: - Private UI Builders
     
+    /// Displays a horizontal scrollable coin selection bar.
     private func coinSelector() -> some View {
         
         ScrollView(.horizontal, showsIndicators: false) {
@@ -59,8 +60,10 @@ struct BlackjackTopView: View {
         }
         .background(Color.gray.opacity(0.4))
         .cornerRadius(10)
+        .accessibilityLabel("Select a coin type for betting") // VoiceOver
     }
     
+    /// Creates a button for selecting a specific cryptocurrency coin.
     private func coinButton(for coin: CoinExchangeModel.CoinTypeInfo) -> some View {
         
         Button {
@@ -74,6 +77,7 @@ struct BlackjackTopView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 42, height: 42)
+                    .accessibilityLabel("\(coin.type.rawValue.capitalized)") // VoiceOver
             }
             .padding(10)
             .background(selectedCoin == coin.type ? Color.blue.opacity(0.4) : Color.gray.opacity(0.4))
@@ -85,17 +89,20 @@ struct BlackjackTopView: View {
         }
     }
     
+    /// Displays details about the selected coin, including current amount and changes.
     private func coinDetails() -> some View {
         
         HStack(spacing: 20) {
             
             VStack {
-                
                 Text("\(selectedCoin.rawValue.capitalized):")
                     .font(.headline)
+                    .accessibilityLabel("Selected coin: \(selectedCoin.rawValue.capitalized)") // VoiceOver
+                
                 // Read the "current" coins straight from the model
                 Text("\(currentCoins)")
                     .font(.body)
+                    .accessibilityLabel("Current balance: \(currentCoins) coins") // VoiceOver
             }
             
             Spacer()
@@ -105,35 +112,38 @@ struct BlackjackTopView: View {
         }
     }
 
+    /// Displays the initial amount of selected coins.
     private func initialCoinView() -> some View {
         
         VStack {
-            
             Text("Initial:")
                 .font(.headline)
             
             Text("\(initialCoins)")
                 .font(.body)
+                .accessibilityLabel("Initial balance: \(initialCoins) coins") // VoiceOver
         }
     }
 
+    /// Displays the change in the number of coins compared to the initial amount.
     private func coinChangeView() -> some View {
         
         VStack {
-            
             Text("Change:")
                 .font(.headline)
             
             if coinDifference == 0 {
-                
                 Text("\(coinDifference)")
                     .font(.body)
                     .foregroundColor(.primary)
+                    .accessibilityLabel("No change in coin balance") // VoiceOver
             } else {
-                
                 Text(coinDifference > 0 ? "+\(coinDifference)" : "\(coinDifference)")
                     .font(.body)
                     .foregroundColor(coinDifference > 0 ? .green : .red)
+                    .accessibilityLabel(coinDifference > 0
+                        ? "Increased by \(coinDifference) coins"
+                        : "Decreased by \(abs(coinDifference)) coins") // VoiceOver
             }
         }
     }

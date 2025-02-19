@@ -13,15 +13,20 @@ struct BlurView: UIViewRepresentable {
     var style: UIBlurEffect.Style
     var reduction: CGFloat = 0.8 // Default reduction value (less blur)
 
+    /// Creates and returns a `UIVisualEffectView` with the specified blur effect.
     func makeUIView(context: Context) -> UIVisualEffectView {
         
         let blurEffect = UIBlurEffect(style: style)
         let view = UIVisualEffectView(effect: blurEffect)
         
         view.alpha = reduction // Apply reduction to blur intensity
+        view.isAccessibilityElement = true
+        view.accessibilityLabel = "Blurred overlay effect" // VoiceOver description
+        
         return view
     }
 
+    /// Updates the `UIVisualEffectView` to reflect changes in the blur intensity dynamically.
     func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
         uiView.alpha = reduction // Ensure reduction updates dynamically
     }

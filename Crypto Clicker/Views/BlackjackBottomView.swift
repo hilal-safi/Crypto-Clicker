@@ -21,10 +21,12 @@ struct BlackjackBottomView: View {
                 
                 Text("Bet Amount:")
                     .font(.title2)
+                    .accessibilityLabel("Bet Amount") // VoiceOver accessibility
                 
                 Text("\(model.betAmount)")
                     .font(.title2)
                     .bold()
+                    .accessibilityLabel("Current bet: \(model.betAmount) coins") // VoiceOver
             }
             
             // Bet Adjustment (only if waitingForBet)
@@ -37,6 +39,7 @@ struct BlackjackBottomView: View {
                     Spacer()
                     betAdjustmentView(amount: 10)
                 }
+                .accessibilityHint("Adjust your bet amount") // VoiceOver hint
             }
             
             HStack(spacing: 5) {
@@ -54,6 +57,7 @@ struct BlackjackBottomView: View {
                             .foregroundColor(.white)
                             .cornerRadius(10)
                     }
+                    .accessibilityLabel("Start a new game") // VoiceOver
                     
                 } else {
                     
@@ -74,6 +78,7 @@ struct BlackjackBottomView: View {
                             .background(Color.green)
                             .foregroundColor(.black)
                             .cornerRadius(8)
+                            .accessibilityLabel("Place bet of \(model.betAmount) coins") // VoiceOver
                         }
                         Spacer()
                         betAdjustmentView(amount: 10000)
@@ -91,6 +96,7 @@ struct BlackjackBottomView: View {
                         .background(Color.blue)
                         .foregroundColor(.black)
                         .cornerRadius(8)
+                        .accessibilityLabel("Hit: Draw another card") // VoiceOver
                         
                         Button("Stand") {
                             HapticFeedbackModel.triggerStrongHaptic() // Strong haptic feedback
@@ -101,6 +107,7 @@ struct BlackjackBottomView: View {
                         .background(Color.red)
                         .foregroundColor(.black)
                         .cornerRadius(8)
+                        .accessibilityLabel("Stand: Keep current hand") // VoiceOver
                         
                         Button("Double Down") {
                             HapticFeedbackModel.triggerNormalHaptic() // Normal haptic feedback
@@ -112,6 +119,8 @@ struct BlackjackBottomView: View {
                         .foregroundColor(.white)
                         .cornerRadius(8)
                         .disabled(!canDoubleDown)
+                        .accessibilityLabel("Double Down: Double your bet") // VoiceOver
+                        .accessibilityHint(canDoubleDown ? "You can double down" : "Double down is unavailable") // VoiceOver hint
                         
                         Button("Split") {
                             HapticFeedbackModel.triggerNormalHaptic() // Normal haptic feedback
@@ -123,6 +132,8 @@ struct BlackjackBottomView: View {
                         .foregroundColor(.white)
                         .cornerRadius(8)
                         .disabled(!canSplit)
+                        .accessibilityLabel("Split: Split your hand") // VoiceOver
+                        .accessibilityHint(canSplit ? "You can split your hand" : "Split is unavailable") // VoiceOver hint
                     }
                 }
             }
@@ -132,6 +143,7 @@ struct BlackjackBottomView: View {
     
     // MARK: - Private Helpers
     
+    /// Determines if the player can double down based on game state
     private var canDoubleDown: Bool {
         
         guard model.gameState == .playerTurn else { return false }
@@ -140,10 +152,11 @@ struct BlackjackBottomView: View {
         
         let costToDouble = model.playerBets[model.currentHandIndex]
         
-        // Now that `exchangeModel` is internal, we can reference it here
+        // Check if the player has enough coins to double down
         return model.exchangeModel.count(for: model.selectedCoinType) >= costToDouble
     }
     
+    /// Determines if the player can split their hand
     private var canSplit: Bool {
         
         guard model.gameState == .playerTurn else { return false }
@@ -153,6 +166,7 @@ struct BlackjackBottomView: View {
         return model.canSplit(hand: model.currentPlayerHand)
     }
     
+    /// Creates a view for adjusting the bet amount
     private func betAdjustmentView(amount: Int) -> some View {
         
         HStack(spacing: 2) {
@@ -172,10 +186,12 @@ struct BlackjackBottomView: View {
                             .stroke(Color.gray, lineWidth: 2)
                     )
             }
+            .accessibilityLabel("Decrease bet by \(amount) coins") // VoiceOver
             
             Text("\(amount)")
                 .font(.headline)
                 .frame(width: dynamicWidth(for: amount), height: 30)
+                .accessibilityHidden(true) // Hides amount from VoiceOver to avoid repetition
             
             Button(action: {
                 HapticFeedbackModel.triggerLightHaptic() // Light haptic feedback
@@ -192,9 +208,11 @@ struct BlackjackBottomView: View {
                             .stroke(Color.gray, lineWidth: 2)
                     )
             }
+            .accessibilityLabel("Increase bet by \(amount) coins") // VoiceOver
         }
     }
     
+    /// Dynamically determines width based on the number of digits in the bet amount
     private func dynamicWidth(for amount: Int) -> CGFloat {
         
         if amount <= 10 {

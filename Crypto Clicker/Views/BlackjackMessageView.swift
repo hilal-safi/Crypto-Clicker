@@ -28,11 +28,13 @@ struct BlackjackMessageView: View {
                 .lineLimit(nil) // Allows the text to wrap onto multiple lines
                 .frame(maxWidth: .infinity) // Ensures the text spans across the available width
                 .padding(8)
+                .accessibilityLabel("Blackjack message: \(text)") // VoiceOver reads the message
         }
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(getBackgroundColor()) // Dynamically set background color
                 .opacity(0.7)
+                .accessibilityHidden(true) // Background should not interfere with VoiceOver
         )
     }
     

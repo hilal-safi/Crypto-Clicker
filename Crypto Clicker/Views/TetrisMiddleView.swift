@@ -21,10 +21,12 @@ struct TetrisMiddleView: View {
                 Text("Top Score:")
                     .font(.headline)
                     .bold()
-                
-                Text("\(tetrisModel.topScore)")
+                    .accessibilityLabel("Top Score")
+
+                Text(formattedNumber(tetrisModel.topScore))
                     .font(.title3)
                     .bold()
+                    .accessibilityLabel("Your top score is \(formattedNumber(tetrisModel.topScore))")
             }
 
             Spacer()
@@ -34,7 +36,8 @@ struct TetrisMiddleView: View {
                 Text("Next:")
                     .font(.title3)
                     .bold()
-                
+                    .accessibilityLabel("Next piece")
+
                 ZStack {
                     
                     Rectangle()
@@ -45,6 +48,7 @@ struct TetrisMiddleView: View {
                     if tetrisModel.gameState == .notStarted || tetrisModel.nextPiece == nil {
                         Text("❓")
                             .font(.system(size: 40))
+                            .accessibilityLabel("Next piece is unknown")
                         
                     } else if let next = tetrisModel.nextPiece {
                         
@@ -52,6 +56,7 @@ struct TetrisMiddleView: View {
                             .frame(width: 50, height: 50)
                             .scaleEffect(1.5) // Scale the piece up
                             .offset(next.nextPieceOffset())
+                            .accessibilityLabel("Next piece is a \(next.type.name)")
                     }
                 }
             }
@@ -63,15 +68,37 @@ struct TetrisMiddleView: View {
                 Text("Total Coins:")
                     .font(.headline)
                     .bold()
-                
+                    .accessibilityLabel("Total Coins")
+
                 if let coins = cryptoStore.coins {
-                    Text("\(coins.value.formatted(.number))")
+                    Text(formattedNumber(coins.value))
                         .font(.title3)
                         .bold()
+                        .accessibilityLabel("You have \(formattedNumber(coins.value)) coins")
+                } else {
+                    Text("0")
+                        .font(.title3)
+                        .bold()
+                        .accessibilityLabel("You have 0 coins")
                 }
             }
         }
         .padding(.horizontal, 8)
+    }
+
+    /// Formats numbers with commas for better readability and accessibility.
+    private func formattedNumber(_ value: Int?) -> String {
+        guard let value = value else { return "0" }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: value)) ?? "0"
+    }
+
+    /// Overloaded function for Decimal numbers.
+    private func formattedNumber(_ value: Decimal) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: value as NSDecimalNumber) ?? "0"
     }
 }
 

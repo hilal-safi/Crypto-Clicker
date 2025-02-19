@@ -21,7 +21,7 @@ struct TetrisPieceView: View {
         
         GeometryReader { geometry in
             
-            let gridSize = CGFloat(piece.shape.count)
+            let gridSize = CGFloat(piece.shape.count > 0 ? piece.shape.count : 1) // Prevent division by zero
             let scaledBlockSize = min(geometry.size.width, geometry.size.height) / gridSize
 
             VStack(spacing: 0) {
@@ -36,6 +36,11 @@ struct TetrisPieceView: View {
                                 Rectangle()
                                     .fill(piece.type.color)
                                     .frame(width: scaledBlockSize, height: scaledBlockSize)
+                                    .accessibilityLabel("Block at row \(row), column \(column)")
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 3)
+                                            .stroke(Color.black.opacity(0.3), lineWidth: 1)
+                                    ) // Improves contrast for visibility
                             } else {
                                 Spacer()
                                     .frame(width: scaledBlockSize, height: scaledBlockSize)
@@ -45,6 +50,8 @@ struct TetrisPieceView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Tetris piece: \(piece.type.name)")
         }
     }
 }

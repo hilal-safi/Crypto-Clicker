@@ -22,12 +22,20 @@ struct TetrisView: View {
                 
                 TetrisTopView()
                 
-                TetrisBoardView(
-                    board: tetrisModel.board,
-                    currentPiece: tetrisModel.currentPiece,
-                    landingPiece: tetrisModel.getLandingPiece()
-                )
-                .aspectRatio(CGFloat(tetrisModel.board[0].count) / CGFloat(tetrisModel.board.count), contentMode: .fit)
+                if isValidBoard() {
+                    TetrisBoardView(
+                        board: tetrisModel.board,
+                        currentPiece: tetrisModel.currentPiece,
+                        landingPiece: tetrisModel.getLandingPiece()
+                    )
+                    .aspectRatio(CGFloat(tetrisModel.board[0].count) / CGFloat(tetrisModel.board.count), contentMode: .fit)
+                    .accessibilityLabel("Tetris Game Board")
+                } else {
+                    Text("Error: Invalid Board")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                        .accessibilityLabel("Tetris board failed to load")
+                }
                 
                 TetrisMiddleView()
                 
@@ -37,12 +45,27 @@ struct TetrisView: View {
 
             if tetrisModel.gameState == .gameOver {
                 TetrisGameOverView()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.5), value: tetrisModel.gameState)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Game Over. Score: \(tetrisModel.score). Play Again?")
             }
         }
         .navigationTitle("Tetris")
+        .accessibilityLabel("Tetris Game")
     }
 }
 
+// MARK: - Helper Functions
+extension TetrisView {
+
+    /// Checks if the board is valid before accessing its elements
+    private func isValidBoard() -> Bool {
+        return !tetrisModel.board.isEmpty && !tetrisModel.board[0].isEmpty
+    }
+}
+
+// MARK: - Preview
 struct TetrisView_Previews: PreviewProvider {
     
     static var previews: some View {

@@ -27,6 +27,7 @@ struct SettingsView: View {
         ZStack {
             
             BackgroundView(type: .settings)
+                .accessibilityHidden(true) // Prevents VoiceOver from reading the background
             
             ScrollView {
                 
@@ -37,6 +38,7 @@ struct SettingsView: View {
                         Toggle(isOn: $settings.enableHaptics) {
                             Text("Enable Haptics")
                         }
+                        .accessibilityLabel("Enable haptic feedback") // VoiceOver label
                     }
                     
                     settingsSection(title: "Sounds", icon: "speaker.wave.2") {
@@ -44,6 +46,7 @@ struct SettingsView: View {
                         Toggle(isOn: $settings.enableSounds) {
                             Text("Enable Sounds")
                         }
+                        .accessibilityLabel("Enable game sounds") // VoiceOver label
                     }
                     
                     settingsSection(title: "Appearance", icon: "paintpalette.fill") {
@@ -54,6 +57,7 @@ struct SettingsView: View {
                             }
                         }
                         .pickerStyle(SegmentedPickerStyle())
+                        .accessibilityLabel("Choose appearance mode") // VoiceOver label
                     }
                     
                     settingsSection(title: "Difficulty", icon: "tortoise.fill") {
@@ -64,6 +68,7 @@ struct SettingsView: View {
                             }
                         }
                         .pickerStyle(SegmentedPickerStyle())
+                        .accessibilityLabel("Select game difficulty") // VoiceOver label
                         .onChange(of: settings.difficulty) {
                             store.recalculateCoinsPerSecond()
                             store.recalculateCoinsPerClick()
@@ -91,6 +96,8 @@ struct SettingsView: View {
                                             .stroke(Color.red, lineWidth: 1)
                                     )
                             }
+                            .accessibilityLabel("Reset \(resetType.buttonLabel)") // VoiceOver label
+                            .accessibilityHint("Resets \(resetType.description)") // VoiceOver hint
                         }
                     }
                 }
@@ -120,6 +127,7 @@ struct SettingsView: View {
         }
     }
 
+    /// Creates a settings section with an icon and content.
     private func settingsSection(title: String, icon: String, @ViewBuilder content: () -> some View) -> some View {
         
         VStack(alignment: .leading, spacing: 8) {
@@ -127,10 +135,12 @@ struct SettingsView: View {
             HStack {
                 Image(systemName: icon)
                     .foregroundColor(.blue)
+                    .accessibilityHidden(true) // Icon does not need to be read
                 Text(title)
                     .font(.headline)
             }
             .padding(.bottom, 4)
+            .accessibilityLabel(title) // VoiceOver reads the title
             
             content()
         }
@@ -152,7 +162,7 @@ struct SettingsView_Previews: PreviewProvider {
         let Settings = SettingsModel()
         let AchievementsModel = AchievementsModel.shared
 
-        SettingsView(
+        return SettingsView(
             coins: .constant(CryptoCoin(value: Decimal(10))),
             store: Store,
             powerUps: PowerUps,

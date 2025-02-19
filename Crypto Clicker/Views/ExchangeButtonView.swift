@@ -33,8 +33,11 @@ struct ExchangeButtonView: View {
                     .stroke(Color.blue, lineWidth: 1)
             )
         }
+        .accessibilityLabel("Exchange coins") // VoiceOver label
+        .accessibilityHint("Tap to exchange coins for different types") // VoiceOver hint
     }
     
+    /// Creates a coin display view with image and count.
     private func coinView(for coinInfo: CoinExchangeModel.CoinTypeInfo) -> some View {
         
         VStack {
@@ -42,10 +45,12 @@ struct ExchangeButtonView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 48, height: 48)
-            
+                .accessibilityLabel("\(coinInfo.type.rawValue) icon") // VoiceOver label
+
             Text("\(coinInfo.count)")
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundColor(.blue)
+                .accessibilityLabel("\(coinInfo.count) \(coinInfo.type.rawValue)") // VoiceOver label
         }
     }
 }
@@ -60,6 +65,5 @@ struct ExchangeButtonView_Previews: PreviewProvider {
             ExchangeButtonView(coins: .constant(coins))
         }
         .environmentObject(CoinExchangeModel.shared)
-
     }
 }

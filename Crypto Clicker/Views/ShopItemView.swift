@@ -115,30 +115,10 @@ struct ShopItemView: View {
             // MARK: - Quantity Selector + Purchase Button
             HStack(spacing: 12) {
                 
-                quantityButton(label: "-5",  step: -5,  width: 44, color: .red)
-                quantityButton(label: "-1",   step: -1,   width: 44, color: .red)
+                quantityButton(label: "-5", step: -5, width: 44, color: .red)
+                quantityButton(label: "-1", step: -1, width: 44, color: .red)
 
-                Button(action: {
-                    guard quantity > 0 else {
-                        shopModel.updateMessage(
-                            "Cannot purchase 0 of \(powerUp.name). Increase quantity first!",
-                            success: false
-                        )
-                        return
-                    }
-                    
-                    let cost = piecewiseTotalCost()
-                    guard let currentCoins = coins?.value, currentCoins >= cost else {
-                        shopModel.updateMessage(
-                            "Not enough coins to buy \(quantity) \(powerUp.name)(s).",
-                            success: false
-                        )
-                        return
-                    }
-                    // Purchase
-                    shopModel.handlePurchase(for: powerUp, quantity: quantity)
-                    
-                }) {
+                Button(action: handlePurchase) {
                     Text("Buy")
                         .font(.headline)
                         .padding(12)
@@ -146,9 +126,10 @@ struct ShopItemView: View {
                         .foregroundColor(.white)
                         .cornerRadius(8)
                 }
+                .accessibilityLabel("Buy \(quantity) \(powerUp.name)(s)")
                 
-                quantityButton(label: "+1",   step: 1,   width: 44, color: .green)
-                quantityButton(label: "+5",  step: 5,  width: 44, color: .green)
+                quantityButton(label: "+1", step: 1, width: 44, color: .green)
+                quantityButton(label: "+5", step: 5, width: 44, color: .green)
             }
         }
         .padding()
@@ -163,15 +144,34 @@ struct ShopItemView: View {
     }
 }
 
-// MARK: - Piecewise Exponent / Minimal Growth Summation
-extension ShopItemView {
+// MARK: - Purchase Logic
+fileprivate extension ShopItemView {
+    
+    /// Handles the purchase of power-ups
+    func handlePurchase() {
+        guard quantity > 0 else {
+            shopModel.updateMessage("Cannot purchase 0 of \(powerUp.name). Increase quantity first!", success: false)
+            return
+        }
+        
+        let cost = piecewiseTotalCost()
+        guard let currentCoins = coins?.value, currentCoins >= cost else {
+            shopModel.updateMessage("Not enough coins to buy \(quantity) \(powerUp.name)(s).", success: false)
+            return
+        }
+        
+        // Purchase the power-up
+        shopModel.handlePurchase(for: powerUp, quantity: quantity)
+    }
+}
+
+// MARK: - Cost Calculation Logic
+fileprivate extension ShopItemView {
     
     /// Calculate cost for the *next single* item (beyond the current quantity).
-    private func piecewiseNextCost() -> Decimal {
-        
+    func piecewiseNextCost() -> Decimal {
         let owned = powerUps.quantities[powerUp.name, default: 0]
         let indexForNextItem = owned + quantity
-        
         var cost = itemCost(index: indexForNextItem)
         
         // Multiply by difficulty
@@ -181,52 +181,34 @@ extension ShopItemView {
     }
     
     /// Calculate total cost for the entire "quantity" in a more performant piecewise way.
-    private func piecewiseTotalCost() -> Decimal {
-        
+    func piecewiseTotalCost() -> Decimal {
         guard quantity > 0 else { return 0 }
         
         let owned = powerUps.quantities[powerUp.name, default: 0]
         let start = owned
-        let end   = owned + quantity - 1
-        
-        // If it’s all below 500 (for example), we do exponent sum
-        // If it’s all >= 500, do minimal growth sum
-        // If partial overlap, sum them in two segments (split at 499).
-        
+        let end = owned + quantity - 1
         var sum = Decimal(0)
         
         if end < 500 {
-            // Entire range in exponent zone
             sum = exponentSumRange(startIndex: start, endIndex: end)
-        }
-        else if start >= 500 {
-            // Entire range in minimal growth zone
+        } else if start >= 500 {
             sum = minimalGrowthSumRange(startIndex: start, endIndex: end)
-        }
-        else {
-            // Split at 499
+        } else {
             let part1 = exponentSumRange(startIndex: start, endIndex: 499)
             let part2 = minimalGrowthSumRange(startIndex: 500, endIndex: end)
             sum = part1 + part2
         }
         
-        // Multiply entire sum by difficulty
-        let diff = Decimal(store.settings?.difficulty.costMultiplier ?? 1.0)
-        return clampAndRound(sum * diff)
+        let difficultyMultiplier = Decimal(store.settings?.difficulty.costMultiplier ?? 1.0)
+        return clampAndRound(sum * difficultyMultiplier)
     }
     
-    // MARK: - 1) Summation for exponent zone
-    private func exponentSumRange(startIndex: Int, endIndex: Int) -> Decimal {
-        
+    func exponentSumRange(startIndex: Int, endIndex: Int) -> Decimal {
         guard startIndex <= endIndex else { return 0 }
-        
         var total = Decimal(0)
-        
         for i in startIndex...endIndex {
-            
             let c = clampAndRound(itemCost(index: i))
             let newSum = total + c
-            
             if newSum > Decimal.greatestFiniteMagnitude {
                 return Decimal.greatestFiniteMagnitude
             }
@@ -235,18 +217,12 @@ extension ShopItemView {
         return total
     }
     
-    // MARK: - 2) Summation for minimal growth zone (index >= 500)
-    private func minimalGrowthSumRange(startIndex: Int, endIndex: Int) -> Decimal {
-        
+    func minimalGrowthSumRange(startIndex: Int, endIndex: Int) -> Decimal {
         guard startIndex <= endIndex else { return 0 }
-    
         var total = Decimal(0)
-        
         for i in startIndex...endIndex {
-            
             let c = clampAndRound(itemCost(index: i))
             let newSum = total + c
-            
             if newSum > Decimal.greatestFiniteMagnitude {
                 return Decimal.greatestFiniteMagnitude
             }
@@ -257,19 +233,13 @@ extension ShopItemView {
     
     /// itemCost for a given index
     /// If `index < 500`, exponent-based; else minimal growth logic.
-    private func itemCost(index: Int) -> Decimal {
-        
+    func itemCost(index: Int) -> Decimal {
         let base = Decimal(powerUp.cost)
-        
         if index < 500 {
-            // Normal exponent zone
             let cost = base * powDecimal(Decimal(powerUp.costMultiplier), index)
             return clampAndRound(cost)
-            
         } else {
-            // Minimal growth after 500
             let costAt499 = base * powDecimal(Decimal(powerUp.costMultiplier), 499)
-            // For example, 1.005^(index - 499)
             let offset = index - 499
             let cost = costAt499 * powDecimal(Decimal(1.005), offset)
             return clampAndRound(cost)
@@ -277,23 +247,19 @@ extension ShopItemView {
     }
 }
 
-// MARK: - Utility
-extension ShopItemView {
+// MARK: - Utility Functions
+fileprivate extension ShopItemView {
     
     // Clamp & round down to whole
-    private func clampAndRound(_ value: Decimal) -> Decimal {
-        let clamped = value > Decimal.greatestFiniteMagnitude
-            ? Decimal.greatestFiniteMagnitude
-            : value
+    func clampAndRound(_ value: Decimal) -> Decimal {
+        let clamped = value > Decimal.greatestFiniteMagnitude ? Decimal.greatestFiniteMagnitude : value
         return clamped.roundedDownToWhole()
     }
     
     // Our improved exponent function
-    private func powDecimal(_ base: Decimal, _ exponent: Int) -> Decimal {
-        
+    func powDecimal(_ base: Decimal, _ exponent: Int) -> Decimal {
         if exponent <= 0 { return 1 }
         var result = Decimal(1)
-        
         for _ in 0..<exponent {
             result *= base
             if result > Decimal.greatestFiniteMagnitude {
@@ -305,10 +271,10 @@ extension ShopItemView {
 }
 
 // MARK: - UI Helpers
-extension ShopItemView {
+fileprivate extension ShopItemView {
     
     // Format big decimals with commas
-    private func formattedDecimal(_ value: Decimal) -> String {
+    func formattedDecimal(_ value: Decimal) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = ","
@@ -318,14 +284,8 @@ extension ShopItemView {
     
     // Show large or short text with vertical expansion
     @ViewBuilder
-    private func dynamicHStack(label: String, value: Decimal, color: Color) -> some View {
-        
-        let clamped = (value > Decimal.greatestFiniteMagnitude)
-            ? Decimal.greatestFiniteMagnitude
-            : value
-        let displayValue = clampAndRound(clamped)
-        let formattedValue = formattedDecimal(displayValue)
-        
+    func dynamicHStack(label: String, value: Decimal, color: Color) -> some View {
+        let formattedValue = formattedDecimal(value)
         HStack(alignment: .top) {
             Text(label)
                 .font(.body)
@@ -341,35 +301,28 @@ extension ShopItemView {
         }
     }
     
-    private func quantityButton(label: String, step: Int, width: CGFloat, color: Color) -> some View {
-        
+    func quantityButton(label: String, step: Int, width: CGFloat, color: Color) -> some View {
         Button {
-            let newQ = min(100, max(0, quantity + step))
-            quantity = newQ
-            // Update next cost each time quantity changes
+            quantity = max(0, quantity + step)
             nextCost = piecewiseNextCost()
-            
         } label: {
-            
             Text(label)
                 .frame(width: width, height: 40)
                 .background(color.opacity(0.7))
                 .cornerRadius(8)
                 .foregroundColor(.white)
                 .bold()
+                .accessibilityLabel("\(step > 0 ? "Increase" : "Decrease") quantity by \(abs(step))")
         }
     }
 }
 
 // MARK: - Preview
 struct ShopItemView_Previews: PreviewProvider {
-    
     static var previews: some View {
-        
         let mockCoins = CryptoCoin(value: Decimal(1000))
         let mockStore = CryptoStore()
-        
-        ShopItemView(
+        return ShopItemView(
             powerUp: PowerUps.availablePowerUps.first!,
             coins: .constant(mockCoins)
         )

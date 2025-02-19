@@ -22,129 +22,94 @@ struct ExchangeItemView: View {
                 
                 // Coin image / info
                 HStack {
+                    
                     Image(coinInfo.imageName)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 64, height: 64)
                         .shadow(color: coinInfo.glowColor, radius: 10, x: 0, y: 0)
+                        .accessibilityLabel("\(coinInfo.label) icon") // VoiceOver label
                     
                     VStack(alignment: .leading, spacing: 4) {
+                        
                         Text(coinInfo.label)
                             .font(.title2)
                             .foregroundColor(coinInfo.textColor)
                             .bold()
+                            .accessibilityLabel("Coin type: \(coinInfo.label)") // VoiceOver
                         
                         Text("Exchanged: \(coinInfo.count)")
                             .font(.headline)
                             .foregroundColor(coinInfo.textColor)
+                            .accessibilityLabel("\(coinInfo.count) coins exchanged") // VoiceOver
                         
-                        // We can *display* the cost with difficulty as well
+                        // Display the cost per coin
                         let perCoinCost = exchangeModel.calculateCost(for: coinInfo, quantity: 1)
+                        
                         Text("Cost per coin: \(formatted(perCoinCost)) coins")
                             .font(.headline)
                             .foregroundColor(coinInfo.textColor)
+                            .accessibilityLabel("Cost per \(coinInfo.label): \(formatted(perCoinCost)) coins") // VoiceOver
                     }
                     Spacer()
                 }
                 
                 // Quantity
                 HStack {
+                    
                     Text("Quantity:")
                         .font(.subheadline)
                         .bold()
                         .foregroundColor(coinInfo.textColor)
+                    
                     Spacer()
+                    
                     Text("\(quantity)")
                         .font(.headline)
                         .foregroundColor(coinInfo.textColor)
+                        .accessibilityLabel("Selected quantity: \(quantity)") // VoiceOver
                 }
                 
-                // Total cost using difficulty-based logic
+                // Total cost
                 let totalCost = exchangeModel.calculateCost(for: coinInfo, quantity: quantity)
                 
                 HStack {
+                    
                     Text("Total Cost:")
                         .font(.subheadline)
                         .bold()
                         .foregroundColor(coinInfo.textColor)
+                    
                     Spacer()
+                    
                     Text("\(formatted(totalCost)) coins")
                         .font(.headline)
                         .foregroundColor(coinInfo.textColor)
+                        .accessibilityLabel("Total cost: \(formatted(totalCost)) coins") // VoiceOver
                 }
 
-                // Quantity Selector
+                // Quantity Selector with adjusted button sizes
                 HStack(spacing: 6) {
-                    Button(action: {
-                        quantity = max(1, quantity - 1)
-                    }) {
-                        Text("-1")
-                            .frame(width: 40, height: 40)
-                            .background(coinInfo.textColor.opacity(0.8))
-                            .cornerRadius(8)
-                            .foregroundColor(.red)
-                            .bold()
-                    }
-
-                    Button(action: {
-                        quantity = max(1, quantity - 20)
-                    }) {
-                        Text("-20")
-                            .frame(width: 48, height: 40)
-                            .background(coinInfo.textColor.opacity(0.8))
-                            .cornerRadius(8)
-                            .foregroundColor(.red)
-                            .bold()
-                    }
-
-                    Button(action: {
-                        quantity = max(1, quantity - 500)
-                    }) {
-                        Text("-500")
-                            .frame(width: 55, height: 40)
-                            .background(coinInfo.textColor.opacity(0.8))
-                            .cornerRadius(8)
-                            .foregroundColor(.red)
-                            .bold()
-                    }
-
-                    Button(action: {
-                        quantity += 1
-                    }) {
-                        Text("+1")
-                            .frame(width: 40, height: 40)
-                            .background(coinInfo.textColor.opacity(0.8))
-                            .cornerRadius(8)
-                            .foregroundColor(.green)
-                            .bold()
-                    }
-
-                    Button(action: {
-                        quantity += 20
-                    }) {
-                        Text("+20")
-                            .frame(width: 48, height: 40)
-                            .background(coinInfo.textColor.opacity(0.8))
-                            .cornerRadius(8)
-                            .foregroundColor(.green)
-                            .bold()
-                    }
-
-                    Button(action: {
-                        quantity += 500
-                    }) {
-                        Text("+500")
-                            .frame(width: 55, height: 40)
-                            .background(coinInfo.textColor.opacity(0.8))
-                            .cornerRadius(8)
-                            .foregroundColor(.green)
-                            .bold()
-                    }
+                    quantityButton(label: "-1", amount: -1, width: 40, color: .red)
+                    quantityButton(label: "-20", amount: -20, width: 48, color: .red)
+                    quantityButton(label: "-500", amount: -500, width: 55, color: .red)
+                    quantityButton(label: "+1", amount: 1, width: 40, color: .green)
+                    quantityButton(label: "+20", amount: 20, width: 48, color: .green)
+                    quantityButton(label: "+500", amount: 500, width: 55, color: .green)
                 }
-
+                .accessibilityLabel("Adjust quantity of \(coinInfo.label) for exchange") // VoiceOver
+                
                 // Exchange Button
                 Button(action: {
-                    exchangeModel.performExchange(for: coinType, quantity: quantity, with: &coins)
+                    
+                    if coins?.value ?? 0 >= totalCost {
+                        exchangeModel.performExchange(for: coinType, quantity: quantity, with: &coins)
+                        
+                    } else {
+                        // Error handling: Show message if not enough coins
+                        print("Error: Not enough coins to exchange.")
+                    }
+                    
                 }) {
                     Text("Exchange")
                         .font(.headline)
@@ -154,6 +119,8 @@ struct ExchangeItemView: View {
                         .background(coinInfo.secondaryColor)
                         .cornerRadius(8)
                 }
+                .accessibilityLabel("Exchange \(quantity) \(coinInfo.label)") // VoiceOver
+                .accessibilityHint("Tap to complete the exchange") // VoiceOver hint
             }
             .padding()
             .background(coinInfo.backgroundColor)
@@ -162,18 +129,44 @@ struct ExchangeItemView: View {
         }
     }
     
-    // Format decimals with commas
+    /// Helper function to create quantity buttons with adjustable size
+    private func quantityButton(label: String, amount: Int, width: CGFloat, color: Color) -> some View {
+        
+        Button(action: {
+            quantity = max(1, quantity + amount)
+        }) {
+            Text(label)
+                .frame(width: width, height: 40)
+                .background(coinInfo(for: coinType)?.textColor.opacity(0.8) ?? .gray)
+                .cornerRadius(8)
+                .foregroundColor(color)
+                .bold()
+        }
+        .accessibilityLabel("\(label) quantity") // VoiceOver
+    }
+    
+    /// Helper function to retrieve coin info safely
+    private func coinInfo(for type: CoinType) -> CoinExchangeModel.CoinTypeInfo? {
+        return exchangeModel.availableCoins.first(where: { $0.type == type })
+    }
+    
+    /// Format decimals with commas
     private func formatted(_ value: Decimal) -> String {
+        
         let formatter = NumberFormatter()
+        
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = ","
         formatter.maximumFractionDigits = 0
+        
         return formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
     }
 }
 
 struct ExchangeItemView_Previews: PreviewProvider {
+    
     static var previews: some View {
+        
         let coins = CryptoCoin(value: Decimal(1000))
         
         return VStack {

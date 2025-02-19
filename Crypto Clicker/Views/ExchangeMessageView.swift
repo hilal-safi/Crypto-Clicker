@@ -16,15 +16,25 @@ struct ExchangeMessageView: View {
         
         VStack {
 
-            // Display Message
+            // Display exchange message with accessibility support
             Text(exchangeModel.message)
                 .font(.headline)
                 .foregroundColor(.white)
                 .padding(.vertical, 2)
+                .accessibilityLabel("Exchange message: \(exchangeModel.message)") // VoiceOver support
             
-            Text("Coins: \(coins?.value ?? 0)")
-                .font(.headline)
-                .foregroundColor(.white)
+            // Display current coin balance with error handling
+            if let coinValue = coins?.value {
+                Text("Coins: \(formatted(coinValue))")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .accessibilityLabel("Current coin balance: \(formatted(coinValue))") // VoiceOver
+            } else {
+                Text("Coins: 0")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .accessibilityLabel("Current coin balance: 0") // VoiceOver
+            }
         }
         .padding()
         .frame(maxWidth: .infinity)
@@ -32,7 +42,18 @@ struct ExchangeMessageView: View {
         .cornerRadius(8)
         .animation(.easeInOut, value: exchangeModel.messageBackgroundColor)
     }
-
+    
+    /// Helper function to format decimals with commas
+    private func formatted(_ value: Decimal) -> String {
+        
+        let formatter = NumberFormatter()
+        
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = ","
+        formatter.maximumFractionDigits = 0
+        
+        return formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
+    }
 }
 
 struct ExchangeMessageView_Previews: PreviewProvider {
@@ -40,7 +61,7 @@ struct ExchangeMessageView_Previews: PreviewProvider {
     static var previews: some View {
         
         let coins = CryptoCoin(value: Decimal(1000))
-        ExchangeMessageView(coins: .constant(coins))
+        return ExchangeMessageView(coins: .constant(coins))
             .environmentObject(CoinExchangeModel.shared)
             .padding()
             .previewLayout(.sizeThatFits)

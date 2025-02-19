@@ -20,12 +20,13 @@ struct BlackjackMiddleView: View {
                 Divider()
                 
                 VStack {
-                    // Dealer's value
+                    // Dealer's value display
                     if model.gameState == .waitingForBet {
                         
                         Text("Dealer's Value: ??")
                             .font(.title3)
                             .bold()
+                            .accessibilityLabel("Dealer's value is hidden") // VoiceOver accessibility
                         
                     } else if model.dealerSecondCardHidden {
                         
@@ -36,18 +37,21 @@ struct BlackjackMiddleView: View {
                             Text("Dealer's Value: 1 or 11 + ??")
                                 .font(.title3)
                                 .bold()
+                                .accessibilityLabel("Dealer's value is Ace or 11 plus a hidden card") // VoiceOver
                         } else {
                             
                             // Normal case
                             Text("Dealer's Value: \(model.dealerHand.first?.value ?? 0) + ??")
                                 .font(.title3)
                                 .bold()
+                                .accessibilityLabel("Dealer's first card value is \(model.dealerHand.first?.value ?? 0), second card is hidden") // VoiceOver
                         }
                     } else {
                         // Dealer's full value revealed
                         Text("Dealer's Value: \(model.dealerValue)")
                             .font(.title3)
                             .bold()
+                            .accessibilityLabel("Dealer's total value is \(model.dealerValue)") // VoiceOver
                     }
                     
                     // Dealer's cards
@@ -60,6 +64,7 @@ struct BlackjackMiddleView: View {
                                 // Show two placeholders before the game starts
                                 ForEach(0..<2, id: \.self) { _ in
                                     BlackjackCardView(card: Card(suit: "🂠", value: 0))
+                                        .accessibilityLabel("Face-down card") // VoiceOver
                                 }
                                 
                             } else {
@@ -69,9 +74,11 @@ struct BlackjackMiddleView: View {
                                     
                                     if index == 1 && model.dealerSecondCardHidden {
                                         BlackjackCardView(card: Card(suit: "🂠", value: 0))
+                                            .accessibilityLabel("Hidden dealer card") // VoiceOver
                                         
                                     } else {
                                         BlackjackCardView(card: model.dealerHand[index])
+                                            .accessibilityLabel("Dealer's card: \(model.dealerHand[index].displayValue) of \(suitDescription(for: model.dealerHand[index].suit))") // VoiceOver
                                     }
                                 }
                             }
@@ -92,6 +99,7 @@ struct BlackjackMiddleView: View {
                         
                         ForEach(0..<2, id: \.self) { _ in
                             BlackjackCardView(card: Card(suit: "🂠", value: 0))
+                                .accessibilityLabel("Face-down player card") // VoiceOver
                         }
                     }
                     .frame(width: geometry.size.width, alignment: .center) // Centered before the game
@@ -100,6 +108,7 @@ struct BlackjackMiddleView: View {
                     Text("Player's Value: ??")
                         .font(.title3)
                         .bold()
+                        .accessibilityLabel("Player's value is hidden") // VoiceOver
                     
                 } else {
                     
@@ -117,6 +126,7 @@ struct BlackjackMiddleView: View {
                                         
                                         ForEach(model.playerHands[handIndex], id: \.self) { card in
                                             BlackjackCardView(card: card)
+                                                .accessibilityLabel("Player's card: \(card.displayValue) of \(suitDescription(for: card.suit))") // VoiceOver
                                         }
                                     }
                                     .padding(10)
@@ -131,9 +141,15 @@ struct BlackjackMiddleView: View {
                                     )
                                     
                                     // Update to display both hand values if applicable.
-                                    Text("Value: \(model.calculateHandValue(for: model.playerHands[handIndex]).high == model.calculateHandValue(for: model.playerHands[handIndex]).low ? "\(model.calculateHandValue(for: model.playerHands[handIndex]).high)" : "\(model.calculateHandValue(for: model.playerHands[handIndex]).high) or \(model.calculateHandValue(for: model.playerHands[handIndex]).low)")")
+                                    let handValue = model.calculateHandValue(for: model.playerHands[handIndex])
+                                    let handText = handValue.high == handValue.low
+                                        ? "\(handValue.high)"
+                                        : "\(handValue.high) or \(handValue.low)"
+                                    
+                                    Text("Value: \(handText)")
                                         .font(.title3)
                                         .bold()
+                                        .accessibilityLabel("Player's hand value is \(handText)") // VoiceOver
                                 }
                                 .padding(4)
                                 
@@ -141,6 +157,7 @@ struct BlackjackMiddleView: View {
                                 if model.playerHands.count > 1 && handIndex < model.playerHands.count - 1 {
                                     Divider()
                                         .frame(height: 120)
+                                        .accessibilityHidden(true) // Hide divider from VoiceOver
                                 }
                             }
                         }
@@ -155,6 +172,17 @@ struct BlackjackMiddleView: View {
                 Divider()
             }
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+        }
+    }
+    
+    /// Provides a descriptive name for the suit symbol for accessibility.
+    private func suitDescription(for suit: String) -> String {
+        switch suit {
+            case "♠": return "Spades"
+            case "♣": return "Clubs"
+            case "♦": return "Diamonds"
+            case "♥": return "Hearts"
+            default: return "Unknown suit"
         }
     }
 }

@@ -239,7 +239,7 @@ class StepDetection: ObservableObject {
                 continue
             }
             
-            let sampleStart = quantitySample.startDate
+            //let sampleStart = quantitySample.startDate
             let sampleEnd = quantitySample.endDate
             let totalSampleSteps = Int(quantitySample.quantity.doubleValue(for: .count()))
             
