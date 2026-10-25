@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1620"
+   LastUpgradeVersion = "2600"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -44,28 +44,6 @@
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
       <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9EEE79A42D29A75800FBC049"
-               BuildableName = "Crypto Clicker Watch AppTests.xctest"
-               BlueprintName = "Crypto Clicker Watch AppTests"
-               ReferencedContainer = "container:Crypto Clicker.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9EEE79AE2D29A75800FBC049"
-               BuildableName = "Crypto Clicker Watch AppUITests.xctest"
-               BlueprintName = "Crypto Clicker Watch AppUITests"
-               ReferencedContainer = "container:Crypto Clicker.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

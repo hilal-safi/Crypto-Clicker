@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1620"
+   LastUpgradeVersion = "2600"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -35,21 +35,10 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9EC1AC452C8FA0860055A38D"
-               BuildableName = "Crypto ClickerTests.xctest"
-               BlueprintName = "Crypto ClickerTests"
-               ReferencedContainer = "container:Crypto Clicker.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9EC1AC4F2C8FA0870055A38D"
-               BuildableName = "Crypto ClickerUITests.xctest"
-               BlueprintName = "Crypto ClickerUITests"
-               ReferencedContainer = "container:Crypto Clicker.xcodeproj">
+               BlueprintIdentifier = "CryptoClickerKitTests"
+               BuildableName = "CryptoClickerKitTests"
+               BlueprintName = "CryptoClickerKitTests"
+               ReferencedContainer = "container:CryptoClickerKit">
             </BuildableReference>
          </TestableReference>
       </Testables>
