@@ -10,6 +10,7 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     public var boostIncome: Double
     public var boostEndsAt: Date?
     public var tapValue: Double
+    /// The phone's Offline Mining limit (0 until the power-up is bought).
     public var offlineCap: TimeInterval
     public var stepsConnected: Bool
     /// Steps already paid for on `stepsDay` (a `StepDay` key), as of the phone's last sync.
@@ -48,10 +49,10 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         return income + boostIncome
     }
 
-    /// The phone's balance at `now`: it keeps earning while closed, up to its offline cap,
-    /// exactly as it will credit the time when it next opens.
+    /// The phone's balance at `now`: while it is closed it keeps earning for its first minute and
+    /// then up to its Offline Mining limit, exactly as it will credit the time when it next opens.
     public func projectedCoins(at now: Date) -> Double {
-        let elapsed = min(max(0, now.timeIntervalSince(anchor)), offlineCap)
+        let elapsed = min(max(0, now.timeIntervalSince(anchor)), max(offlineCap, Tuning.awayThreshold))
         var boosted = 0.0
         if let boostEndsAt { boosted = min(elapsed, max(0, boostEndsAt.timeIntervalSince(anchor))) }
         return coins + income * elapsed + boostIncome * boosted
@@ -131,12 +132,12 @@ public enum WatchPayload {
 extension GameState {
     /// The snapshot to send at `now`. Its balance is anchored at `lastUpdate`, the game clock.
     public func watchSnapshot(at now: Date) -> WatchSnapshot {
-        let parts = incomeParts
+        let rates = incomeRates
         let boost = activeBoost(at: lastUpdate)
         return WatchSnapshot(
             coins: coins,
-            income: parts.boostable + parts.fixed,
-            boostIncome: boost.map { parts.boostable * ($0.multiplier - 1) } ?? 0,
+            income: rates.normal,
+            boostIncome: boost == nil ? 0 : rates.boosted - rates.normal,
             boostEndsAt: boost?.endsAt,
             tapValue: tapValue(at: lastUpdate),
             offlineCap: offlineCap,

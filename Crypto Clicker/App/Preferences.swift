@@ -5,6 +5,8 @@ enum Preferences {
     static let appearanceKey = "appearanceMode"
     static let hapticsKey = "enableHaptics"
     static let soundsKey = "enableSounds"
+    /// The player closed the home screen's invitation to earn coins from steps.
+    static let stepsInviteDismissedKey = "stepsInviteDismissed"
 }
 
 enum Appearance: String, CaseIterable, Identifiable {

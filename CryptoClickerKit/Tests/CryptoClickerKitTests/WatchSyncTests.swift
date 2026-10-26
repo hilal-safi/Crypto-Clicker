@@ -54,6 +54,13 @@ struct WatchSyncTests {
         #expect(base.projectedCoins(at: at(-50)) == 100) // Watch clock behind the phone's.
     }
 
+    @Test func withoutOfflineMiningTheBalanceStopsAfterAMinute() {
+        let base = snapshot(cap: 0)
+        #expect(base.projectedCoins(at: at(30)) == 400)
+        #expect(base.projectedCoins(at: at(60)) == 700)
+        #expect(base.projectedCoins(at: at(10_000)) == 700)
+    }
+
     @Test func boostsOnlyCountUntilTheyEnd() {
         let boosted = snapshot(boostIncome: 60, boostEndsAt: at(20))
         #expect(boosted.projectedCoins(at: at(10)) == 100 + 100 + 600)
@@ -64,6 +71,7 @@ struct WatchSyncTests {
 
     @Test func aSnapshotSentFromTheBackgroundProjectsFromTheGameClock() {
         var game = GameState.make(miners: [.desktop: 10])
+        game.offlineMiningLevel = 4 // Two hours.
         game.coins = 1_000
         // The phone app went to the background at t0 and is woken by the watch 3 hours later.
         let snapshot = game.watchSnapshot(at: at(3 * 3_600))
@@ -90,10 +98,19 @@ struct WatchSyncTests {
         var away = game
         away.advance(to: at(5 * 3_600)) // Longer than the offline cap.
         #expect(approx(snapshot.projectedCoins(at: at(5 * 3_600)), away.coins))
+
+        for level in [3, 50] {
+            var mining = game
+            mining.offlineMiningLevel = level
+            let snapshot = mining.watchSnapshot(at: t0)
+            mining.advance(to: at(30 * 3_600))
+            #expect(approx(snapshot.projectedCoins(at: at(30 * 3_600)), mining.coins), "level \(level)")
+        }
     }
 
     @Test func snapshotsCarryRatesAndSteps() {
         var game = GameState.make(miners: [.desktop: 10], upgrades: [.coinClicker])
+        game.stats.taps = Tuning.stepsUnlockTaps
         game.connectSteps(today: "2026-10-24")
         game.creditSteps([StepDay(key: "2026-10-24", steps: 321)], today: "2026-10-24", at: t0)
         let snapshot = game.watchSnapshot(at: at(1))
@@ -101,11 +118,11 @@ struct WatchSyncTests {
         #expect(snapshot.boostIncome == 0)
         #expect(snapshot.boostEndsAt == nil)
         #expect(snapshot.tapValue == 2)
-        #expect(snapshot.offlineCap == 7_200)
+        #expect(snapshot.offlineCap == 0)
         #expect(snapshot.stepsConnected)
         #expect(snapshot.stepsToday == 321)
         #expect(snapshot.stepsDay == "2026-10-24")
-        #expect(approx(snapshot.stepValue, 0.06 * 20))
+        #expect(snapshot.stepValue == 1) // 0.06 × 20 = 1.2, paid as a whole coin.
         #expect(snapshot.date == at(1))
         #expect(snapshot.anchor == t0)
     }

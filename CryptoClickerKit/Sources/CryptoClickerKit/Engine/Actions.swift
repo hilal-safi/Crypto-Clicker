@@ -1,12 +1,53 @@
 import Foundation
 
-/// Coins credited while the player was away.
+/// Coins credited while the player was away, and how they were made.
 public struct OfflineReport: Equatable, Sendable, Identifiable {
+    /// How long the app was closed.
     public let elapsed: TimeInterval
+    /// How much of that time was paid: up to the Offline Mining limit.
     public let credited: TimeInterval
     public let earned: Double
+    /// What earned the coins, largest first: each miner type, then automatic taps.
+    /// The amounts add up to `earned`.
+    public let sources: [Source]
+    /// Paid seconds that ran during a Bull Run, and its multiplier (1 when there was none).
+    public let boostedSeconds: TimeInterval
+    public let boostMultiplier: Double
+    /// The permanent multipliers on production while the player was away.
+    public let multipliers: Multipliers
+    /// The Offline Mining limit at the time (0 without the power-up).
+    public let offlineCap: TimeInterval
+
     public var id: Double { elapsed }
     public var wasCapped: Bool { credited < elapsed }
+
+    public struct Source: Equatable, Sendable, Identifiable {
+        public enum Kind: Equatable, Sendable {
+            case miner(MinerID)
+            case autoTaps
+        }
+
+        public let kind: Kind
+        /// Units owned, or automatic taps per second.
+        public let count: Double
+        public let coins: Double
+
+        public var id: String {
+            switch kind {
+            case .miner(let miner): miner.rawValue
+            case .autoTaps: "autoTaps"
+            }
+        }
+    }
+
+    public struct Multipliers: Equatable, Sendable {
+        public let upgrades: Double
+        public let forks: Double
+        public let achievements: Double
+        public let difficulty: Double
+
+        public var total: Double { upgrades * forks * achievements * difficulty }
+    }
 }
 
 /// What an airdrop paid out.
@@ -21,12 +62,13 @@ enum CreditSource {
 
 /// Every way the player can change the game. Each method validates its own rules,
 /// so the UI can call them directly and simply ignore a `false` result.
+/// Mini-game actions live in `MiniGameActions.swift`.
 extension GameState {
     // MARK: Time
 
     /// Credits income for the time since the last update. The live tick loop and a return
     /// from the background share this one path, so time is never paid twice or lost:
-    /// short gaps are paid in full, longer ones (time away) up to the offline cap,
+    /// short gaps are paid in full, longer ones (time away) up to the Offline Mining limit,
     /// with a report for the welcome-back screen.
     @discardableResult
     public mutating func advance(to now: Date) -> OfflineReport? {
@@ -36,26 +78,54 @@ extension GameState {
             return nil
         }
         let isAway = elapsed >= Tuning.awayThreshold
-        let credited = isAway ? min(elapsed, offlineCap) : elapsed
+        let credited = min(elapsed, timeAwayLimit)
         let earned = income(from: lastUpdate, seconds: credited)
+        let report = isAway ? offlineReport(elapsed: elapsed, credited: credited, earned: earned) : nil
         credit(earned, source: isAway ? .offline : .idle)
         lastUpdate = now
         expireBoost(at: now)
         stats.peakIncome = max(stats.peakIncome, idleIncome(at: now))
-        return isAway ? OfflineReport(elapsed: elapsed, credited: credited, earned: earned) : nil
+        return report
+    }
+
+    /// Breaks down `credited` seconds of income from `lastUpdate`, before it is paid.
+    func offlineReport(elapsed: TimeInterval, credited: TimeInterval, earned: Double) -> OfflineReport {
+        var boostedSeconds = 0.0
+        var multiplier = 1.0
+        if let boost {
+            boostedSeconds = min(credited, max(0, boost.endsAt.timeIntervalSince(lastUpdate)))
+            if boostedSeconds > 0 { multiplier = boost.multiplier }
+        }
+        let normalSeconds = credited - boostedSeconds
+        var sources: [OfflineReport.Source] = MinerID.allCases.compactMap { miner in
+            let rate = rate(of: miner)
+            guard rate > 0 else { return nil }
+            return .init(kind: .miner(miner), count: Double(owned(miner)),
+                         coins: rate * (normalSeconds + boostedSeconds * multiplier))
+        }
+        let autoTaps = autoTapsPerSecond
+        if autoTaps > 0 {
+            let base = baseProduction
+            let coins = autoTapIncome(production: base) * normalSeconds
+                + autoTapIncome(production: base * multiplier) * boostedSeconds
+            if coins > 0 { sources.append(.init(kind: .autoTaps, count: autoTaps, coins: coins)) }
+        }
+        sources.sort { $0.coins > $1.coins }
+        return OfflineReport(
+            elapsed: elapsed, credited: credited, earned: earned, sources: sources,
+            boostedSeconds: boostedSeconds, boostMultiplier: multiplier,
+            multipliers: .init(upgrades: upgradeProductionMultiplier, forks: forkBonus,
+                               achievements: achievementBonus, difficulty: difficulty.productionMultiplier),
+            offlineCap: offlineCap)
     }
 
     /// Idle income over `seconds` starting at `start`, honouring a boost that ends part-way.
     func income(from start: Date, seconds: TimeInterval) -> Double {
         guard seconds > 0 else { return 0 }
-        let parts = incomeParts
+        let rates = incomeRates
         var boosted = 0.0
-        var multiplier = 1.0
-        if let boost {
-            boosted = min(seconds, max(0, boost.endsAt.timeIntervalSince(start)))
-            multiplier = boost.multiplier
-        }
-        return parts.fixed * seconds + parts.boostable * (seconds + (multiplier - 1) * boosted)
+        if let boost { boosted = min(seconds, max(0, boost.endsAt.timeIntervalSince(start))) }
+        return rates.normal * (seconds - boosted) + rates.boosted * boosted
     }
 
     mutating func expireBoost(at now: Date) {
@@ -126,11 +196,14 @@ extension GameState {
         return true
     }
 
+    // MARK: Power-ups
+
+    /// Buys the next Offline Mining level. Like every power-up it is permanent: Hard Forks keep it.
     @discardableResult
-    public mutating func unlock(_ game: MiniGame) -> Bool {
-        guard !unlockedGames.contains(game), game.unlockCost <= coins else { return false }
-        spend(game.unlockCost)
-        unlockedGames.insert(game)
+    public mutating func buyOfflineMining() -> Bool {
+        guard let price = offlineMiningPrice, price <= coins else { return false }
+        spend(price)
+        offlineMiningLevel += 1
         return true
     }
 
@@ -150,7 +223,7 @@ extension GameState {
     // MARK: Prestige
 
     /// Resets coins, miners, upgrades and boosts for permanent forks.
-    /// Tokens, unlocked games, achievements and lifetime stats carry over.
+    /// Tokens, power-ups, unlocked games, achievements and lifetime stats carry over.
     /// Returns the number of forks gained (0 if a fork is not available yet).
     @discardableResult
     public mutating func hardFork(at now: Date) -> Int {
@@ -182,16 +255,21 @@ extension GameState {
             return .bullRun(multiplier: Tuning.bullRunMultiplier, duration: Tuning.bullRunDuration)
         }
         let income = rewardIncome
-        let amount = max(min(coins * Tuning.airdropBankShare, income * Tuning.airdropIncomeSeconds), income * 30)
+        let amount = Self.wholeCoins(max(min(coins * Tuning.airdropBankShare, income * Tuning.airdropIncomeSeconds),
+                                         income * 30), minimum: 1)
         credit(amount, source: .airdrop)
         return .coins(amount)
     }
 
     // MARK: Steps
 
-    public mutating func connectSteps(today: String) {
+    /// Starts rewarding steps from today. Fails until steps are unlocked by tapping.
+    @discardableResult
+    public mutating func connectSteps(today: String) -> Bool {
+        guard areStepsUnlocked else { return false }
         steps.isConnected = true
         if steps.startDay == nil { steps.startDay = today }
+        return true
     }
 
     public mutating func disconnectSteps() {
@@ -224,83 +302,6 @@ extension GameState {
         return StepCredit(steps: newSteps, coins: coins)
     }
 
-    // MARK: Mini-games
-
-    /// Stakes tokens on the current Blackjack round: the opening bet, a double or a split.
-    /// A round uses one token type. Fails if the player does not hold enough.
-    @discardableResult
-    public mutating func placeBlackjackBet(_ token: TokenID, amount: Int) -> Bool {
-        guard amount > 0, tokenCount(token) >= amount else { return false }
-        if let open = blackjackStake, open.token != token { return false }
-        tokens[token] = tokenCount(token) - amount
-        blackjackStake = BlackjackStake(token: token, amount: (blackjackStake?.amount ?? 0) + amount)
-        return true
-    }
-
-    /// Returns the stake of a round that never finished because the app closed mid-hand.
-    @discardableResult
-    public mutating func refundBlackjackStake() -> BlackjackStake? {
-        guard let stake = blackjackStake else { return nil }
-        blackjackStake = nil
-        giveTokens(stake.token, amount: stake.amount)
-        return stake
-    }
-
-    /// Coins a winning hand pays on top of its tokens: half the stake's coin value, up to
-    /// `Tuning.blackjackWinSeconds` of income, times mini-game upgrades. Naturals pay 1.5x.
-    public func blackjackBonus(bet: Int, token: TokenID, isNatural: Bool = false) -> Double {
-        let stakeValue = Double(max(0, bet)) * token.price
-        let bonus = min(stakeValue * Tuning.blackjackStakeShare, Tuning.blackjackWinSeconds * rewardIncome)
-        return bonus * miniGameMultiplier * (isNatural ? Tuning.blackjackNaturalBonus : 1)
-    }
-
-    /// The smallest bet in `token` that earns the full coin bonus.
-    public func blackjackBetForFullBonus(_ token: TokenID) -> Int {
-        let needed = Tuning.blackjackWinSeconds * rewardIncome / Tuning.blackjackStakeShare / token.price
-        return max(1, Int(min(needed.rounded(.up), 1e9))) // Fits a 32-bit Int on Apple Watch.
-    }
-
-    /// Pays a finished round: winnings back to the wallet, statistics, and a coin bonus per won hand.
-    @discardableResult
-    public mutating func settleBlackjack(_ results: [BlackjackResult], token: TokenID) -> Double {
-        blackjackStake = nil
-        giveTokens(token, amount: results.reduce(0) { $0 + $1.payout })
-        stats.blackjackHands += 1
-        var bonus = 0.0
-        for result in results {
-            switch result.outcome {
-            case .blackjack:
-                stats.blackjackWins += 1
-                stats.blackjackNaturals += 1
-                bonus += blackjackBonus(bet: result.bet, token: token, isNatural: true)
-            case .win:
-                stats.blackjackWins += 1
-                bonus += blackjackBonus(bet: result.bet, token: token)
-            case .push, .lose:
-                break
-            }
-        }
-        credit(bonus, source: .games)
-        return bonus
-    }
-
-    mutating func giveTokens(_ token: TokenID, amount: Int) {
-        guard amount > 0 else { return }
-        tokens[token, default: 0] += amount
-    }
-
-    /// Records a finished Tetris game and pays its reward once.
-    @discardableResult
-    public mutating func finishTetris(score: Int, lines: Int) -> Double {
-        stats.tetrisGames += 1
-        stats.tetrisLines += max(0, lines)
-        stats.tetrisBestScore = max(stats.tetrisBestScore, score)
-        guard score > 0 else { return 0 }
-        let reward = Double(score) * Tuning.tetrisSecondsPerPoint * miniGameMultiplier * rewardIncome
-        credit(reward, source: .games)
-        return reward
-    }
-
     // MARK: Ledger
 
     mutating func credit(_ amount: Double, source: CreditSource) {
@@ -321,5 +322,10 @@ extension GameState {
     mutating func spend(_ amount: Double) {
         coins = max(0, coins - amount)
         stats.spent += amount
+    }
+
+    mutating func giveTokens(_ token: TokenID, amount: Int) {
+        guard amount > 0 else { return }
+        tokens[token, default: 0] += amount
     }
 }

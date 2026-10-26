@@ -32,21 +32,6 @@ struct CoinAmount: View {
     }
 }
 
-/// A small Liquid Glass capsule with an icon and a value.
-struct StatPill: View {
-    let systemImage: String
-    let text: String
-    var tint: Color? = nil
-
-    var body: some View {
-        Label(text, systemImage: systemImage)
-            .font(.subheadline.weight(.semibold).monospacedDigit())
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .glassEffect(.regular.tint(tint?.opacity(0.35)), in: .capsule)
-    }
-}
-
 /// Bronze, silver and gold stars for achievement tiers.
 struct TierStars: View {
     let earned: Int
@@ -57,7 +42,7 @@ struct TierStars: View {
             ForEach(0..<3, id: \.self) { tier in
                 Image(systemName: tier < earned ? "star.fill" : "star")
                     .font(.system(size: size, weight: .semibold))
-                    .foregroundStyle(tier < earned ? Theme.tierColor(tier) : Color.secondary.opacity(0.5))
+                    .foregroundStyle(tier < earned ? Theme.tierColor(tier) : Theme.subtext.opacity(0.6))
             }
         }
         .accessibilityElement(children: .ignore)
@@ -92,7 +77,7 @@ struct SectionHeader: View {
             if let detail {
                 Text(detail)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.subtext)
             }
         }
         .padding(.horizontal, 4)
@@ -105,6 +90,31 @@ extension View {
     /// Shows the balance in the navigation bar where the tab bar accessory isn't shown (iPad layouts).
     func balanceToolbar() -> some View {
         modifier(BalanceToolbar())
+    }
+
+    /// Styles a button that spends coins. Affordable: filled with `tint`. Not yet affordable: a
+    /// neutral outline whose price keeps full-strength text, instead of the faded grey of a disabled
+    /// button, so it stays readable on a dim screen. Its action should check the price itself.
+    func priceButtonStyle(canAfford: Bool, tint: Color) -> some View {
+        modifier(PriceButtonStyle(canAfford: canAfford, tint: tint))
+    }
+}
+
+private struct PriceButtonStyle: ViewModifier {
+    let canAfford: Bool
+    let tint: Color
+
+    func body(content: Content) -> some View {
+        if canAfford {
+            content
+                .buttonStyle(.borderedProminent)
+                .tint(tint)
+        } else {
+            content
+                .buttonStyle(.bordered)
+                .tint(.primary)
+                .accessibilityHint("Not enough coins yet")
+        }
     }
 }
 

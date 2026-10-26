@@ -14,8 +14,6 @@ public enum UpgradeEffect: Sendable, Equatable {
     case steps(Double)
     /// Multiplies mini-game rewards.
     case miniGames(Double)
-    /// Raises the offline earnings cap to this many seconds.
-    case offlineCap(TimeInterval)
 }
 
 public enum UpgradeCategory: String, CaseIterable, Sendable {
@@ -23,17 +21,20 @@ public enum UpgradeCategory: String, CaseIterable, Sendable {
     case production = "Production"
     case steps = "Steps"
     case miniGames = "Mini-games"
-    case offline = "Offline"
 }
 
 /// One-time purchases. They appear in the shop once this run has earned
 /// a tenth of their price, so the list grows as the player does.
+///
+/// Tapping upgrades keep taps worth having all game long: each makes every tap also earn a share
+/// of a second's production, adding up to a whole second's worth per tap at the end.
+/// (Offline earnings used to be upgrades here; they are now the Offline Mining power-up.)
 public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
     case coinClicker, upgradedClicker, automatedClicker, mechanicalKeyboard, roboticFinger, neuralInterface
+    case hapticEngine, satoshisTouch
     case overclocking, liquidCooling, fiberUplink, solarFarm, fusionReactor, dysonSwarm
     case stepBooster, upgradedStepBooster, ultimateStepBooster
     case bonusReward1, bonusReward2, bonusReward3
-    case cloudBackup, serverLease, alwaysOnRig
 
     public var id: String { rawValue }
 
@@ -45,6 +46,8 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .mechanicalKeyboard: "Mechanical Keyboard"
         case .roboticFinger: "Robotic Finger"
         case .neuralInterface: "Neural Interface"
+        case .hapticEngine: "Haptic Engine"
+        case .satoshisTouch: "Satoshi's Touch"
         case .overclocking: "Overclocking"
         case .liquidCooling: "Liquid Cooling"
         case .fiberUplink: "Fiber Uplink"
@@ -57,9 +60,6 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .bonusReward1: "Bonus Reward I"
         case .bonusReward2: "Bonus Reward II"
         case .bonusReward3: "Bonus Reward III"
-        case .cloudBackup: "Cloud Backup"
-        case .serverLease: "Server Lease"
-        case .alwaysOnRig: "Always-On Rig"
         }
     }
 
@@ -72,6 +72,8 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .mechanicalKeyboard: "keyboard.fill"
         case .roboticFinger: "hand.point.up.braille.fill"
         case .neuralInterface: "brain.head.profile"
+        case .hapticEngine: "waveform.path"
+        case .satoshisTouch: "hand.raised.fingers.spread.fill"
         case .overclocking: "speedometer"
         case .liquidCooling: "drop.fill"
         case .fiberUplink: "network"
@@ -84,55 +86,50 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .bonusReward1: "gift.fill"
         case .bonusReward2: "star.fill"
         case .bonusReward3: "crown.fill"
-        case .cloudBackup: "icloud.fill"
-        case .serverLease: "server.rack"
-        case .alwaysOnRig: "bolt.horizontal.fill"
         }
     }
 
     public var cost: Double {
         switch self {
         case .coinClicker: 50
-        case .upgradedClicker: 2_500
+        case .upgradedClicker: 1_000
         case .automatedClicker: 10_000
         case .mechanicalKeyboard: 250_000
         case .roboticFinger: 10_000_000
         case .neuralInterface: 250_000_000
+        case .hapticEngine: 25_000_000_000
+        case .satoshisTouch: 2_500_000_000_000
         case .overclocking: 5_000
         case .liquidCooling: 500_000
         case .fiberUplink: 50_000_000
         case .solarFarm: 5_000_000_000
         case .fusionReactor: 500_000_000_000
         case .dysonSwarm: 50_000_000_000_000
-        case .stepBooster: 1_000
-        case .upgradedStepBooster: 1_000_000
-        case .ultimateStepBooster: 1_000_000_000
+        case .stepBooster: 25_000
+        case .upgradedStepBooster: 2_500_000
+        case .ultimateStepBooster: 2_500_000_000
         case .bonusReward1: 5_000
         case .bonusReward2: 5_000_000
         case .bonusReward3: 5_000_000_000
-        case .cloudBackup: 20_000
-        case .serverLease: 20_000_000
-        case .alwaysOnRig: 20_000_000_000
         }
     }
 
     public var effect: UpgradeEffect {
         switch self {
         case .coinClicker: .tapFlat(1)
-        case .upgradedClicker: .tapPercent(0.01)
+        case .upgradedClicker: .tapPercent(0.10)
         case .automatedClicker: .autoTaps(1)
-        case .mechanicalKeyboard: .tapPercent(0.02)
-        case .roboticFinger: .autoTaps(2)
-        case .neuralInterface: .tapPercent(0.03)
+        case .mechanicalKeyboard: .tapPercent(0.15)
+        case .roboticFinger: .autoTaps(1)
+        case .neuralInterface: .tapPercent(0.20)
+        case .hapticEngine: .tapPercent(0.25)
+        case .satoshisTouch: .tapPercent(0.30)
         case .overclocking, .liquidCooling, .fiberUplink, .solarFarm, .fusionReactor, .dysonSwarm: .production(2)
         case .stepBooster, .upgradedStepBooster: .steps(2)
         case .ultimateStepBooster: .steps(3)
         case .bonusReward1: .miniGames(1.25)
         case .bonusReward2: .miniGames(1.5)
         case .bonusReward3: .miniGames(2)
-        case .cloudBackup: .offlineCap(4 * 3_600)
-        case .serverLease: .offlineCap(8 * 3_600)
-        case .alwaysOnRig: .offlineCap(24 * 3_600)
         }
     }
 
@@ -142,19 +139,22 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .production: .production
         case .steps: .steps
         case .miniGames: .miniGames
-        case .offlineCap: .offline
         }
     }
 
     public var summary: String {
         switch effect {
         case .tapFlat(let value): "Taps earn +\(CoinFormat.short(value)) coin"
-        case .tapPercent(let share): "Taps also earn \(CoinFormat.percent(share)) of production"
-        case .autoTaps(let rate): "+\(CoinFormat.short(rate)) automatic tap\(rate == 1 ? "" : "s") per second"
+        case .tapPercent(let share): "Every tap also earns \(CoinFormat.percent(share)) of a second's production"
+        case .autoTaps(let rate):
+            "+\(CoinFormat.short(rate)) automatic tap\(rate == 1 ? "" : "s") per second, "
+                + "worth \(CoinFormat.percent(Tuning.autoTapStrength)) of a tap"
         case .production(let factor): "All miners produce \(CoinFormat.multiplier(factor))"
         case .steps(let factor): "Steps earn \(CoinFormat.multiplier(factor))"
         case .miniGames(let factor): "Mini-game rewards \(CoinFormat.multiplier(factor))"
-        case .offlineCap(let seconds): "Earn offline for up to \(CoinFormat.duration(seconds))"
         }
     }
+
+    /// Upgrades from earlier versions that are now Offline Mining levels, and the level each grants.
+    static let legacyOfflineLevels: [String: Int] = ["cloudBackup": 8, "serverLease": 16, "alwaysOnRig": 48]
 }

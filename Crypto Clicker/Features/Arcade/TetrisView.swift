@@ -3,6 +3,9 @@ import CryptoClickerKit
 
 /// Tetris with guideline rules from `TetrisGame`. Points pay coins when the game ends,
 /// including when the player leaves mid-game.
+///
+/// The controls sit in the space beside the well: on the left, force drop, pause and move left;
+/// on the right, drop, rotate and move right. The board also takes taps, drags and swipes.
 struct TetrisView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
@@ -10,7 +13,7 @@ struct TetrisView: View {
     @State private var game = TetrisGame.fresh()
     @State private var isPlaying = false
     @State private var isPaused = false
-    @State private var reward: Double?
+    @State private var result: GameResult?
     @State private var boardWidth: CGFloat = 1
     @State private var dragColumns = 0
     /// Where the current drag began; a new start means a new gesture, even if the last one was cancelled.
@@ -18,140 +21,119 @@ struct TetrisView: View {
     @State private var hardDrops = 0
 
     private var isRunning: Bool { isPlaying && !isPaused }
+    private static let columnWidth: CGFloat = 60
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             scoreboard
-            TetrisBoard(game: game)
-                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { boardWidth = $0 }
-                .gesture(boardGesture)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Tetris board")
-                .accessibilityValue("Score \(game.score), \(game.lines) lines")
-                .overlay { overlay }
-            controls
-        }
-        .padding(16)
-        .frame(maxWidth: 520)
-        .frame(maxWidth: .infinity)
-        .background { AppBackground(tint: .cyan) }
-        .navigationTitle("Tetris")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if isPlaying {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill") {
-                        isPaused.toggle()
+            HStack(alignment: .bottom, spacing: 8) {
+                VStack(spacing: 12) {
+                    ArcadeButton(title: "Force drop", systemImage: "arrow.down.to.line") { forceDrop() }
+                        .disabled(!isRunning)
+                    ArcadeButton(title: isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill") {
+                        if isPlaying { isPaused.toggle() }
+                    }
+                    .disabled(!isPlaying)
+                    ArcadeButton(title: "Move left", systemImage: "arrow.left", repeats: true) {
+                        step { game, _ in _ = game.moveLeft() }
+                    }
+                    .disabled(!isRunning)
+                }
+                .frame(width: Self.columnWidth)
+                TetrisBoard(game: game)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { boardWidth = $0 }
+                    .gesture(boardGesture)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Tetris board")
+                    .accessibilityValue("Score \(game.score), \(game.lines) lines")
+                    .overlay {
+                        if isPaused {
+                            Button("Resume", systemImage: "play.fill") { isPaused = false }
+                                .buttonStyle(.glassProminent)
+                                .font(.title3.bold())
+                        }
+                    }
+                VStack(spacing: 12) {
+                    ArcadeButton(title: "Drop", systemImage: "arrow.down", repeats: true) {
+                        step { game, rng in game.softDrop(using: &rng) }
+                    }
+                    ArcadeButton(title: "Rotate", systemImage: "arrow.clockwise") {
+                        step { game, _ in _ = game.rotate() }
+                    }
+                    ArcadeButton(title: "Move right", systemImage: "arrow.right", repeats: true) {
+                        step { game, _ in _ = game.moveRight() }
                     }
                 }
+                .disabled(!isRunning)
+                .frame(width: Self.columnWidth)
             }
         }
-        .sensoryFeedback(.impact(weight: .heavy), trigger: game.lines) { _, _ in haptics }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .frame(maxWidth: 560)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { AppBackground(tint: .cyan) }
+        .overlay { panel }
+        .animation(.snappy, value: isPlaying)
+        .navigationTitle("Tetris")
+        .navigationBarTitleDisplayMode(.inline)
+        .sensoryFeedback(.impact(weight: .heavy), trigger: game.lines) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.impact(weight: .medium), trigger: hardDrops) { _, _ in haptics }
-        .sensoryFeedback(.error, trigger: reward) { _, new in haptics && new != nil }
+        .sensoryFeedback(.error, trigger: result) { _, new in haptics && new != nil }
         .task(id: isRunning) { await runGravity() }
         .onChange(of: scenePhase) { _, phase in
-            if phase != .active && isPlaying { isPaused = true }
+            guard isPlaying else { return }
+            switch phase {
+            case .active:
+                store.releaseArcadeRun()
+            case .background:
+                isPaused = true
+                store.holdArcadeRun(ArcadeRun(game: .tetris, score: game.score, detail: game.lines))
+            default:
+                isPaused = true
+            }
         }
         .onDisappear {
             if isPlaying { endGame() }
         }
+        .gameScreen(blocksSwipeBack: true)
     }
 
     // MARK: Pieces of the screen
 
     private var scoreboard: some View {
-        HStack(alignment: .center, spacing: 16) {
-            stat("Score", CoinFormat.grouped(game.score))
-            stat("Lines", CoinFormat.grouped(game.lines))
-            stat("Level", "\(game.level)")
+        HStack(alignment: .center, spacing: 14) {
+            GameStat(title: "Score", value: CoinFormat.grouped(game.score))
+            GameStat(title: "Lines", value: CoinFormat.grouped(game.lines))
+            GameStat(title: "Level", value: "\(game.level)")
             Spacer(minLength: 0)
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Text("Next")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.subtext)
+                    .textCase(.uppercase)
                 NextPieceView(kind: game.nextPiece)
             }
         }
-        .glassCard(cornerRadius: 20)
-    }
-
-    private func stat(_ title: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.title3.bold().monospacedDigit())
-                .contentTransition(.numericText())
-        }
+        .scoreBar()
     }
 
     @ViewBuilder
-    private var overlay: some View {
+    private var panel: some View {
         if !isPlaying {
-            VStack(spacing: 12) {
-                if let reward {
-                    Text("Game Over")
-                        .font(.title.bold())
-                    Text("\(CoinFormat.grouped(game.score)) points · \(CoinFormat.grouped(game.lines)) lines")
-                        .font(.headline)
-                    CoinAmount(amount: reward, font: .title3.bold(), iconSize: 22)
-                } else {
-                    Text("Tetris")
-                        .font(.title.bold())
-                    Text("Best: \(CoinFormat.grouped(store.game.stats.tetrisBestScore))")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    Text("Tap to rotate, drag to move, swipe down to drop.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+            if let result {
+                GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
+                    GameOverSummary(score: result.score, isNewBest: result.isNewBest,
+                                    best: store.game.stats.tetrisBestScore, reward: result.reward,
+                                    details: ["\(CoinFormat.grouped(result.detail)) lines cleared"])
                 }
-                Button(reward == nil ? "Start" : "Play Again", systemImage: "play.fill", action: start)
-                    .buttonStyle(.glassProminent)
-                    .font(.headline)
-            }
-            .padding(24)
-            .glassEffect(.regular, in: .rect(cornerRadius: 24))
-            .padding(24)
-        } else if isPaused {
-            Button("Resume", systemImage: "play.fill") { isPaused = false }
-                .buttonStyle(.glassProminent)
-                .font(.title3.bold())
-        }
-    }
-
-    private var controls: some View {
-        GlassEffectContainer(spacing: 10) {
-            HStack(spacing: 10) {
-                controlButton("Move left", systemImage: "arrow.left", repeats: true) { game, _ in _ = game.moveLeft() }
-                controlButton("Rotate", systemImage: "arrow.clockwise", repeats: false) { game, _ in _ = game.rotate() }
-                controlButton("Move right", systemImage: "arrow.right", repeats: true) { game, _ in _ = game.moveRight() }
-                controlButton("Soft drop", systemImage: "arrow.down", repeats: true) { game, rng in
-                    game.softDrop(using: &rng)
-                }
-                controlButton("Hard drop", systemImage: "arrow.down.to.line", repeats: false) { game, rng in
-                    game.hardDrop(using: &rng)
-                    hardDrops += 1
+            } else {
+                GamePanel(title: "Tetris", buttonTitle: "Start", action: start) {
+                    GameIntro(best: store.game.stats.tetrisBestScore,
+                              howTo: "Use the buttons beside the board, or tap the board to rotate, drag to move and swipe down to drop.")
                 }
             }
         }
-        .disabled(!isRunning)
-    }
-
-    private func controlButton(_ title: String, systemImage: String, repeats: Bool,
-                               action: @escaping (inout TetrisGame, inout SystemRandomNumberGenerator) -> Void) -> some View {
-        Button {
-            step(action)
-        } label: {
-            Image(systemName: systemImage)
-                .font(.title2.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: 44)
-        }
-        .buttonStyle(.glass)
-        .buttonRepeatBehavior(repeats ? .enabled : .disabled)
-        .accessibilityLabel(title)
     }
 
     /// Tap to rotate, drag sideways to move a column at a time, swipe down to hard drop.
@@ -178,8 +160,7 @@ struct TetrisView: View {
                 if distance < 10 {
                     step { game, _ in _ = game.rotate() }
                 } else if value.translation.height > 80 && dragColumns == 0 {
-                    step { game, rng in game.hardDrop(using: &rng) }
-                    hardDrops += 1
+                    forceDrop()
                 }
                 dragColumns = 0
                 dragStart = nil
@@ -188,9 +169,15 @@ struct TetrisView: View {
 
     // MARK: Game flow
 
+    private func forceDrop() {
+        guard isRunning else { return }
+        step { game, rng in game.hardDrop(using: &rng) }
+        hardDrops += 1
+    }
+
     private func start() {
         game = .fresh()
-        reward = nil
+        result = nil
         isPaused = false
         isPlaying = true
     }
@@ -218,8 +205,19 @@ struct TetrisView: View {
         guard isPlaying else { return }
         isPlaying = false
         isPaused = false
-        reward = store.finishTetris(score: game.score, lines: game.lines)
+        let previousBest = store.game.stats.tetrisBestScore
+        let reward = store.finishTetris(score: game.score, lines: game.lines)
+        result = GameResult(score: game.score, isNewBest: game.score > previousBest, reward: reward, detail: game.lines)
     }
+}
+
+/// A finished arcade game, for the game-over card.
+struct GameResult: Equatable {
+    let score: Int
+    let isNewBest: Bool
+    let reward: Double
+    /// A game-specific number: lines, length, bricks or bubbles.
+    let detail: Int
 }
 
 extension TetrisGame {
@@ -262,7 +260,7 @@ struct TetrisBoard: View {
         }
         .aspectRatio(CGFloat(TetrisGame.width) / CGFloat(TetrisGame.height), contentMode: .fit)
         .padding(4)
-        .background(.black.opacity(0.45), in: .rect(cornerRadius: 14))
+        .background(.black.opacity(0.55), in: .rect(cornerRadius: 14))
     }
 }
 
@@ -285,7 +283,7 @@ struct NextPieceView: View {
                              with: .color(kind.color))
             }
         }
-        .frame(width: 56, height: 28)
+        .frame(width: 48, height: 24)
         .accessibilityLabel(kind.map { "Next piece \($0.name)" } ?? "")
     }
 }

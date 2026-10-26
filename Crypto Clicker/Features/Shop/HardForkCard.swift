@@ -20,31 +20,38 @@ struct HardForkCard: View {
                 if game.forks > 0 {
                     Text("\(CoinFormat.grouped(game.forks)) forks · +\(CoinFormat.percent(game.forkGain(game.forks)))")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.subtext)
                 }
             }
             if claimable > 0 {
                 Text("Start a new run now to gain \(CoinFormat.grouped(claimable)) fork\(claimable == 1 ? "" : "s"): +\(CoinFormat.percent(game.forkGain(claimable))) production, forever.")
                     .font(.subheadline)
             } else {
-                Text("Mine \(CoinFormat.short(next)) coins in total to earn your next fork point.")
+                Text("Mine \(CoinFormat.cost(next)) coins in total to earn your next fork point.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.subtext)
             }
             ProgressView(value: min(1, max(0, fraction)))
-                .tint(Theme.arcade)
-            Button {
-                confirming = true
-            } label: {
-                Text(claimable > 0 ? "Hard Fork for +\(CoinFormat.grouped(claimable))" : "Not ready yet")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
+                .tint(Theme.arcadeButton)
+            if claimable > 0 {
+                Button {
+                    confirming = true
+                } label: {
+                    Text("Hard Fork for +\(CoinFormat.grouped(claimable))")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.arcadeButton)
+            } else {
+                // Not a greyed-out button: plain, readable progress instead.
+                Label("\(CoinFormat.percent(min(1, max(0, fraction)))) of the way to the next fork point",
+                      systemImage: "hourglass")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.subtext)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Theme.arcade)
-            .disabled(claimable == 0)
         }
-        .glassCard(tint: Theme.arcade.opacity(0.15))
+        .glassCard(tint: Theme.arcade)
         .sheet(isPresented: $confirming) {
             HardForkSheet()
         }
@@ -73,6 +80,7 @@ struct HardForkSheet: View {
                 Section("Keeps") {
                     Label("Forks and their bonus", systemImage: "arrow.triangle.branch")
                     Label("Achievements and statistics", systemImage: "trophy")
+                    Label("Offline Mining and other power-ups", systemImage: "moon.zzz")
                     Label("Tokens and unlocked mini-games", systemImage: "gamecontroller")
                     Label("Steps already rewarded", systemImage: "figure.walk")
                 }

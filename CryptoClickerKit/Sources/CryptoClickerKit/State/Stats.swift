@@ -25,6 +25,17 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var tetrisGames = 0
     public internal(set) var tetrisLines = 0
     public internal(set) var tetrisBestScore = 0
+    public internal(set) var slotsSpins = 0
+    public internal(set) var slotsWins = 0
+    public internal(set) var slotsJackpots = 0
+    public internal(set) var snakeGames = 0
+    public internal(set) var snakeBestScore = 0
+    public internal(set) var brickBreakerGames = 0
+    public internal(set) var brickBreakerBestScore = 0
+    public internal(set) var bricksBroken = 0
+    public internal(set) var bubbleGames = 0
+    public internal(set) var bubbleBestScore = 0
+    public internal(set) var bubblesPopped = 0
 
     public internal(set) var tokensBought: [TokenID: Int] = [:]
     public internal(set) var airdrops = 0
@@ -45,6 +56,8 @@ public struct Stats: Codable, Equatable, Sendable {
         case lifetimeCoins, runCoins, spent, peakIncome, taps, bestTap, lifetimeSteps, bestDaySteps
         case maxOwned, maxTotalMiners, maxUpgrades
         case blackjackHands, blackjackWins, blackjackNaturals, tetrisGames, tetrisLines, tetrisBestScore
+        case slotsSpins, slotsWins, slotsJackpots, snakeGames, snakeBestScore
+        case brickBreakerGames, brickBreakerBestScore, bricksBroken, bubbleGames, bubbleBestScore, bubblesPopped
         case tokensBought, airdrops, forksPerformed
         case earnedFromTaps, earnedFromIdle, earnedOffline, earnedFromSteps, earnedFromGames, earnedFromAirdrops
     }
@@ -68,6 +81,17 @@ public struct Stats: Codable, Equatable, Sendable {
         tetrisGames = c.value(.tetrisGames, default: 0)
         tetrisLines = c.value(.tetrisLines, default: 0)
         tetrisBestScore = c.value(.tetrisBestScore, default: 0)
+        slotsSpins = c.value(.slotsSpins, default: 0)
+        slotsWins = c.value(.slotsWins, default: 0)
+        slotsJackpots = c.value(.slotsJackpots, default: 0)
+        snakeGames = c.value(.snakeGames, default: 0)
+        snakeBestScore = c.value(.snakeBestScore, default: 0)
+        brickBreakerGames = c.value(.brickBreakerGames, default: 0)
+        brickBreakerBestScore = c.value(.brickBreakerBestScore, default: 0)
+        bricksBroken = c.value(.bricksBroken, default: 0)
+        bubbleGames = c.value(.bubbleGames, default: 0)
+        bubbleBestScore = c.value(.bubbleBestScore, default: 0)
+        bubblesPopped = c.value(.bubblesPopped, default: 0)
         tokensBought = c.enumKeyed(.tokensBought, as: TokenID.self)
         airdrops = c.value(.airdrops, default: 0)
         forksPerformed = c.value(.forksPerformed, default: 0)
@@ -98,6 +122,17 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(tetrisGames, forKey: .tetrisGames)
         try c.encode(tetrisLines, forKey: .tetrisLines)
         try c.encode(tetrisBestScore, forKey: .tetrisBestScore)
+        try c.encode(slotsSpins, forKey: .slotsSpins)
+        try c.encode(slotsWins, forKey: .slotsWins)
+        try c.encode(slotsJackpots, forKey: .slotsJackpots)
+        try c.encode(snakeGames, forKey: .snakeGames)
+        try c.encode(snakeBestScore, forKey: .snakeBestScore)
+        try c.encode(brickBreakerGames, forKey: .brickBreakerGames)
+        try c.encode(brickBreakerBestScore, forKey: .brickBreakerBestScore)
+        try c.encode(bricksBroken, forKey: .bricksBroken)
+        try c.encode(bubbleGames, forKey: .bubbleGames)
+        try c.encode(bubbleBestScore, forKey: .bubbleBestScore)
+        try c.encode(bubblesPopped, forKey: .bubblesPopped)
         try c.encode(tokensBought.stringKeyed, forKey: .tokensBought)
         try c.encode(airdrops, forKey: .airdrops)
         try c.encode(forksPerformed, forKey: .forksPerformed)

@@ -18,6 +18,21 @@ public struct BlackjackStake: Codable, Equatable, Sendable {
     public internal(set) var amount: Int
 }
 
+/// An arcade game in progress when the app went to the background. Saved with the game, so its
+/// points are still paid if iOS closes the app before the player comes back.
+public struct ArcadeRun: Codable, Equatable, Sendable {
+    public let game: MiniGame
+    public let score: Int
+    /// Lines, bricks or bubbles, depending on the game.
+    public let detail: Int
+
+    public init(game: MiniGame, score: Int, detail: Int) {
+        self.game = game
+        self.score = score
+        self.detail = detail
+    }
+}
+
 /// The entire saved game as one value type. All rules live in the engine
 /// extensions, so the app can only change state through tested methods.
 public struct GameState: Codable, Equatable, Sendable {
@@ -37,8 +52,11 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var runForkMultiplier = Difficulty.normal.forkMultiplier
 
     public internal(set) var boost: Boost?
+    /// Levels of the Offline Mining power-up. Power-ups are permanent: Hard Forks keep them.
+    public internal(set) var offlineMiningLevel = 0
     public internal(set) var unlockedGames: Set<MiniGame> = []
     public internal(set) var blackjackStake: BlackjackStake?
+    public internal(set) var unfinishedRun: ArcadeRun?
     /// Highest tier count earned per achievement id (0 to 3).
     public internal(set) var achievementTiers: [String: Int] = [:]
     public internal(set) var stats = Stats()
@@ -59,8 +77,8 @@ public struct GameState: Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case version, coins, miners, upgrades, tokens, forks, forkPointsClaimed, difficulty, runForkMultiplier
-        case boost, unlockedGames, blackjackStake, achievementTiers, stats, steps, recentWatchBatches
-        case lastUpdate, runStart, created
+        case boost, offlineMiningLevel, unlockedGames, blackjackStake, unfinishedRun, achievementTiers, stats, steps
+        case recentWatchBatches, lastUpdate, runStart, created
     }
 
     public init(from decoder: Decoder) throws {
@@ -68,15 +86,21 @@ public struct GameState: Codable, Equatable, Sendable {
         let now = Date()
         coins = Self.finite(c.value(.coins, default: 0))
         miners = c.enumKeyed(.miners, as: MinerID.self)
-        upgrades = c.enumSet(.upgrades, as: UpgradeID.self)
+        let savedUpgrades: [String] = c.value(.upgrades, default: [])
+        upgrades = Set(savedUpgrades.compactMap(UpgradeID.init(rawValue:)))
         tokens = c.enumKeyed(.tokens, as: TokenID.self)
         forks = c.value(.forks, default: 0)
         forkPointsClaimed = c.value(.forkPointsClaimed, default: 0)
         difficulty = c.value(.difficulty, default: .normal)
         runForkMultiplier = c.value(.runForkMultiplier, default: difficulty.forkMultiplier)
         boost = c.value(.boost, default: nil)
+        // Offline upgrades bought in earlier versions become the matching Offline Mining level.
+        let legacyLevel = savedUpgrades.compactMap { UpgradeID.legacyOfflineLevels[$0] }.max() ?? 0
+        let savedLevel: Int = c.value(.offlineMiningLevel, default: 0)
+        offlineMiningLevel = min(max(savedLevel, legacyLevel, 0), Tuning.offlineMiningMaxLevel)
         unlockedGames = c.enumSet(.unlockedGames, as: MiniGame.self)
         blackjackStake = c.value(.blackjackStake, default: nil)
+        unfinishedRun = c.value(.unfinishedRun, default: nil)
         achievementTiers = c.value(.achievementTiers, default: [:])
         stats = c.value(.stats, default: Stats())
         steps = c.value(.steps, default: StepLedger())
@@ -98,8 +122,10 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encode(difficulty, forKey: .difficulty)
         try c.encode(runForkMultiplier, forKey: .runForkMultiplier)
         try c.encodeIfPresent(boost, forKey: .boost)
+        try c.encode(offlineMiningLevel, forKey: .offlineMiningLevel)
         try c.encode(unlockedGames.sortedRawValues, forKey: .unlockedGames)
         try c.encodeIfPresent(blackjackStake, forKey: .blackjackStake)
+        try c.encodeIfPresent(unfinishedRun, forKey: .unfinishedRun)
         try c.encode(achievementTiers, forKey: .achievementTiers)
         try c.encode(stats, forKey: .stats)
         try c.encode(steps, forKey: .steps)

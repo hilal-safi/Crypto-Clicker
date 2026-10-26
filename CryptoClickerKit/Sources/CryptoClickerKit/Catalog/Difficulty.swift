@@ -40,24 +40,3 @@ public enum Difficulty: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 }
-
-/// Mini-games that are unlocked with coins.
-public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
-    case blackjack, tetris
-
-    public var id: String { rawValue }
-
-    public var name: String {
-        switch self {
-        case .blackjack: "Blackjack"
-        case .tetris: "Tetris"
-        }
-    }
-
-    public var unlockCost: Double {
-        switch self {
-        case .blackjack: 1_000
-        case .tetris: 10_000
-        }
-    }
-}

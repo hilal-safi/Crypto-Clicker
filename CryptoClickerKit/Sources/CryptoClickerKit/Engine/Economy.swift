@@ -1,7 +1,10 @@
 import Foundation
 
-/// Prices, multipliers and income. Everything is closed-form, so the shop can
-/// show "Buy Max" prices for hundreds of units without looping.
+/// Prices, multipliers and income.
+///
+/// Coins are whole: prices are rounded up, and every payout (a tap, a step, a reward) is a whole
+/// number of coins. Only income per second is fractional; it builds up between ticks, and the
+/// balance is always shown rounded down.
 extension GameState {
     // MARK: Ownership
 
@@ -17,37 +20,41 @@ extension GameState {
         return owned(previous) > 0 || owned(miner) > 0
     }
 
-    /// Upgrades appear once this run has earned a tenth of their price.
+    /// Upgrades appear once this run has earned a tenth of their price. Step upgrades also wait
+    /// until steps are unlocked.
     public func isRevealed(_ upgrade: UpgradeID) -> Bool {
-        upgrades.contains(upgrade) || stats.runCoins >= upgrade.cost * 0.1
+        if upgrades.contains(upgrade) { return true }
+        if upgrade.category == .steps && !areStepsUnlocked { return false }
+        return stats.runCoins >= upgrade.cost * 0.1
     }
 
     public func isUnlocked(_ game: MiniGame) -> Bool { unlockedGames.contains(game) }
 
     // MARK: Prices
 
-    /// Price of the unit at position `index` (0 is the first unit).
+    /// Price of the unit at position `index` (0 is the first unit), in whole coins.
     public func unitPrice(_ miner: MinerID, index: Int) -> Double {
-        miner.baseCost * pow(Tuning.costGrowth, Double(index))
+        Self.wholePrice(miner.baseCost * pow(Tuning.costGrowth, Double(index)))
     }
 
-    /// Total price of the next `quantity` units (a geometric series).
+    /// Total price of the next `quantity` units: the geometric series, rounded up to a whole coin.
+    /// Closed-form, so the shop can price "Buy Max" for hundreds of units without looping.
     public func price(of miner: MinerID, quantity: Int) -> Double {
         guard quantity > 0 else { return 0 }
         let growth = Tuning.costGrowth
-        let first = unitPrice(miner, index: owned(miner))
-        return first * (pow(growth, Double(quantity)) - 1) / (growth - 1)
+        let first = miner.baseCost * pow(growth, Double(owned(miner)))
+        return Self.wholePrice(first * (pow(growth, Double(quantity)) - 1) / (growth - 1))
     }
 
     /// How many units the current balance (or `budget`) can buy right now.
     public func maxAffordable(_ miner: MinerID, budget: Double? = nil) -> Int {
         let money = budget ?? coins
-        let first = unitPrice(miner, index: owned(miner))
-        guard money.isFinite, first > 0, money >= first else { return 0 }
+        let first = miner.baseCost * pow(Tuning.costGrowth, Double(owned(miner)))
+        guard money.isFinite, first > 0, money >= price(of: miner, quantity: 1) else { return 0 }
         let growth = Tuning.costGrowth
         let estimate = log(money * (growth - 1) / first + 1) / log(growth)
         var count = estimate.isFinite ? Int(min(max(estimate, 0), 100_000)) : 0
-        // The closed form can be off by one either way after floating-point rounding.
+        // The closed form can be off by one either way after rounding.
         while count > 0 && price(of: miner, quantity: count) > money { count -= 1 }
         var guardSteps = 0
         while guardSteps < 8 && price(of: miner, quantity: count + 1) <= money {
@@ -55,6 +62,18 @@ extension GameState {
             guardSteps += 1
         }
         return count
+    }
+
+    /// Rounds a price up to a whole coin, ignoring floating-point noise just above a whole number.
+    static func wholePrice(_ value: Double) -> Double {
+        guard value.isFinite, value < 0x1p52 else { return value } // Larger doubles are already whole.
+        return max(0, (value - 1e-6).rounded(.up))
+    }
+
+    /// Rounds a payout to the nearest whole coin.
+    static func wholeCoins(_ value: Double, minimum: Double = 0) -> Double {
+        guard value.isFinite else { return minimum }
+        return max(minimum, value.rounded())
     }
 
     // MARK: Multipliers
@@ -130,7 +149,7 @@ extension GameState {
         }
     }
 
-    /// Share of production each tap also earns.
+    /// Share of a second's production each tap also earns.
     public var tapShare: Double {
         upgrades.reduce(0) { result, upgrade in
             if case .tapPercent(let share) = upgrade.effect { return result + share }
@@ -148,28 +167,60 @@ extension GameState {
     /// The flat part of a tap, which grows with forks and achievements.
     var tapBase: Double { tapFlatTotal * forkBonus * achievementBonus }
 
-    public func tapValue(at date: Date) -> Double { tapBase + tapShare * production(at: date) }
+    /// Coins one tap earns with `production` coins per second: the flat part plus a share of
+    /// production, rounded to a whole coin and never less than one.
+    func tapValue(production: Double) -> Double {
+        Self.wholeCoins(tapBase + tapShare * production, minimum: 1)
+    }
+
+    public func tapValue(at date: Date) -> Double { tapValue(production: production(at: date)) }
+
+    /// Coins per second from automatic taps, each worth `Tuning.autoTapStrength` of a tap.
+    func autoTapIncome(production: Double) -> Double {
+        autoTapsPerSecond * Tuning.autoTapStrength * tapValue(production: production)
+    }
 
     /// Income that arrives without any input: miners plus automatic taps.
     public func idleIncome(at date: Date) -> Double {
-        production(at: date) + autoTapsPerSecond * tapValue(at: date)
+        let production = production(at: date)
+        return production + autoTapIncome(production: production)
     }
 
-    /// Idle income split into the part a boost multiplies and the part it does not:
-    /// `idleIncome = boostable * boostMultiplier + fixed`.
-    var incomeParts: (boostable: Double, fixed: Double) {
-        let autoTaps = autoTapsPerSecond
-        return (baseProduction * (1 + autoTaps * tapShare), autoTaps * tapBase)
+    /// Idle income per second without a boost, and while the current boost (if any) runs.
+    var incomeRates: (normal: Double, boosted: Double) {
+        let base = baseProduction
+        let normal = base + autoTapIncome(production: base)
+        guard let boost else { return (normal, normal) }
+        let boostedProduction = base * boost.multiplier
+        return (normal, boostedProduction + autoTapIncome(production: boostedProduction))
     }
 
-    // MARK: Caps and side rewards
+    // MARK: Offline Mining
 
-    public var offlineCap: TimeInterval {
-        upgrades.reduce(Tuning.baseOfflineCap) { result, upgrade in
-            if case .offlineCap(let seconds) = upgrade.effect { return max(result, seconds) }
-            return result
-        }
+    /// Time away that Offline Mining pays for at `level`: 30 minutes per level up to a day,
+    /// then an hour per level, up to three days.
+    public static func offlineCap(level: Int) -> TimeInterval {
+        let level = min(max(0, level), Tuning.offlineMiningMaxLevel)
+        let halfHours = min(level, Tuning.offlineMiningDayLevel)
+        let hours = level - halfHours
+        return Double(halfHours) * Tuning.offlineMiningStep + Double(hours) * Tuning.offlineMiningLateStep
     }
+
+    /// How long miners keep earning while the app is closed: nothing until Offline Mining is bought.
+    public var offlineCap: TimeInterval { Self.offlineCap(level: offlineMiningLevel) }
+
+    /// The most time away one absence pays: the Offline Mining limit, but never less than the
+    /// first minute, so leaving for longer never pays less than a quick app switch.
+    public var timeAwayLimit: TimeInterval { max(offlineCap, Tuning.awayThreshold) }
+
+    /// Price of the next Offline Mining level, or `nil` once it is at the maximum.
+    public var offlineMiningPrice: Double? {
+        guard offlineMiningLevel < Tuning.offlineMiningMaxLevel else { return nil }
+        return Self.wholePrice(Tuning.offlineMiningBaseCost
+                               * pow(Tuning.offlineMiningCostGrowth, Double(offlineMiningLevel)))
+    }
+
+    // MARK: Side rewards
 
     public var stepMultiplier: Double {
         upgrades.reduce(1) { result, upgrade in
@@ -186,19 +237,27 @@ extension GameState {
     }
 
     /// Idle income without temporary boosts.
-    public var baseIdleIncome: Double {
-        let parts = incomeParts
-        return parts.boostable + parts.fixed
-    }
+    public var baseIdleIncome: Double { incomeRates.normal }
 
     /// Income that sizes step, mini-game and airdrop rewards, so they keep pace with progress.
     /// Boosts are left out so rewards stay predictable, and a floor keeps them worthwhile on day one.
     public var rewardIncome: Double { max(baseIdleIncome, Tuning.minimumRewardIncome) }
 
-    /// Coins paid per step: a slice of idle income, never under one coin, times step upgrades.
+    /// Coins paid per step: a slice of idle income times step upgrades, in whole coins, never under one.
     public var stepValue: Double {
-        max(Tuning.minimumStepValue, Tuning.stepSeconds * rewardIncome) * stepMultiplier
+        Self.wholeCoins(max(Tuning.minimumStepValue, Tuning.stepSeconds * rewardIncome) * stepMultiplier, minimum: 1)
     }
+
+    // MARK: Steps
+
+    /// Steps open up after enough taps, so early coins come from tapping and building.
+    /// Anyone who has connected steps before keeps them.
+    public var areStepsUnlocked: Bool {
+        steps.isConnected || steps.startDay != nil || stats.taps >= Tuning.stepsUnlockTaps
+    }
+
+    /// Taps still needed before steps unlock.
+    public var tapsUntilSteps: Int { max(0, Tuning.stepsUnlockTaps - stats.taps) }
 
     // MARK: Prestige
 

@@ -6,6 +6,7 @@ public enum AchievementMetric: Hashable, Sendable {
     case lifetimeCoins, peakIncome, taps, bestTap, lifetimeSteps, bestDaySteps
     case totalMiners, miner(MinerID), upgrades
     case blackjackWins, blackjackNaturals, tetrisLines, tetrisBestScore
+    case slotsWins, snakeBestScore, bricksBroken, bubblesPopped
     case tokensExchanged, token(TokenID), airdrops, forks
 }
 
@@ -64,6 +65,14 @@ public enum AchievementCatalog {
                     metric: .tetrisLines, thresholds: [10, 100, 1_000]),
         Achievement(id: "high-score", name: "High Score", detail: "Score in a single Tetris game", emoji: "🏆", imageName: nil,
                     metric: .tetrisBestScore, thresholds: [5_000, 25_000, 100_000]),
+        Achievement(id: "high-roller", name: "High Roller", detail: "Win spins at Crypto Slots", emoji: "🎰", imageName: nil,
+                    metric: .slotsWins, thresholds: [10, 100, 1_000]),
+        Achievement(id: "snake-charmer", name: "Snake Charmer", detail: "Score in a single Snake game", emoji: "🐍", imageName: nil,
+                    metric: .snakeBestScore, thresholds: [100, 300, 600]),
+        Achievement(id: "brick-smasher", name: "Brick Smasher", detail: "Break bricks in Brick Breaker", emoji: "💥", imageName: nil,
+                    metric: .bricksBroken, thresholds: [50, 500, 5_000]),
+        Achievement(id: "bubble-popper", name: "Bubble Popper", detail: "Pop bubbles in Bubble Blaster", emoji: "🫧", imageName: nil,
+                    metric: .bubblesPopped, thresholds: [100, 1_000, 10_000]),
         Achievement(id: "exchanger", name: "Exchanger", detail: "Buy tokens on the exchange", emoji: "🔁", imageName: nil,
                     metric: .tokensExchanged, thresholds: [10, 100, 1_000]),
     ]

@@ -6,8 +6,15 @@ import Testing
 struct StepTests {
     let today = "2026-10-24"
 
-    func connected() -> GameState {
+    /// A player who has tapped enough to unlock steps.
+    func unlocked() -> GameState {
         var game = GameState.make()
+        game.stats.taps = Tuning.stepsUnlockTaps
+        return game
+    }
+
+    func connected() -> GameState {
+        var game = unlocked()
         game.connectSteps(today: today)
         return game
     }
@@ -30,6 +37,24 @@ struct StepTests {
         let game = connected()
         #expect(game.steps.isConnected)
         #expect(game.steps.startDay == today)
+    }
+
+    @Test func stepsUnlockAfterEnoughTaps() {
+        var game = GameState.make()
+        #expect(!game.areStepsUnlocked)
+        #expect(game.tapsUntilSteps == 2_500)
+        #expect(game.connectSteps(today: today) == false)
+        #expect(!game.steps.isConnected)
+        game.tap(count: 2_000, at: t0)
+        // Taps on Apple Watch count too.
+        game.applyWatchTaps(WatchTapBatch(taps: 499, date: t0), at: t0)
+        #expect(game.tapsUntilSteps == 1)
+        #expect(!game.areStepsUnlocked)
+        game.tap(at: t0)
+        #expect(game.areStepsUnlocked)
+        #expect(game.tapsUntilSteps == 0)
+        #expect(game.connectSteps(today: today) == true)
+        #expect(game.steps.isConnected)
     }
 
     @Test func everyStepIsWorthAtLeastOneCoin() {
@@ -82,7 +107,7 @@ struct StepTests {
     }
 
     @Test func lateArrivingStepsForEarlierDaysArePaid() {
-        var game = GameState.make()
+        var game = unlocked()
         game.connectSteps(today: "2026-10-20")
         game.creditSteps(week([0, 0, 4_000, 3_000, 0, 0, 0]), today: today, at: t0)
         #expect(game.coins == 7_000)
@@ -94,7 +119,7 @@ struct StepTests {
     }
 
     @Test func daysThatLeftTheWindowAreForgotten() {
-        var game = GameState.make()
+        var game = unlocked()
         game.connectSteps(today: "2026-10-01")
         game.creditSteps([StepDay(key: "2026-10-10", steps: 3_000)], today: "2026-10-10", at: t0)
         #expect(game.steps.credited["2026-10-10"] == 3_000)
@@ -118,9 +143,44 @@ struct StepTests {
         game.upgrades = [.stepBooster]
         #expect(game.stepValue == 2) // Boosters multiply the one-coin floor too.
         game.miners = [.desktop: 50] // 400 coins per second.
-        #expect(approx(game.stepValue, 0.06 * 400 * 2))
+        #expect(game.stepValue == 48) // 0.06 × 400 × 2
         let credit = game.creditSteps([StepDay(key: today, steps: 1_000)], today: today, at: t0)
-        #expect(approx(credit.coins, 1_000 * 0.06 * 400 * 2))
+        #expect(credit.coins == 48_000)
+    }
+
+    @Test func stepsAreWorthWholeCoins() {
+        var game = connected()
+        game.miners = [.desktop: 10] // 20 coins per second: 1.2 coins a step, paid as 1.
+        #expect(game.stepValue == 1)
+        game.miners = [.desktop: 15] // 30 coins per second: 1.8 coins a step, paid as 2.
+        #expect(game.stepValue == 2)
+    }
+
+    @Test func playersWhoConnectedBeforeStayUnlocked() {
+        // A save from before the tap requirement: steps were connected with few taps, then paused.
+        var game = GameState.make()
+        game.stats.taps = 40
+        game.steps.isConnected = true
+        game.steps.startDay = "2026-10-01"
+        game.disconnectSteps()
+        #expect(game.areStepsUnlocked)
+        let reconnected = game.connectSteps(today: today)
+        #expect(reconnected)
+    }
+
+    @Test func stepUpgradesWaitUntilStepsUnlock() {
+        var game = GameState.make()
+        game.stats.runCoins = 1e12
+        #expect(!game.isRevealed(.stepBooster))
+        #expect(!game.isRevealed(.ultimateStepBooster))
+        #expect(game.isRevealed(.overclocking))
+        game.stats.taps = Tuning.stepsUnlockTaps
+        #expect(game.isRevealed(.stepBooster))
+    }
+
+    @Test func theFirstStepBoosterCostsMore() {
+        // It used to cost 1,000, which let walking outpace tapping right away.
+        #expect(UpgradeID.stepBooster.cost == 25_000)
     }
 
     @Test func dayKeysUseTheLocalGregorianDay() throws {

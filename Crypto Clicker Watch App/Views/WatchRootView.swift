@@ -30,17 +30,18 @@ struct MinePage: View {
                     .contentTransition(.numericText(value: balance))
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                Text("+\(CoinFormat.short(store.income(at: context.date)))/s")
+                Text("+\(CoinFormat.rate(store.income(at: context.date)))/s")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Button(action: store.tap) {
                     Image("coin")
                         .resizable()
                         .scaledToFit()
-                        .padding(12)
+                        .padding(4)
+                        .shadow(color: Color(red: 0.97, green: 0.58, blue: 0.10).opacity(0.5), radius: 8)
+                        .contentShape(.circle)
                 }
-                .buttonStyle(.plain)
-                .glassEffect(.clear.interactive(), in: .circle)
+                .buttonStyle(CoinPressStyle())
                 .sensoryFeedback(.impact(weight: .light), trigger: store.taps)
                 .accessibilityLabel("Mine coin")
                 .accessibilityHint("Earns \(CoinFormat.short(store.tapValue)) coins per tap")
@@ -92,7 +93,7 @@ struct StepsPage: View {
                         .padding(.top, 4)
                     }
                 } else {
-                    Text("Connect Apple Health in Crypto Clicker on your iPhone to turn steps into coins.")
+                    Text("Turn steps into coins in Crypto Clicker on your iPhone. Steps unlock after 2,500 taps.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -119,9 +120,9 @@ struct StatsPage: View {
                     .font(.headline)
                     .foregroundStyle(Color(red: 0.97, green: 0.58, blue: 0.10))
                 if let snapshot = store.snapshot {
-                    row("Income", "\(CoinFormat.short(snapshot.income(at: .now)))/s")
+                    row("Income", "\(CoinFormat.rate(snapshot.income(at: .now)))/s")
                     row("Per tap", CoinFormat.short(snapshot.tapValue))
-                    row("Offline limit", CoinFormat.duration(snapshot.offlineCap))
+                    row("Offline Mining", snapshot.offlineCap > 0 ? CoinFormat.duration(snapshot.offlineCap) : "Off")
                     if store.queue.pendingTaps > 0 {
                         row("Taps sending", CoinFormat.grouped(store.queue.pendingTaps))
                     }
@@ -152,5 +153,14 @@ struct StatsPage: View {
                 .monospacedDigit()
         }
         .font(.footnote)
+    }
+}
+
+/// The coin shrinks a little while pressed.
+private struct CoinPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.5), value: configuration.isPressed)
     }
 }

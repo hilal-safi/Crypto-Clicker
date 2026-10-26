@@ -49,12 +49,12 @@ private struct TrophySummary: View {
                     .font(.title3.bold())
                 Text("+\(CoinFormat.percent(bonus)) production from achievements")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.subtext)
                 ProgressView(value: Double(earned), total: Double(max(1, total)))
                     .tint(Theme.trophies)
             }
         }
-        .glassCard(tint: Theme.trophies.opacity(0.12))
+        .glassCard(tint: Theme.trophies)
         .accessibilityElement(children: .combine)
     }
 }
@@ -87,14 +87,14 @@ private struct AchievementCard: View {
                 .minimumScaleFactor(0.8)
             Text(achievement.detail)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.subtext)
                 .lineLimit(2, reservesSpace: true)
             if let next {
                 ProgressView(value: min(value, next), total: next)
                     .tint(Theme.tierColor(tiers))
                 Text("\(CoinFormat.short(value)) / \(CoinFormat.short(next))")
                     .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.subtext)
             } else {
                 Label("Complete", systemImage: "checkmark.seal.fill")
                     .font(.caption.weight(.semibold))

@@ -81,7 +81,7 @@ struct MiniGameRewardTests {
     @Test func bonusRewardUpgradesMultiplyMiniGames() {
         let game = earner(upgrades: [.bonusReward1, .bonusReward2])
         #expect(game.miniGameMultiplier == 1.875)
-        #expect(approx(game.blackjackBonus(bet: 1, token: .dogecoin), 100 * 1.875))
+        #expect(game.blackjackBonus(bet: 1, token: .dogecoin) == 188) // 187.5, paid as a whole coin.
     }
 
     @Test func tetrisPaysByScore() {
@@ -94,6 +94,64 @@ struct MiniGameRewardTests {
         #expect(game.finishTetris(score: 0, lines: 0) == 0)
         #expect(game.stats.tetrisGames == 2)
         #expect(game.stats.tetrisBestScore == 1_000)
+    }
+
+    @Test func arcadeGamesPayWholeCoinsForTheirScores() {
+        var game = earner() // 10 coins per second.
+        #expect(game.finishSnake(score: 120) == 180) // 120 × 0.15 × 10
+        #expect(game.stats.snakeGames == 1)
+        #expect(game.stats.snakeBestScore == 120)
+        #expect(game.finishBrickBreaker(score: 450, bricks: 35) == 270) // 450 × 0.06 × 10
+        #expect(game.stats.brickBreakerGames == 1)
+        #expect(game.stats.brickBreakerBestScore == 450)
+        #expect(game.stats.bricksBroken == 35)
+        #expect(game.finishBubbleBlaster(score: 333, popped: 21) == 83) // 83.25, paid as 83.
+        #expect(game.stats.bubbleGames == 1)
+        #expect(game.stats.bubbleBestScore == 333)
+        #expect(game.stats.bubblesPopped == 21)
+        #expect(game.finishSnake(score: 0) == 0)
+        #expect(game.stats.snakeGames == 2)
+        #expect(game.stats.snakeBestScore == 120)
+        #expect(game.coins == 180 + 270 + 83)
+        #expect(game.stats.earnedFromGames == 180 + 270 + 83)
+    }
+
+    @Test func aGameLeftOpenIsPaidOnceAfterTheAppCloses() throws {
+        var game = earner() // 10 coins per second.
+        game.holdArcadeRun(ArcadeRun(game: .snake, score: 120, detail: 15))
+        // iOS closed the app in the background: the run comes back with the save.
+        let data = try GameCoding.encoder().encode(game)
+        var reloaded = try GameCoding.decoder().decode(GameState.self, from: data)
+        #expect(reloaded.unfinishedRun == ArcadeRun(game: .snake, score: 120, detail: 15))
+        let payment = reloaded.payUnfinishedRun()
+        let paid = try #require(payment)
+        #expect(paid.reward == 180)
+        #expect(reloaded.stats.snakeGames == 1)
+        #expect(reloaded.unfinishedRun == nil)
+        #expect(reloaded.payUnfinishedRun() == nil)
+    }
+
+    @Test func finishingOrReturningClearsTheHeldRun() {
+        var game = earner()
+        game.holdArcadeRun(ArcadeRun(game: .tetris, score: 900, detail: 4))
+        game.finishTetris(score: 1_200, lines: 6)
+        #expect(game.unfinishedRun == nil)
+        game.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: 300, detail: 30))
+        game.releaseArcadeRun()
+        #expect(game.unfinishedRun == nil)
+        game.holdArcadeRun(ArcadeRun(game: .blackjack, score: 5, detail: 0)) // Casino rounds settle on their own.
+        #expect(game.unfinishedRun == nil)
+    }
+
+    @Test func everyMiniGameCanBeUnlocked() {
+        var game = GameState.make(coins: MiniGame.allCases.reduce(0) { $0 + $1.unlockCost })
+        for miniGame in MiniGame.allCases {
+            let unlocked = game.unlock(miniGame)
+            #expect(unlocked)
+            #expect(game.isUnlocked(miniGame))
+        }
+        #expect(game.coins == 0)
+        #expect(MiniGame.allCases.filter(\.isCasino) == [.blackjack, .slots])
     }
 
     @Test func rewardsHaveAFloorOnDayOne() {

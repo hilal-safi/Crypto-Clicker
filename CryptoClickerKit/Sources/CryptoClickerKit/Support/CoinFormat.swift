@@ -1,25 +1,39 @@
 import Foundation
 
-/// Short, idle-game style number formatting: 950, 1.5K, 12.3M, 4.56Qa, then 1.23e66.
+/// Coins are whole. Amounts up to 9,999 are written out in full; from 10,000 up they are
+/// abbreviated to three significant digits (`12.3K`, `1.25M`, `12.5B`, `125T`), and past the last
+/// suffix they switch to scientific notation (`1.23e66`). `exact` writes out every digit.
 public enum CoinFormat {
     static let suffixes = [
         "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No",
         "Dc", "UDc", "DDc", "TDc", "QaDc", "QiDc", "SxDc", "SpDc", "OcDc", "NoDc", "Vg",
     ]
 
-    public static func short(_ value: Double) -> String {
+    /// Whole amounts from here up are abbreviated.
+    static let abbreviationThreshold = 10_000.0
+
+    enum Rounding {
+        case down, up, nearest
+    }
+
+    /// A balance or an amount earned, rounded down so it is never overstated.
+    public static func short(_ value: Double) -> String { format(value, .down) }
+
+    /// Every digit of a balance, rounded down, with thousands separators: `12,345,678,901`.
+    /// For huge balances this is the full decimal value of the stored number.
+    public static func exact(_ value: Double) -> String {
         guard value.isFinite else { return value.isNaN ? "0" : (value > 0 ? "∞" : "-∞") }
-        if value < 0 { return "-" + short(-value) }
-        var exponent = value < 1_000 ? 0 : Int(log10(value) / 3)
-        while exponent < suffixes.count {
-            let text = compact(value / pow(1_000, Double(exponent)))
-            if let rounded = Double(text), rounded >= 1_000 {
-                exponent += 1 // e.g. 999.96K rounds to 1000K, so show 1M instead.
-                continue
-            }
-            return text + suffixes[exponent]
-        }
-        return scientific(value)
+        if value < 0 { return "-" + exact(-value) }
+        return groupDigits(String(format: "%.0f", round(value, decimals: 0, .down)))
+    }
+
+    /// A price, rounded up so it is never understated.
+    public static func cost(_ value: Double) -> String { format(value, .up) }
+
+    /// A rate such as coins per second, rounded to the nearest coin. Under half a coin shows as `<1`.
+    public static func rate(_ value: Double) -> String {
+        if value > 0 && value < 0.5 { return "<1" }
+        return format(value, .nearest)
     }
 
     /// `0.02` becomes `2%`.
@@ -48,16 +62,79 @@ public enum CoinFormat {
 
     /// Whole numbers with thousands separators: `12,345`.
     public static func grouped(_ value: Int) -> String {
-        let digits = String(value.magnitude)
+        let result = groupDigits(String(value.magnitude))
+        return value < 0 ? "-" + result : result
+    }
+
+    // MARK: Internals
+
+    /// Puts a comma between every group of three digits, counting from the right.
+    static func groupDigits(_ digits: String) -> String {
         var result = ""
+        result.reserveCapacity(digits.count + digits.count / 3)
         for (index, character) in digits.enumerated() {
             if index > 0 && (digits.count - index) % 3 == 0 { result.append(",") }
             result.append(character)
         }
-        return value < 0 ? "-" + result : result
+        return result
     }
 
-    /// Up to three significant digits, trailing zeros removed. Expects `0 <= value < 1000`.
+    static func format(_ value: Double, _ rounding: Rounding) -> String {
+        guard value.isFinite else { return value.isNaN ? "0" : (value > 0 ? "∞" : "-∞") }
+        if value < 0 { return "-" + format(-value, rounding) }
+        let whole = round(value, decimals: 0, rounding)
+        if whole < abbreviationThreshold { return grouped(Int(whole)) }
+        return abbreviated(value, rounding)
+    }
+
+    /// `value` (10,000 or more) as a mantissa with a suffix: `12.3K`, `1.25M`, `12.5B`, `125T`.
+    static func abbreviated(_ value: Double, _ rounding: Rounding) -> String {
+        var exponent = max(1, Int(log10(value) / 3))
+        // log10 can round up across a power of ten; step back so the mantissa is at least 1.
+        if exponent > 1 && value < pow(1_000, Double(exponent)) { exponent -= 1 }
+        while exponent < suffixes.count {
+            let mantissa = value / pow(1_000, Double(exponent))
+            var decimals = mantissa < 10 ? 2 : (mantissa < 100 ? 1 : 0)
+            var rounded = round(mantissa, decimals: decimals, rounding)
+            // Rounding up can cross into the next decade (9.996K to 10.00K): keep three digits (10.0K).
+            let roundedDecimals = rounded < 10 ? 2 : (rounded < 100 ? 1 : 0)
+            if roundedDecimals < decimals {
+                decimals = roundedDecimals
+                rounded = round(mantissa, decimals: decimals, rounding)
+            }
+            if rounded >= 1_000 {
+                exponent += 1 // 999.96M rounds to 1000M, so it is shown as 1.00B instead.
+                continue
+            }
+            return String(format: "%.\(decimals)f", rounded) + suffixes[exponent]
+        }
+        return scientific(value, rounding)
+    }
+
+    static func scientific(_ value: Double, _ rounding: Rounding) -> String {
+        var exponent = Int(floor(log10(value)))
+        var mantissa = round(value / pow(10, Double(exponent)), decimals: 2, rounding)
+        if mantissa >= 10 {
+            exponent += 1
+            mantissa = round(value / pow(10, Double(exponent)), decimals: 2, rounding)
+        }
+        return String(format: "%.2f", mantissa) + "e\(exponent)"
+    }
+
+    /// Rounds to `decimals` places, ignoring floating-point noise (1.23 is stored as 1.2299999…).
+    static func round(_ value: Double, decimals: Int, _ rounding: Rounding) -> Double {
+        let factor = pow(10, Double(decimals))
+        let scaled = value * factor
+        let result: Double = switch rounding {
+        case .down: (scaled + 1e-7).rounded(.down)
+        case .up: (scaled - 1e-7).rounded(.up)
+        case .nearest: scaled.rounded()
+        }
+        return result / factor
+    }
+
+    /// Up to three significant digits, trailing zeros removed (`2`, `1.5`, `12.3`), for percentages
+    /// and multipliers.
     static func compact(_ value: Double) -> String {
         if value == 0 { return "0" }
         let decimals = value >= 100 ? 0 : (value >= 10 ? 1 : 2)
@@ -67,15 +144,5 @@ public enum CoinFormat {
             if text.hasSuffix(".") { text.removeLast() }
         }
         return text
-    }
-
-    static func scientific(_ value: Double) -> String {
-        var exponent = Int(floor(log10(value)))
-        var mantissa = value / pow(10, Double(exponent))
-        if mantissa >= 9.995 {
-            exponent += 1
-            mantissa /= 10
-        }
-        return compact(mantissa) + "e\(exponent)"
     }
 }

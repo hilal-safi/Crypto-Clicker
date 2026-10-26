@@ -10,7 +10,8 @@ struct SaveTests {
 
     func richState() -> GameState {
         var state = GameState.make(coins: 123_456.75, miners: [.chromebook: 30, .server: 4],
-                                   upgrades: [.coinClicker, .overclocking, .cloudBackup])
+                                   upgrades: [.coinClicker, .overclocking, .hapticEngine])
+        state.offlineMiningLevel = 9
         state.tokens = [.dogecoin: 3, .bitcoin: 1]
         state.placeBlackjackBet(.dogecoin, amount: 2)
         state.forks = 7
@@ -24,6 +25,12 @@ struct SaveTests {
         state.stats.maxOwned = [.chromebook: 31]
         state.stats.tokensBought = [.dogecoin: 5]
         state.stats.tetrisBestScore = 4_200
+        state.stats.slotsWins = 12
+        state.stats.snakeBestScore = 340
+        state.stats.bricksBroken = 77
+        state.stats.bubblesPopped = 410
+        state.unlockedGames.insert(.bubbleBlaster)
+        state.stats.taps = 3_000
         state.connectSteps(today: "2026-10-20")
         state.creditSteps([StepDay(key: "2026-10-24", steps: 4_000)], today: "2026-10-24", at: at(10))
         state.applyWatchTaps(WatchTapBatch(taps: 5, date: t0), at: t0)
@@ -33,9 +40,12 @@ struct SaveTests {
 
     @Test func aSaveRoundTripsExactly() throws {
         let state = richState()
+        #expect(state.steps.isConnected)
         let data = try GameCoding.encoder().encode(state)
         let decoded = try GameCoding.decoder().decode(GameState.self, from: data)
         #expect(decoded == state)
+        #expect(decoded.stats.bubblesPopped == 410)
+        #expect(decoded.isUnlocked(.bubbleBlaster))
     }
 
     @Test func enumKeyedValuesAreWrittenAsReadableJSON() throws {
@@ -43,7 +53,8 @@ struct SaveTests {
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(json["version"] as? Int == GameState.saveVersion)
         #expect((json["miners"] as? [String: Int]) == ["chromebook": 30, "server": 4])
-        #expect((json["upgrades"] as? [String]) == ["cloudBackup", "coinClicker", "overclocking"])
+        #expect((json["upgrades"] as? [String]) == ["coinClicker", "hapticEngine", "overclocking"])
+        #expect(json["offlineMiningLevel"] as? Int == 9)
         #expect((json["tokens"] as? [String: Int]) == ["bitcoin": 1, "dogecoin": 1])
         #expect((json["blackjackStake"] as? [String: Any])?["token"] as? String == "dogecoin")
         #expect(json["difficulty"] as? String == "hard")
@@ -82,6 +93,20 @@ struct SaveTests {
         #expect(state.unlockedGames == [.blackjack])
         #expect(state.difficulty == .normal)
         #expect(state.forks == 3)
+    }
+
+    @Test func offlineUpgradesFromEarlierVersionsBecomeOfflineMiningLevels() throws {
+        // Cloud Backup gave 4 hours, Server Lease 8 and the Always-On Rig a day.
+        #expect(try decode(#"{"upgrades": ["coinClicker", "cloudBackup"]}"#).offlineMiningLevel == 8)
+        #expect(try decode(#"{"upgrades": ["cloudBackup", "serverLease"]}"#).offlineCap == 8 * 3_600)
+        let rig = try decode(#"{"upgrades": ["alwaysOnRig", "overclocking"]}"#)
+        #expect(rig.offlineCap == 24 * 3_600)
+        #expect(rig.upgrades == [.overclocking])
+        // A level saved by this version wins when it is higher, and nothing goes past the maximum.
+        #expect(try decode(#"{"upgrades": ["cloudBackup"], "offlineMiningLevel": 20}"#).offlineMiningLevel == 20)
+        #expect(try decode(#"{"offlineMiningLevel": 5000}"#).offlineMiningLevel == Tuning.offlineMiningMaxLevel)
+        #expect(try decode(#"{"offlineMiningLevel": -2}"#).offlineMiningLevel == 0)
+        #expect(try decode("{}").offlineCap == 0)
     }
 
     @Test func corruptFieldsFallBackToDefaults() throws {

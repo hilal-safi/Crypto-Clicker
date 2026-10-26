@@ -1,15 +1,5 @@
 import Foundation
 
-public struct GridPoint: Hashable, Sendable {
-    public let x: Int
-    public let y: Int
-
-    public init(x: Int, y: Int) {
-        self.x = x
-        self.y = y
-    }
-}
-
 public enum Tetromino: Int, CaseIterable, Codable, Sendable {
     case i = 1, o, t, s, z, j, l
 

@@ -8,11 +8,11 @@ struct NotificationStack: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            if let airdrop = store.airdrop {
+            if let airdrop = store.airdrop, !store.isInGame {
                 AirdropButton(airdrop: airdrop) { store.claimAirdrop() }
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
-            if let toast = store.toasts.first {
+            if let toast = store.toasts.first, !store.isInGame {
                 ToastView(toast: toast)
                     .id(toast.id)
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -45,7 +45,7 @@ struct ToastView: View {
                     .font(.headline)
                 Text(toast.message)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.subtext)
             }
         }
         .padding(.horizontal, 18)
@@ -77,7 +77,7 @@ struct AirdropButton: View {
                         .font(.headline)
                     Text("Tap to catch it")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.subtext)
                 }
                 TimelineView(.periodic(from: .now, by: 0.25)) { context in
                     let remaining = max(0, airdrop.expiresAt.timeIntervalSince(context.date))

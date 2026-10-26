@@ -1,8 +1,9 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Blackjack against the dealer, betting crypto tokens. The rules live in `BlackjackTable`;
-/// this view moves tokens in and out of the wallet and plays the dealer's turn with a little pacing.
+/// Blackjack against the dealer on a felt table, betting crypto tokens. The rules live in
+/// `BlackjackTable`; this view moves tokens in and out of the wallet, paces the dealer's turn,
+/// and celebrates wins with confetti and a shower of coins.
 struct BlackjackView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
@@ -15,36 +16,52 @@ struct BlackjackView: View {
     @State private var isSettled = true
     @State private var lastBonus = 0.0
     @State private var settledRounds = 0
+    @State private var effects = Effects()
+    /// Height of the table above the controls; short screens get smaller cards so both hands fit.
+    @State private var tableHeight: CGFloat = 600
 
     var body: some View {
         let game = store.game
+        let cardSize = tableHeight < 430 ? CGSize(width: 54, height: 78) : CGSize(width: 64, height: 92)
         ScrollView {
-            VStack(spacing: 14) {
-                DealerArea(table: table)
+            VStack(spacing: 12) {
+                DealerArea(table: table, cardSize: cardSize)
+                // The result takes the place of the table printing, so nothing below it moves.
+                ZStack {
+                    if table.phase == .settled {
+                        ResultBanner(results: table.results, bonus: lastBonus, token: roundToken)
+                            .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    } else {
+                        TableMarkings()
+                            .transition(.opacity)
+                    }
+                }
+                .frame(height: 56)
                 ForEach(table.hands) { hand in
                     HandView(hand: hand,
                              isActive: table.activeHand?.id == hand.id && table.hands.count > 1,
                              result: table.results.indices.contains(hand.id) ? table.results[hand.id] : nil,
-                             token: roundToken)
-                }
-                if table.phase == .settled {
-                    ResultBanner(results: table.results, bonus: lastBonus, token: roundToken)
-                        .transition(.scale.combined(with: .opacity))
+                             token: roundToken, cardSize: cardSize)
                 }
             }
-            .padding(16)
+            .padding(12)
             .frame(maxWidth: 600)
             .frame(maxWidth: .infinity)
         }
+        .scrollBounceBehavior(.basedOnSize)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { tableHeight = $0 }
         .safeAreaInset(edge: .bottom) {
             controls(game: game)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
                 .frame(maxWidth: 600)
         }
-        .background { AppBackground(tint: .green) }
+        .background { FeltBackground() }
+        .overlay { EffectsLayer(effects: effects).ignoresSafeArea() }
+        .environment(\.colorScheme, .dark)
         .navigationTitle("Blackjack")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 CoinAmount(amount: game.coins, font: .subheadline.weight(.semibold), iconSize: 16)
@@ -61,6 +78,7 @@ struct BlackjackView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { leaveTable() }
         }
+        .gameScreen()
     }
 
     // MARK: Controls
@@ -70,34 +88,25 @@ struct BlackjackView: View {
         switch table.phase {
         case .betting, .settled:
             let owned = game.tokenCount(token)
-            VStack(spacing: 12) {
-                if game.stats.totalTokensBought == 0 && TokenID.allCases.allSatisfy({ game.tokenCount($0) == 0 }) {
-                    Text("Buy tokens on the Coin Exchange to place bets.")
+            VStack(spacing: 10) {
+                if TokenID.allCases.allSatisfy({ game.tokenCount($0) == 0 }) {
+                    Label("Buy tokens on the Coin Exchange to place bets.", systemImage: "info.circle")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.subtext)
                 }
-                HStack {
-                    Picker("Token", selection: $token) {
-                        ForEach(TokenID.allCases) { token in
-                            Text("\(token.ticker) · \(CoinFormat.grouped(game.tokenCount(token)))").tag(token)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    Spacer()
-                    Stepper("Bet \(CoinFormat.grouped(bet))", value: $bet, in: 1...max(1, owned))
-                        .fixedSize()
-                        .monospacedDigit()
-                }
+                TokenBetControls(token: $token, bet: $bet,
+                                 counts: Dictionary(uniqueKeysWithValues: TokenID.allCases.map { ($0, game.tokenCount($0)) }))
                 let fullBonusBet = game.blackjackBetForFullBonus(token)
                 HStack(alignment: .firstTextBaseline) {
                     Text("A win also pays \(CoinFormat.short(game.blackjackBonus(bet: bet, token: token))) coins")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                        .foregroundStyle(.subtext)
                     Spacer()
                     if bet < fullBonusBet && owned > bet {
                         Button("Max Bonus") { bet = min(owned, fullBonusBet) }
                             .font(.footnote.weight(.semibold))
                             .buttonStyle(.borderless)
+                            .tint(Theme.gold)
                     }
                 }
                 Button(action: deal) {
@@ -107,10 +116,11 @@ struct BlackjackView: View {
                         .padding(.vertical, 4)
                 }
                 .buttonStyle(.glassProminent)
+                .tint(Theme.accent)
                 .disabled(owned < bet)
             }
-            .glassCard()
-            .onChange(of: owned) { _, newValue in bet = min(bet, max(1, newValue)) }
+            .padding(14)
+            .glassEffect(.regular, in: .rect(cornerRadius: 26))
         case .playerTurn:
             let canAffordExtra = game.tokenCount(roundToken) >= table.extraBetNeeded
             GlassEffectContainer(spacing: 12) {
@@ -147,7 +157,7 @@ struct BlackjackView: View {
                 .font(.headline)
                 .labelStyle(.titleOnly)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
+                .padding(.vertical, 8)
         }
         .buttonStyle(.glass)
     }
@@ -178,7 +188,7 @@ struct BlackjackView: View {
 
     private func play(_ action: (inout BlackjackTable, inout SystemRandomNumberGenerator) -> Void) {
         var rng = SystemRandomNumberGenerator()
-        withAnimation(.snappy) { action(&table, &rng) }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { action(&table, &rng) }
         settleIfFinished()
     }
 
@@ -198,6 +208,16 @@ struct BlackjackView: View {
         isSettled = true
         lastBonus = store.settleBlackjack(table.results, token: roundToken)
         settledRounds += 1
+        celebrate()
+    }
+
+    private func celebrate() {
+        let net = table.results.reduce(0) { $0 + $1.net }
+        guard net > 0 else { return }
+        let natural = table.results.contains { $0.outcome == .blackjack }
+        effects.confetti(natural ? 150 : 90, from: UnitPoint(x: 0.5, y: 0.55))
+        effects.coinFountain(natural ? 28 : 16, from: UnitPoint(x: 0.5, y: 0.7))
+        if natural { effects.rainCoins(24) }
     }
 
     /// Leaving mid-round stands on every open hand and lets the dealer finish, so bets are never
@@ -215,22 +235,45 @@ struct BlackjackView: View {
 
 private struct DealerArea: View {
     let table: BlackjackTable
+    let cardSize: CGSize
 
     var body: some View {
         VStack(spacing: 10) {
             HStack {
-                Text("Dealer")
+                Label("Dealer", systemImage: "person.fill")
                     .font(.headline)
                 Spacer()
                 if !table.dealer.isEmpty {
                     Text(table.isHoleCardHidden ? "Showing \(table.dealerUpValue ?? 0)" : "\(table.dealerTotal)")
                         .font(.headline.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(.black.opacity(0.3), in: .capsule)
                 }
             }
-            CardRow(cards: table.dealer, hidesSecondCard: table.isHoleCardHidden)
+            CardRow(cards: table.dealer, hidesSecondCard: table.isHoleCardHidden, cardSize: cardSize)
         }
-        .glassCard()
+        .foregroundStyle(.white)
+    }
+}
+
+/// The printing on the felt between the dealer and the player.
+private struct TableMarkings: View {
+    var body: some View {
+        VStack(spacing: 4) {
+            Text("BLACKJACK PAYS 3 TO 2")
+                .font(.subheadline.weight(.heavy))
+                .tracking(2)
+            Text("Dealer stands on all 17s")
+                .font(.caption.weight(.semibold))
+                .tracking(1)
+        }
+        .foregroundStyle(Theme.gold.opacity(0.7))
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .overlay(alignment: .top) { Capsule().fill(Theme.gold.opacity(0.35)).frame(height: 1) }
+        .overlay(alignment: .bottom) { Capsule().fill(Theme.gold.opacity(0.35)).frame(height: 1) }
+        .accessibilityHidden(true)
     }
 }
 
@@ -239,84 +282,154 @@ private struct HandView: View {
     let isActive: Bool
     let result: BlackjackResult?
     let token: TokenID
+    let cardSize: CGSize
 
     var body: some View {
-        VStack(spacing: 10) {
-            HStack {
+        VStack(spacing: 8) {
+            CardRow(cards: hand.cards, hidesSecondCard: false, cardSize: cardSize)
+            HStack(spacing: 10) {
                 Text(hand.isBlackjack ? "Blackjack!" : hand.isBust ? "Bust" : "\(hand.isSoft ? "Soft " : "")\(hand.total)")
                     .font(.headline.monospacedDigit())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.black.opacity(0.3), in: .capsule)
                 Spacer()
-                Label("\(CoinFormat.grouped(hand.bet)) \(token.ticker)", image: token.imageName)
-                    .labelStyle(TokenLabelStyle())
-                    .font(.subheadline.weight(.semibold))
+                ChipStack(token: token, amount: hand.bet)
                 if let result {
                     Text(result.outcome.title)
                         .font(.subheadline.bold())
-                        .foregroundStyle(result.net > 0 ? .green : result.net == 0 ? .orange : .red)
+                        .foregroundStyle(result.net > 0 ? Theme.gold : result.net == 0 ? .white : Color(red: 1, green: 0.45, blue: 0.45))
                 }
             }
-            CardRow(cards: hand.cards, hidesSecondCard: false)
         }
-        .glassCard(tint: isActive ? Theme.bitcoin.opacity(0.25) : nil)
+        .foregroundStyle(.white)
+        .padding(10)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(isActive ? Theme.gold : .white.opacity(0.18), lineWidth: isActive ? 2 : 1)
+        }
         .accessibilityElement(children: .combine)
     }
 }
 
-private struct TokenLabelStyle: LabelStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 4) {
-            configuration.icon
-                .frame(width: 18, height: 18)
-            configuration.title
+/// The bet, shown as a casino chip with the token's artwork.
+private struct ChipStack: View {
+    let token: TokenID
+    let amount: Int
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(Theme.bitcoin.gradient)
+                Circle()
+                    .strokeBorder(.white.opacity(0.9), style: StrokeStyle(lineWidth: 3, dash: [4, 4]))
+                    .padding(2)
+                TokenImage(token: token, size: 18)
+            }
+            .frame(width: 30, height: 30)
+            .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
+            Text("\(CoinFormat.grouped(amount)) \(token.ticker)")
+                .font(.subheadline.weight(.semibold).monospacedDigit())
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Bet \(amount) \(token.name)")
     }
 }
 
 private struct CardRow: View {
     let cards: [Card]
     let hidesSecondCard: Bool
+    let cardSize: CGSize
 
     var body: some View {
-        HStack(spacing: -22) {
+        HStack(spacing: -cardSize.width * 0.36) {
             ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                PlayingCardView(card: card, isFaceDown: hidesSecondCard && index == 1)
-                    .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
+                // A gentle fan, centred on the middle of the hand.
+                let tilt = (Double(index) - Double(cards.count - 1) / 2) * 3
+                PlayingCardView(card: card, isFaceDown: hidesSecondCard && index == 1, size: cardSize)
+                    .rotationEffect(.degrees(tilt), anchor: .bottom)
+                    .transition(.asymmetric(insertion: .offset(x: 140, y: -180).combined(with: .opacity),
+                                            removal: .opacity))
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 96)
+        .frame(maxWidth: .infinity, minHeight: cardSize.height + 4)
     }
 }
 
 struct PlayingCardView: View {
     let card: Card
     var isFaceDown = false
+    var size = CGSize(width: 64, height: 92)
 
     var body: some View {
         ZStack {
             if isFaceDown {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(LinearGradient(colors: [Theme.bitcoin, .orange.mix(with: .black, by: 0.3)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                CoinIcon(size: 28)
+                CardBack()
             } else {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(.white)
-                VStack(spacing: 0) {
-                    Text(card.label)
-                        .font(.title2.bold())
-                    Text(card.suit.symbol)
-                        .font(.title)
-                }
-                .foregroundStyle(card.suit.isRed ? Color.red : Color.black)
+                CardFace(card: card)
             }
         }
-        .frame(width: 64, height: 92)
+        .frame(width: size.width, height: size.height)
+        .clipShape(.rect(cornerRadius: 9))
         .overlay {
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(.black.opacity(0.15))
+            RoundedRectangle(cornerRadius: 9)
+                .strokeBorder(.black.opacity(0.18))
         }
-        .shadow(color: .black.opacity(0.25), radius: 4, y: 2)
+        .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
         .accessibilityLabel(isFaceDown ? "Face-down card" : card.accessibilityName)
+    }
+}
+
+private struct CardFace: View {
+    let card: Card
+
+    var body: some View {
+        let color = card.suit.isRed ? Color(red: 0.85, green: 0.1, blue: 0.15) : Color.black
+        ZStack {
+            Color.white
+            Text(card.suit.symbol)
+                .font(.system(size: 34))
+            VStack(spacing: -2) {
+                Text(card.label)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                Text(card.suit.symbol)
+                    .font(.system(size: 13))
+            }
+            .padding(5)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            VStack(spacing: -2) {
+                Text(card.label)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                Text(card.suit.symbol)
+                    .font(.system(size: 13))
+            }
+            .padding(5)
+            .rotationEffect(.degrees(180))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+        }
+        .foregroundStyle(color)
+    }
+}
+
+private struct CardBack: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [Color(red: 0.75, green: 0.12, blue: 0.15), Color(red: 0.45, green: 0.05, blue: 0.08)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+            Canvas { context, size in
+                var path = Path()
+                stride(from: -size.height, through: size.width, by: 8).forEach { offset in
+                    path.move(to: CGPoint(x: offset, y: 0))
+                    path.addLine(to: CGPoint(x: offset + size.height, y: size.height))
+                }
+                context.stroke(path, with: .color(.white.opacity(0.12)), lineWidth: 2)
+            }
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(Theme.gold.opacity(0.8), lineWidth: 1.5)
+                .padding(5)
+            CoinIcon(size: 30)
+        }
     }
 }
 
@@ -327,18 +440,36 @@ private struct ResultBanner: View {
 
     var body: some View {
         let net = results.reduce(0) { $0 + $1.net }
-        VStack(spacing: 4) {
-            Text(net > 0 ? "You win \(CoinFormat.grouped(net)) \(token.ticker)" : net == 0 ? "Push" : "You lose \(CoinFormat.grouped(-net)) \(token.ticker)")
-                .font(.headline)
-            if bonus > 0 {
-                Text("+\(CoinFormat.short(bonus)) coins")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.bitcoin)
+        let isNatural = results.contains { $0.outcome == .blackjack }
+        HStack(spacing: 14) {
+            Text(net > 0 ? (isNatural ? "BLACKJACK!" : "YOU WIN!") : net == 0 ? "Push" : "Dealer wins")
+                .font(.system(size: net > 0 ? 26 : 20, weight: .heavy, design: .rounded))
+                .foregroundStyle(net > 0 ? AnyShapeStyle(Theme.gold.gradient) : AnyShapeStyle(.white))
+                .shadow(color: net > 0 ? Theme.gold.opacity(0.6) : .clear, radius: 10)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            if net != 0 || bonus > 0 {
+                VStack(alignment: .leading, spacing: 1) {
+                    if net > 0 {
+                        Text("+\(CoinFormat.grouped(net)) \(token.ticker)")
+                            .font(.subheadline.bold())
+                    } else if net < 0 {
+                        Text("-\(CoinFormat.grouped(-net)) \(token.ticker)")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                    if bonus > 0 {
+                        CoinAmount(amount: bonus, font: .subheadline.bold(), iconSize: 14)
+                            .foregroundStyle(Theme.gold)
+                    }
+                }
             }
         }
+        .foregroundStyle(.white)
         .padding(.horizontal, 20)
-        .padding(.vertical, 10)
-        .glassEffect(.regular, in: .capsule)
+        .padding(.vertical, 8)
+        .glassEffect(.regular.tint(net > 0 ? Theme.gold.opacity(0.25) : nil), in: .rect(cornerRadius: 20))
+        .accessibilityElement(children: .combine)
     }
 }
 

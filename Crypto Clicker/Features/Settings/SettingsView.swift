@@ -7,6 +7,9 @@ struct SettingsView: View {
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @AppStorage(Preferences.soundsKey) private var sounds = false
     @State private var confirmingReset = false
+    #if DEBUG
+    @State private var showingTestingTools = false
+    #endif
 
     var body: some View {
         let game = store.game
@@ -48,6 +51,14 @@ struct SettingsView: View {
                 Section("About") {
                     LabeledContent("Version", value: Self.version)
                 }
+
+                #if DEBUG
+                Section {
+                    Button("Testing Tools", systemImage: "ladybug") { showingTestingTools = true }
+                } footer: {
+                    Text("Add coins, tokens and miners, unlock everything and trigger events. Only in builds run from Xcode.")
+                }
+                #endif
             }
             .scrollContentBackground(.hidden)
             .background { AppBackground(tint: Theme.settings) }
@@ -57,6 +68,9 @@ struct SettingsView: View {
             } message: {
                 Text("This can't be undone.")
             }
+            #if DEBUG
+            .sheet(isPresented: $showingTestingTools) { TestingToolsView() }
+            #endif
         }
     }
 
@@ -65,7 +79,10 @@ struct SettingsView: View {
         Section {
             if !store.canTrackSteps {
                 Text("Apple Health isn't available on this device.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.subtext)
+            } else if !game.areStepsUnlocked {
+                LabeledContent("Unlocks after \(CoinFormat.grouped(Tuning.stepsUnlockTaps)) taps",
+                               value: "\(CoinFormat.grouped(game.tapsUntilSteps)) to go")
             } else if game.steps.isConnected {
                 LabeledContent("Each step earns", value: "\(CoinFormat.short(game.stepValue)) coins")
                 LabeledContent("Steps rewarded", value: CoinFormat.grouped(game.stats.lifetimeSteps))

@@ -164,16 +164,17 @@ struct AirdropTests {
 struct AchievementTests {
     @Test func catalogIsWellFormed() {
         let all = AchievementCatalog.all
-        #expect(all.count == 33)
+        #expect(all.count == 37)
         #expect(Set(all.map(\.id)).count == all.count)
-        #expect(AchievementCatalog.tierCount == 99)
+        #expect(AchievementCatalog.tierCount == 111)
         for achievement in all {
             #expect(achievement.thresholds.count == 3)
             #expect(achievement.thresholds == achievement.thresholds.sorted())
             #expect(Set(achievement.thresholds).count == 3)
             #expect((achievement.emoji == nil) != (achievement.imageName == nil))
         }
-        #expect(all.first { $0.id == "upgrader" }?.thresholds.last == 21)
+        #expect(all.first { $0.id == "upgrader" }?.thresholds.last == 20) // Every upgrade.
+        #expect(UpgradeID.allCases.count == 20)
     }
 
     @Test func aNewGameHasNoAchievements() {
@@ -214,6 +215,17 @@ struct AchievementTests {
         #expect(ids == ["own-aiMiner#0", "own-aiMiner#1", "token-bitcoin#0", "token-xrp#0",
                         "exchanger#0", "hard-forker#0", "hard-forker#1", "natural#0"])
         #expect(game.nextThreshold(AchievementCatalog.all.first { $0.id == "hard-forker" }!) == 25)
+    }
+
+    @Test func newGameAchievementsReadTheirStats() {
+        var game = GameState.make()
+        game.stats.slotsWins = 10
+        game.stats.snakeBestScore = 300
+        game.stats.bricksBroken = 50
+        game.stats.bubblesPopped = 1_000
+        let ids = Set(game.refreshAchievements().map(\.id))
+        #expect(ids == ["high-roller#0", "snake-charmer#0", "snake-charmer#1", "brick-smasher#0",
+                        "bubble-popper#0", "bubble-popper#1"])
     }
 
     @Test func finishedAchievementsHaveNoNextThreshold() {

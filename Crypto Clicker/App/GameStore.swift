@@ -30,6 +30,13 @@ final class GameStore {
     private(set) var airdrop: Airdrop?
     private(set) var isSyncingSteps = false
     private(set) var watchStatus = WatchBridge.Status.unsupported
+    /// A mini-game is on screen: airdrops wait and toasts queue until it closes, so nothing
+    /// covers the game's controls or gives away a result early.
+    var isInGame = false
+    /// A balance to show instead of the real one while a slot spin is still being revealed.
+    var heldCoins: Double?
+    /// The player tapped the balance to see every digit instead of the short form.
+    var showsExactBalance = false
 
     private let saves = SaveStore()
     private let stepTracker = StepTracker()
@@ -131,6 +138,11 @@ final class GameStore {
                        message: "\(CoinFormat.grouped(stake.amount)) \(stake.token.ticker) from an unfinished Blackjack hand"))
             save()
         }
+        if let paid = game.payUnfinishedRun() {
+            show(Toast(icon: paid.run.game.icon, title: "\(paid.run.game.name) paid out",
+                       message: "+\(CoinFormat.short(paid.reward)) coins for \(CoinFormat.grouped(paid.run.score)) points"))
+            save()
+        }
         applyWatchInbox()
     }
 
@@ -212,6 +224,17 @@ final class GameStore {
         perform { game, _ in game.buyTokens(token, quantity: quantity) }
     }
 
+    /// Buys the next Offline Mining level. Saved at once, since it changes what time away pays.
+    @discardableResult
+    func buyOfflineMining() -> Bool {
+        let bought = perform { game, _ in game.buyOfflineMining() }
+        if bought {
+            save()
+            pushToWatch(force: true)
+        }
+        return bought
+    }
+
     @discardableResult
     func unlock(_ miniGame: MiniGame) -> Bool {
         perform { game, _ in game.unlock(miniGame) }
@@ -262,11 +285,56 @@ final class GameStore {
         return bonus
     }
 
+    /// Spins Crypto Slots: the bet, the spin and the payout happen in one saved step.
+    @discardableResult
+    func spinSlots(_ token: TokenID, bet: Int) -> SlotsSpin? {
+        let spin = perform { game, _ in
+            var rng = SystemRandomNumberGenerator()
+            return game.spinSlots(token, bet: bet, using: &rng)
+        }
+        if spin != nil { save() }
+        return spin
+    }
+
     @discardableResult
     func finishTetris(score: Int, lines: Int) -> Double {
         let reward = perform { game, _ in game.finishTetris(score: score, lines: lines) }
         save()
         return reward
+    }
+
+    @discardableResult
+    func finishSnake(score: Int) -> Double {
+        let reward = perform { game, _ in game.finishSnake(score: score) }
+        save()
+        return reward
+    }
+
+    @discardableResult
+    func finishBrickBreaker(score: Int, bricks: Int) -> Double {
+        let reward = perform { game, _ in game.finishBrickBreaker(score: score, bricks: bricks) }
+        save()
+        return reward
+    }
+
+    @discardableResult
+    func finishBubbleBlaster(score: Int, popped: Int) -> Double {
+        let reward = perform { game, _ in game.finishBubbleBlaster(score: score, popped: popped) }
+        save()
+        return reward
+    }
+
+    /// Saves an arcade game in progress as the app goes to the background, so its points are
+    /// paid on the next launch if iOS closes the app.
+    func holdArcadeRun(_ run: ArcadeRun) {
+        perform { game, _ in game.holdArcadeRun(run) }
+        save()
+    }
+
+    /// The player is back in the held game.
+    func releaseArcadeRun() {
+        guard game.unfinishedRun != nil else { return }
+        perform { game, _ in game.releaseArcadeRun() }
     }
 
     func resetGame() {
@@ -309,14 +377,16 @@ final class GameStore {
             guard now >= airdrop.expiresAt else { return }
             self.airdrop = nil
             scheduleAirdrop(from: now)
-        } else if now >= nextAirdropAt, game.totalMiners > 0 {
+        } else if now >= nextAirdropAt, game.totalMiners > 0, !isInGame {
             airdrop = Airdrop(expiresAt: now.addingTimeInterval(Tuning.airdropLifetime))
         }
     }
 
     // MARK: Apple Health
 
+    /// Asks for Health access and starts rewarding steps. Steps unlock after 2,500 taps.
     func connectSteps() async {
+        guard game.areStepsUnlocked, !game.steps.isConnected else { return }
         do {
             try await stepTracker.requestAccess()
         } catch {
@@ -401,3 +471,66 @@ final class GameStore {
         }
     }
 }
+
+#if DEBUG
+// MARK: - Testing tools
+
+/// Shortcuts behind the Testing Tools screen. Like that screen, they exist only in builds run
+/// from Xcode (the Debug configuration) and are left out of App Store builds.
+extension GameStore {
+    /// Adds coins that count as mined, so upgrades, achievements and Hard Forks unlock as in play.
+    func debugAddCoins(_ amount: Double) {
+        debugChange { game, _ in game.debugAddCoins(amount) }
+    }
+
+    /// Adds what the miners would earn in `seconds` at the current rate.
+    func debugAddIncome(seconds: TimeInterval) {
+        debugChange { game, now in game.debugAddCoins((game.idleIncome(at: now) * seconds).rounded()) }
+    }
+
+    func debugAddTokens(_ amount: Int) {
+        debugChange { game, _ in game.debugAddTokens(amount) }
+    }
+
+    func debugAddMiners(_ count: Int) {
+        debugChange { game, _ in game.debugAddMiners(count) }
+    }
+
+    func debugGiveAllUpgrades() {
+        debugChange { game, _ in game.debugGiveAllUpgrades() }
+    }
+
+    func debugAddOfflineMining(levels: Int) {
+        debugChange { game, _ in game.debugAddOfflineMining(levels: levels) }
+    }
+
+    func debugUnlockAllGames() {
+        debugChange { game, _ in game.debugUnlockAllGames() }
+    }
+
+    func debugUnlockSteps() {
+        debugChange { game, _ in game.debugUnlockSteps() }
+    }
+
+    func debugStartBullRun() {
+        debugChange { game, now in game.debugStartBullRun(at: now) }
+    }
+
+    /// Shows an airdrop now instead of in a few minutes.
+    func debugDropAirdrop() {
+        airdrop = Airdrop(expiresAt: .now.addingTimeInterval(Tuning.airdropLifetime))
+    }
+
+    /// Acts as if the app had been closed for `seconds`: the next tick pays the time away
+    /// (up to the offline limit) and shows the welcome-back screen.
+    func debugPretendAway(_ seconds: TimeInterval) {
+        debugChange { game, _ in game.debugRewind(seconds) }
+    }
+
+    private func debugChange(_ change: (inout GameState, Date) -> Void) {
+        perform(change)
+        save()
+        pushToWatch(force: true)
+    }
+}
+#endif

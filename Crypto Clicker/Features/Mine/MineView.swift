@@ -1,76 +1,210 @@
 import SwiftUI
 import CryptoClickerKit
 
+/// The home screen, in order of importance: the balance, the coin to tap, what the player owns
+/// (miners and tokens), and steps once they are unlocked.
 struct MineView: View {
+    let openShop: () -> Void
+    let openExchange: () -> Void
     @Environment(GameStore.self) private var store
     @State private var showingStats = false
     @State private var showingHelp = false
+    @State private var showingStepsIntro = false
+    #if DEBUG
+    @State private var showingTestingTools = false
+    #endif
+    @State private var effects = Effects()
+    /// While the player taps the coin, the balance shows every digit, so each tap visibly counts.
+    @State private var isTappingCoin = false
+    @State private var tapStreak = 0
 
     var body: some View {
-        let game = store.game
         NavigationStack {
-            VStack(spacing: 16) {
-                BalanceHeader(coins: game.coins, boost: game.activeBoost(at: .now))
-                Spacer(minLength: 0)
-                CoinButton(tapValue: game.tapValue(at: .now)) { store.tap() }
-                Spacer(minLength: 0)
-                StepsCard()
+            // The coin takes the room the other items leave, from 200 to 320 points. When even
+            // 200 doesn't fit (a small iPhone with very large text), the page scrolls instead.
+            ViewThatFits(in: .vertical) {
+                content
+                ScrollView {
+                    content
+                }
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 12)
-            .frame(maxWidth: 560)
-            .frame(maxWidth: .infinity)
-            .background { AppBackground() }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background {
+                ZStack {
+                    MineBackground()
+                    // Coins fall behind the content, so they never cover the balance or buttons.
+                    EffectsLayer(effects: effects)
+                        .ignoresSafeArea()
+                }
+            }
             .navigationTitle("Crypto Clicker")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("How to Play", systemImage: "questionmark.circle") { showingHelp = true }
                 }
+                #if DEBUG
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Testing Tools", systemImage: "ladybug") { showingTestingTools = true }
+                }
+                #endif
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Statistics", systemImage: "chart.bar.xaxis") { showingStats = true }
                 }
             }
             .sheet(isPresented: $showingStats) { StatsView() }
             .sheet(isPresented: $showingHelp) { HowToPlayView() }
+            .sheet(isPresented: $showingStepsIntro) { StepsIntroView() }
+            #if DEBUG
+            .sheet(isPresented: $showingTestingTools) { TestingToolsView() }
+            #endif
+        }
+    }
+
+    private var content: some View {
+        let game = store.game
+        let now = Date.now
+        return VStack(spacing: 14) {
+            BalanceHeader(coins: game.coins, boost: game.activeBoost(at: now),
+                          showsExact: store.showsExactBalance || isTappingCoin) {
+                // Tapping the balance pins (or unpins) the exact view.
+                withAnimation(.snappy) {
+                    isTappingCoin = false
+                    store.showsExactBalance.toggle()
+                }
+            }
+            CoinButton(tapValue: game.tapValue(at: now)) {
+                store.tap()
+                effects.rainCoins()
+                showExactWhileTapping()
+            }
+            .frame(minHeight: CoinButton.minimumSize, idealHeight: CoinButton.minimumSize, maxHeight: .infinity)
+            InventoryStrip(game: game, openShop: openShop, openExchange: openExchange)
+            StepsCard(learnMore: { showingStepsIntro = true })
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 12)
+        .frame(maxWidth: 560)
+        .frame(maxWidth: .infinity)
+        .animation(.smooth, value: game.areStepsUnlocked)
+        .animation(.smooth, value: game.steps.isConnected)
+    }
+
+    /// Shows every digit of the balance until three seconds after the last tap on the coin.
+    private func showExactWhileTapping() {
+        tapStreak += 1
+        let streak = tapStreak
+        if !isTappingCoin {
+            withAnimation(.snappy) { isTappingCoin = true }
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            guard streak == tapStreak else { return } // Another tap came in since.
+            withAnimation(.snappy) { isTappingCoin = false }
         }
     }
 }
 
-/// The balance, large, with a Bull Run countdown while one is running.
+/// The balance, large: the short form from 10,000 up, or every digit when `showsExact` is on
+/// (tap it to switch). During a Bull Run its countdown sits beside "coins", so the coin below
+/// keeps its size.
 struct BalanceHeader: View {
     let coins: Double
     let boost: Boost?
+    let showsExact: Bool
+    let toggleExact: () -> Void
 
     var body: some View {
-        VStack(spacing: 6) {
-            Text(CoinFormat.short(coins))
-                .font(.system(size: 64, weight: .heavy, design: .rounded))
-                .monospacedDigit()
-                .contentTransition(.numericText(value: coins))
-                .lineLimit(1)
-                .minimumScaleFactor(0.4)
-                .animation(.snappy(duration: 0.25), value: coins)
-            Text("coins")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            if let boost {
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    StatPill(systemImage: "flame.fill",
-                             text: "Bull Run \(CoinFormat.multiplier(boost.multiplier)) · \(CoinFormat.duration(boost.endsAt.timeIntervalSince(context.date)))",
-                             tint: .orange)
+        let short = CoinFormat.short(coins)
+        let exact = showsExact ? CoinFormat.exact(coins) : short
+        VStack(spacing: 4) {
+            Group {
+                // Below 10,000 both forms are the same, so there is nothing to switch.
+                if exact != short {
+                    ExactBalance(text: exact, coins: coins)
+                        .transition(.opacity)
+                } else {
+                    Self.number(short, size: 60, coins: coins)
+                        .minimumScaleFactor(0.4)
+                        .transition(.opacity)
                 }
-                .transition(.scale.combined(with: .opacity))
             }
+            // A fixed height, so switching forms (or sizes) never moves the coin below.
+            .frame(height: 76)
+            .frame(maxWidth: .infinity)
+            .contentShape(.rect)
+            .onTapGesture(perform: toggleExact)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(exact) coins")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(showsExact ? "Shows the short form" : "Shows every digit")
+            .accessibilityAction(.default, toggleExact)
+            HStack(spacing: 8) {
+                Text("coins")
+                    .foregroundStyle(.subtext)
+                    .accessibilityHidden(true) // The number above already says "coins".
+                if let boost {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        let remaining = CoinFormat.duration(boost.endsAt.timeIntervalSince(context.date))
+                        Label("Bull Run \(CoinFormat.multiplier(boost.multiplier)) · \(remaining)", systemImage: "flame.fill")
+                            .foregroundStyle(Theme.accent)
+                            .padding(.horizontal, 8)
+                            .background(Theme.accent.opacity(0.14), in: .capsule)
+                    }
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .font(.headline.monospacedDigit())
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .accessibilityElement(children: .combine)
         }
-        .padding(.top, 12)
+        .padding(.top, 8)
         .animation(.spring, value: boost)
-        .accessibilityElement(children: .combine)
+    }
+
+    /// The balance in the large rounded style.
+    static func number(_ text: String, size: CGFloat, coins: Double) -> some View {
+        Text(text)
+            .font(.system(size: size, weight: .heavy, design: .rounded))
+            .monospacedDigit()
+            .contentTransition(.numericText(value: coins))
+            .lineLimit(1)
+            .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+            .animation(.snappy(duration: 0.25), value: coins)
+    }
+}
+
+/// Every digit of the balance, as large as fits. When even the smallest size is too wide, the
+/// number scrolls sideways.
+private struct ExactBalance: View {
+    let text: String
+    let coins: Double
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            ForEach([60.0, 48, 38, 30], id: \.self) { size in
+                BalanceHeader.number(text, size: size, coins: coins)
+                    .fixedSize()
+            }
+            ScrollView(.horizontal) {
+                BalanceHeader.number(text, size: 30, coins: coins)
+                    .fixedSize()
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 8) // Room for the shadow and the scroll indicator.
+            }
+            .scrollIndicators(.visible)
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+        }
     }
 }
 
 /// The big tappable coin. Each tap pops a floating "+value" above it.
 struct CoinButton: View {
+    /// The smallest the home screen lets the coin get; it grows to 320 points where there's room.
+    static let minimumSize: CGFloat = 200
+
     let tapValue: Double
     let onTap: () -> Void
     @AppStorage(Preferences.hapticsKey) private var haptics = true
@@ -95,9 +229,10 @@ struct CoinButton: View {
             Image("Coin")
                 .resizable()
                 .scaledToFit()
-                .padding(26)
-                .glassEffect(.clear.interactive(), in: .circle)
-                .frame(maxWidth: 262, maxHeight: 262)
+                .frame(maxWidth: 320, maxHeight: 320)
+                .shadow(color: Theme.bitcoin.opacity(0.45), radius: 28)
+                .shadow(color: .black.opacity(0.3), radius: 14, y: 10)
+                .contentShape(.circle)
         }
         .buttonStyle(CoinPressStyle())
         .overlay {
@@ -115,7 +250,7 @@ struct CoinButton: View {
     }
 
     private func spawnFloater() {
-        let floater = Floater(id: taps, text: "+\(CoinFormat.short(tapValue))", xOffset: .random(in: -60...60))
+        let floater = Floater(id: taps, text: "+\(CoinFormat.short(tapValue))", xOffset: .random(in: -70...70))
         floaters.append(floater)
         if floaters.count > 12 { floaters.removeFirst(floaters.count - 12) }
         Task {
@@ -139,11 +274,11 @@ private struct FloatingText: View {
 
     var body: some View {
         Text(text)
-            .font(.title2.weight(.heavy))
+            .font(.title.weight(.heavy))
             .fontDesign(.rounded)
-            .foregroundStyle(Theme.bitcoin)
-            .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
-            .offset(y: risen ? -90 : 0)
+            .foregroundStyle(Theme.gold)
+            .shadow(color: .black.opacity(0.45), radius: 3, y: 1)
+            .offset(y: risen ? -100 : 0)
             .opacity(risen ? 0 : 1)
             .onAppear {
                 withAnimation(.easeOut(duration: 0.9)) { risen = true }

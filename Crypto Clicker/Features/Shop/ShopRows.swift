@@ -13,13 +13,14 @@ struct MinerRow: View {
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var purchases = 0
+    @State private var refusals = 0
 
     var body: some View {
         HStack(spacing: 14) {
             Text(miner.emoji)
                 .font(.system(size: 30))
                 .frame(width: 52, height: 52)
-                .background(.thinMaterial, in: .circle)
+                .background(Theme.shop.opacity(0.14), in: .circle)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -28,12 +29,12 @@ struct MinerRow: View {
                     if owned > 0 {
                         Text("×\(CoinFormat.grouped(owned))")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.subtext)
                     }
                 }
-                Text(owned > 0 ? "\(CoinFormat.short(rate))/s" : miner.blurb)
+                Text(owned > 0 ? "\(CoinFormat.rate(rate)) coins per second" : miner.blurb)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.subtext)
                     .lineLimit(2)
                 if let nextMilestone, owned > 0 {
                     MilestoneProgress(owned: owned, next: nextMilestone)
@@ -41,20 +42,20 @@ struct MinerRow: View {
             }
             Spacer(minLength: 8)
             Button {
-                if store.buy(miner, quantity: buyCount) { purchases += 1 }
+                if store.buy(miner, quantity: buyCount) { purchases += 1 } else { refusals += 1 }
             } label: {
                 VStack(spacing: 2) {
                     Text("Buy \(CoinFormat.grouped(buyCount))")
                         .font(.caption.weight(.semibold))
-                    Text(CoinFormat.short(price))
+                    Text(CoinFormat.cost(price))
                         .font(.subheadline.weight(.bold).monospacedDigit())
                 }
                 .frame(minWidth: 72)
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(!canAfford)
+            .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
             .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
-            .accessibilityLabel("Buy \(buyCount) \(miner.name) for \(CoinFormat.short(price)) coins")
+            .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
+            .accessibilityLabel("Buy \(buyCount) \(miner.name) for \(CoinFormat.cost(price)) coins")
         }
         .rowCard()
     }
@@ -73,7 +74,7 @@ struct MilestoneProgress: View {
                 .tint(Theme.bitcoin)
             Text("\(CoinFormat.grouped(next - owned)) more for \(CoinFormat.multiplier(Tuning.milestoneMultiplier)) output")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.subtext)
         }
         .frame(maxWidth: 180, alignment: .leading)
     }
@@ -87,21 +88,21 @@ struct LockedMinerRow: View {
         HStack(spacing: 14) {
             Image(systemName: "lock.fill")
                 .font(.title3)
+                .foregroundStyle(.subtext)
                 .frame(width: 52, height: 52)
-                .background(.thinMaterial, in: .circle)
+                .background(Color.secondary.opacity(0.14), in: .circle)
             VStack(alignment: .leading, spacing: 4) {
                 Text("???")
                     .font(.headline)
                 if let previous = miner.previous {
                     Text("Buy a \(previous.name) to reveal")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.subtext)
                 }
             }
             Spacer(minLength: 0)
         }
         .rowCard()
-        .opacity(0.8)
     }
 }
 
@@ -111,6 +112,7 @@ struct UpgradeRow: View {
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var purchases = 0
+    @State private var refusals = 0
 
     var body: some View {
         HStack(spacing: 14) {
@@ -118,28 +120,93 @@ struct UpgradeRow: View {
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(upgrade.category.color)
                 .frame(width: 52, height: 52)
-                .background(.thinMaterial, in: .circle)
+                .background(upgrade.category.color.opacity(0.15), in: .circle)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(upgrade.name)
                     .font(.headline)
                 Text(upgrade.summary)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
             Button {
-                if store.buy(upgrade) { purchases += 1 }
+                if store.buy(upgrade) { purchases += 1 } else { refusals += 1 }
             } label: {
-                Text(CoinFormat.short(upgrade.cost))
+                Text(CoinFormat.cost(upgrade.cost))
                     .font(.subheadline.weight(.bold).monospacedDigit())
                     .frame(minWidth: 72)
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(!canAfford)
+            .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
             .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
-            .accessibilityLabel("Buy \(upgrade.name) for \(CoinFormat.short(upgrade.cost)) coins")
+            .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
+            .accessibilityLabel("Buy \(upgrade.name) for \(CoinFormat.cost(upgrade.cost)) coins")
+        }
+        .rowCard()
+    }
+}
+
+/// The Offline Mining power-up: its current limit, what the next level adds, and its price.
+struct OfflineMiningRow: View {
+    let level: Int
+    let price: Double?
+    let canAfford: Bool
+    @Environment(GameStore.self) private var store
+    @AppStorage(Preferences.hapticsKey) private var haptics = true
+    @State private var purchases = 0
+    @State private var refusals = 0
+
+    var body: some View {
+        let cap = GameState.offlineCap(level: level)
+        let nextCap = GameState.offlineCap(level: level + 1)
+        HStack(spacing: 14) {
+            Image(systemName: "moon.zzz.fill")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.indigo)
+                .frame(width: 52, height: 52)
+                .background(Color.indigo.opacity(0.15), in: .circle)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("Offline Mining")
+                        .font(.headline)
+                    if level > 0 {
+                        Text("Level \(level)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.subtext)
+                    }
+                }
+                Text(level == 0
+                     ? "Miners stop a minute after you leave the app. Keep them mining while it's closed."
+                     : "Miners keep earning for \(CoinFormat.duration(cap)) after you leave the app.")
+                    .font(.subheadline)
+                    .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+                if price != nil {
+                    Label("Next level: \(CoinFormat.duration(nextCap))", systemImage: "arrow.up.circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.subtext)
+                }
+            }
+            Spacer(minLength: 8)
+            if let price {
+                Button {
+                    if store.buyOfflineMining() { purchases += 1 } else { refusals += 1 }
+                } label: {
+                    Text(CoinFormat.cost(price))
+                        .font(.subheadline.weight(.bold).monospacedDigit())
+                        .frame(minWidth: 72)
+                }
+                .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
+                .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
+                .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
+                .accessibilityLabel("Buy Offline Mining level \(level + 1) for \(CoinFormat.cost(price)) coins")
+            } else {
+                Label("Max", systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.green)
+            }
         }
         .rowCard()
     }
@@ -152,7 +219,6 @@ extension UpgradeCategory {
         case .production: .blue
         case .steps: .green
         case .miniGames: .purple
-        case .offline: .indigo
         }
     }
 }

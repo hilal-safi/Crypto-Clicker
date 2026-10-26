@@ -1,8 +1,9 @@
 import Foundation
 
 /// The repeatable generators that produce coins every second.
-/// Each tier costs roughly 15x the previous one and pays back about 2.8x slower,
-/// so new tiers keep arriving without making older ones worthless.
+/// From the Desktop on, each tier costs roughly 15x the previous one and pays back about
+/// 2.8x slower, so new tiers keep arriving without making older ones worthless.
+/// Every tier earns at least one whole coin per second.
 public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
     case chromebook, desktop, gpuRig, server, dataCenter
     case mineCenter, robotAssistant, aiMiner, quantumComputer, spaceColony
@@ -57,7 +58,7 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
     /// Price of the first unit.
     public var baseCost: Double {
         switch self {
-        case .chromebook: 15
+        case .chromebook: 50
         case .desktop: 200
         case .gpuRig: 3_000
         case .server: 45_000
@@ -73,7 +74,7 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
     /// Coins per second from one unit before any multipliers.
     public var baseRate: Double {
         switch self {
-        case .chromebook: 0.3
+        case .chromebook: 1
         case .desktop: 2
         case .gpuRig: 12
         case .server: 70
