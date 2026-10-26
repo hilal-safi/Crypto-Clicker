@@ -14,10 +14,13 @@ struct SaveTests {
         state.offlineMiningLevel = 9
         state.tokens = [.dogecoin: 3, .bitcoin: 1]
         state.placeBlackjackBet(.dogecoin, amount: 2)
-        state.forks = 7
-        state.forkPointsClaimed = 9
+        state.prestigePoints = 7
+        state.prestigePointsSpent = 3
+        state.prestigePotentialClaimed = 9
+        state.perks = [.headStart, .strongFingers]
+        state.minerUpgrades = [.chromebook: 2]
         state.difficulty = .hard
-        state.runForkMultiplier = 1
+        state.runPrestigeMultiplier = 1
         state.boost = Boost(multiplier: 7, endsAt: at(45))
         state.unlockedGames = [.blackjack, .tetris]
         state.achievementTiers = ["miner": 2, "own-server": 1]
@@ -35,6 +38,12 @@ struct SaveTests {
         state.creditSteps([StepDay(key: "2026-10-24", steps: 4_000)], today: "2026-10-24", at: at(10))
         state.applyWatchTaps(WatchTapBatch(taps: 5, date: t0), at: t0)
         state.advance(to: at(20))
+        state.refreshDaily(today: "2026-10-24", canWalk: true, at: at(20))
+        state.claimDailyReward(today: "2026-10-24", yesterday: "2026-10-23", at: at(20))
+        state.recordIncomeSample(at: at(20))
+        state.holdArcadeRun(ArcadeRun(game: .tetris, score: 700, detail: 3, challengeDay: "2026-10-24"))
+        state.stats.bestCombo = 44
+        state.stats.whaleAirdrops = 2
         return state
     }
 
@@ -46,6 +55,10 @@ struct SaveTests {
         #expect(decoded == state)
         #expect(decoded.stats.bubblesPopped == 410)
         #expect(decoded.isUnlocked(.bubbleBlaster))
+        #expect(decoded.daily.quests.count == 3)
+        #expect(decoded.daily.streak == 1)
+        #expect(decoded.incomeHistory.count == 1)
+        #expect(decoded.unfinishedRun?.challengeDay == "2026-10-24")
     }
 
     @Test func enumKeyedValuesAreWrittenAsReadableJSON() throws {
@@ -58,6 +71,11 @@ struct SaveTests {
         #expect((json["tokens"] as? [String: Int]) == ["bitcoin": 1, "dogecoin": 1])
         #expect((json["blackjackStake"] as? [String: Any])?["token"] as? String == "dogecoin")
         #expect(json["difficulty"] as? String == "hard")
+        // Prestige values keep the names they had as Hard Forks, so older builds can still read them.
+        #expect(json["forks"] as? Int == 7)
+        #expect(json["forkPointsClaimed"] as? Int == 9)
+        #expect((json["perks"] as? [String]) == ["headStart", "strongFingers"])
+        #expect((json["minerUpgrades"] as? [String: Int]) == ["chromebook": 2])
     }
 
     @Test func anOpenBlackjackStakeSurvivesASave() throws {
@@ -73,7 +91,10 @@ struct SaveTests {
         #expect(state.coins == 0)
         #expect(state.miners.isEmpty)
         #expect(state.difficulty == .normal)
-        #expect(state.runForkMultiplier == 1)
+        #expect(state.runPrestigeMultiplier == 1)
+        #expect(state.prestigePoints == 0)
+        #expect(state.perks.isEmpty)
+        #expect(state.daily == DailyProgress())
         #expect(state.stats == Stats())
         #expect(state.steps == StepLedger())
     }
@@ -85,6 +106,8 @@ struct SaveTests {
              "tokens": {"pepe": 9, "xrp": 1},
              "unlockedGames": ["blackjack", "chess"],
              "difficulty": "nightmare",
+             "perks": ["headStart", "timeTravel"],
+             "minerUpgrades": {"desktop": 2, "toaster": 1},
              "forks": 3}
             """)
         #expect(state.miners == [.chromebook: 2])
@@ -92,7 +115,9 @@ struct SaveTests {
         #expect(state.tokens == [.xrp: 1])
         #expect(state.unlockedGames == [.blackjack])
         #expect(state.difficulty == .normal)
-        #expect(state.forks == 3)
+        #expect(state.prestigePoints == 3)
+        #expect(state.perks == [.headStart])
+        #expect(state.minerUpgrades == [.desktop: 2])
     }
 
     @Test func offlineUpgradesFromEarlierVersionsBecomeOfflineMiningLevels() throws {
@@ -112,10 +137,15 @@ struct SaveTests {
     @Test func corruptFieldsFallBackToDefaults() throws {
         let state = try decode("""
             {"coins": "lots", "forks": 2.5, "boost": {"multiplier": 7}, "stats": {"taps": 12, "lifetimeCoins": []},
-             "steps": {"isConnected": true, "credited": {"2026-10-24": "many"}}}
+             "steps": {"isConnected": true, "credited": {"2026-10-24": "many"}},
+             "prestigePointsSpent": 50, "daily": {"quests": "none", "questDay": "2026-10-24", "streak": 4}}
             """)
         #expect(state.coins == 0)
-        #expect(state.forks == 0)
+        #expect(state.prestigePoints == 0)
+        #expect(state.prestigePointsSpent == 0) // Never more than the points earned.
+        #expect(state.daily.quests.isEmpty)
+        #expect(state.daily.questDay == nil) // Unreadable quests are issued again.
+        #expect(state.daily.streak == 4)
         #expect(state.boost == nil)
         #expect(state.stats.taps == 12)
         #expect(state.stats.lifetimeCoins == 0)

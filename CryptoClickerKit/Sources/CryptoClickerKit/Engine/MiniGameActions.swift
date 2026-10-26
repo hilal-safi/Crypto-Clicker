@@ -114,61 +114,96 @@ extension GameState {
 
     /// Pays a game the app closed in the middle of, as if it had just ended.
     @discardableResult
-    public mutating func payUnfinishedRun() -> (run: ArcadeRun, reward: Double)? {
+    public mutating func payUnfinishedRun() -> (run: ArcadeRun, payout: ArcadePayout)? {
         guard let run = unfinishedRun else { return nil }
-        let reward: Double = switch run.game {
-        case .tetris: finishTetris(score: run.score, lines: run.detail)
+        let payout: ArcadePayout = switch run.game {
+        case .tetris: finishTetris(score: run.score, lines: run.detail, challengeDay: run.challengeDay)
         case .snake: finishSnake(score: run.score)
         case .brickBreaker: finishBrickBreaker(score: run.score, bricks: run.detail)
         case .bubbleBlaster: finishBubbleBlaster(score: run.score, popped: run.detail)
-        case .blackjack, .slots: 0
+        case .blackjack, .slots: ArcadePayout(coins: 0, isNewBest: false, isChallengeBonus: false)
         }
         unfinishedRun = nil
-        return (run, reward)
+        return (run, payout)
     }
 
-    /// Coins an arcade game pays for `score` points.
-    public func arcadeReward(score: Int, secondsPerPoint: Double) -> Double {
+    /// Coins an arcade game pays for `score` points, before any bonus.
+    public func arcadeReward(score: Int, secondsPerPoint: Double, multiplier: Double = 1) -> Double {
         guard score > 0 else { return 0 }
-        return Self.wholeCoins(Double(score) * secondsPerPoint * miniGameMultiplier * rewardIncome)
+        return Self.wholeCoins(Double(score) * secondsPerPoint * miniGameMultiplier * multiplier * rewardIncome)
     }
 
-    /// Records a finished Tetris game and pays its reward once.
+    /// Records a finished Tetris game and pays its reward once. `challengeDay` marks a daily
+    /// challenge game: the day's first one that scores pays double.
     @discardableResult
-    public mutating func finishTetris(score: Int, lines: Int) -> Double {
+    public mutating func finishTetris(score: Int, lines: Int, challengeDay: String? = nil) -> ArcadePayout {
+        let isNewBest = score > stats.tetrisBestScore
         stats.tetrisGames += 1
         stats.tetrisLines += max(0, lines)
         stats.tetrisBestScore = max(stats.tetrisBestScore, score)
-        return payArcade(score: score, secondsPerPoint: Tuning.tetrisSecondsPerPoint)
+        var isChallengeBonus = false
+        // A challenge from an earlier day than the latest one played (a game held overnight)
+        // pays as an ordinary game.
+        if let day = challengeDay, day >= (daily.challengeDay ?? "") {
+            if daily.challengeDay != day {
+                daily.challengeDay = day
+                daily.challengeBest = 0
+                daily.challengeRewarded = false
+            }
+            daily.challengeBest = max(daily.challengeBest, score)
+            if !daily.challengeRewarded && score > 0 {
+                daily.challengeRewarded = true
+                isChallengeBonus = true
+            }
+        }
+        return payArcade(score: score, secondsPerPoint: Tuning.tetrisSecondsPerPoint, isNewBest: isNewBest,
+                         isChallengeBonus: isChallengeBonus)
     }
 
     @discardableResult
-    public mutating func finishSnake(score: Int) -> Double {
+    public mutating func finishSnake(score: Int) -> ArcadePayout {
+        let isNewBest = score > stats.snakeBestScore
         stats.snakeGames += 1
         stats.snakeBestScore = max(stats.snakeBestScore, score)
-        return payArcade(score: score, secondsPerPoint: Tuning.snakeSecondsPerPoint)
+        stats.snakeCoinsEaten += max(0, score) / SnakeGame.pointsPerCoin
+        return payArcade(score: score, secondsPerPoint: Tuning.snakeSecondsPerPoint, isNewBest: isNewBest)
     }
 
     @discardableResult
-    public mutating func finishBrickBreaker(score: Int, bricks: Int) -> Double {
+    public mutating func finishBrickBreaker(score: Int, bricks: Int) -> ArcadePayout {
+        let isNewBest = score > stats.brickBreakerBestScore
         stats.brickBreakerGames += 1
         stats.brickBreakerBestScore = max(stats.brickBreakerBestScore, score)
         stats.bricksBroken += max(0, bricks)
-        return payArcade(score: score, secondsPerPoint: Tuning.brickBreakerSecondsPerPoint)
+        return payArcade(score: score, secondsPerPoint: Tuning.brickBreakerSecondsPerPoint, isNewBest: isNewBest)
     }
 
     @discardableResult
-    public mutating func finishBubbleBlaster(score: Int, popped: Int) -> Double {
+    public mutating func finishBubbleBlaster(score: Int, popped: Int) -> ArcadePayout {
+        let isNewBest = score > stats.bubbleBestScore
         stats.bubbleGames += 1
         stats.bubbleBestScore = max(stats.bubbleBestScore, score)
         stats.bubblesPopped += max(0, popped)
-        return payArcade(score: score, secondsPerPoint: Tuning.bubbleSecondsPerPoint)
+        return payArcade(score: score, secondsPerPoint: Tuning.bubbleSecondsPerPoint, isNewBest: isNewBest)
     }
 
-    private mutating func payArcade(score: Int, secondsPerPoint: Double) -> Double {
+    /// Pays a finished game: a new best score earns `Tuning.newBestBonus` more.
+    private mutating func payArcade(score: Int, secondsPerPoint: Double, isNewBest: Bool,
+                                    isChallengeBonus: Bool = false) -> ArcadePayout {
         unfinishedRun = nil // A finished game is never paid again from the hold.
-        let reward = arcadeReward(score: score, secondsPerPoint: secondsPerPoint)
+        var multiplier = isNewBest ? 1 + Tuning.newBestBonus : 1
+        if isChallengeBonus { multiplier *= Tuning.dailyChallengeMultiplier }
+        let reward = arcadeReward(score: score, secondsPerPoint: secondsPerPoint, multiplier: multiplier)
         credit(reward, source: .games)
-        return reward
+        return ArcadePayout(coins: reward, isNewBest: isNewBest, isChallengeBonus: isChallengeBonus)
     }
+}
+
+/// What a finished arcade game paid.
+public struct ArcadePayout: Equatable, Sendable {
+    public let coins: Double
+    /// The score beat the previous best, so the reward includes the new-best bonus.
+    public let isNewBest: Bool
+    /// The reward was doubled as the day's first daily challenge.
+    public let isChallengeBonus: Bool
 }

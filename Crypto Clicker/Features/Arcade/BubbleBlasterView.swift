@@ -188,10 +188,8 @@ struct BubbleBlasterView: View {
         isPlaying = false
         isPaused = false
         aim = nil
-        let previousBest = store.game.stats.bubbleBestScore
-        let reward = store.finishBubbleBlaster(score: game.score, popped: game.popped)
-        result = GameResult(score: game.score, isNewBest: game.score > previousBest, reward: reward,
-                            detail: game.popped)
+        let payout = store.finishBubbleBlaster(score: game.score, popped: game.popped)
+        result = GameResult(score: game.score, payout: payout, detail: game.popped)
     }
 }
 

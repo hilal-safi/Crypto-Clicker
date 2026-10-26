@@ -3,7 +3,8 @@ import Testing
 @testable import CryptoClickerKit
 
 /// Simulated players guard the balance: if a tuning change makes the game race ahead or stall,
-/// these tests fail. A player taps a few times a second while playing and buys whatever pays back fastest.
+/// these tests fail. A player taps a few times a second while playing (quick enough for combos at
+/// three taps a second) and buys whatever pays back fastest, Mk upgrades included.
 struct SimulatedPlayer {
     var game = GameState(now: t0)
     var now = t0
@@ -11,7 +12,11 @@ struct SimulatedPlayer {
     /// Hours away between sessions each day, so the player can judge what Offline Mining is worth.
     let awayHours: [Double]
     private(set) var firstBought: [MinerID: TimeInterval] = [:]
-    private(set) var firstForkAt: TimeInterval?
+    private(set) var firstPrestigeAt: TimeInterval?
+    /// When prestiging first became worth it (the shop starts suggesting it).
+    private(set) var prestigeSuggestedAt: TimeInterval?
+    /// Taps in a row this session, for the combo.
+    private var streak = 0
 
     init(tapsPerSecond: Int, awayHours: [Double] = []) {
         self.tapsPerSecond = tapsPerSecond
@@ -25,13 +30,18 @@ struct SimulatedPlayer {
         state.baseIdleIncome + Double(tapsPerSecond) * state.tapValue(at: now)
     }
 
+    /// Taps this quick keep a combo going.
+    var keepsCombos: Bool { 1 / Double(tapsPerSecond) <= Tuning.comboWindow }
+
     mutating func play(seconds: Int) {
+        streak = 0
         for second in 0..<seconds {
             now += 1
             game.advance(to: now)
-            game.tap(count: tapsPerSecond, at: now)
+            streak = keepsCombos ? streak + tapsPerSecond : 1
+            game.tap(count: tapsPerSecond, at: now, combo: streak)
             if second % 2 == 0 { buyBest() }
-            noteFork()
+            notePrestige()
         }
     }
 
@@ -39,11 +49,12 @@ struct SimulatedPlayer {
         now += seconds
         game.advance(to: now)
         buyBest()
-        noteFork()
+        notePrestige()
     }
 
-    private mutating func noteFork() {
-        if firstForkAt == nil && game.forkPoints >= 1 { firstForkAt = elapsed }
+    private mutating func notePrestige() {
+        if firstPrestigeAt == nil && game.claimablePrestigePoints >= 1 { firstPrestigeAt = elapsed }
+        if prestigeSuggestedAt == nil && game.isPrestigeRecommended { prestigeSuggestedAt = elapsed }
     }
 
     /// What one more Offline Mining level adds, as income per second of play: the extra time it
@@ -72,6 +83,11 @@ struct SimulatedPlayer {
                 copy.miners[miner, default: 0] += 1
                 consider(cost: game.price(of: miner, quantity: 1), gain: income(copy) - current, miner: miner) {
                     $0.buy(miner, quantity: 1)
+                }
+                if let upgrade = game.availableMinerUpgrade(miner) {
+                    var upgraded = game
+                    upgraded.minerUpgrades[miner] = upgrade.level + 1
+                    consider(cost: upgrade.price, gain: income(upgraded) - current) { $0.buyMinerUpgrade(miner) }
                 }
             }
             for upgrade in UpgradeID.allCases where !game.upgrades.contains(upgrade) && game.isRevealed(upgrade) {
@@ -115,34 +131,41 @@ struct PacingTests {
         var player = SimulatedPlayer(tapsPerSecond: 3)
         player.play(seconds: 3 * 3_600)
         let tiers = MinerID.allCases.map { "\($0.name) \(hours(player.firstBought[$0]))" }
-        print("Active 3h:", tiers.joined(separator: ", "), "| first fork", hours(player.firstForkAt),
-              "| income", CoinFormat.short(player.game.baseIdleIncome))
-        // A first session should feel rewarding but leave most of the game ahead. Steady tapping
-        // pays: a player who taps all session long may reach a first (small) Hard Fork near its end.
+        print("Active 3h:", tiers.joined(separator: ", "), "| first prestige", hours(player.firstPrestigeAt),
+              "| suggested", hours(player.prestigeSuggestedAt), "| income", CoinFormat.short(player.game.baseIdleIncome))
+        // A first session should feel rewarding but leave the game ahead. Steady tapping with combos
+        // pays: a player who taps all session long sees the first prestige points, but prestiging
+        // isn't worth it yet and the last miner is still to come.
         let unlocked = player.firstBought.count
-        #expect((5...8).contains(unlocked))
+        #expect((6...9).contains(unlocked))
         #expect(player.firstBought[.desktop].map { $0 < 10 * 60 } == true)
-        #expect(player.firstForkAt.map { $0 >= 2 * 3_600 } ?? true)
+        #expect(player.firstPrestigeAt.map { $0 >= 3_600 } ?? true)
+        #expect(player.prestigeSuggestedAt == nil)
         // Nobody who stays in the app needs Offline Mining.
         #expect(player.game.offlineMiningLevel == 0)
     }
 
-    @Test func aRelaxedTapperGetsNoForkInTheFirstSession() {
-        var player = SimulatedPlayer(tapsPerSecond: 1)
+    @Test func aRelaxedTapperIsNotReadyToPrestigeAfterTheFirstSession() {
+        var player = SimulatedPlayer(tapsPerSecond: 1) // Too slow for combos.
         player.play(seconds: 3 * 3_600)
+        print("Relaxed 3h: tiers", player.firstBought.count, "| first prestige", hours(player.firstPrestigeAt),
+              "| income", CoinFormat.short(player.game.baseIdleIncome))
         #expect((5...8).contains(player.firstBought.count))
-        #expect(player.firstForkAt == nil)
+        #expect(player.firstPrestigeAt.map { $0 >= 2 * 3_600 } ?? true)
+        #expect(player.prestigeSuggestedAt == nil)
     }
 
-    @Test func aCasualPlayerReachesEveryTierAndAForkWithinDays() {
+    @Test func aCasualPlayerReachesEveryTierAndAPrestigeWithinDays() {
         let player = casualPlayer(days: 5)
         let tiers = MinerID.allCases.map { "\($0.name) \(hours(player.firstBought[$0]))" }
-        print("Casual 5 days:", tiers.joined(separator: ", "), "| first fork", hours(player.firstForkAt),
-              "| forks", player.game.forkPoints, "| income", CoinFormat.short(player.game.baseIdleIncome),
-              "| offline", CoinFormat.duration(player.game.offlineCap))
+        print("Casual 5 days:", tiers.joined(separator: ", "), "| first prestige", hours(player.firstPrestigeAt),
+              "| suggested", hours(player.prestigeSuggestedAt), "| potential", player.game.prestigePotential,
+              "| income", CoinFormat.short(player.game.baseIdleIncome), "| offline", CoinFormat.duration(player.game.offlineCap))
         let lastTier = player.firstBought[.spaceColony]
-        #expect(lastTier.map { (24 * 3_600...96 * 3_600).contains($0) } == true)
-        #expect(player.firstForkAt.map { (12 * 3_600...72 * 3_600).contains($0) } == true)
+        #expect(lastTier.map { (24 * 3_600...72 * 3_600).contains($0) } == true)
+        #expect(player.firstPrestigeAt.map { (12 * 3_600...72 * 3_600).contains($0) } == true)
+        // The shop suggests the first prestige within the first few days.
+        #expect(player.prestigeSuggestedAt.map { (24 * 3_600...96 * 3_600).contains($0) } == true)
         // Offline Mining covers the longest absence (ten hours) by the end of the first day.
         #expect(player.game.offlineCap >= 10 * 3_600)
     }

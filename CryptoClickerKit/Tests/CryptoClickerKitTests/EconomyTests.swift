@@ -93,7 +93,7 @@ struct ProductionTests {
     @Test func rateCombinesCountMilestonesAndMultipliers() {
         var state = GameState.make(miners: [.chromebook: 25], upgrades: [.overclocking, .liquidCooling])
         #expect(approx(state.rate(of: .chromebook), 25 * 1 * 2 * 4))
-        state.forks = 10
+        state.prestigePoints = 4
         state.achievementTiers = ["miner": 3, "tapper": 2]
         state.difficulty = .easy
         let expected = 25 * 1 * 2 * 4 * 1.2 * 1.05 * 1.5
@@ -142,7 +142,7 @@ struct ProductionTests {
 
     @Test func tapsAreAlwaysWholeCoins() {
         var state = GameState.make(miners: [.server: 33, .gpuRig: 7], upgrades: [.coinClicker, .neuralInterface])
-        state.forks = 3
+        state.prestigePoints = 3
         state.achievementTiers = ["miner": 2]
         for seconds in [0.0, 5, 30] {
             state.boost = Boost(multiplier: 7, endsAt: at(10))
@@ -163,7 +163,7 @@ struct ProductionTests {
     @Test func incomeRatesMatchIdleIncomeWithAndWithoutBoost() {
         var state = GameState.make(miners: [.server: 60, .gpuRig: 12],
                                    upgrades: [.coinClicker, .upgradedClicker, .automatedClicker, .neuralInterface, .overclocking])
-        state.forks = 4
+        state.prestigePoints = 4
         state.boost = Boost(multiplier: 7, endsAt: at(60))
         let rates = state.incomeRates
         #expect(approx(state.idleIncome(at: at(10)), rates.boosted))
@@ -209,11 +209,11 @@ struct ProductionTests {
         #expect(state.offlineMiningLevel == Tuning.offlineMiningMaxLevel)
     }
 
-    @Test func aHardForkKeepsOfflineMining() {
+    @Test func aPrestigeKeepsOfflineMining() {
         var state = GameState.make(coins: 5, miners: [.desktop: 3])
         state.offlineMiningLevel = 12
         state.stats.lifetimeCoins = 1e11
-        #expect(state.hardFork(at: at(10)) > 0)
+        #expect(state.prestige(at: at(10)) > 0)
         #expect(state.offlineMiningLevel == 12)
         #expect(state.offlineCap == 6 * 3_600)
     }
@@ -287,18 +287,6 @@ struct ShopTests {
     @Test func hiddenUpgradesCannotBeBought() {
         var state = GameState.make(coins: 1e12)
         #expect(state.buy(.dysonSwarm) == false)
-    }
-
-    @Test func tokensCostTheirPriceEach() {
-        var state = GameState.make(coins: 5_500)
-        #expect(state.buyTokens(.shibaInu, quantity: 5) == true)
-        #expect(state.coins == 500)
-        #expect(state.tokenCount(.shibaInu) == 5)
-        #expect(state.stats.tokensBought[.shibaInu] == 5)
-        #expect(state.buyTokens(.shibaInu, quantity: 1) == false)
-        #expect(state.buyTokens(.shibaInu, quantity: 0) == false)
-        #expect(state.buyTokens(.shibaInu, quantity: -2) == false)
-        #expect(state.coins == 500)
     }
 
     @Test func miniGamesUnlockOnce() {

@@ -164,7 +164,7 @@ struct GameOverSummary: View {
                 .font(.headline)
                 .foregroundStyle(.subtext)
             if isNewBest {
-                Label("New best!", systemImage: "star.fill")
+                Label("New best! +\(CoinFormat.percent(Tuning.newBestBonus)) coins", systemImage: "star.fill")
                     .font(.headline)
                     .foregroundStyle(Theme.accent)
             } else {

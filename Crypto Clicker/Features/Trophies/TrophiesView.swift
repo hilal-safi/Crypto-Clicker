@@ -1,8 +1,22 @@
 import SwiftUI
 import CryptoClickerKit
 
+/// Daily rewards and quests, and the achievements that add production.
 struct TrophiesView: View {
+    /// Goes up by one each time another tab asks to show the Daily page.
+    var dailyRequests = 0
+    /// Opens today's Tetris challenge in the Arcade.
+    let openChallenge: () -> Void
     @Environment(GameStore.self) private var store
+    @State private var page = Page.daily
+    @State private var handledDailyRequests = 0
+
+    enum Page: String, CaseIterable, Identifiable {
+        case daily = "Daily"
+        case achievements = "Achievements"
+
+        var id: Self { self }
+    }
 
     private let columns = [GridItem(.adaptive(minimum: 160), spacing: 12)]
 
@@ -11,14 +25,27 @@ struct TrophiesView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 12) {
-                    TrophySummary(earned: game.earnedAchievementTiers, total: AchievementCatalog.tierCount,
-                                  bonus: game.achievementBonus - 1)
-                    LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(AchievementCatalog.all) { achievement in
-                            AchievementCard(achievement: achievement,
-                                            tiers: game.tiersEarned(achievement),
-                                            value: game.value(of: achievement.metric),
-                                            next: game.nextThreshold(achievement))
+                    Picker("Page", selection: $page) {
+                        ForEach(Page.allCases) { page in
+                            Text(page == .daily && store.dailyBadgeCount > 0
+                                 ? "\(page.rawValue) (\(store.dailyBadgeCount))" : page.rawValue)
+                                .tag(page)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    switch page {
+                    case .daily:
+                        DailyPage(openChallenge: openChallenge)
+                    case .achievements:
+                        TrophySummary(earned: game.earnedAchievementTiers, total: AchievementCatalog.tierCount,
+                                      bonus: game.achievementBonus - 1)
+                        LazyVGrid(columns: columns, spacing: 12) {
+                            ForEach(AchievementCatalog.all) { achievement in
+                                AchievementCard(achievement: achievement,
+                                                tiers: game.tiersEarned(achievement),
+                                                value: game.value(of: achievement.metric),
+                                                next: game.nextThreshold(achievement))
+                            }
                         }
                     }
                 }
@@ -31,8 +58,267 @@ struct TrophiesView: View {
             .navigationTitle("Trophies")
             .balanceToolbar()
         }
+        .onAppear(perform: showDailyIfAsked)
+        .onChange(of: dailyRequests) { _, _ in showDailyIfAsked() }
+    }
+
+    private func showDailyIfAsked() {
+        guard handledDailyRequests != dailyRequests else { return }
+        handledDailyRequests = dailyRequests
+        page = .daily
     }
 }
+
+// MARK: - Daily
+
+/// The daily reward and its streak, the day's quests and the Tetris challenge.
+private struct DailyPage: View {
+    let openChallenge: () -> Void
+    @Environment(GameStore.self) private var store
+
+    var body: some View {
+        let game = store.game
+        let today = store.today
+        let yesterday = store.yesterday
+        let midnight = StepDay.calendar().startOfDay(for: .now).addingTimeInterval(86_400)
+        DailyRewardCard(streak: game.currentStreak(today: today, yesterday: yesterday),
+                        nextStreak: game.streakIfClaimed(today: today, yesterday: yesterday),
+                        isReady: game.isDailyRewardReady(today: today), resetsAt: midnight)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("Today's Quests", systemImage: "scroll.fill")
+                    .font(.headline)
+                Spacer()
+                Text("New in \(Text(midnight, style: .relative))")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.subtext)
+            }
+            if game.daily.quests.isEmpty {
+                Text("New quests are on their way.")
+                    .font(.subheadline)
+                    .foregroundStyle(.subtext)
+            }
+            ForEach(game.daily.quests) { quest in
+                QuestRow(quest: quest, progress: game.progress(of: quest), reward: quest.reward.text(in: game))
+                if quest.id != game.daily.quests.last?.id { Divider() }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .rowCard()
+        if game.isUnlocked(.tetris) {
+            DailyChallengeRow(isBonusAvailable: game.isDailyChallengeBonusAvailable(today: today),
+                              best: game.dailyChallengeBest(today: today), play: openChallenge)
+        }
+        Text(game.hasPerk(.luckyStreak)
+             ? "Lucky Streak doubles every daily reward. Coin rewards grow with your income."
+             : "Coin rewards grow with your income. Quests finished but not claimed are paid at midnight.")
+            .font(.footnote)
+            .foregroundStyle(.subtext)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 4)
+    }
+}
+
+extension QuestReward {
+    /// What the reward pays if claimed now: coins track income, and Lucky Streak doubles it.
+    func text(in game: GameState) -> String {
+        let multiplier = game.dailyRewardMultiplier
+        return switch self {
+        case .coins(let seconds): "\(CoinFormat.short((seconds * game.rewardIncome * multiplier).rounded())) coins"
+        case .tokens(let token, let count): "\(CoinFormat.grouped(Int(Double(count) * multiplier))) \(token.ticker)"
+        case .bullRun: "Bull Run \(CoinFormat.multiplier(Tuning.bullRunMultiplier)) for \(CoinFormat.duration(game.bullRunDuration * multiplier))"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .coins: "bitcoinsign.circle.fill"
+        case .tokens: "circle.hexagongrid.fill"
+        case .bullRun: "flame.fill"
+        }
+    }
+}
+
+/// The login streak: a week of rewards building to day 7, and today's to claim.
+private struct DailyRewardCard: View {
+    let streak: Int
+    /// The streak that claiming today makes (or made).
+    let nextStreak: Int
+    let isReady: Bool
+    let resetsAt: Date
+    @Environment(GameStore.self) private var store
+    @AppStorage(Preferences.hapticsKey) private var haptics = true
+    @State private var claims = 0
+
+    var body: some View {
+        let game = store.game
+        let cycleDay = GameState.streakCycleDay(nextStreak)
+        let reward = game.streakReward(day: nextStreak)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("Daily Reward", systemImage: "gift.fill")
+                    .font(.title3.bold())
+                Spacer()
+                if streak > 0 {
+                    Text("🔥 \(streak)-day streak")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.subtext)
+                }
+            }
+            HStack(spacing: 6) {
+                ForEach(1...Tuning.streakCycle, id: \.self) { day in
+                    StreakDayChip(day: day, reward: game.streakReward(day: day),
+                                  isClaimed: day < cycleDay || (day == cycleDay && !isReady),
+                                  isToday: day == cycleDay)
+                }
+            }
+            if isReady {
+                Button {
+                    store.claimDailyReward()
+                    claims += 1
+                } label: {
+                    VStack(spacing: 2) {
+                        Text("Claim Day \(nextStreak)")
+                            .font(.headline)
+                        Text(reward.text(in: game))
+                            .font(.subheadline.monospacedDigit())
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 2)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
+            } else {
+                Label("Next reward in \(Text(resetsAt, style: .relative))", systemImage: "clock.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.subtext)
+            }
+            if !isReady || streak == 0 {
+                Text("Claim a reward every day to keep your streak. Day 7 pays an hour of income, then the week starts over.")
+                    .font(.caption)
+                    .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .glassCard(tint: Theme.trophies)
+        .sensoryFeedback(.success, trigger: claims) { _, _ in haptics }
+    }
+}
+
+private struct StreakDayChip: View {
+    let day: Int
+    let reward: QuestReward
+    let isClaimed: Bool
+    let isToday: Bool
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: isClaimed ? "checkmark.circle.fill" : (day == Tuning.streakCycle ? "star.circle.fill" : reward.symbol))
+                .font(.title3)
+                .foregroundStyle(isClaimed ? Color.green : (isToday ? Theme.accent : Theme.subtext))
+            Text("Day \(day)")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(isToday ? Color.primary : Theme.subtext)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(isToday ? Theme.accent.opacity(0.16) : Color.secondary.opacity(0.08))
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Day \(day)\(isClaimed ? ", claimed" : "")\(isToday ? ", today" : "")")
+    }
+}
+
+private struct QuestRow: View {
+    let quest: Quest
+    let progress: Double
+    let reward: String
+    @Environment(GameStore.self) private var store
+    @AppStorage(Preferences.hapticsKey) private var haptics = true
+    @State private var claims = 0
+
+    var body: some View {
+        let isComplete = progress >= quest.target
+        HStack(spacing: 12) {
+            Image(systemName: quest.kind.symbol)
+                .font(.headline)
+                .foregroundStyle(isComplete ? .white : Theme.accent)
+                .frame(width: 38, height: 38)
+                .background(isComplete ? Theme.accent : Theme.accent.opacity(0.14), in: .circle)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(quest.title)
+                    .font(.subheadline.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                ProgressView(value: min(progress, quest.target), total: max(quest.target, 1))
+                    .tint(Theme.accent)
+                HStack {
+                    Text("\(CoinFormat.short(progress)) / \(CoinFormat.short(quest.target))")
+                        .monospacedDigit()
+                    Spacer()
+                    Label(reward, systemImage: quest.reward.symbol)
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.subtext)
+            }
+            if quest.isClaimed {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.green)
+                    .accessibilityLabel("Claimed")
+            } else if isComplete {
+                Button("Claim") {
+                    store.claimQuest(quest)
+                    claims += 1
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
+                .font(.subheadline.weight(.bold))
+            }
+        }
+        .opacity(quest.isClaimed ? 0.7 : 1)
+        .sensoryFeedback(.success, trigger: claims) { _, _ in haptics }
+    }
+}
+
+private struct DailyChallengeRow: View {
+    let isBonusAvailable: Bool
+    let best: Int
+    let play: () -> Void
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Text("🧩")
+                .font(.system(size: 30))
+                .frame(width: 52, height: 52)
+                .background(MiniGame.tetris.color.opacity(0.18), in: .rect(cornerRadius: 14))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Daily Tetris Challenge")
+                    .font(.headline)
+                Text(isBonusAvailable ? "Same pieces for everyone today. First scoring game pays double."
+                                      : best > 0 ? "Double reward claimed. Best today \(CoinFormat.grouped(best))."
+                                                 : "Double reward claimed.")
+                    .font(.subheadline)
+                    .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Button("Play", action: play)
+                .buttonStyle(.borderedProminent)
+                .tint(MiniGame.tetris.color)
+                .font(.subheadline.weight(.bold))
+                .accessibilityLabel("Play the daily Tetris challenge")
+        }
+        .rowCard()
+    }
+}
+
+// MARK: - Achievements
 
 private struct TrophySummary: View {
     let earned: Int
@@ -52,6 +338,11 @@ private struct TrophySummary: View {
                     .foregroundStyle(.subtext)
                 ProgressView(value: Double(earned), total: Double(max(1, total)))
                     .tint(Theme.trophies)
+                if let next = CoinFinish.allCases.first(where: { !$0.isUnlocked(stars: earned) }) {
+                    Text("\(next.starsNeeded - earned) more for the \(next.name) coin")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.subtext)
+                }
             }
         }
         .glassCard(tint: Theme.trophies)

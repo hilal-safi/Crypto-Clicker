@@ -16,11 +16,52 @@ struct Toast: Identifiable, Equatable {
 /// An airdrop on screen, waiting to be caught before it expires.
 struct Airdrop: Identifiable, Equatable {
     let id = UUID()
+    /// Decided when it appears, so a whale looks different from the start.
+    let kind: AirdropKind
     let expiresAt: Date
+    /// How long it stays in all, for the countdown ring.
+    let lifetime: TimeInterval
 }
 
-/// Owns the game and everything around it: the clock, saving, airdrops, Apple Health and the watch.
-/// Views read `game` and call the action methods below; every rule lives in CryptoClickerKit.
+/// Token prices, day changes, charts and news for the Coin Exchange. Prices only move once per
+/// market tick, so this is worked out then rather than on every redraw.
+struct MarketBoard: Equatable {
+    struct Quote: Equatable {
+        /// One token, in whole coins.
+        let price: Double
+        /// The move over the last day, as a share (0.1 = up 10%).
+        let change: Double
+        /// Price factors over the last day, oldest first, for the sparkline.
+        let history: [Double]
+    }
+
+    let tick: Int64
+    let quotes: [TokenID: Quote]
+    /// The last day's stories, newest first.
+    let news: [MarketNews]
+
+    init(at date: Date) {
+        tick = Market.tick(at: date)
+        var quotes: [TokenID: Quote] = [:]
+        for token in TokenID.allCases {
+            let history = Market.history(token, endingAt: date, span: 86_400, points: 48)
+            let first: Double = history.first ?? 1
+            let last: Double = history.last ?? 1
+            let change = last / max(first, Double.leastNonzeroMagnitude) - 1
+            quotes[token] = Quote(price: Market.price(token, at: date), change: change, history: history)
+        }
+        self.quotes = quotes
+        news = Market.news(before: date, span: 86_400)
+    }
+
+    func quote(_ token: TokenID) -> Quote {
+        quotes[token] ?? Quote(price: token.price, change: 0, history: [])
+    }
+}
+
+/// Owns the game and everything around it: the clock, saving, airdrops, the market board,
+/// dailies, notifications, Apple Health and the watch. Views read `game` and call the action
+/// methods below; every rule lives in CryptoClickerKit.
 @Observable @MainActor
 final class GameStore {
     private(set) var game: GameState
@@ -30,6 +71,14 @@ final class GameStore {
     private(set) var airdrop: Airdrop?
     private(set) var isSyncingSteps = false
     private(set) var watchStatus = WatchBridge.Status.unsupported
+    private(set) var market = MarketBoard(at: .now)
+    /// Quick taps in a row (0 once the combo has lapsed).
+    private(set) var comboStreak = 0
+    /// Today's daily reward hasn't been claimed yet.
+    private(set) var isDailyRewardReady = false
+    /// Daily rewards waiting to be claimed, for the Trophies tab's badge. Kept up to date after every
+    /// change, rather than worked out by views on every redraw.
+    private(set) var dailyBadgeCount = 0
     /// A mini-game is on screen: airdrops wait and toasts queue until it closes, so nothing
     /// covers the game's controls or gives away a result early.
     var isInGame = false
@@ -39,6 +88,7 @@ final class GameStore {
     private let saves = SaveStore()
     private let stepTracker = StepTracker()
     private let watch = WatchBridge()
+    private let notifier = Notifier()
     @ObservationIgnored private var ticker: Task<Void, Never>?
     /// Income is credited only while the app is on screen. In the background the game clock stays
     /// at `game.lastUpdate`, so wake-ups from the watch can't add up to more than the offline cap.
@@ -47,9 +97,11 @@ final class GameStore {
     /// Until it loads, nothing is saved or sent to the watch, so real progress is never overwritten.
     @ObservationIgnored private var isSaveLocked = false
     @ObservationIgnored private var nextAirdropAt = Date.distantFuture
+    @ObservationIgnored private var lastTapAt = Date.distantPast
     @ObservationIgnored private var lastSave = Date.now
     @ObservationIgnored private var lastWatchPush = Date.distantPast
     @ObservationIgnored private var lastStepSync = Date.distantPast
+    @ObservationIgnored private var lastDayCheck = Date.distantPast
     @ObservationIgnored private var hasUnsavedChanges = false
     @ObservationIgnored private var hasReportedSaveError = false
 
@@ -78,6 +130,15 @@ final class GameStore {
 
     var canTrackSteps: Bool { StepTracker.isAvailable }
 
+    /// Today's and yesterday's day keys, for the dailies.
+    var today: String { StepDay.key(for: .now) }
+    var yesterday: String { StepDay.previousKey(before: .now) }
+
+    /// The combo multiplier on the coin right now (×1 without a combo).
+    var comboMultiplier: Double {
+        comboStreak > 1 ? game.comboMultiplier(streak: comboStreak) : 1
+    }
+
     // MARK: Lifecycle
 
     func scenePhaseChanged(to phase: ScenePhase) {
@@ -88,6 +149,7 @@ final class GameStore {
             if nextAirdropAt <= now || nextAirdropAt == .distantFuture { scheduleAirdrop(from: now) }
             startTicking()
             pushToWatch(force: true)
+            notifier.clear()
             Task { await syncSteps() }
         case .inactive:
             enterForeground()
@@ -97,8 +159,10 @@ final class GameStore {
             if isInForeground { catchUp(to: .now) }
             isInForeground = false
             airdrop = nil
+            comboStreak = 0
             save()
             pushToWatch(force: true)
+            scheduleNotifications()
         @unknown default:
             break
         }
@@ -109,6 +173,8 @@ final class GameStore {
         isInForeground = true
         catchUp(to: .now)
         applyWatchInbox()
+        refreshMarket(at: .now)
+        refreshDaily(at: .now, force: true)
     }
 
     /// Loads the save that was unreadable at launch, now that the device is unlocked.
@@ -138,10 +204,11 @@ final class GameStore {
         }
         if let paid = game.payUnfinishedRun() {
             show(Toast(icon: paid.run.game.icon, title: "\(paid.run.game.name) paid out",
-                       message: "+\(CoinFormat.short(paid.reward)) coins for \(CoinFormat.grouped(paid.run.score)) points"))
+                       message: "+\(CoinFormat.short(paid.payout.coins)) coins for \(CoinFormat.grouped(paid.run.score)) points"))
             save()
         }
         applyWatchInbox()
+        refreshDaily(at: .now, force: true)
     }
 
     private func startTicking() {
@@ -167,7 +234,11 @@ final class GameStore {
     private func tick(at now: Date) {
         guard isInForeground else { return }
         catchUp(to: now)
+        if comboStreak > 0 && now.timeIntervalSince(lastTapAt) > Tuning.comboWindow { comboStreak = 0 }
         updateAirdrop(at: now)
+        refreshMarket(at: now)
+        refreshDaily(at: now)
+        recordIncomeIfDue(at: now)
         announceAchievements()
         let sinceSave = now.timeIntervalSince(lastSave)
         if sinceSave >= 30 || (hasUnsavedChanges && sinceSave >= 5) { save() }
@@ -181,11 +252,26 @@ final class GameStore {
     /// Credits income up to `now`; time away is reported once it is long enough to matter.
     private func catchUp(to now: Date) {
         guard let report = game.advance(to: now), report.earned >= 1 else { return }
-        if report.elapsed >= Self.welcomeBackThreshold {
+        if report.elapsed >= Self.welcomeBackThreshold && shouldWelcomeBack(report, at: now) {
             welcomeBack = report
         } else {
-            show(Toast(icon: "⏱️", title: "Welcome back", message: "+\(CoinFormat.short(report.earned)) coins while you were away"))
+            let message = report.offlineCap == 0
+                ? "+\(CoinFormat.short(report.earned)) coins · miners stop a minute after you leave"
+                : "+\(CoinFormat.short(report.earned)) coins while you were away"
+            show(Toast(icon: "⏱️", title: "Welcome back", message: message))
         }
+    }
+
+    /// With Offline Mining every long absence gets the welcome-back screen. Without it the miners
+    /// earned only a minute, so the screen (with its Offline Mining tip) shows once a day and a
+    /// toast covers the other returns.
+    private func shouldWelcomeBack(_ report: OfflineReport, at now: Date) -> Bool {
+        guard report.offlineCap == 0 else { return true }
+        let today = StepDay.key(for: now)
+        let defaults = UserDefaults.standard
+        guard defaults.string(forKey: Preferences.lastShortWelcomeDayKey) != today else { return false }
+        defaults.set(today, forKey: Preferences.lastShortWelcomeDayKey)
+        return true
     }
 
     /// Runs one game action (after crediting income up to now, when on screen) and announces
@@ -197,14 +283,29 @@ final class GameStore {
         let result = action(&game, now)
         hasUnsavedChanges = true
         announceAchievements()
+        refreshDailyStatus(at: now)
         if !isInForeground { save() }
         return result
     }
 
+    /// Updates the daily badge, assigning only real changes so views don't redraw for nothing.
+    private func refreshDailyStatus(at now: Date) {
+        let ready = game.isDailyRewardReady(today: StepDay.key(for: now))
+        let count = game.claimableQuestCount + (ready ? 1 : 0)
+        if ready != isDailyRewardReady { isDailyRewardReady = ready }
+        if count != dailyBadgeCount { dailyBadgeCount = count }
+    }
+
     // MARK: Actions
 
-    func tap() {
-        perform { game, now in game.tap(at: now) }
+    /// Taps the coin. Taps in quick succession build a combo. Returns the coins this tap earned.
+    @discardableResult
+    func tap() -> Double {
+        let now = Date.now
+        comboStreak = now.timeIntervalSince(lastTapAt) <= Tuning.comboWindow ? comboStreak + 1 : 1
+        lastTapAt = now
+        let streak = comboStreak
+        return perform { game, now in game.tap(at: now, combo: streak) }
     }
 
     @discardableResult
@@ -213,13 +314,13 @@ final class GameStore {
     }
 
     @discardableResult
-    func buy(_ upgrade: UpgradeID) -> Bool {
-        perform { game, _ in game.buy(upgrade) }
+    func buyMinerUpgrade(_ miner: MinerID) -> Bool {
+        perform { game, _ in game.buyMinerUpgrade(miner) }
     }
 
     @discardableResult
-    func buyTokens(_ token: TokenID, quantity: Int) -> Bool {
-        perform { game, _ in game.buyTokens(token, quantity: quantity) }
+    func buy(_ upgrade: UpgradeID) -> Bool {
+        perform { game, _ in game.buy(upgrade) }
     }
 
     /// Buys the next Offline Mining level. Saved at once, since it changes what time away pays.
@@ -242,21 +343,60 @@ final class GameStore {
         perform { game, _ in game.setDifficulty(difficulty) }
     }
 
+    // MARK: Prestige
+
     @discardableResult
-    func hardFork() -> Int {
-        let gained = perform { game, now in game.hardFork(at: now) }
+    func prestige() -> Int {
+        let gained = perform { game, now in game.prestige(at: now) }
         guard gained > 0 else { return 0 }
         airdrop = nil
-        show(Toast(icon: "🍴", title: "Hard Fork complete",
-                   message: "+\(gained) forks · production +\(CoinFormat.percent(game.forkGain(gained)))"))
+        comboStreak = 0
+        show(Toast(icon: "🌟", title: "Prestige complete",
+                   message: "+\(CoinFormat.grouped(gained)) points · production +\(CoinFormat.percent(game.prestigeGain(gained)))"))
         save()
+        pushToWatch(force: true)
         return gained
     }
 
+    @discardableResult
+    func buyPerk(_ perk: PerkID) -> Bool {
+        let bought = perform { game, _ in game.buyPerk(perk) }
+        if bought {
+            show(Toast(icon: "🎖️", title: perk.name, message: perk.summary))
+            save()
+        }
+        return bought
+    }
+
+    // MARK: Market
+
+    @discardableResult
+    func buyTokens(_ token: TokenID, quantity: Int) -> Bool {
+        perform { game, now in game.buyTokens(token, quantity: quantity, at: now) }
+    }
+
+    /// Sells tokens at the market price. Returns the coins received.
+    @discardableResult
+    func sellTokens(_ token: TokenID, quantity: Int) -> Double? {
+        let paid = perform { game, now in game.sellTokens(token, quantity: quantity, at: now) }
+        if let paid {
+            show(Toast(icon: "📈", title: "Sold \(CoinFormat.grouped(quantity)) \(token.ticker)",
+                       message: "+\(CoinFormat.short(paid)) coins"))
+        }
+        return paid
+    }
+
+    private func refreshMarket(at now: Date) {
+        guard Market.tick(at: now) != market.tick else { return }
+        market = MarketBoard(at: now)
+    }
+
+    // MARK: Airdrops
+
     func claimAirdrop() {
-        guard airdrop != nil else { return }
-        airdrop = nil
-        let reward = perform { game, now in game.claimAirdrop(roll: .random(in: 0..<1), at: now) }
+        guard let airdrop else { return }
+        self.airdrop = nil
+        let reward = perform { game, now in game.claimAirdrop(airdrop.kind, at: now) }
         scheduleAirdrop(from: .now)
         switch reward {
         case .coins(let amount):
@@ -264,8 +404,31 @@ final class GameStore {
         case .bullRun(let multiplier, let duration):
             show(Toast(icon: "🐂", title: "Bull Run!",
                        message: "Production \(CoinFormat.multiplier(multiplier)) for \(CoinFormat.duration(duration))"))
+        case .whale(let amount):
+            show(Toast(icon: "🐋", title: "Whale airdrop!", message: "+\(CoinFormat.short(amount)) coins: an hour of mining"))
         }
     }
+
+    private func scheduleAirdrop(from now: Date) {
+        nextAirdropAt = now.addingTimeInterval(.random(in: game.airdropInterval))
+    }
+
+    private func updateAirdrop(at now: Date) {
+        if let airdrop {
+            guard now >= airdrop.expiresAt else { return }
+            self.airdrop = nil
+            scheduleAirdrop(from: now)
+        } else if now >= nextAirdropAt, game.totalMiners > 0, !isInGame {
+            spawnAirdrop(game.airdropKind(roll: .random(in: 0..<1)), at: now)
+        }
+    }
+
+    private func spawnAirdrop(_ kind: AirdropKind, at now: Date) {
+        let lifetime = game.airdropLifetime
+        airdrop = Airdrop(kind: kind, expiresAt: now.addingTimeInterval(lifetime), lifetime: lifetime)
+    }
+
+    // MARK: Mini-games
 
     /// Stakes tokens on the current Blackjack round. Saved at once, so a hand cut short by the
     /// app closing is refunded on the next launch.
@@ -294,32 +457,33 @@ final class GameStore {
         return spin
     }
 
+    /// Pays a finished Tetris game. `challengeDay` marks a daily challenge game.
     @discardableResult
-    func finishTetris(score: Int, lines: Int) -> Double {
-        let reward = perform { game, _ in game.finishTetris(score: score, lines: lines) }
+    func finishTetris(score: Int, lines: Int, challengeDay: String? = nil) -> ArcadePayout {
+        let payout = perform { game, _ in game.finishTetris(score: score, lines: lines, challengeDay: challengeDay) }
         save()
-        return reward
+        return payout
     }
 
     @discardableResult
-    func finishSnake(score: Int) -> Double {
-        let reward = perform { game, _ in game.finishSnake(score: score) }
+    func finishSnake(score: Int) -> ArcadePayout {
+        let payout = perform { game, _ in game.finishSnake(score: score) }
         save()
-        return reward
+        return payout
     }
 
     @discardableResult
-    func finishBrickBreaker(score: Int, bricks: Int) -> Double {
-        let reward = perform { game, _ in game.finishBrickBreaker(score: score, bricks: bricks) }
+    func finishBrickBreaker(score: Int, bricks: Int) -> ArcadePayout {
+        let payout = perform { game, _ in game.finishBrickBreaker(score: score, bricks: bricks) }
         save()
-        return reward
+        return payout
     }
 
     @discardableResult
-    func finishBubbleBlaster(score: Int, popped: Int) -> Double {
-        let reward = perform { game, _ in game.finishBubbleBlaster(score: score, popped: popped) }
+    func finishBubbleBlaster(score: Int, popped: Int) -> ArcadePayout {
+        let payout = perform { game, _ in game.finishBubbleBlaster(score: score, popped: popped) }
         save()
-        return reward
+        return payout
     }
 
     /// Saves an arcade game in progress as the app goes to the background, so its points are
@@ -335,12 +499,66 @@ final class GameStore {
         perform { game, _ in game.releaseArcadeRun() }
     }
 
+    // MARK: Dailies
+
+    /// Issues the day's quests once the day changes, paying any finished ones left from before.
+    /// Checked every few seconds, since midnight can pass while the app is open.
+    private func refreshDaily(at now: Date, force: Bool = false) {
+        guard !isSaveLocked, force || now.timeIntervalSince(lastDayCheck) >= 5 else { return }
+        lastDayCheck = now
+        let today = StepDay.key(for: now)
+        refreshDailyStatus(at: now) // The badge also changes at midnight and as quests finish.
+        guard game.daily.questDay != today else { return }
+        let canWalk = canTrackSteps
+        let paid = perform { game, now in game.refreshDaily(today: today, canWalk: canWalk, at: now) }
+        for payout in paid {
+            show(toast(for: payout, title: "Yesterday's quest paid"))
+        }
+        save()
+    }
+
+    func claimQuest(_ quest: Quest) {
+        guard let payout = perform({ game, now in game.claimQuest(quest.id, at: now) }) else { return }
+        show(toast(for: payout, title: "Quest complete"))
+        save()
+    }
+
+    func claimDailyReward() {
+        let today = today, yesterday = yesterday
+        guard let payout = perform({ game, now in game.claimDailyReward(today: today, yesterday: yesterday, at: now) })
+        else { return }
+        show(toast(for: payout, title: "Day \(game.daily.streak) reward"))
+        save()
+    }
+
+    private func toast(for payout: RewardPayout, title: String) -> Toast {
+        switch payout {
+        case .coins(let amount):
+            Toast(icon: "🎁", title: title, message: "+\(CoinFormat.short(amount)) coins")
+        case .tokens(let token, let count):
+            Toast(icon: "🎁", title: title, message: "+\(CoinFormat.grouped(count)) \(token.name)")
+        case .bullRun(let multiplier, let duration):
+            Toast(icon: "🐂", title: title,
+                  message: "Bull Run: production \(CoinFormat.multiplier(multiplier)) for \(CoinFormat.duration(duration))")
+        }
+    }
+
+    /// Samples idle income for the Statistics chart every half hour while the app is open.
+    private func recordIncomeIfDue(at now: Date) {
+        let last = game.incomeHistory.last?.date ?? .distantPast
+        guard now.timeIntervalSince(last) >= Tuning.incomeSampleInterval || last > now else { return }
+        game.recordIncomeSample(at: now)
+        hasUnsavedChanges = true
+    }
+
     func resetGame() {
         game = GameState()
         toasts = []
         airdrop = nil
         welcomeBack = nil
+        comboStreak = 0
         scheduleAirdrop(from: .now)
+        refreshDaily(at: .now, force: true)
         save()
         pushToWatch(force: true)
     }
@@ -360,24 +578,43 @@ final class GameStore {
         for earned in game.refreshAchievements() {
             show(Toast(icon: earned.achievement.emoji ?? "🏆",
                        title: "\(earned.achievement.name) · \(earned.tierName)",
-                       message: "Achievement unlocked · +1% production"))
+                       message: "Achievement unlocked · +\(CoinFormat.percent(game.productionPerAchievementTier)) production"))
         }
     }
 
-    // MARK: Airdrops
+    // MARK: Notifications
 
-    private func scheduleAirdrop(from now: Date) {
-        nextAirdropAt = now.addingTimeInterval(.random(in: Tuning.airdropInterval))
+    /// Asks once for permission to send reminders. Returns whether they are allowed.
+    func requestNotificationPermission() async -> Bool {
+        await notifier.requestPermission()
     }
 
-    private func updateAirdrop(at now: Date) {
-        if let airdrop {
-            guard now >= airdrop.expiresAt else { return }
-            self.airdrop = nil
-            scheduleAirdrop(from: now)
-        } else if now >= nextAirdropAt, game.totalMiners > 0, !isInGame {
-            airdrop = Airdrop(expiresAt: now.addingTimeInterval(Tuning.airdropLifetime))
+    /// Schedules the reminders turned on in Settings, as the app goes to the background.
+    private func scheduleNotifications() {
+        guard !isSaveLocked else { return }
+        let defaults = UserDefaults.standard
+        let now = Date.now
+        var reminders: [Notifier.Reminder] = []
+        let cap = game.offlineCap
+        let income = game.baseIdleIncome
+        if defaults.bool(forKey: Preferences.notifyMinersKey), cap >= 30 * 60, income > 0 {
+            reminders.append(Notifier.Reminder(
+                id: .minersStopped, date: game.lastUpdate.addingTimeInterval(cap),
+                title: "Your miners have stopped",
+                body: "Offline Mining ran for \(CoinFormat.duration(cap)). Open Crypto Clicker to collect about \(CoinFormat.short(income * cap)) coins and start them again."))
         }
+        if defaults.bool(forKey: Preferences.notifyDailyKey) {
+            let today = StepDay.key(for: now)
+            let isWaiting = game.isDailyRewardReady(today: today)
+            let date = Notifier.nextReminder(after: now, rewardWaitingToday: isWaiting)
+            let streak = game.streakIfClaimed(today: StepDay.key(for: date), yesterday: StepDay.previousKey(before: date))
+            let sameDay = StepDay.key(for: date) == today
+            reminders.append(Notifier.Reminder(
+                id: .dailyReward, date: date,
+                title: sameDay ? "Your daily reward is waiting" : "Your daily reward is ready",
+                body: streak > 1 ? "Claim it to make your streak \(streak) days." : "Claim it in Trophies › Daily."))
+        }
+        notifier.replace(with: reminders)
     }
 
     // MARK: Apple Health
@@ -476,7 +713,7 @@ final class GameStore {
 /// Shortcuts behind the Testing Tools screen. Like that screen, they exist only in builds run
 /// from Xcode (the Debug configuration) and are left out of App Store builds.
 extension GameStore {
-    /// Adds coins that count as mined, so upgrades, achievements and Hard Forks unlock as in play.
+    /// Adds coins that count as mined, so upgrades, achievements and prestige unlock as in play.
     func debugAddCoins(_ amount: Double) {
         debugChange { game, _ in game.debugAddCoins(amount) }
     }
@@ -514,14 +751,30 @@ extension GameStore {
         debugChange { game, now in game.debugStartBullRun(at: now) }
     }
 
+    func debugAddPrestigePoints(_ points: Int) {
+        debugChange { game, _ in game.debugAddPrestigePoints(points) }
+    }
+
+    func debugCompleteQuests() {
+        debugChange { game, _ in game.debugCompleteQuests() }
+    }
+
+    /// Makes today's reward, quests and challenge bonus available again (the streak carries on).
+    func debugResetDaily() {
+        let yesterday = yesterday
+        debugChange { game, _ in game.debugResetDaily(yesterday: yesterday) }
+        refreshDaily(at: .now, force: true)
+    }
+
     /// Shows an airdrop now instead of in a few minutes.
-    func debugDropAirdrop() {
-        airdrop = Airdrop(expiresAt: .now.addingTimeInterval(Tuning.airdropLifetime))
+    func debugDropAirdrop(_ kind: AirdropKind = .coins) {
+        spawnAirdrop(kind, at: .now)
     }
 
     /// Acts as if the app had been closed for `seconds`: the next tick pays the time away
     /// (up to the offline limit) and shows the welcome-back screen.
     func debugPretendAway(_ seconds: TimeInterval) {
+        UserDefaults.standard.removeObject(forKey: Preferences.lastShortWelcomeDayKey)
         debugChange { game, _ in game.debugRewind(seconds) }
     }
 

@@ -21,6 +21,12 @@ enum Theme {
     static let stepsButton = adaptive(light: (0.10, 0.52, 0.24), dark: (0.14, 0.60, 0.30),
                                       lightHighContrast: (0.06, 0.42, 0.18))
 
+    /// Market price moves, deep enough to read on cards in light mode.
+    static let gain = adaptive(light: (0.05, 0.48, 0.20), dark: (0.32, 0.86, 0.48),
+                               lightHighContrast: (0.02, 0.38, 0.14))
+    static let loss = adaptive(light: (0.76, 0.10, 0.10), dark: (1.00, 0.46, 0.42),
+                               lightHighContrast: (0.62, 0.05, 0.05))
+
     /// A color with light and dark mode shades (and a deeper light shade for Increase Contrast).
     private static func adaptive(light: (Double, Double, Double), dark: (Double, Double, Double),
                                  lightHighContrast: (Double, Double, Double)) -> Color {

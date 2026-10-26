@@ -139,7 +139,7 @@ private struct OfflineBreakdown: View {
             section("Production multipliers") {
                 let multipliers = report.multipliers
                 row("Upgrades", CoinFormat.multiplier(multipliers.upgrades))
-                row("Hard Forks", CoinFormat.multiplier(multipliers.forks))
+                row("Prestige", CoinFormat.multiplier(multipliers.prestige))
                 row("Achievements", CoinFormat.multiplier(multipliers.achievements))
                 row("Difficulty", CoinFormat.multiplier(multipliers.difficulty))
                 Divider()

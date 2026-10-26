@@ -5,7 +5,7 @@ import Foundation
 /// release builds, so they can never reach the App Store.
 extension GameState {
     /// Adds coins as if they had been mined: they count toward lifetime and run totals, so
-    /// upgrades, achievements and Hard Forks unlock just as they would in play.
+    /// upgrades, achievements and prestige unlock just as they would in play.
     public mutating func debugAddCoins(_ amount: Double) {
         guard amount.isFinite, amount > 0 else { return }
         coins += amount
@@ -50,7 +50,30 @@ extension GameState {
     }
 
     public mutating func debugStartBullRun(at now: Date) {
-        boost = Boost(multiplier: Tuning.bullRunMultiplier, endsAt: now.addingTimeInterval(Tuning.bullRunDuration))
+        boost = Boost(multiplier: Tuning.bullRunMultiplier, endsAt: now.addingTimeInterval(bullRunDuration))
+    }
+
+    /// Adds prestige points without prestiging: they add production and can be spent on perks.
+    public mutating func debugAddPrestigePoints(_ points: Int) {
+        guard points > 0 else { return }
+        prestigePoints = Self.addingPoints(prestigePoints, min(points, Tuning.maxPrestigePoints))
+    }
+
+    /// Marks today's quests as done, ready to claim.
+    public mutating func debugCompleteQuests() {
+        daily.quests = daily.quests.map { quest in
+            Quest(kind: quest.kind, target: quest.target, baseline: questMetric(quest.kind) - quest.target,
+                  reward: quest.reward, isClaimed: quest.isClaimed)
+        }
+    }
+
+    /// Makes the daily reward, new quests and the daily challenge bonus available again today,
+    /// keeping the streak going.
+    public mutating func debugResetDaily(yesterday: String) {
+        if daily.lastRewardDay != nil { daily.lastRewardDay = yesterday }
+        daily.questDay = nil
+        daily.quests = []
+        daily.challengeRewarded = false
     }
 
     /// Moves the game clock back, as if the app had been closed for `seconds`. The next

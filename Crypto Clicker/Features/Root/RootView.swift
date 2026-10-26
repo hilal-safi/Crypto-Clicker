@@ -8,25 +8,36 @@ struct RootView: View {
     @State private var exchangeRequests = 0
     /// Counts the welcome-back screen's requests to show the Shop's power-ups.
     @State private var powerUpRequests = 0
+    /// Counts requests (from the Daily page) to open today's Tetris challenge in the Arcade.
+    @State private var challengeRequests = 0
+    /// Counts requests (from the Mine tab's tips) to show the Daily page.
+    @State private var dailyRequests = 0
 
     var body: some View {
         @Bindable var store = store
         TabView(selection: $tab) {
             Tab("Mine", systemImage: "bitcoinsign.circle.fill", value: AppTab.mine) {
-                MineView(openShop: { tab = .shop }, openExchange: {
+                MineView(openShop: { tab = .shop }, openPowerUps: openPowerUps, openExchange: {
                     exchangeRequests += 1
                     tab = .arcade
+                }, openDaily: {
+                    dailyRequests += 1
+                    tab = .trophies
                 })
             }
             Tab("Shop", systemImage: "cart.fill", value: AppTab.shop) {
                 ShopView(powerUpRequests: powerUpRequests)
             }
             Tab("Arcade", systemImage: "gamecontroller.fill", value: AppTab.arcade) {
-                ArcadeView(exchangeRequests: exchangeRequests)
+                ArcadeView(exchangeRequests: exchangeRequests, challengeRequests: challengeRequests)
             }
             Tab("Trophies", systemImage: "trophy.fill", value: AppTab.trophies) {
-                TrophiesView()
+                TrophiesView(dailyRequests: dailyRequests, openChallenge: {
+                    challengeRequests += 1
+                    tab = .arcade
+                })
             }
+            .badge(store.dailyBadgeCount)
             Tab("Settings", systemImage: "gearshape.fill", value: AppTab.settings) {
                 SettingsView()
             }
@@ -40,10 +51,7 @@ struct RootView: View {
             NotificationStack()
         }
         .sheet(item: $store.welcomeBack) { report in
-            WelcomeBackView(report: report, openPowerUps: {
-                powerUpRequests += 1
-                tab = .shop
-            })
+            WelcomeBackView(report: report, openPowerUps: openPowerUps)
         }
         .alert("Something went wrong", isPresented: Binding(
             get: { store.errorMessage != nil },
@@ -53,6 +61,11 @@ struct RootView: View {
         } message: {
             Text(store.errorMessage ?? "")
         }
+    }
+
+    private func openPowerUps() {
+        powerUpRequests += 1
+        tab = .shop
     }
 }
 

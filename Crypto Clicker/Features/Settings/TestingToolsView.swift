@@ -25,8 +25,8 @@ struct TestingToolsView: View {
                     LabeledContent("Income", value: "\(CoinFormat.rate(income)) per second")
                     LabeledContent("Each tap", value: CoinFormat.short(game.tapValue(at: now)))
                     LabeledContent("Lifetime coins", value: CoinFormat.short(game.stats.lifetimeCoins))
-                    LabeledContent("Hard Fork", value: game.claimableForks > 0
-                                   ? "+\(CoinFormat.grouped(game.claimableForks)) forks ready" : "Not yet")
+                    LabeledContent("Prestige", value: game.claimablePrestigePoints > 0
+                                   ? "+\(CoinFormat.grouped(game.claimablePrestigePoints)) points ready" : "Not yet")
                 } header: {
                     Text("Right now")
                 } footer: {
@@ -55,14 +55,39 @@ struct TestingToolsView: View {
                 } header: {
                     Text("Coins")
                 } footer: {
-                    Text("Added coins count as mined, so upgrades appear, achievements unlock and Hard Forks become available just as they would in play.")
+                    Text("Added coins count as mined, so upgrades appear, achievements unlock and prestige points build up just as they would in play.")
                 }
 
-                Section("Shop") {
+                Section {
                     Button("Add 10 of Every Miner") { store.debugAddMiners(10) }
                     Button("Add 100 of Every Miner") { store.debugAddMiners(100) }
                     Button("Give Every Upgrade") { store.debugGiveAllUpgrades() }
                         .disabled(game.upgrades.count == UpgradeID.allCases.count)
+                } header: {
+                    Text("Shop")
+                } footer: {
+                    Text("Added miners include the three that normally wait for the first prestige. Mk upgrades appear at 25, 50, 100, 200 and 400 of a miner.")
+                }
+
+                Section {
+                    LabeledContent("Points", value: "\(CoinFormat.grouped(game.availablePrestigePoints)) to spend · \(CoinFormat.grouped(game.prestigePoints)) earned")
+                    Button("Add 10 Prestige Points") { store.debugAddPrestigePoints(10) }
+                    Button("Add 1,000 Prestige Points") { store.debugAddPrestigePoints(1_000) }
+                    Button("Add 10,000 Prestige Points") { store.debugAddPrestigePoints(10_000) }
+                } header: {
+                    Text("Prestige")
+                } footer: {
+                    Text("Points added here raise production and can be spent on perks, without starting over.")
+                }
+
+                Section {
+                    Button("Complete Today's Quests") { store.debugCompleteQuests() }
+                        .disabled(game.daily.quests.allSatisfy { $0.isClaimed || game.isComplete($0) })
+                    Button("New Day: Reward, Quests and Challenge") { store.debugResetDaily() }
+                } header: {
+                    Text("Daily")
+                } footer: {
+                    Text("A new day makes the daily reward, fresh quests and the challenge's double reward available again, and keeps the streak going.")
                 }
 
                 Section {
@@ -107,6 +132,9 @@ struct TestingToolsView: View {
                     Button("Start a Bull Run") { store.debugStartBullRun() }
                     Button("Drop an Airdrop") {
                         closeThen { store.debugDropAirdrop() }
+                    }
+                    Button("Drop a Whale Airdrop") {
+                        closeThen { store.debugDropAirdrop(.whale) }
                     }
                     Button("Pretend I Was Away for 1 Hour") {
                         closeThen { store.debugPretendAway(3_600) }

@@ -42,22 +42,29 @@ public struct OfflineReport: Equatable, Sendable, Identifiable {
 
     public struct Multipliers: Equatable, Sendable {
         public let upgrades: Double
-        public let forks: Double
+        public let prestige: Double
         public let achievements: Double
         public let difficulty: Double
 
-        public var total: Double { upgrades * forks * achievements * difficulty }
+        public var total: Double { upgrades * prestige * achievements * difficulty }
     }
+}
+
+/// What an airdrop holds, decided when it appears so a whale can look different.
+public enum AirdropKind: Equatable, Sendable {
+    case coins, bullRun, whale
 }
 
 /// What an airdrop paid out.
 public enum AirdropReward: Equatable, Sendable {
     case coins(Double)
     case bullRun(multiplier: Double, duration: TimeInterval)
+    /// A rare whale: about an hour of income at once.
+    case whale(Double)
 }
 
 enum CreditSource {
-    case tap, idle, offline, steps, games, airdrop
+    case tap, idle, offline, steps, games, airdrop, daily
 }
 
 /// Every way the player can change the game. Each method validates its own rules,
@@ -114,7 +121,7 @@ extension GameState {
         return OfflineReport(
             elapsed: elapsed, credited: credited, earned: earned, sources: sources,
             boostedSeconds: boostedSeconds, boostMultiplier: multiplier,
-            multipliers: .init(upgrades: upgradeProductionMultiplier, forks: forkBonus,
+            multipliers: .init(upgrades: upgradeProductionMultiplier, prestige: prestigeBonus,
                                achievements: achievementBonus, difficulty: difficulty.productionMultiplier),
             offlineCap: offlineCap)
     }
@@ -132,16 +139,36 @@ extension GameState {
         if let boost, now >= boost.endsAt { self.boost = nil }
     }
 
+    /// Starts a Bull Run, or keeps a longer one that is already running.
+    mutating func startBullRun(duration: TimeInterval, at now: Date) {
+        let ends = now.addingTimeInterval(duration)
+        boost = Boost(multiplier: Tuning.bullRunMultiplier, endsAt: max(ends, activeBoost(at: now)?.endsAt ?? ends))
+    }
+
+    /// Records idle income for the income chart, at most once per `Tuning.incomeSampleInterval`,
+    /// keeping a week of samples.
+    public mutating func recordIncomeSample(at now: Date) {
+        incomeHistory.removeAll { $0.date > now } // The clock moved backwards.
+        if let last = incomeHistory.last, now.timeIntervalSince(last.date) < Tuning.incomeSampleInterval { return }
+        incomeHistory.append(IncomeSample(date: now, income: baseIdleIncome))
+        let overflow = incomeHistory.count - Tuning.maxIncomeSamples
+        if overflow > 0 { incomeHistory.removeFirst(overflow) }
+    }
+
     // MARK: Tapping
 
+    /// Credits `count` taps and returns the coins earned. `combo` is this tap's place in a run of
+    /// quick taps (1 for a lone tap): longer runs multiply its value, up to the combo maximum.
     @discardableResult
-    public mutating func tap(count: Int = 1, at now: Date) -> Double {
+    public mutating func tap(count: Int = 1, at now: Date, combo: Int = 1) -> Double {
         guard count > 0 else { return 0 }
-        let value = tapValue(at: now)
+        let value = combo > 1 ? Self.wholeCoins(tapValue(at: now) * comboMultiplier(streak: combo), minimum: 1)
+                              : tapValue(at: now)
         let earned = value * Double(count)
         credit(earned, source: .tap)
         stats.taps += count
         stats.bestTap = max(stats.bestTap, value)
+        stats.bestCombo = max(stats.bestCombo, combo)
         return earned
     }
 
@@ -167,8 +194,19 @@ extension GameState {
         spend(cost)
         let count = owned(miner) + quantity
         miners[miner] = count
+        stats.minersBought += quantity
         stats.maxOwned[miner] = max(stats.maxOwned[miner, default: 0], count)
         stats.maxTotalMiners = max(stats.maxTotalMiners, totalMiners)
+        return true
+    }
+
+    /// Buys the miner's next Mk upgrade, which doubles its output for the rest of the run.
+    @discardableResult
+    public mutating func buyMinerUpgrade(_ miner: MinerID) -> Bool {
+        guard let next = availableMinerUpgrade(miner), next.price <= coins else { return false }
+        spend(next.price)
+        minerUpgrades[miner] = next.level + 1
+        stats.minerUpgradesBought += 1
         return true
     }
 
@@ -181,24 +219,9 @@ extension GameState {
         return true
     }
 
-    /// Price of `quantity` tokens.
-    public func price(of token: TokenID, quantity: Int) -> Double {
-        token.price * Double(max(0, quantity))
-    }
-
-    @discardableResult
-    public mutating func buyTokens(_ token: TokenID, quantity: Int) -> Bool {
-        let cost = price(of: token, quantity: quantity)
-        guard quantity > 0, cost <= coins else { return false }
-        spend(cost)
-        tokens[token, default: 0] += quantity
-        stats.tokensBought[token, default: 0] += quantity
-        return true
-    }
-
     // MARK: Power-ups
 
-    /// Buys the next Offline Mining level. Like every power-up it is permanent: Hard Forks keep it.
+    /// Buys the next Offline Mining level. Like every power-up it is permanent: prestiges keep it.
     @discardableResult
     public mutating func buyOfflineMining() -> Bool {
         guard let price = offlineMiningPrice, price <= coins else { return false }
@@ -209,56 +232,46 @@ extension GameState {
 
     // MARK: Settings
 
-    /// Changing difficulty never raises the current run's fork reward,
+    /// Changing difficulty never raises the current run's prestige reward,
     /// unless the run has barely started (no miners yet).
     public mutating func setDifficulty(_ newValue: Difficulty) {
         difficulty = newValue
         if totalMiners == 0 && stats.runCoins < 1_000 {
-            runForkMultiplier = newValue.forkMultiplier
+            runPrestigeMultiplier = newValue.prestigeMultiplier
         } else {
-            runForkMultiplier = min(runForkMultiplier, newValue.forkMultiplier)
+            runPrestigeMultiplier = min(runPrestigeMultiplier, newValue.prestigeMultiplier)
         }
-    }
-
-    // MARK: Prestige
-
-    /// Resets coins, miners, upgrades and boosts for permanent forks.
-    /// Tokens, power-ups, unlocked games, achievements and lifetime stats carry over.
-    /// Returns the number of forks gained (0 if a fork is not available yet).
-    @discardableResult
-    public mutating func hardFork(at now: Date) -> Int {
-        let gained = claimableForks
-        guard gained > 0 else { return 0 }
-        forks += gained
-        forkPointsClaimed = forkPoints
-        stats.forksPerformed += 1
-        stats.runCoins = 0
-        coins = 0
-        miners = [:]
-        upgrades = []
-        boost = nil
-        runForkMultiplier = difficulty.forkMultiplier
-        runStart = now
-        lastUpdate = now
-        return gained
     }
 
     // MARK: Airdrops
 
-    /// Pays an airdrop. `roll` is a random number in `0..<1` (injected for testing).
+    /// What a new airdrop holds. `roll` is a random number in `0..<1` (injected for testing).
+    public func airdropKind(roll: Double) -> AirdropKind {
+        if roll < whaleChance { return .whale }
+        if roll < whaleChance + Tuning.bullRunChance { return .bullRun }
+        return .coins
+    }
+
+    /// Pays an airdrop the player caught.
     @discardableResult
-    public mutating func claimAirdrop(roll: Double, at now: Date) -> AirdropReward {
+    public mutating func claimAirdrop(_ kind: AirdropKind, at now: Date) -> AirdropReward {
         stats.airdrops += 1
-        if roll < Tuning.bullRunChance {
-            let ends = now.addingTimeInterval(Tuning.bullRunDuration)
-            boost = Boost(multiplier: Tuning.bullRunMultiplier, endsAt: max(ends, boost?.endsAt ?? ends))
-            return .bullRun(multiplier: Tuning.bullRunMultiplier, duration: Tuning.bullRunDuration)
-        }
         let income = rewardIncome
-        let amount = Self.wholeCoins(max(min(coins * Tuning.airdropBankShare, income * Tuning.airdropIncomeSeconds),
-                                         income * 30), minimum: 1)
-        credit(amount, source: .airdrop)
-        return .coins(amount)
+        switch kind {
+        case .bullRun:
+            startBullRun(duration: bullRunDuration, at: now)
+            return .bullRun(multiplier: Tuning.bullRunMultiplier, duration: bullRunDuration)
+        case .whale:
+            stats.whaleAirdrops += 1
+            let amount = Self.wholeCoins(income * Tuning.whaleIncomeSeconds, minimum: 1)
+            credit(amount, source: .airdrop)
+            return .whale(amount)
+        case .coins:
+            let amount = Self.wholeCoins(max(min(coins * Tuning.airdropBankShare, income * Tuning.airdropIncomeSeconds),
+                                             income * Tuning.airdropMinimumSeconds), minimum: 1)
+            credit(amount, source: .airdrop)
+            return .coins(amount)
+        }
     }
 
     // MARK: Steps
@@ -316,6 +329,7 @@ extension GameState {
         case .steps: stats.earnedFromSteps += amount
         case .games: stats.earnedFromGames += amount
         case .airdrop: stats.earnedFromAirdrops += amount
+        case .daily: stats.earnedFromDaily += amount
         }
     }
 

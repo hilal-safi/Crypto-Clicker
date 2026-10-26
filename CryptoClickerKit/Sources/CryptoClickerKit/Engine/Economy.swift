@@ -14,10 +14,15 @@ extension GameState {
 
     public var totalMiners: Int { miners.values.reduce(0, +) }
 
-    /// Tiers appear one at a time: a miner shows once the tier before it is owned.
+    public func hasPerk(_ perk: PerkID) -> Bool { perks.contains(perk) }
+
+    /// Tiers appear one at a time: a miner shows once the tier before it is owned. The last
+    /// tiers also wait for the first prestige.
     public func isRevealed(_ miner: MinerID) -> Bool {
+        if owned(miner) > 0 { return true }
+        if miner.needsPrestige && stats.prestiges == 0 { return false }
         guard let previous = miner.previous else { return true }
-        return owned(previous) > 0 || owned(miner) > 0
+        return owned(previous) > 0
     }
 
     /// Upgrades appear once this run has earned a tenth of their price. Step upgrades also wait
@@ -32,9 +37,12 @@ extension GameState {
 
     // MARK: Prices
 
+    /// Miner prices after perks: Bulk Discount takes 10% off.
+    var minerPriceFactor: Double { hasPerk(.bulkDiscount) ? 0.9 : 1 }
+
     /// Price of the unit at position `index` (0 is the first unit), in whole coins.
     public func unitPrice(_ miner: MinerID, index: Int) -> Double {
-        Self.wholePrice(miner.baseCost * pow(Tuning.costGrowth, Double(index)))
+        Self.wholePrice(miner.baseCost * minerPriceFactor * pow(Tuning.costGrowth, Double(index)))
     }
 
     /// Total price of the next `quantity` units: the geometric series, rounded up to a whole coin.
@@ -42,14 +50,14 @@ extension GameState {
     public func price(of miner: MinerID, quantity: Int) -> Double {
         guard quantity > 0 else { return 0 }
         let growth = Tuning.costGrowth
-        let first = miner.baseCost * pow(growth, Double(owned(miner)))
+        let first = miner.baseCost * minerPriceFactor * pow(growth, Double(owned(miner)))
         return Self.wholePrice(first * (pow(growth, Double(quantity)) - 1) / (growth - 1))
     }
 
     /// How many units the current balance (or `budget`) can buy right now.
     public func maxAffordable(_ miner: MinerID, budget: Double? = nil) -> Int {
         let money = budget ?? coins
-        let first = miner.baseCost * pow(Tuning.costGrowth, Double(owned(miner)))
+        let first = miner.baseCost * minerPriceFactor * pow(Tuning.costGrowth, Double(owned(miner)))
         guard money.isFinite, first > 0, money >= price(of: miner, quantity: 1) else { return 0 }
         let growth = Tuning.costGrowth
         let estimate = log(money * (growth - 1) / first + 1) / log(growth)
@@ -76,6 +84,31 @@ extension GameState {
         return max(minimum, value.rounded())
     }
 
+    // MARK: Miner Mk upgrades
+
+    /// Mk upgrades bought for `miner` this run.
+    public func minerUpgradeLevel(_ miner: MinerID) -> Int { minerUpgrades[miner, default: 0] }
+
+    /// The units of `miner` that reveal its Mk upgrade at `level` (0 is Mk II), if one is left.
+    public static func minerUpgradeThreshold(level: Int) -> Int? {
+        Tuning.minerUpgradeThresholds.indices.contains(level) ? Tuning.minerUpgradeThresholds[level] : nil
+    }
+
+    /// Price of the Mk upgrade at `level` for `miner`: about ten units at the count that reveals it.
+    public func minerUpgradePrice(_ miner: MinerID, level: Int) -> Double? {
+        guard let threshold = Self.minerUpgradeThreshold(level: level) else { return nil }
+        return Self.wholePrice(miner.baseCost * minerPriceFactor * pow(Tuning.costGrowth, Double(threshold))
+                               * Tuning.minerUpgradeUnits)
+    }
+
+    /// The next Mk upgrade for `miner`, once enough units are owned to reveal it.
+    public func availableMinerUpgrade(_ miner: MinerID) -> (level: Int, price: Double)? {
+        let level = minerUpgradeLevel(miner)
+        guard let threshold = Self.minerUpgradeThreshold(level: level), owned(miner) >= threshold,
+              let price = minerUpgradePrice(miner, level: level) else { return nil }
+        return (level, price)
+    }
+
     // MARK: Multipliers
 
     public static func milestoneMultiplier(owned: Int) -> Double {
@@ -96,17 +129,23 @@ extension GameState {
         }
     }
 
-    public var forkBonus: Double { 1 + Double(forks) * Tuning.productionPerFork }
+    /// Production multiplier from every prestige point ever earned (spent or not).
+    public var prestigeBonus: Double { 1 + Double(prestigePoints) * Tuning.productionPerPrestigePoint }
 
     public var earnedAchievementTiers: Int { achievementTiers.values.reduce(0, +) }
 
+    /// Production per achievement star: Compound Interest doubles it.
+    public var productionPerAchievementTier: Double {
+        Tuning.productionPerAchievementTier * (hasPerk(.compoundInterest) ? 2 : 1)
+    }
+
     public var achievementBonus: Double {
-        1 + Double(earnedAchievementTiers) * Tuning.productionPerAchievementTier
+        1 + Double(earnedAchievementTiers) * productionPerAchievementTier
     }
 
     /// Every permanent multiplier on miner production.
     public var globalMultiplier: Double {
-        upgradeProductionMultiplier * forkBonus * achievementBonus * difficulty.productionMultiplier
+        upgradeProductionMultiplier * prestigeBonus * achievementBonus * difficulty.productionMultiplier
     }
 
     public func boostMultiplier(at date: Date) -> Double {
@@ -121,16 +160,22 @@ extension GameState {
 
     // MARK: Production
 
+    /// Output multiplier for one miner tier: its milestones and its Mk upgrades.
+    func tierMultiplier(_ miner: MinerID, owned count: Int) -> Double {
+        Self.milestoneMultiplier(owned: count)
+            * pow(Tuning.minerUpgradeMultiplier, Double(minerUpgradeLevel(miner)))
+    }
+
     /// Coins per second from all units of one miner, without temporary boosts.
     public func rate(of miner: MinerID) -> Double {
         let count = owned(miner)
         guard count > 0 else { return 0 }
-        return Double(count) * miner.baseRate * Self.milestoneMultiplier(owned: count) * globalMultiplier
+        return Double(count) * miner.baseRate * tierMultiplier(miner, owned: count) * globalMultiplier
     }
 
     /// Coins per second one more unit would add right now (ignores the milestone it might reach).
     public func ratePerUnit(of miner: MinerID) -> Double {
-        miner.baseRate * Self.milestoneMultiplier(owned: owned(miner)) * globalMultiplier
+        miner.baseRate * tierMultiplier(miner, owned: owned(miner)) * globalMultiplier
     }
 
     /// Miner production without temporary boosts.
@@ -164,20 +209,28 @@ extension GameState {
         }
     }
 
-    /// The flat part of a tap, which grows with forks and achievements.
-    var tapBase: Double { tapFlatTotal * forkBonus * achievementBonus }
+    /// The flat part of a tap, which grows with prestige and achievements.
+    var tapBase: Double { tapFlatTotal * prestigeBonus * achievementBonus }
+
+    /// Strong Fingers makes every tap earn 50% more.
+    var tapPerkMultiplier: Double { hasPerk(.strongFingers) ? 1.5 : 1 }
 
     /// Coins one tap earns with `production` coins per second: the flat part plus a share of
     /// production, rounded to a whole coin and never less than one.
     func tapValue(production: Double) -> Double {
-        Self.wholeCoins(tapBase + tapShare * production, minimum: 1)
+        Self.wholeCoins((tapBase + tapShare * production) * tapPerkMultiplier, minimum: 1)
     }
 
     public func tapValue(at date: Date) -> Double { tapValue(production: production(at: date)) }
 
-    /// Coins per second from automatic taps, each worth `Tuning.autoTapStrength` of a tap.
+    /// What an automatic tap is worth, as a share of a tap: Auto Clicker Pro doubles it.
+    public var autoTapStrength: Double {
+        Tuning.autoTapStrength * (hasPerk(.autoClickerPro) ? 2 : 1)
+    }
+
+    /// Coins per second from automatic taps.
     func autoTapIncome(production: Double) -> Double {
-        autoTapsPerSecond * Tuning.autoTapStrength * tapValue(production: production)
+        autoTapsPerSecond * autoTapStrength * tapValue(production: production)
     }
 
     /// Income that arrives without any input: miners plus automatic taps.
@@ -193,6 +246,21 @@ extension GameState {
         guard let boost else { return (normal, normal) }
         let boostedProduction = base * boost.multiplier
         return (normal, boostedProduction + autoTapIncome(production: boostedProduction))
+    }
+
+    // MARK: Combos
+
+    /// Quick taps in a row needed for the biggest combo: Combo Master halves it.
+    public var comboTapsToMax: Int { hasPerk(.comboMaster) ? Tuning.comboTapsToMax / 2 : Tuning.comboTapsToMax }
+
+    /// The biggest combo multiplier: Combo Master raises it to ×3.
+    public var comboMaxMultiplier: Double { hasPerk(.comboMaster) ? 3 : Tuning.comboMaxMultiplier }
+
+    /// The multiplier for a tap that is the `streak`-th quick tap in a row (the first is 1).
+    /// It climbs evenly from ×1 to the maximum.
+    public func comboMultiplier(streak: Int) -> Double {
+        let progress = Double(min(max(0, streak - 1), comboTapsToMax)) / Double(comboTapsToMax)
+        return 1 + (comboMaxMultiplier - 1) * progress
     }
 
     // MARK: Offline Mining
@@ -220,21 +288,48 @@ extension GameState {
                                * pow(Tuning.offlineMiningCostGrowth, Double(offlineMiningLevel)))
     }
 
+    // MARK: Airdrops
+
+    /// Seconds between airdrops: Airdrop Radar makes them more frequent.
+    public var airdropInterval: ClosedRange<TimeInterval> {
+        hasPerk(.airdropRadar) ? Tuning.radarAirdropInterval : Tuning.airdropInterval
+    }
+
+    /// How long an airdrop stays on screen.
+    public var airdropLifetime: TimeInterval {
+        hasPerk(.airdropRadar) ? Tuning.radarAirdropLifetime : Tuning.airdropLifetime
+    }
+
+    public var bullRunDuration: TimeInterval {
+        hasPerk(.bullMarket) ? Tuning.bullMarketDuration : Tuning.bullRunDuration
+    }
+
+    /// Chance that an airdrop is a whale: Whale Watcher triples it.
+    public var whaleChance: Double { Tuning.whaleChance * (hasPerk(.whaleWatcher) ? 3 : 1) }
+
     // MARK: Side rewards
 
     public var stepMultiplier: Double {
-        upgrades.reduce(1) { result, upgrade in
+        let upgradeFactor = upgrades.reduce(1.0) { result, upgrade in
             if case .steps(let factor) = upgrade.effect { return result * factor }
             return result
         }
+        return upgradeFactor * (hasPerk(.marathon) ? 2 : 1)
     }
 
     public var miniGameMultiplier: Double {
-        upgrades.reduce(1) { result, upgrade in
+        let upgradeFactor = upgrades.reduce(1.0) { result, upgrade in
             if case .miniGames(let factor) = upgrade.effect { return result * factor }
             return result
         }
+        return upgradeFactor * (hasPerk(.arcadeChampion) ? 1.5 : 1)
     }
+
+    /// Daily quest and streak rewards: Lucky Streak doubles them.
+    public var dailyRewardMultiplier: Double { hasPerk(.luckyStreak) ? 2 : 1 }
+
+    /// Share of a sale kept by the market: Market Insider removes the fee.
+    public var marketSellRate: Double { hasPerk(.marketInsider) ? 1 : 1 - Tuning.marketSellFee }
 
     /// Idle income without temporary boosts.
     public var baseIdleIncome: Double { incomeRates.normal }
@@ -258,33 +353,4 @@ extension GameState {
 
     /// Taps still needed before steps unlock.
     public var tapsUntilSteps: Int { max(0, Tuning.stepsUnlockTaps - stats.taps) }
-
-    // MARK: Prestige
-
-    /// Fork points earned so far: the cube root of lifetime coins over the fork scale.
-    public var forkPoints: Int {
-        let scaled = max(0, stats.lifetimeCoins) / Tuning.forkScale
-        let root = cbrt(scaled)
-        guard root.isFinite else { return 0 }
-        guard root < Double(Tuning.maxForkPoints) else { return Tuning.maxForkPoints }
-        var points = Int(root.rounded(.down))
-        // `cbrt` can land a hair either side of an exact cube: settle on the largest p with p³ <= scaled.
-        while points > 0 && pow(Double(points), 3) > scaled { points -= 1 }
-        while points < Tuning.maxForkPoints && pow(Double(points + 1), 3) <= scaled { points += 1 }
-        return points
-    }
-
-    /// Forks a Hard Fork would award right now.
-    public var claimableForks: Int {
-        let points = max(0, forkPoints - forkPointsClaimed)
-        return Int((Double(points) * runForkMultiplier).rounded(.down))
-    }
-
-    /// Lifetime coins at which the next fork point is earned.
-    public var nextForkPointAt: Double {
-        pow(Double(forkPoints + 1), 3) * Tuning.forkScale
-    }
-
-    /// Production bonus that `forks` more forks would add, as a share (0.1 = +10%).
-    public func forkGain(_ forks: Int) -> Double { Double(forks) * Tuning.productionPerFork }
 }

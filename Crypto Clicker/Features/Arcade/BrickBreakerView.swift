@@ -164,10 +164,8 @@ struct BrickBreakerView: View {
         guard isPlaying else { return }
         isPlaying = false
         isPaused = false
-        let previousBest = store.game.stats.brickBreakerBestScore
-        let reward = store.finishBrickBreaker(score: game.score, bricks: game.bricksBroken)
-        result = GameResult(score: game.score, isNewBest: game.score > previousBest, reward: reward,
-                            detail: game.bricksBroken)
+        let payout = store.finishBrickBreaker(score: game.score, bricks: game.bricksBroken)
+        result = GameResult(score: game.score, payout: payout, detail: game.bricksBroken)
     }
 }
 

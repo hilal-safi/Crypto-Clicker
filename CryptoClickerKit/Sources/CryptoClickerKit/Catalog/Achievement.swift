@@ -4,10 +4,12 @@ import Foundation
 /// so an earned star can never be lost.
 public enum AchievementMetric: Hashable, Sendable {
     case lifetimeCoins, peakIncome, taps, bestTap, lifetimeSteps, bestDaySteps
-    case totalMiners, miner(MinerID), upgrades
+    case totalMiners, miner(MinerID), upgrades, minerUpgrades, bestCombo
     case blackjackWins, blackjackNaturals, tetrisLines, tetrisBestScore
     case slotsWins, snakeBestScore, bricksBroken, bubblesPopped
-    case tokensExchanged, token(TokenID), airdrops, forks
+    case tokensExchanged, token(TokenID), tokensSold
+    case questsCompleted, longestStreak
+    case airdrops, whaleAirdrops, prestiges, perks
 }
 
 public struct Achievement: Identifiable, Hashable, Sendable {
@@ -26,7 +28,7 @@ public struct Achievement: Identifiable, Hashable, Sendable {
 public enum AchievementCatalog {
     public static let tierNames = ["Bronze", "Silver", "Gold"]
 
-    public static let all: [Achievement] = general + miners + games + tokens + prestige
+    public static let all: [Achievement] = general + miners + games + tokens + daily + prestige
 
     public static var tierCount: Int { all.reduce(0) { $0 + $1.thresholds.count } }
 
@@ -49,10 +51,14 @@ public enum AchievementCatalog {
                     metric: .totalMiners, thresholds: [50, 250, 1_000]),
         Achievement(id: "upgrader", name: "Upgrader", detail: "Own upgrades at once", emoji: "🔧", imageName: nil,
                     metric: .upgrades, thresholds: [5, 12, Double(UpgradeID.allCases.count)]),
+        Achievement(id: "engineer", name: "Engineer", detail: "Buy miner Mk upgrades", emoji: "🛠️", imageName: nil,
+                    metric: .minerUpgrades, thresholds: [5, 25, 100]),
+        Achievement(id: "combo-king", name: "Combo King", detail: "Quick taps in a row", emoji: "🔥", imageName: nil,
+                    metric: .bestCombo, thresholds: [25, 100, 400]),
     ]
 
     private static let miners: [Achievement] = MinerID.allCases.map { miner in
-        Achievement(id: "own-\(miner.rawValue)", name: "\(miner.name) Fleet", detail: "Own \(miner.name)s at once",
+        Achievement(id: "own-\(miner.rawValue)", name: "\(miner.name) Fleet", detail: "Own \(miner.pluralName) at once",
                     emoji: miner.emoji, imageName: nil, metric: .miner(miner), thresholds: [25, 100, 250])
     }
 
@@ -75,6 +81,8 @@ public enum AchievementCatalog {
                     metric: .bubblesPopped, thresholds: [100, 1_000, 10_000]),
         Achievement(id: "exchanger", name: "Exchanger", detail: "Buy tokens on the exchange", emoji: "🔁", imageName: nil,
                     metric: .tokensExchanged, thresholds: [10, 100, 1_000]),
+        Achievement(id: "trader", name: "Trader", detail: "Sell tokens on the market", emoji: "📈", imageName: nil,
+                    metric: .tokensSold, thresholds: [10, 250, 5_000]),
     ]
 
     private static let tokens: [Achievement] = TokenID.allCases.map { token in
@@ -82,11 +90,23 @@ public enum AchievementCatalog {
                     emoji: nil, imageName: token.imageName, metric: .token(token), thresholds: [1, 10, 100])
     }
 
+    private static let daily: [Achievement] = [
+        Achievement(id: "quest-master", name: "Quest Master", detail: "Complete daily quests", emoji: "📜", imageName: nil,
+                    metric: .questsCompleted, thresholds: [5, 50, 300]),
+        Achievement(id: "loyal-miner", name: "Loyal Miner", detail: "Claim the daily reward days in a row", emoji: "📅",
+                    imageName: nil, metric: .longestStreak, thresholds: [3, 7, 30]),
+    ]
+
     private static let prestige: [Achievement] = [
         Achievement(id: "airdrop-hunter", name: "Airdrop Hunter", detail: "Catch airdrops", emoji: "🪂", imageName: nil,
                     metric: .airdrops, thresholds: [1, 25, 250]),
-        Achievement(id: "hard-forker", name: "Hard Forker", detail: "Perform Hard Forks", emoji: "🍴", imageName: nil,
-                    metric: .forks, thresholds: [1, 5, 25]),
+        Achievement(id: "whale-spotter", name: "Whale Spotter", detail: "Catch whale airdrops", emoji: "🐋", imageName: nil,
+                    metric: .whaleAirdrops, thresholds: [1, 5, 25]),
+        // The id dates from when prestiging was called a Hard Fork; earned stars are saved under it.
+        Achievement(id: "hard-forker", name: "Prestigious", detail: "Prestige", emoji: "🌟", imageName: nil,
+                    metric: .prestiges, thresholds: [1, 5, 25]),
+        Achievement(id: "perk-collector", name: "Perk Collector", detail: "Own prestige perks", emoji: "🎖️", imageName: nil,
+                    metric: .perks, thresholds: [1, 8, Double(PerkID.allCases.count)]),
     ]
 }
 

@@ -24,6 +24,13 @@ public struct StepDay: Equatable, Sendable {
         let parts = calendar(in: timeZone).dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
+
+    /// The key of the day before the one containing `date` (handles daylight-saving changes).
+    public static func previousKey(before date: Date, in timeZone: TimeZone = .current) -> String {
+        let calendar = calendar(in: timeZone)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: date) ?? date.addingTimeInterval(-86_400)
+        return key(for: yesterday, in: timeZone)
+    }
 }
 
 /// Remembers how many steps of each day have already been paid out.

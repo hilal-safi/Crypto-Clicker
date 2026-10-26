@@ -13,6 +13,8 @@ extension GameState {
         case .totalMiners: Double(stats.maxTotalMiners)
         case .miner(let miner): Double(stats.maxOwned[miner, default: 0])
         case .upgrades: Double(stats.maxUpgrades)
+        case .minerUpgrades: Double(stats.minerUpgradesBought)
+        case .bestCombo: Double(stats.bestCombo)
         case .blackjackWins: Double(stats.blackjackWins)
         case .blackjackNaturals: Double(stats.blackjackNaturals)
         case .tetrisLines: Double(stats.tetrisLines)
@@ -23,8 +25,13 @@ extension GameState {
         case .bubblesPopped: Double(stats.bubblesPopped)
         case .tokensExchanged: Double(stats.totalTokensBought)
         case .token(let token): Double(stats.tokensBought[token, default: 0])
+        case .tokensSold: Double(stats.tokensSold)
+        case .questsCompleted: Double(stats.questsCompleted)
+        case .longestStreak: Double(stats.longestStreak)
         case .airdrops: Double(stats.airdrops)
-        case .forks: Double(stats.forksPerformed)
+        case .whaleAirdrops: Double(stats.whaleAirdrops)
+        case .prestiges: Double(stats.prestiges)
+        case .perks: Double(perks.count)
         }
     }
 

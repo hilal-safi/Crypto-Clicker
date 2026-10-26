@@ -40,8 +40,8 @@ struct ShopView: View {
             ScrollViewReader { scroller in
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        if game.claimableForks > 0 {
-                            HardForkCard()
+                        if game.isPrestigeRecommended {
+                            PrestigeCard()
                         }
 
                         SectionHeader(title: "Miners", detail: "\(CoinFormat.rate(game.baseProduction)) per second")
@@ -52,15 +52,20 @@ struct ShopView: View {
                         ForEach(revealedMiners) { miner in
                             let count = quantity.count(of: miner, in: game)
                             let price = game.price(of: miner, quantity: count)
+                            let upgrade = game.availableMinerUpgrade(miner)
                             MinerRow(miner: miner, owned: game.owned(miner), rate: game.rate(of: miner),
                                      nextMilestone: game.nextMilestone(for: miner), buyCount: count,
-                                     price: price, canAfford: price <= game.coins)
+                                     price: price, canAfford: price <= game.coins,
+                                     mkLevel: game.minerUpgradeLevel(miner), upgradeLevel: upgrade?.level,
+                                     upgradePrice: upgrade?.price,
+                                     canAffordUpgrade: upgrade.map { $0.price <= game.coins } ?? false)
                         }
                         if let lockedMiner {
-                            LockedMinerRow(miner: lockedMiner)
+                            LockedMinerRow(miner: lockedMiner,
+                                           needsPrestige: lockedMiner.needsPrestige && game.stats.prestiges == 0)
                         }
 
-                        SectionHeader(title: "Power-ups", detail: "Kept through Hard Forks")
+                        SectionHeader(title: "Power-ups", detail: "Kept when you prestige")
                             .id(Self.powerUpsID)
                         OfflineMiningRow(level: game.offlineMiningLevel, price: offlineMiningPrice,
                                          canAfford: offlineMiningPrice.map { $0 <= game.coins } ?? false)
@@ -95,8 +100,9 @@ struct ShopView: View {
                             .rowCard()
                         }
 
-                        if game.claimableForks == 0 && (game.forks > 0 || game.stats.lifetimeCoins >= Tuning.forkScale / 10) {
-                            HardForkCard()
+                        if !game.isPrestigeRecommended
+                            && (game.prestigePoints > 0 || game.stats.lifetimeCoins >= Tuning.prestigeScale / 10) {
+                            PrestigeCard()
                         }
                     }
                     .padding(.horizontal, 16)

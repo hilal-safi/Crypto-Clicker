@@ -162,10 +162,8 @@ struct SnakeView: View {
         guard isPlaying else { return }
         isPlaying = false
         isPaused = false
-        let previousBest = store.game.stats.snakeBestScore
-        let reward = store.finishSnake(score: game.score)
-        result = GameResult(score: game.score, isNewBest: game.score > previousBest, reward: reward,
-                            detail: game.body.count)
+        let payout = store.finishSnake(score: game.score)
+        result = GameResult(score: game.score, payout: payout, detail: game.body.count)
     }
 }
 

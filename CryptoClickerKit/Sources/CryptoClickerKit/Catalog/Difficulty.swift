@@ -1,8 +1,8 @@
 import Foundation
 
-/// Difficulty trades production for Hard Fork rewards, so every level has a reason to exist.
-/// A run's fork reward uses the lowest multiplier picked during that run,
-/// so switching to Hard just before forking earns nothing extra.
+/// Difficulty trades production for prestige points, so every level has a reason to exist.
+/// A run's prestige reward uses the lowest multiplier picked during that run,
+/// so switching to Hard just before prestiging earns nothing extra.
 public enum Difficulty: String, CaseIterable, Codable, Sendable, Identifiable {
     case easy, normal, hard
 
@@ -24,7 +24,7 @@ public enum Difficulty: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 
-    public var forkMultiplier: Double {
+    public var prestigeMultiplier: Double {
         switch self {
         case .easy: 0.5
         case .normal: 1
@@ -34,9 +34,9 @@ public enum Difficulty: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var summary: String {
         switch self {
-        case .easy: "Miners produce 50% more; Hard Forks pay half."
+        case .easy: "Miners produce 50% more; prestiges earn half the points."
         case .normal: "The standard balance."
-        case .hard: "Miners produce 40% less; Hard Forks pay 50% more."
+        case .hard: "Miners produce 40% less; prestiges earn 50% more points."
         }
     }
 }

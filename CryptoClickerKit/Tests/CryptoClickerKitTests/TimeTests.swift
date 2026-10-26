@@ -67,7 +67,7 @@ struct TimeTests {
         var state = GameState.make(miners: [.desktop: 10, .chromebook: 2, .server: 2],
                                    upgrades: [.coinClicker, .upgradedClicker, .automatedClicker, .overclocking])
         state.offlineMiningLevel = 2 // An hour.
-        state.forks = 5
+        state.prestigePoints = 2
         state.achievementTiers = ["miner": 2]
         state.boost = Boost(multiplier: 7, endsAt: at(100))
         let result = state.advance(to: at(2 * 3_600))
@@ -81,7 +81,7 @@ struct TimeTests {
         #expect(report.sources.first { $0.id == "autoTaps" }?.count == 1)
         #expect(approx(report.sources.reduce(0) { $0 + $1.coins }, report.earned))
         #expect(approx(report.multipliers.upgrades, 2))
-        #expect(approx(report.multipliers.forks, 1.1))
+        #expect(approx(report.multipliers.prestige, 1.1))
         #expect(approx(report.multipliers.achievements, 1.02))
         #expect(report.multipliers.difficulty == 1)
         #expect(approx(report.multipliers.total, 2 * 1.1 * 1.02))

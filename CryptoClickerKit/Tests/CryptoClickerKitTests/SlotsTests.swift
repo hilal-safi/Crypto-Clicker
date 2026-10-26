@@ -72,12 +72,12 @@ struct SlotsTests {
     @Test func theCoinBonusGrowsWithTheMultipleUpToAnIncomeCap() {
         var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
         game.tokens = [.shibaInu: 1]
-        // One Shiba Inu stakes 1,000 coins: 5% is 50 per multiple, capped at half a second (5 coins) per multiple.
-        #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 5) == 25)
+        // One Shiba Inu stakes 1,000 coins: 5% is 50 per multiple, capped at 3 seconds (30 coins) per multiple.
+        #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 5) == 150)
         #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 1) == 0) // The bet back is not a win.
         #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 0) == 0)
         let newcomer = GameState.make() // The 1 coin per second floor.
-        #expect(newcomer.slotsBonus(bet: 1, token: .shibaInu, multiple: 500) == 250)
+        #expect(newcomer.slotsBonus(bet: 1, token: .shibaInu, multiple: 500) == 1_500)
     }
 
     @Test func aJackpotPaysFiveHundredTimesTheBet() throws {
@@ -93,7 +93,7 @@ struct SlotsTests {
         let spin = try #require(result)
         #expect(spin.isJackpot)
         #expect(game.tokenCount(.dogecoin) == 1_000)
-        #expect(spin.bonus == 2_500) // Capped at 5 coins per multiple.
+        #expect(spin.bonus == 15_000) // Capped at 30 coins per multiple.
         #expect(game.stats.slotsJackpots == 1)
         #expect(game.stats.slotsWins == 1)
     }

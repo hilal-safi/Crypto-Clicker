@@ -1,9 +1,9 @@
 import Foundation
 
-/// Every balance number in one place. Tuned with a progression simulation:
-/// all ten miners unlock over roughly a day and a half of casual play,
-/// and the first Hard Fork becomes available after about a day.
-/// Coin amounts here are whole numbers; only rates per second may be fractional.
+/// Every balance number in one place. Tuned with a progression simulation: the first ten miners
+/// unlock over roughly a day and a half of casual play, the first prestige is worth taking after
+/// about a day and a half, and prestiges, perks and the three extra miner tiers keep new things
+/// arriving for about two weeks. Coin amounts here are whole numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
     /// Each additional unit of a miner costs this much more than the previous one.
@@ -12,10 +12,25 @@ public enum Tuning {
     public static let milestones = [25, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1_000]
     public static let milestoneMultiplier = 2.0
 
+    // MARK: Miner Mk upgrades
+    /// Owning this many of a miner reveals its next Mk upgrade (Mk II to Mk VI), alongside the
+    /// milestone at the same count...
+    public static let minerUpgradeThresholds = [25, 50, 100, 200, 400]
+    /// ...which multiplies that miner's output by this much...
+    public static let minerUpgradeMultiplier = 2.0
+    /// ...and costs about this many units of the miner at the count that reveals it.
+    public static let minerUpgradeUnits = 10.0
+
     // MARK: Tapping
     /// An automatic tap earns this share of a tap's value, so tapping yourself stays the best way to
     /// mine while the app is open: late in the game a tap is worth a whole second of production.
     public static let autoTapStrength = 0.25
+    /// A tap within this long of the previous one keeps a combo going.
+    public static let comboWindow: TimeInterval = 0.6
+    /// Quick taps in a row needed to reach the biggest combo multiplier...
+    public static let comboTapsToMax = 40
+    /// ...which is this.
+    public static let comboMaxMultiplier = 2.0
 
     // MARK: Time
     /// Gaps shorter than this count as live play and are paid in full (ticks, a quick app switch).
@@ -50,39 +65,81 @@ public enum Tuning {
     public static let stepWindowDays = 7
 
     // MARK: Prestige
-    /// Lifetime coins needed for the first fork point; points grow with the cube root of lifetime coins.
-    public static let forkScale = 1e10
-    public static let productionPerFork = 0.02
-    /// Fork points stop counting here. Far beyond reach in play, and small enough for `Int`
+    /// Lifetime coins needed for the first point of prestige potential. Potential grows with the
+    /// cube root of lifetime coins, so each prestige takes longer than the one before.
+    public static let prestigeScale = 1e10
+    /// Production added by every prestige point ever earned, spent on perks or not.
+    public static let productionPerPrestigePoint = 0.05
+    /// Prestige points stop counting here. Far beyond reach in play, and small enough for `Int`
     /// on Apple Watch, where `Int` is 32 bits.
-    public static let maxForkPoints = 1_000_000_000
+    public static let maxPrestigePoints = 1_000_000_000
+    /// Prestiging is suggested once the new points would make production at least this much faster.
+    public static let prestigeRecommendedSpeedUp = 1.5
+    /// What the Head Start perk gives at the start of every run.
+    public static let headStartMiners: [MinerID: Int] = [.chromebook: 10, .desktop: 10, .gpuRig: 5]
     public static let productionPerAchievementTier = 0.01
 
     // MARK: Airdrops
     public static let airdropInterval: ClosedRange<TimeInterval> = 180...360
-    public static let airdropLifetime: TimeInterval = 15
+    public static let airdropLifetime: TimeInterval = 20
+    /// With the Airdrop Radar perk.
+    public static let radarAirdropInterval: ClosedRange<TimeInterval> = 120...240
+    public static let radarAirdropLifetime: TimeInterval = 30
     public static let bullRunChance = 0.3
     public static let bullRunMultiplier = 7.0
     public static let bullRunDuration: TimeInterval = 60
+    /// With the Bull Market perk.
+    public static let bullMarketDuration: TimeInterval = 120
+    /// An ordinary coin airdrop pays this share of the balance, up to this many seconds of income
+    /// (and at least `airdropMinimumSeconds`).
     public static let airdropBankShare = 0.15
     public static let airdropIncomeSeconds = 900.0
+    public static let airdropMinimumSeconds = 30.0
+    /// A rare whale airdrop pays this many seconds of income.
+    public static let whaleChance = 0.05
+    public static let whaleIncomeSeconds = 3_600.0
+
+    // MARK: Daily
+    /// Quests issued each day.
+    public static let questsPerDay = 3
+    /// The login streak's rewards repeat after this many days.
+    public static let streakCycle = 7
+    /// Income history: one sample per interval, for a week.
+    public static let incomeSampleInterval: TimeInterval = 30 * 60
+    public static let maxIncomeSamples = 336
+
+    // MARK: Market
+    /// Token prices move every five minutes...
+    public static let marketTick: TimeInterval = 5 * 60
+    /// ...between these factors of a token's list price.
+    public static let marketPriceRange: ClosedRange<Double> = 0.35...2.8
+    /// Chance per tick that news breaks for a token.
+    public static let marketNewsChance = 0.004
+    /// News moves a price for up to this many ticks (six hours).
+    public static let marketNewsTicks = 72
+    /// Share of a sale the market keeps (Market Insider waives it).
+    public static let marketSellFee = 0.1
 
     // MARK: Mini-games
     /// A winning Blackjack hand pays this share of its stake's coin value in coins...
     public static let blackjackStakeShare = 0.5
     /// ...up to this many seconds of idle income, so bigger bets matter but can't run away.
-    public static let blackjackWinSeconds = 10.0
+    public static let blackjackWinSeconds = 60.0
     /// A natural pays this much more than an ordinary win.
     public static let blackjackNaturalBonus = 1.5
     /// A winning slots spin pays this share of its stake's coin value for each multiple of the bet...
     public static let slotsStakeShare = 0.05
     /// ...up to this many seconds of idle income for each multiple.
-    public static let slotsWinSeconds = 0.5
-    /// Arcade games pay this many seconds of idle income per point when they end.
-    public static let tetrisSecondsPerPoint = 0.02
-    public static let snakeSecondsPerPoint = 0.15
-    public static let brickBreakerSecondsPerPoint = 0.06
-    public static let bubbleSecondsPerPoint = 0.025
+    public static let slotsWinSeconds = 3.0
+    /// Arcade games pay this many seconds of idle income per point when they end...
+    public static let tetrisSecondsPerPoint = 0.06
+    public static let snakeSecondsPerPoint = 0.5
+    public static let brickBreakerSecondsPerPoint = 0.25
+    public static let bubbleSecondsPerPoint = 0.12
+    /// ...and this much more for a new best score.
+    public static let newBestBonus = 0.5
+    /// The day's first daily-challenge Tetris game pays this many times as much.
+    public static let dailyChallengeMultiplier = 2.0
 
     // MARK: Watch
     /// Upper bound on taps accepted from a single watch batch.

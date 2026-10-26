@@ -11,7 +11,7 @@ struct DebugToolsTests {
         #expect(game.coins == 2e10)
         #expect(game.stats.lifetimeCoins == 2e10)
         #expect(game.isRevealed(.solarFarm)) // Upgrades appear at a tenth of their price earned this run.
-        #expect(game.claimableForks == 1) // And a Hard Fork becomes available.
+        #expect(game.claimablePrestigePoints == 1) // And a prestige becomes available.
         game.debugAddCoins(-5)
         game.debugAddCoins(.nan)
         #expect(game.coins == 2e10)
@@ -24,7 +24,8 @@ struct DebugToolsTests {
         game.debugAddMiners(10)
         #expect(game.owned(.desktop) == 13)
         #expect(game.owned(.spaceColony) == 10)
-        #expect(game.stats.maxTotalMiners == 103)
+        #expect(game.owned(.galacticHashnet) == 10)
+        #expect(game.stats.maxTotalMiners == 133)
         game.debugGiveAllUpgrades()
         #expect(game.upgrades.count == UpgradeID.allCases.count)
         #expect(game.coins == 0)
@@ -38,6 +39,23 @@ struct DebugToolsTests {
         #expect(game.areStepsUnlocked)
         game.debugStartBullRun(at: t0)
         #expect(game.activeBoost(at: at(30))?.multiplier == Tuning.bullRunMultiplier)
+    }
+
+    @Test func prestigePointsAndDailies() {
+        var game = GameState.make()
+        game.debugAddPrestigePoints(40)
+        #expect(game.availablePrestigePoints == 40)
+        #expect(approx(game.prestigeBonus, 3))
+        game.refreshDaily(today: "2026-10-24", canWalk: false, at: t0)
+        #expect(game.claimableQuestCount == 0)
+        game.debugCompleteQuests()
+        #expect(game.claimableQuestCount == 3)
+        game.claimDailyReward(today: "2026-10-24", yesterday: "2026-10-23", at: t0)
+        #expect(!game.isDailyRewardReady(today: "2026-10-24"))
+        game.debugResetDaily(yesterday: "2026-10-23")
+        #expect(game.isDailyRewardReady(today: "2026-10-24"))
+        #expect(game.streakIfClaimed(today: "2026-10-24", yesterday: "2026-10-23") == 2) // The streak goes on.
+        #expect(game.daily.quests.isEmpty)
     }
 
     @Test func offlineMiningLevelsStayInRange() {

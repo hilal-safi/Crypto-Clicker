@@ -1,11 +1,13 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// The home screen, in order of importance: the balance, the coin to tap, what the player owns
-/// (miners and tokens), and steps once they are unlocked.
+/// The home screen, in order of importance: the balance, the coin to tap, a tip for new players,
+/// what the player owns (miners and tokens), and steps once they are unlocked.
 struct MineView: View {
     let openShop: () -> Void
+    let openPowerUps: () -> Void
     let openExchange: () -> Void
+    let openDaily: () -> Void
     @Environment(GameStore.self) private var store
     @State private var showingStats = false
     @State private var showingHelp = false
@@ -16,6 +18,7 @@ struct MineView: View {
     @State private var effects = Effects()
     /// Every digit or the short form, for the balance and tap values. Tapping the balance switches.
     @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
+    @AppStorage(Preferences.coinFinishKey) private var finish = CoinFinish.gold
 
     var body: some View {
         NavigationStack {
@@ -68,11 +71,21 @@ struct MineView: View {
             BalanceHeader(coins: game.coins, boost: game.activeBoost(at: now), showsExact: exactNumbers) {
                 withAnimation(.snappy) { exactNumbers.toggle() }
             }
-            CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers) {
-                store.tap()
+            CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers,
+                       finish: finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold) {
                 effects.rainCoins()
+                return store.tap()
             }
             .frame(minHeight: CoinButton.minimumSize, idealHeight: CoinButton.minimumSize, maxHeight: .infinity)
+            .overlay(alignment: .bottom) {
+                // Shown once a combo is clearly under way, so a few casual taps don't flicker it.
+                if store.comboStreak >= 5 {
+                    ComboPill(multiplier: store.comboMultiplier, isMax: store.comboMultiplier >= game.comboMaxMultiplier)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .animation(.snappy, value: store.comboStreak >= 5)
+            GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openDaily: openDaily)
             InventoryStrip(game: game, openShop: openShop, openExchange: openExchange)
             StepsCard(learnMore: { showingStepsIntro = true })
         }
@@ -179,17 +192,21 @@ private struct ExactBalance: View {
     }
 }
 
-/// The big tappable coin. Each tap pops a floating "+value" above it, in the same form as the
-/// balance: every digit, or the short form.
+/// The big tappable coin, in the finish the player picked. Each tap pops a floating "+value" above
+/// it (what that tap earned, combo included), in the same form as the balance: every digit, or the
+/// short form.
 struct CoinButton: View {
     /// The smallest the home screen lets the coin get; it grows to 320 points where there's room.
     static let minimumSize: CGFloat = 200
 
-    /// Coins one tap earns: always a whole number.
+    /// Coins one tap earns without a combo: always a whole number.
     let tapValue: Double
     let exactNumbers: Bool
-    let onTap: () -> Void
+    var finish = CoinFinish.gold
+    /// Taps the coin and returns what that tap earned.
+    let onTap: () -> Double
     @AppStorage(Preferences.hapticsKey) private var haptics = true
+    @AppStorage(Preferences.tapHapticStrengthKey) private var hapticStrength = TapHapticStrength.strong
     @AppStorage(Preferences.soundsKey) private var sounds = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var taps = 0
@@ -204,15 +221,13 @@ struct CoinButton: View {
     var body: some View {
         Button {
             taps += 1
-            onTap()
+            let earned = onTap()
             if sounds { TapSound.play() }
-            if !reduceMotion { spawnFloater() }
+            if !reduceMotion { spawnFloater(earned) }
         } label: {
-            Image("Coin")
-                .resizable()
-                .scaledToFit()
+            CoinArt(finish: finish)
                 .frame(maxWidth: 320, maxHeight: 320)
-                .shadow(color: Theme.bitcoin.opacity(0.45), radius: 28)
+                .shadow(color: finish.glow.opacity(0.45), radius: 28)
                 .shadow(color: .black.opacity(0.3), radius: 14, y: 10)
                 .contentShape(.circle)
         }
@@ -226,17 +241,19 @@ struct CoinButton: View {
             }
             .allowsHitTesting(false)
         }
-        .sensoryFeedback(.impact(weight: .light, intensity: 0.7), trigger: taps) { _, _ in haptics }
+        .sensoryFeedback(hapticStrength.feedback, trigger: taps) { _, _ in haptics }
         .accessibilityLabel("Mine coin")
         .accessibilityHint("Earns \(tapText) coins per tap")
     }
 
-    private var tapText: String {
-        exactNumbers ? CoinFormat.exact(tapValue) : CoinFormat.short(tapValue)
+    private var tapText: String { text(tapValue) }
+
+    private func text(_ value: Double) -> String {
+        exactNumbers ? CoinFormat.exact(value) : CoinFormat.short(value)
     }
 
-    private func spawnFloater() {
-        let floater = Floater(id: taps, text: "+\(tapText)", xOffset: .random(in: -70...70))
+    private func spawnFloater(_ earned: Double) {
+        let floater = Floater(id: taps, text: "+\(text(earned))", xOffset: .random(in: -70...70))
         floaters.append(floater)
         if floaters.count > 12 { floaters.removeFirst(floaters.count - 12) }
         Task {
@@ -273,5 +290,24 @@ private struct FloatingText: View {
             .onAppear {
                 withAnimation(.easeOut(duration: 0.9)) { risen = true }
             }
+    }
+}
+
+/// The combo under the coin while quick taps keep it going.
+struct ComboPill: View {
+    let multiplier: Double
+    let isMax: Bool
+
+    var body: some View {
+        Label("Combo ×\(String(format: "%.1f", multiplier))", systemImage: "flame.fill")
+            .font(.headline.monospacedDigit())
+            .foregroundStyle(.white)
+            .contentTransition(.numericText(value: multiplier))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background((isMax ? Color.red : Theme.accent).gradient, in: .capsule)
+            .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
+            .allowsHitTesting(false)
+            .accessibilityLabel("Combo, taps earn \(CoinFormat.multiplier(multiplier))")
     }
 }

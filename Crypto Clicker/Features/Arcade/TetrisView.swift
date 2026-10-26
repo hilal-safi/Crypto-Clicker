@@ -2,14 +2,18 @@ import SwiftUI
 import CryptoClickerKit
 
 /// Tetris with guideline rules from `TetrisGame`. Points pay coins when the game ends,
-/// including when the player leaves mid-game.
+/// including when the player leaves mid-game. With a `challengeDay` it is that day's challenge:
+/// the same pieces for everyone, and the day's first scoring game pays double.
 ///
 /// The controls sit in the space beside the well: on the left, force drop, pause and move left;
 /// on the right, drop, rotate and move right. The board also takes taps, drags and swipes.
 struct TetrisView: View {
+    var challengeDay: String? = nil
     @Environment(GameStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(Preferences.hapticsKey) private var haptics = true
+    /// Pieces come from this generator: seeded by the day for a challenge, at random otherwise.
+    @State private var rng = SeededGenerator(seed: .random(in: 0...UInt64.max))
     @State private var game = TetrisGame.fresh()
     @State private var isPlaying = false
     @State private var isPaused = false
@@ -75,7 +79,7 @@ struct TetrisView: View {
         .background { AppBackground(tint: .cyan) }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
-        .navigationTitle("Tetris")
+        .navigationTitle(challengeDay == nil ? "Tetris" : "Daily Challenge")
         .navigationBarTitleDisplayMode(.inline)
         .sensoryFeedback(.impact(weight: .heavy), trigger: game.lines) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.impact(weight: .medium), trigger: hardDrops) { _, _ in haptics }
@@ -88,7 +92,7 @@ struct TetrisView: View {
                 store.releaseArcadeRun()
             case .background:
                 isPaused = true
-                store.holdArcadeRun(ArcadeRun(game: .tetris, score: game.score, detail: game.lines))
+                store.holdArcadeRun(ArcadeRun(game: .tetris, score: game.score, detail: game.lines, challengeDay: challengeDay))
             default:
                 isPaused = true
             }
@@ -125,7 +129,15 @@ struct TetrisView: View {
                 GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.isNewBest,
                                     best: store.game.stats.tetrisBestScore, reward: result.reward,
-                                    details: ["\(CoinFormat.grouped(result.detail)) lines cleared"])
+                                    details: resultDetails(result))
+                }
+            } else if let challengeDay {
+                let bonus = store.game.isDailyChallengeBonusAvailable(today: challengeDay)
+                GamePanel(title: "Daily Challenge", buttonTitle: "Start", action: start) {
+                    GameIntro(best: store.game.dailyChallengeBest(today: challengeDay),
+                              howTo: bonus
+                                ? "Today's pieces are the same for everyone, every game. Your first game that scores pays double."
+                                : "You've had today's double reward. Play the same pieces again to beat your best.")
                 }
             } else {
                 GamePanel(title: "Tetris", buttonTitle: "Start", action: start) {
@@ -134,6 +146,12 @@ struct TetrisView: View {
                 }
             }
         }
+    }
+
+    private func resultDetails(_ result: GameResult) -> [String] {
+        var details = ["\(CoinFormat.grouped(result.detail)) lines cleared"]
+        if result.isChallengeBonus { details.append("Daily challenge: double reward") }
+        return details
     }
 
     /// Tap to rotate, drag sideways to move a column at a time, swipe down to hard drop.
@@ -176,7 +194,8 @@ struct TetrisView: View {
     }
 
     private func start() {
-        game = .fresh()
+        rng = SeededGenerator(seed: challengeDay.map(GameState.dailyChallengeSeed(day:)) ?? .random(in: 0...UInt64.max))
+        game = TetrisGame(using: &rng)
         result = nil
         isPaused = false
         isPlaying = true
@@ -194,9 +213,8 @@ struct TetrisView: View {
         }
     }
 
-    private func step(_ action: (inout TetrisGame, inout SystemRandomNumberGenerator) -> Void) {
+    private func step(_ action: (inout TetrisGame, inout SeededGenerator) -> Void) {
         guard isRunning else { return }
-        var rng = SystemRandomNumberGenerator()
         action(&game, &rng)
         if game.isOver { endGame() }
     }
@@ -205,9 +223,8 @@ struct TetrisView: View {
         guard isPlaying else { return }
         isPlaying = false
         isPaused = false
-        let previousBest = store.game.stats.tetrisBestScore
-        let reward = store.finishTetris(score: game.score, lines: game.lines)
-        result = GameResult(score: game.score, isNewBest: game.score > previousBest, reward: reward, detail: game.lines)
+        let payout = store.finishTetris(score: game.score, lines: game.lines, challengeDay: challengeDay)
+        result = GameResult(score: game.score, payout: payout, detail: game.lines)
     }
 }
 
@@ -215,9 +232,18 @@ struct TetrisView: View {
 struct GameResult: Equatable {
     let score: Int
     let isNewBest: Bool
+    let isChallengeBonus: Bool
     let reward: Double
     /// A game-specific number: lines, length, bricks or bubbles.
     let detail: Int
+
+    init(score: Int, payout: ArcadePayout, detail: Int) {
+        self.score = score
+        isNewBest = payout.isNewBest
+        isChallengeBonus = payout.isChallengeBonus
+        reward = payout.coins
+        self.detail = detail
+    }
 }
 
 extension TetrisGame {

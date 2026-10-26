@@ -1,7 +1,8 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// One miner tier. Takes plain values, so SwiftUI skips redrawing rows whose numbers did not change.
+/// One miner tier, with its next Mk upgrade once enough are owned. Takes plain values, so SwiftUI
+/// skips redrawing rows whose numbers did not change.
 struct MinerRow: View {
     let miner: MinerID
     let owned: Int
@@ -10,12 +11,29 @@ struct MinerRow: View {
     let buyCount: Int
     let price: Double
     let canAfford: Bool
+    /// Mk upgrades bought this run.
+    let mkLevel: Int
+    /// The Mk upgrade on offer, if one is.
+    let upgradeLevel: Int?
+    let upgradePrice: Double?
+    let canAffordUpgrade: Bool
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var purchases = 0
     @State private var refusals = 0
 
     var body: some View {
+        VStack(spacing: 12) {
+            mainRow
+            if let upgradeLevel, let upgradePrice {
+                Divider()
+                MinerUpgradeOffer(miner: miner, level: upgradeLevel, price: upgradePrice, canAfford: canAffordUpgrade)
+            }
+        }
+        .rowCard()
+    }
+
+    private var mainRow: some View {
         HStack(spacing: 14) {
             Text(miner.emoji)
                 .font(.system(size: 30))
@@ -30,6 +48,14 @@ struct MinerRow: View {
                         Text("×\(CoinFormat.grouped(owned))")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.subtext)
+                    }
+                    if mkLevel > 0 {
+                        Text("Mk \(MinerID.markName(level: mkLevel - 1))")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Theme.accent)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(Theme.accent.opacity(0.14), in: .capsule)
                     }
                 }
                 Text(owned > 0 ? "\(CoinFormat.rate(rate)) coins per second" : miner.blurb)
@@ -57,7 +83,47 @@ struct MinerRow: View {
             .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
             .accessibilityLabel("Buy \(buyCount) \(miner.name) for \(CoinFormat.cost(price)) coins")
         }
-        .rowCard()
+    }
+}
+
+/// A miner's next Mk upgrade: doubles that miner's output for the rest of the run.
+struct MinerUpgradeOffer: View {
+    let miner: MinerID
+    let level: Int
+    let price: Double
+    let canAfford: Bool
+    @Environment(GameStore.self) private var store
+    @AppStorage(Preferences.hapticsKey) private var haptics = true
+    @State private var purchases = 0
+    @State private var refusals = 0
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "arrow.up.forward.circle.fill")
+                .font(.title2)
+                .foregroundStyle(Theme.accent)
+                .frame(width: 52)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(miner.upgradeName(level: level))
+                    .font(.subheadline.weight(.semibold))
+                Text("Doubles what your \(miner.pluralName) mine")
+                    .font(.caption)
+                    .foregroundStyle(.subtext)
+            }
+            Spacer(minLength: 8)
+            Button {
+                if store.buyMinerUpgrade(miner) { purchases += 1 } else { refusals += 1 }
+            } label: {
+                Text(CoinFormat.cost(price))
+                    .font(.subheadline.weight(.bold).monospacedDigit())
+                    .frame(minWidth: 72)
+            }
+            .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
+            .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
+            .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
+            .accessibilityLabel("Buy \(miner.upgradeName(level: level)) for \(CoinFormat.cost(price)) coins")
+        }
     }
 }
 
@@ -80,21 +146,27 @@ struct MilestoneProgress: View {
     }
 }
 
-/// The next tier, hidden until the one before it is owned.
+/// The next tier, hidden until the one before it is owned. The last tiers also wait for the
+/// first prestige.
 struct LockedMinerRow: View {
     let miner: MinerID
+    let needsPrestige: Bool
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: "lock.fill")
+            Image(systemName: needsPrestige ? "sparkles" : "lock.fill")
                 .font(.title3)
-                .foregroundStyle(.subtext)
+                .foregroundStyle(needsPrestige ? Theme.accent : Theme.subtext)
                 .frame(width: 52, height: 52)
-                .background(Color.secondary.opacity(0.14), in: .circle)
+                .background((needsPrestige ? Theme.accent : Color.secondary).opacity(0.14), in: .circle)
             VStack(alignment: .leading, spacing: 4) {
                 Text("???")
                     .font(.headline)
-                if let previous = miner.previous {
+                if needsPrestige {
+                    Text("Prestige once to discover new miners beyond the stars.")
+                        .font(.subheadline)
+                        .foregroundStyle(.subtext)
+                } else if let previous = miner.previous {
                     Text("Buy a \(previous.name) to reveal")
                         .font(.subheadline)
                         .foregroundStyle(.subtext)

@@ -58,7 +58,8 @@ struct ToastView: View {
     }
 }
 
-/// A falling airdrop: catch it within 15 seconds for coins or a Bull Run.
+/// A falling airdrop: catch it before it goes for coins or a Bull Run. A rare whale is bigger,
+/// bluer and worth an hour of income.
 struct AirdropButton: View {
     let airdrop: Airdrop
     let action: () -> Void
@@ -66,39 +67,44 @@ struct AirdropButton: View {
     @State private var appeared = false
 
     var body: some View {
+        let isWhale = airdrop.kind == .whale
         Button(action: action) {
             HStack(spacing: 12) {
-                Text("🪂")
-                    .font(.title)
+                Text(isWhale ? "🐋" : "🪂")
+                    .font(isWhale ? .largeTitle : .title)
                     .rotationEffect(.degrees(appeared ? 8 : -8))
                     .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: appeared)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Airdrop incoming!")
+                    Text(isWhale ? "Whale airdrop!" : "Airdrop incoming!")
                         .font(.headline)
-                    Text("Tap to catch it")
+                    Text(isWhale ? "Catch it for an hour of mining" : "Tap to catch it")
                         .font(.subheadline)
                         .foregroundStyle(.subtext)
                 }
                 TimelineView(.periodic(from: .now, by: 0.25)) { context in
                     let remaining = max(0, airdrop.expiresAt.timeIntervalSince(context.date))
-                    CountdownRing(fraction: remaining / Tuning.airdropLifetime)
+                    CountdownRing(fraction: remaining / max(1, airdrop.lifetime), color: isWhale ? .cyan : Theme.bitcoin)
                 }
                 .padding(.leading, 6)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.vertical, isWhale ? 14 : 10)
             .contentShape(.capsule)
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.tint(Theme.bitcoin.opacity(0.35)).interactive(), in: .capsule)
-        .sensoryFeedback(.impact(weight: .medium), trigger: appeared) { _, new in haptics && new }
+        .glassEffect(.regular.tint((isWhale ? Color.cyan : Theme.bitcoin).opacity(0.35)).interactive(), in: .capsule)
+        .sensoryFeedback(isWhale ? .impact(weight: .heavy) : .impact(weight: .medium), trigger: appeared) { _, new in
+            haptics && new
+        }
         .onAppear { appeared = true }
-        .accessibilityLabel("Airdrop. Tap to catch it before it disappears.")
+        .accessibilityLabel(isWhale ? "Whale airdrop, worth an hour of mining. Tap to catch it before it disappears."
+                                    : "Airdrop. Tap to catch it before it disappears.")
     }
 }
 
 struct CountdownRing: View {
     let fraction: Double
+    var color = Theme.bitcoin
 
     var body: some View {
         ZStack {
@@ -106,7 +112,7 @@ struct CountdownRing: View {
                 .stroke(.secondary.opacity(0.3), lineWidth: 4)
             Circle()
                 .trim(from: 0, to: max(0, min(1, fraction)))
-                .stroke(Theme.bitcoin, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 0.25), value: fraction)
         }
