@@ -10,8 +10,9 @@ coins, and Hard Fork for permanent bonuses.
   Chromebook to a Space Mining Colony. Each unit costs 15% more than the last. Owning 25, 50, 100, 200
   and every 100 up to 1,000 of a miner doubles its output. Your miners and tokens show under the coin.
 - **Whole coins.** Every tap, step and reward pays whole coins. Amounts are written out in full up to
-  9,999 and abbreviated from 10,000 (12.3K, 1.25M, 12.5B). Tap the balance to see every digit (it scrolls
-  sideways when it's long); while you tap the coin, the balance shows every digit too.
+  9,999 and abbreviated from 10,000 (12.3K, 1.25M, 12.5B). Tap the balance to switch between the short
+  form and every digit (long numbers scroll sideways); the coins each tap earns show the same way, and
+  the choice is remembered.
 - **Taps that matter.** Tapping upgrades make every tap also earn a share of a second's production, up to
   a whole second's worth late in the game. Automatic taps are worth a quarter of a tap, so tapping
   yourself stays the fastest way to mine.

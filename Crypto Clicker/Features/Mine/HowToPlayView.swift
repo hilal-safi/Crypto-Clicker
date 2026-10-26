@@ -7,7 +7,7 @@ struct HowToPlayView: View {
 
     private let topics: [(icon: String, title: String, text: String)] = [
         ("hand.tap.fill", "Tap to mine",
-         "Tap the coin to earn coins. Tapping upgrades make every tap also earn a share of a second's production, up to a whole second's worth, so tapping always pays. While you tap, the balance shows every digit; tap the balance to keep it that way."),
+         "Tap the coin to earn coins. Tapping upgrades make every tap also earn a share of a second's production, up to a whole second's worth, so tapping always pays. Tap the balance to switch between the short form (12.3K) and every digit (12,345); what each tap earns shows the same way."),
         ("cpu", "Buy miners",
          "Miners earn coins every second while the app is open. Each one costs 15% more than the last. The miners you own show under the coin."),
         ("arrow.up.right.circle.fill", "Hit milestones",

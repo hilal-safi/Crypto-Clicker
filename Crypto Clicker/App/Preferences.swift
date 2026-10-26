@@ -7,6 +7,9 @@ enum Preferences {
     static let soundsKey = "enableSounds"
     /// The player closed the home screen's invitation to earn coins from steps.
     static let stepsInviteDismissedKey = "stepsInviteDismissed"
+    /// Show the balance and tap values with every digit (`12,345,678`) instead of the short form
+    /// (`12.3M`). Switched by tapping the balance.
+    static let exactNumbersKey = "showsExactNumbers"
 }
 
 enum Appearance: String, CaseIterable, Identifiable {

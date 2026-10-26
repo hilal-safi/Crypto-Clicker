@@ -21,10 +21,12 @@ public enum CoinFormat {
 
     /// Every digit of a balance, rounded down, with thousands separators: `12,345,678,901`.
     /// For huge balances this is the full decimal value of the stored number.
-    public static func exact(_ value: Double) -> String {
-        guard value.isFinite else { return value.isNaN ? "0" : (value > 0 ? "∞" : "-∞") }
-        if value < 0 { return "-" + exact(-value) }
-        return groupDigits(String(format: "%.0f", round(value, decimals: 0, .down)))
+    public static func exact(_ value: Double) -> String { written(value, .down) }
+
+    /// Every digit of a rate, rounded to the nearest coin: `1,234,567`. Under half a coin shows as `<1`.
+    public static func exactRate(_ value: Double) -> String {
+        if value > 0 && value < 0.5 { return "<1" }
+        return written(value, .nearest)
     }
 
     /// A price, rounded up so it is never understated.
@@ -77,6 +79,13 @@ public enum CoinFormat {
             result.append(character)
         }
         return result
+    }
+
+    /// A whole number written out in full with thousands separators.
+    static func written(_ value: Double, _ rounding: Rounding) -> String {
+        guard value.isFinite else { return value.isNaN ? "0" : (value > 0 ? "∞" : "-∞") }
+        if value < 0 { return "-" + written(-value, rounding) }
+        return groupDigits(String(format: "%.0f", round(value, decimals: 0, rounding)))
     }
 
     static func format(_ value: Double, _ rounding: Rounding) -> String {

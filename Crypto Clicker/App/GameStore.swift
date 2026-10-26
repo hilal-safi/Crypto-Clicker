@@ -35,8 +35,6 @@ final class GameStore {
     var isInGame = false
     /// A balance to show instead of the real one while a slot spin is still being revealed.
     var heldCoins: Double?
-    /// The player tapped the balance to see every digit instead of the short form.
-    var showsExactBalance = false
 
     private let saves = SaveStore()
     private let stepTracker = StepTracker()

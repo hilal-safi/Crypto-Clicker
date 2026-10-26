@@ -57,54 +57,26 @@ struct RootView: View {
 }
 
 /// The bar above the tab bar: the balance on every tab, or rates while on Mine (which shows
-/// the balance itself). Tapping the balance shows every digit. It collapses next to the tab bar
-/// when scrolling.
+/// the balance itself). Numbers use the form chosen by tapping the balance: every digit, or the
+/// short form. Long numbers scroll sideways. It collapses next to the tab bar when scrolling.
 struct BalanceAccessory: View {
     let isMineTab: Bool
     @Environment(GameStore.self) private var store
     @Environment(\.tabViewBottomAccessoryPlacement) private var placement
+    @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
 
     var body: some View {
         let game = store.game
         let now = Date.now
-        let balance = store.heldCoins ?? game.coins
         HStack(spacing: 12) {
-            if isMineTab && placement != .inline {
-                Label("\(CoinFormat.rate(game.idleIncome(at: now)))/s", systemImage: "bolt.fill")
-                Label("\(CoinFormat.short(game.tapValue(at: now))) per tap", systemImage: "hand.tap.fill")
-                    .foregroundStyle(.subtext)
-            } else if store.showsExactBalance && CoinFormat.exact(balance) != CoinFormat.short(balance) {
-                // Every digit, scrolling sideways when it doesn't fit. Tap to go back.
+            ViewThatFits(in: .horizontal) {
+                figures(game, at: now)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        CoinIcon(size: 20)
-                        Text(CoinFormat.exact(balance))
-                            .font(.headline.monospacedDigit())
-                            .contentTransition(.numericText(value: balance))
-                    }
-                    .fixedSize()
+                    figures(game, at: now)
                 }
                 .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-                .layoutPriority(1)
-                .onTapGesture { store.showsExactBalance = false }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(CoinFormat.exact(balance)) coins")
-                .accessibilityAddTraits(.isButton)
-                .accessibilityHint("Shows the short form")
-                .accessibilityAction(.default) { store.showsExactBalance = false }
-            } else {
-                Button {
-                    store.showsExactBalance = true
-                } label: {
-                    CoinAmount(amount: balance, font: .headline, iconSize: 20)
-                }
-                .buttonStyle(.plain)
-                .accessibilityHint("Shows every digit")
-                if placement != .inline {
-                    Text("+\(CoinFormat.rate(game.idleIncome(at: now)))/s")
-                        .foregroundStyle(.subtext)
-                }
             }
+            .layoutPriority(1) // Offered all the free width first, so it only scrolls when it must.
             Spacer(minLength: 0)
             if let boost = game.activeBoost(at: now) {
                 Label(CoinFormat.multiplier(boost.multiplier), systemImage: "flame.fill")
@@ -116,5 +88,42 @@ struct BalanceAccessory: View {
         .lineLimit(1)
         .padding(.horizontal, 16)
         .animation(.snappy, value: game.coins)
+    }
+
+    private func figures(_ game: GameState, at now: Date) -> some View {
+        let income = game.idleIncome(at: now)
+        let rate = exactNumbers ? CoinFormat.exactRate(income) : CoinFormat.rate(income)
+        return HStack(spacing: 12) {
+            if isMineTab && placement != .inline {
+                Label("\(rate)/s", systemImage: "bolt.fill")
+                Label("\(amount(game.tapValue(at: now))) per tap", systemImage: "hand.tap.fill")
+                    .foregroundStyle(.subtext)
+            } else {
+                let balance = store.heldCoins ?? game.coins
+                Button {
+                    withAnimation(.snappy) { exactNumbers.toggle() }
+                } label: {
+                    HStack(spacing: 4) {
+                        CoinIcon(size: 20)
+                        Text(amount(balance))
+                            .font(.headline.monospacedDigit())
+                            .contentTransition(.numericText(value: balance))
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(amount(balance)) coins")
+                .accessibilityHint(exactNumbers ? "Shows the short form" : "Shows every digit")
+                if placement != .inline {
+                    Text("+\(rate)/s")
+                        .foregroundStyle(.subtext)
+                }
+            }
+        }
+        .fixedSize()
+    }
+
+    /// A whole number of coins in the chosen form.
+    private func amount(_ value: Double) -> String {
+        exactNumbers ? CoinFormat.exact(value) : CoinFormat.short(value)
     }
 }

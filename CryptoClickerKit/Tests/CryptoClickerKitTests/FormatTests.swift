@@ -50,6 +50,14 @@ struct FormatTests {
         #expect(CoinFormat.exact(value) == expected)
     }
 
+    @Test(arguments: [
+        (0.0, "0"), (0.3, "<1"), (0.6, "1"), (2.5, "3"), (9_999.6, "10,000"), (1_234_567.4, "1,234,567"),
+        (1e18, "1,000,000,000,000,000,000"),
+    ])
+    func exactRate(_ value: Double, _ expected: String) {
+        #expect(CoinFormat.exactRate(value) == expected)
+    }
+
     @Test func exactWritesOutEveryDigitOfHugeBalances() {
         let text = CoinFormat.exact(1.7e308)
         #expect(text.hasPrefix("169,999,999,999,999,993"))

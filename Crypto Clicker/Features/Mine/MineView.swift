@@ -14,9 +14,8 @@ struct MineView: View {
     @State private var showingTestingTools = false
     #endif
     @State private var effects = Effects()
-    /// While the player taps the coin, the balance shows every digit, so each tap visibly counts.
-    @State private var isTappingCoin = false
-    @State private var tapStreak = 0
+    /// Every digit or the short form, for the balance and tap values. Tapping the balance switches.
+    @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
 
     var body: some View {
         NavigationStack {
@@ -66,18 +65,12 @@ struct MineView: View {
         let game = store.game
         let now = Date.now
         return VStack(spacing: 14) {
-            BalanceHeader(coins: game.coins, boost: game.activeBoost(at: now),
-                          showsExact: store.showsExactBalance || isTappingCoin) {
-                // Tapping the balance pins (or unpins) the exact view.
-                withAnimation(.snappy) {
-                    isTappingCoin = false
-                    store.showsExactBalance.toggle()
-                }
+            BalanceHeader(coins: game.coins, boost: game.activeBoost(at: now), showsExact: exactNumbers) {
+                withAnimation(.snappy) { exactNumbers.toggle() }
             }
-            CoinButton(tapValue: game.tapValue(at: now)) {
+            CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers) {
                 store.tap()
                 effects.rainCoins()
-                showExactWhileTapping()
             }
             .frame(minHeight: CoinButton.minimumSize, idealHeight: CoinButton.minimumSize, maxHeight: .infinity)
             InventoryStrip(game: game, openShop: openShop, openExchange: openExchange)
@@ -89,20 +82,6 @@ struct MineView: View {
         .frame(maxWidth: .infinity)
         .animation(.smooth, value: game.areStepsUnlocked)
         .animation(.smooth, value: game.steps.isConnected)
-    }
-
-    /// Shows every digit of the balance until three seconds after the last tap on the coin.
-    private func showExactWhileTapping() {
-        tapStreak += 1
-        let streak = tapStreak
-        if !isTappingCoin {
-            withAnimation(.snappy) { isTappingCoin = true }
-        }
-        Task {
-            try? await Task.sleep(for: .seconds(3))
-            guard streak == tapStreak else { return } // Another tap came in since.
-            withAnimation(.snappy) { isTappingCoin = false }
-        }
     }
 }
 
@@ -200,12 +179,15 @@ private struct ExactBalance: View {
     }
 }
 
-/// The big tappable coin. Each tap pops a floating "+value" above it.
+/// The big tappable coin. Each tap pops a floating "+value" above it, in the same form as the
+/// balance: every digit, or the short form.
 struct CoinButton: View {
     /// The smallest the home screen lets the coin get; it grows to 320 points where there's room.
     static let minimumSize: CGFloat = 200
 
+    /// Coins one tap earns: always a whole number.
     let tapValue: Double
+    let exactNumbers: Bool
     let onTap: () -> Void
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @AppStorage(Preferences.soundsKey) private var sounds = false
@@ -246,11 +228,15 @@ struct CoinButton: View {
         }
         .sensoryFeedback(.impact(weight: .light, intensity: 0.7), trigger: taps) { _, _ in haptics }
         .accessibilityLabel("Mine coin")
-        .accessibilityHint("Earns \(CoinFormat.short(tapValue)) coins per tap")
+        .accessibilityHint("Earns \(tapText) coins per tap")
+    }
+
+    private var tapText: String {
+        exactNumbers ? CoinFormat.exact(tapValue) : CoinFormat.short(tapValue)
     }
 
     private func spawnFloater() {
-        let floater = Floater(id: taps, text: "+\(CoinFormat.short(tapValue))", xOffset: .random(in: -70...70))
+        let floater = Floater(id: taps, text: "+\(tapText)", xOffset: .random(in: -70...70))
         floaters.append(floater)
         if floaters.count > 12 { floaters.removeFirst(floaters.count - 12) }
         Task {
@@ -276,8 +262,12 @@ private struct FloatingText: View {
         Text(text)
             .font(.title.weight(.heavy))
             .fontDesign(.rounded)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.4) // Long values shrink instead of running off the screen.
+            .frame(maxWidth: 300)
             .foregroundStyle(Theme.gold)
-            .shadow(color: .black.opacity(0.45), radius: 3, y: 1)
+            .shadow(color: .black.opacity(0.6), radius: 3, y: 1)
             .offset(y: risen ? -100 : 0)
             .opacity(risen ? 0 : 1)
             .onAppear {
