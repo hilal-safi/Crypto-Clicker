@@ -221,6 +221,13 @@ final class GameStore {
                        message: "\(CoinFormat.grouped(round.bet)) \(round.token.ticker) from an unfinished flight"))
             save()
         }
+        if let hand = game.finishPokerRound() {
+            show(Toast(icon: MiniGame.videoPoker.icon, title: "Video Poker hand played out",
+                       message: hand.isWin
+                        ? "\(hand.hand.name): \(CoinFormat.grouped(hand.tokensWon)) \(hand.token.ticker) back"
+                        : "\(hand.hand.name) on the hand you left"))
+            save()
+        }
         if let paid = game.payUnfinishedRun() {
             show(Toast(icon: paid.run.game.icon, title: "\(paid.run.game.name) paid out",
                        message: "+\(CoinFormat.short(paid.payout.coins)) coins for \(CoinFormat.grouped(paid.run.score)) points"))
@@ -522,6 +529,35 @@ final class GameStore {
         let result = perform { game, _ in game.settleMoon(after: seconds) }
         if result != nil { save() }
         return result
+    }
+
+    /// Deals a Video Poker hand: the bet is taken and the hand saved at once, so a hand cut short
+    /// by the app closing is played out (with the suggested holds) on the next launch.
+    @discardableResult
+    func dealPoker(_ token: TokenID, bet: Int) -> PokerRound? {
+        let round = perform { game, _ in
+            var rng = SystemRandomNumberGenerator()
+            return game.dealPoker(token, bet: bet, using: &rng)
+        }
+        if round != nil { save() }
+        return round
+    }
+
+    /// Replaces the cards not held and pays the hand.
+    @discardableResult
+    func drawPoker(holding held: Set<Int>) -> PokerResult? {
+        let result = perform { game, _ in game.drawPoker(holding: held) }
+        if result != nil { save() }
+        return result
+    }
+
+    @discardableResult
+    func finishTokenSwap(score: Int, tokens: Int, bestChain: Int, blasts: Int) -> ArcadePayout {
+        let payout = perform { game, _ in
+            game.finishTokenSwap(score: score, tokens: tokens, bestChain: bestChain, blasts: blasts)
+        }
+        save()
+        return payout
     }
 
     @discardableResult

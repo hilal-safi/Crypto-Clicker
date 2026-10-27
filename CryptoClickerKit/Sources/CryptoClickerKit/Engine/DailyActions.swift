@@ -23,6 +23,8 @@ extension GameState {
         case .score2048: Double(stats.merge2048Points)
         case .cashOutMoon: Double(stats.moonCashOuts)
         case .hitPumpCoins: Double(stats.pumpDumpCoinsHit)
+        case .winPoker: Double(stats.pokerWins)
+        case .matchTokens: Double(stats.tokenSwapTokens)
         }
     }
 
@@ -54,20 +56,28 @@ extension GameState {
             case .score2048: isUnlocked(.merge2048)
             case .cashOutMoon: isUnlocked(.moon)
             case .hitPumpCoins: isUnlocked(.pumpDump)
+            case .winPoker: isUnlocked(.videoPoker)
+            case .matchTokens: isUnlocked(.tokenSwap)
             }
         }
     }
 
+    /// The day the game began: the daily reward, quests and challenge start the next day, so the
+    /// first minutes are spent learning to mine rather than claiming hundreds of coins.
+    public func isFirstDay(_ today: String) -> Bool { daily.firstDay == today }
+
     /// Today's quests or challenge haven't been issued yet.
     public func needsDailyRefresh(today: String) -> Bool {
-        daily.questDay != today || (daily.challenge?.day != today && !eligibleChallengeKinds().isEmpty)
+        guard !isFirstDay(today) else { return false }
+        return daily.questDay != today || (daily.challenge?.day != today && !eligibleChallengeKinds().isEmpty)
     }
 
-    /// Issues `today`'s quests and challenge if they haven't been issued yet. Quests finished on an
-    /// earlier day but never claimed are paid first, so nothing earned is lost overnight. Returns
-    /// those payouts.
+    /// Issues `today`'s quests and challenge if they haven't been issued yet (from the second day
+    /// on). Quests finished on an earlier day but never claimed are paid first, so nothing earned is
+    /// lost overnight. Returns those payouts.
     @discardableResult
     public mutating func refreshDaily(today: String, canWalk: Bool, at now: Date) -> [RewardPayout] {
+        guard !isFirstDay(today) else { return [] }
         refreshChallenge(today: today)
         guard daily.questDay != today else { return [] }
         var paid: [RewardPayout] = []
@@ -111,6 +121,8 @@ extension GameState {
         case .score2048: [2_000, 5_000, 10_000]
         case .cashOutMoon: [3, 5, 10]
         case .hitPumpCoins: [30, 60, 100]
+        case .winPoker: [3, 5, 8]
+        case .matchTokens: [100, 200, 300]
         }
         return choices.randomElement(using: &rng) ?? choices[0]
     }
@@ -155,7 +167,8 @@ extension GameState {
 
     // MARK: Daily reward
 
-    public func isDailyRewardReady(today: String) -> Bool { daily.lastRewardDay != today }
+    /// A reward can be claimed once a day, from the game's second day on.
+    public func isDailyRewardReady(today: String) -> Bool { daily.lastRewardDay != today && !isFirstDay(today) }
 
     /// The streak as of `today`: it is broken once a whole day passes without a claim.
     public func currentStreak(today: String, yesterday: String) -> Int {

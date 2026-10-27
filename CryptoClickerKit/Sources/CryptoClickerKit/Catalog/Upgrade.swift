@@ -32,7 +32,7 @@ public enum UpgradeCategory: String, CaseIterable, Sendable {
 public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
     case coinClicker, upgradedClicker, automatedClicker, mechanicalKeyboard, roboticFinger, neuralInterface
     case hapticEngine, satoshisTouch
-    case overclocking, liquidCooling, fiberUplink, solarFarm, fusionReactor, dysonSwarm
+    case overclocking, liquidCooling, fiberUplink, asicChips, solarFarm, fusionReactor, geothermalPlant, dysonSwarm
     case stepBooster, upgradedStepBooster, ultimateStepBooster
     case bonusReward1, bonusReward2, bonusReward3
 
@@ -51,8 +51,10 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .overclocking: "Overclocking"
         case .liquidCooling: "Liquid Cooling"
         case .fiberUplink: "Fiber Uplink"
+        case .asicChips: "ASIC Chips"
         case .solarFarm: "Solar Farm"
         case .fusionReactor: "Fusion Reactor"
+        case .geothermalPlant: "Geothermal Plant"
         case .dysonSwarm: "Dyson Swarm"
         case .stepBooster: "Step Booster"
         case .upgradedStepBooster: "Upgraded Step Booster"
@@ -77,8 +79,10 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .overclocking: "speedometer"
         case .liquidCooling: "drop.fill"
         case .fiberUplink: "network"
+        case .asicChips: "memorychip.fill"
         case .solarFarm: "sun.max.fill"
         case .fusionReactor: "atom"
+        case .geothermalPlant: "mountain.2.fill"
         case .dysonSwarm: "sun.dust.fill"
         case .stepBooster: "figure.walk"
         case .upgradedStepBooster: "figure.run"
@@ -95,40 +99,45 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
     /// The price before the pace adjustment.
     public var listCost: Double {
         switch self {
-        case .coinClicker: 50
-        case .upgradedClicker: 1_000
-        case .automatedClicker: 10_000
-        case .mechanicalKeyboard: 250_000
-        case .roboticFinger: 10_000_000
+        case .coinClicker: 100
+        case .upgradedClicker: 2_000
+        case .automatedClicker: 20_000
+        case .mechanicalKeyboard: 400_000
+        case .roboticFinger: 12_000_000
         case .neuralInterface: 250_000_000
         case .hapticEngine: 25_000_000_000
         case .satoshisTouch: 2_500_000_000_000
-        case .overclocking: 5_000
-        case .liquidCooling: 500_000
+        case .overclocking: 8_000
+        case .liquidCooling: 800_000
         case .fiberUplink: 50_000_000
+        case .asicChips: 500_000_000
         case .solarFarm: 5_000_000_000
         case .fusionReactor: 500_000_000_000
+        case .geothermalPlant: 5_000_000_000_000
         case .dysonSwarm: 50_000_000_000_000
         case .stepBooster: 25_000
         case .upgradedStepBooster: 2_500_000
         case .ultimateStepBooster: 2_500_000_000
-        case .bonusReward1: 50_000_000 // About when the first games unlock.
-        case .bonusReward2: 50_000_000_000
-        case .bonusReward3: 5_000_000_000_000
+        case .bonusReward1: 50_000
+        case .bonusReward2: 50_000_000
+        case .bonusReward3: 50_000_000_000
         }
     }
 
     public var effect: UpgradeEffect {
         switch self {
         case .coinClicker: .tapFlat(1)
-        case .upgradedClicker: .tapPercent(0.10)
+        case .upgradedClicker: .tapPercent(0.08)
         case .automatedClicker: .autoTaps(1)
-        case .mechanicalKeyboard: .tapPercent(0.15)
+        case .mechanicalKeyboard: .tapPercent(0.12)
         case .roboticFinger: .autoTaps(1)
         case .neuralInterface: .tapPercent(0.20)
         case .hapticEngine: .tapPercent(0.25)
-        case .satoshisTouch: .tapPercent(0.30)
-        case .overclocking, .liquidCooling, .fiberUplink, .solarFarm, .fusionReactor, .dysonSwarm: .production(2)
+        case .satoshisTouch: .tapPercent(0.35)
+        // The first two are a little weaker, so the opening goes slower.
+        case .overclocking, .liquidCooling: .production(1.75)
+        case .fiberUplink, .solarFarm, .fusionReactor, .dysonSwarm: .production(2)
+        case .asicChips, .geothermalPlant: .production(1.5)
         case .stepBooster, .upgradedStepBooster: .steps(2)
         case .ultimateStepBooster: .steps(3)
         case .bonusReward1: .miniGames(1.25)

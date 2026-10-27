@@ -156,7 +156,7 @@ struct MiniGameRewardTests {
             #expect(game.isUnlocked(miniGame))
         }
         #expect(game.coins == 0)
-        #expect(MiniGame.allCases.filter(\.isCasino) == [.blackjack, .slots, .moon])
+        #expect(MiniGame.allCases.filter(\.isCasino) == [.blackjack, .slots, .moon, .videoPoker])
     }
 
     @Test func rewardsHaveAFloorOnDayOne() {

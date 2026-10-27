@@ -75,6 +75,24 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var pumpDumpCoinsHit = 0
     public internal(set) var pumpDumpScamsHit = 0
     public internal(set) var pumpDumpBestCombo = 0
+    public internal(set) var pokerHands = 0
+    /// Hands that paid (a pair of jacks or better).
+    public internal(set) var pokerWins = 0
+    /// Tokens bet and paid at Video Poker, valued in coins at list price.
+    public internal(set) var pokerWagered: Double = 0
+    public internal(set) var pokerPaidOut: Double = 0
+    /// The best hand made, as a `PokerHand` raw value (0 before any).
+    public internal(set) var pokerBestHand = 0
+    public internal(set) var pokerRoyals = 0
+    /// The most a hand has won, in coins: profit in tokens at list price plus the coin bonus.
+    public internal(set) var pokerBiggestWin: Double = 0
+    public internal(set) var tokenSwapGames = 0
+    public internal(set) var tokenSwapBestScore = 0
+    /// Tokens matched in Token Swap over all games.
+    public internal(set) var tokenSwapTokens = 0
+    /// The most waves one swap set off.
+    public internal(set) var tokenSwapBestChain = 0
+    public internal(set) var tokenSwapBlasts = 0
 
     public internal(set) var tokensBought: [TokenID: Int] = [:]
     public internal(set) var tokensSold = 0
@@ -112,6 +130,8 @@ public struct Stats: Codable, Equatable, Sendable {
         case merge2048Games, merge2048BestScore, merge2048BestTile, merge2048Points
         case moonFlights, moonCashOuts, moonBestMultiplier, moonWagered, moonPaidOut, moonBiggestWin
         case pumpDumpGames, pumpDumpBestScore, pumpDumpCoinsHit, pumpDumpScamsHit, pumpDumpBestCombo
+        case pokerHands, pokerWins, pokerWagered, pokerPaidOut, pokerBestHand, pokerRoyals, pokerBiggestWin
+        case tokenSwapGames, tokenSwapBestScore, tokenSwapTokens, tokenSwapBestChain, tokenSwapBlasts
         case tokensBought, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
         case prestiges = "forksPerformed" // Saved under its old Hard Fork name.
         case earnedFromTaps, earnedFromIdle, earnedOffline, earnedFromSteps, earnedFromGames, earnedFromAirdrops
@@ -191,6 +211,18 @@ public struct Stats: Codable, Equatable, Sendable {
         pumpDumpCoinsHit = c.value(.pumpDumpCoinsHit, default: 0)
         pumpDumpScamsHit = c.value(.pumpDumpScamsHit, default: 0)
         pumpDumpBestCombo = c.value(.pumpDumpBestCombo, default: 0)
+        pokerHands = c.value(.pokerHands, default: 0)
+        pokerWins = c.value(.pokerWins, default: 0)
+        pokerWagered = c.value(.pokerWagered, default: 0)
+        pokerPaidOut = c.value(.pokerPaidOut, default: 0)
+        pokerBestHand = c.value(.pokerBestHand, default: 0)
+        pokerRoyals = c.value(.pokerRoyals, default: 0)
+        pokerBiggestWin = c.value(.pokerBiggestWin, default: 0)
+        tokenSwapGames = c.value(.tokenSwapGames, default: 0)
+        tokenSwapBestScore = c.value(.tokenSwapBestScore, default: 0)
+        tokenSwapTokens = c.value(.tokenSwapTokens, default: 0)
+        tokenSwapBestChain = c.value(.tokenSwapBestChain, default: 0)
+        tokenSwapBlasts = c.value(.tokenSwapBlasts, default: 0)
         challengesCompleted = c.value(.challengesCompleted, default: 0)
     }
 
@@ -267,6 +299,18 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(pumpDumpCoinsHit, forKey: .pumpDumpCoinsHit)
         try c.encode(pumpDumpScamsHit, forKey: .pumpDumpScamsHit)
         try c.encode(pumpDumpBestCombo, forKey: .pumpDumpBestCombo)
+        try c.encode(pokerHands, forKey: .pokerHands)
+        try c.encode(pokerWins, forKey: .pokerWins)
+        try c.encode(pokerWagered, forKey: .pokerWagered)
+        try c.encode(pokerPaidOut, forKey: .pokerPaidOut)
+        try c.encode(pokerBestHand, forKey: .pokerBestHand)
+        try c.encode(pokerRoyals, forKey: .pokerRoyals)
+        try c.encode(pokerBiggestWin, forKey: .pokerBiggestWin)
+        try c.encode(tokenSwapGames, forKey: .tokenSwapGames)
+        try c.encode(tokenSwapBestScore, forKey: .tokenSwapBestScore)
+        try c.encode(tokenSwapTokens, forKey: .tokenSwapTokens)
+        try c.encode(tokenSwapBestChain, forKey: .tokenSwapBestChain)
+        try c.encode(tokenSwapBlasts, forKey: .tokenSwapBlasts)
         try c.encode(challengesCompleted, forKey: .challengesCompleted)
     }
 }

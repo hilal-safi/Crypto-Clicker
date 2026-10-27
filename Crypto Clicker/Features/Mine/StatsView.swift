@@ -147,6 +147,11 @@ struct StatsView: View {
                     row("Best cash-out", stats.moonCashOuts > 0 ? CoinFormat.flight(stats.moonBestMultiplier) : "None yet")
                     row("Biggest Moon win", amount(stats.moonBiggestWin))
                     row("Moon bet · paid", "\(amount(stats.moonWagered)) · \(amount(stats.moonPaidOut))\(returnRate(stats.moonPaidOut, of: stats.moonWagered))")
+                    row("Video Poker hands", "\(CoinFormat.grouped(stats.pokerHands)) · \(CoinFormat.grouped(stats.pokerWins)) won\(winRate(stats.pokerWins, of: stats.pokerHands))")
+                    row("Best poker hand", stats.pokerHands > 0 ? (PokerHand(rawValue: stats.pokerBestHand) ?? .nothing).name : "None yet")
+                    row("Royal flushes", CoinFormat.grouped(stats.pokerRoyals))
+                    row("Biggest poker win", amount(stats.pokerBiggestWin))
+                    row("Poker bet · paid", "\(amount(stats.pokerWagered)) · \(amount(stats.pokerPaidOut))\(returnRate(stats.pokerPaidOut, of: stats.pokerWagered))")
                     Text("Bets and payouts count tokens at their list price.")
                         .font(.footnote)
                         .foregroundStyle(.subtext)
@@ -159,6 +164,7 @@ struct StatsView: View {
                     row("Brick Breaker", "Best \(CoinFormat.grouped(stats.brickBreakerBestScore)) · level \(CoinFormat.grouped(stats.brickBreakerBestLevel)) · \(CoinFormat.grouped(stats.bricksBroken)) bricks · \(CoinFormat.grouped(stats.brickBreakerGames)) games")
                     row("Bubble Blaster", "Best \(CoinFormat.grouped(stats.bubbleBestScore)) · best shot \(CoinFormat.grouped(stats.bubbleBestShot)) · \(CoinFormat.grouped(stats.bubblesPopped)) popped · \(CoinFormat.grouped(stats.bubbleGames)) games")
                     row("Pump and Dump", "Best \(CoinFormat.grouped(stats.pumpDumpBestScore)) · combo \(CoinFormat.grouped(stats.pumpDumpBestCombo)) · \(CoinFormat.grouped(stats.pumpDumpCoinsHit)) coins hit · \(CoinFormat.grouped(stats.pumpDumpScamsHit)) scams · \(CoinFormat.grouped(stats.pumpDumpGames)) rounds")
+                    row("Token Swap", "Best \(CoinFormat.grouped(stats.tokenSwapBestScore)) · chain of \(CoinFormat.grouped(stats.tokenSwapBestChain)) · \(CoinFormat.grouped(stats.tokenSwapTokens)) tokens · \(CoinFormat.grouped(stats.tokenSwapBlasts)) blasts · \(CoinFormat.grouped(stats.tokenSwapGames)) rounds")
                     row("Games played", CoinFormat.grouped(gamesPlayed))
                 }
             }

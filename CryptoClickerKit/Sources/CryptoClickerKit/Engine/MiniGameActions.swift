@@ -193,6 +193,66 @@ extension GameState {
         return round
     }
 
+    // MARK: Video Poker
+
+    /// Coins a hand pays on top of its tokens for two pair or better: a share of the stake's coin
+    /// value for each multiple of the bet, up to `Tuning.pokerWinSeconds` of income per multiple.
+    public func pokerBonus(bet: Int, token: TokenID, hand: PokerHand) -> Double {
+        let multiple = hand.payout
+        guard multiple >= 2 else { return 0 }
+        let stakeValue = Double(max(0, bet)) * token.price
+        let perMultiple = min(stakeValue * Tuning.pokerStakeShare, Tuning.pokerWinSeconds * rewardIncome)
+        return Self.wholeCoins(perMultiple * Double(multiple) * miniGameMultiplier)
+    }
+
+    /// The smallest bet in `token` that earns the full coin bonus.
+    public func pokerBetForFullBonus(_ token: TokenID) -> Int {
+        let needed = Tuning.pokerWinSeconds * rewardIncome / Tuning.pokerStakeShare / token.price
+        return max(1, Int(min(needed.rounded(.up), 1e9))) // Fits a 32-bit Int on Apple Watch.
+    }
+
+    /// Takes the bet and deals five cards. Fails if a hand is already dealt or the player can't
+    /// cover the bet.
+    @discardableResult
+    public mutating func dealPoker<R: RandomNumberGenerator>(_ token: TokenID, bet: Int, using rng: inout R) -> PokerRound? {
+        guard pokerRound == nil, bet > 0, tokenCount(token) >= bet else { return nil }
+        tokens[token] = tokenCount(token) - bet
+        let dealt = VideoPoker.deal(using: &rng)
+        let round = PokerRound(token: token, bet: bet, cards: dealt.cards, drawPile: dealt.drawPile)
+        pokerRound = round
+        stats.pokerHands += 1
+        stats.pokerWagered += Double(bet) * token.price
+        return round
+    }
+
+    /// Replaces every card not in `held` (positions 0 to 4) and pays the hand: the bet times the pay
+    /// table in tokens, plus a coin bonus for two pair or better.
+    @discardableResult
+    public mutating func drawPoker(holding held: Set<Int>) -> PokerResult? {
+        guard let round = pokerRound else { return nil }
+        pokerRound = nil
+        let cards = VideoPoker.draw(round.cards, holding: held, from: round.drawPile)
+        let hand = VideoPoker.evaluate(cards)
+        let won = Int(min(Double(round.bet) * Double(hand.payout), Double(Int32.max)))
+        giveTokens(round.token, amount: won)
+        let bonus = pokerBonus(bet: round.bet, token: round.token, hand: hand)
+        credit(bonus, source: .games)
+        if won > 0 { stats.pokerWins += 1 }
+        stats.pokerBestHand = max(stats.pokerBestHand, hand.rawValue)
+        if hand == .royalFlush { stats.pokerRoyals += 1 }
+        stats.pokerPaidOut += Double(won) * round.token.price
+        stats.pokerBiggestWin = max(stats.pokerBiggestWin, Double(won - round.bet) * round.token.price + bonus)
+        recordChallenge(.videoPoker, value: hand >= .twoPair ? 1 : 0, scored: hand >= .twoPair)
+        return PokerResult(token: round.token, bet: round.bet, cards: cards, hand: hand, tokensWon: won, bonus: bonus)
+    }
+
+    /// Finishes a hand the app closed in the middle of, holding what the suggested strategy holds.
+    @discardableResult
+    public mutating func finishPokerRound() -> PokerResult? {
+        guard let round = pokerRound else { return nil }
+        return drawPoker(holding: VideoPoker.suggestedHolds(round.cards))
+    }
+
     // MARK: Arcade games
 
     /// Remembers a game in progress as the app goes to the background (replacing an older one).
@@ -217,7 +277,8 @@ extension GameState {
         case .bubbleBlaster: finishBubbleBlaster(score: run.score, popped: run.detail, bestShot: run.extra)
         case .merge2048: finishMerge2048(score: run.score, bestTile: run.detail)
         case .pumpDump: finishPumpDump(score: run.score, coinsHit: run.detail, bestCombo: run.extra)
-        case .blackjack, .slots, .moon: ArcadePayout(coins: 0, isNewBest: false)
+        case .tokenSwap: finishTokenSwap(score: run.score, tokens: run.detail, bestChain: run.extra)
+        case .blackjack, .slots, .moon, .videoPoker: ArcadePayout(coins: 0, isNewBest: false)
         }
         unfinishedRun = nil
         return (run, payout)
@@ -310,6 +371,18 @@ extension GameState {
         stats.pumpDumpScamsHit += max(0, scamsHit)
         stats.pumpDumpBestCombo = max(stats.pumpDumpBestCombo, bestCombo)
         return payArcade(.pumpDump, score: score, isNewBest: isNewBest, challengeValue: score)
+    }
+
+    /// `tokens` is how many tokens were matched; `bestChain` the most waves one swap set off.
+    @discardableResult
+    public mutating func finishTokenSwap(score: Int, tokens: Int, bestChain: Int, blasts: Int = 0) -> ArcadePayout {
+        let isNewBest = score > stats.tokenSwapBestScore
+        stats.tokenSwapGames += 1
+        stats.tokenSwapBestScore = max(stats.tokenSwapBestScore, score)
+        stats.tokenSwapTokens += max(0, tokens)
+        stats.tokenSwapBestChain = max(stats.tokenSwapBestChain, bestChain)
+        stats.tokenSwapBlasts += max(0, blasts)
+        return payArcade(.tokenSwap, score: score, isNewBest: isNewBest, challengeValue: score)
     }
 
     /// Pays a finished game for `paidPoints` (its score, unless the game says otherwise): a new best

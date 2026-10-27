@@ -48,12 +48,14 @@ struct ArcadeView: View {
                 case .blackjack: BlackjackView()
                 case .slots: SlotsView()
                 case .moon: MoonView()
+                case .videoPoker: VideoPokerView()
                 case .tetris: TetrisView()
                 case .merge2048: Merge2048View()
                 case .snake: SnakeView()
                 case .brickBreaker: BrickBreakerView()
                 case .bubbleBlaster: BubbleBlasterView()
                 case .pumpDump: PumpDumpView()
+                case .tokenSwap: TokenSwapView()
                 }
             }
             .navigationDestination(for: TodaysPieces.self) { pieces in

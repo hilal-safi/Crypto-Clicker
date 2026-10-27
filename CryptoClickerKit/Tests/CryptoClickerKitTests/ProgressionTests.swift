@@ -11,11 +11,11 @@ struct PrestigeTests {
         return state
     }
 
-    /// Lifetime coins worth `points`³ of potential: the first point needs 11 billion coins.
+    /// Lifetime coins worth `points`³ of potential: the first point needs 15 billion coins.
     func cubed(_ points: Double) -> Double { points * points * points * Tuning.prestigeScale }
 
     @Test func potentialGrowsWithTheCubeRootOfLifetimeCoins() {
-        #expect(Tuning.prestigeScale == 1.265e10)
+        #expect(Tuning.prestigeScale == 1.5e10)
         #expect(state(lifetime: 0).prestigePotential == 0)
         #expect(state(lifetime: cubed(1) - 1).prestigePotential == 0)
         #expect(state(lifetime: cubed(1)).prestigePotential == 1)
@@ -118,9 +118,10 @@ struct PrestigeTests {
     }
 
     @Test func savesFromTheHardForkVersionKeepTheirPoints() throws {
-        // Versions 1 and 2 counted potential against 10 billion coins, version 3 against 11 billion;
-        // it now takes 12.65 billion. 5 points' worth then (1.25 or 1.375 trillion coins) is 4
-        // points' worth now, so the same lifetime coins have exactly as much left to claim as before.
+        // Versions 1 and 2 counted potential against 10 billion coins, version 3 against 11 billion and
+        // version 4 against 12.65 billion; it now takes 15 billion. 5 points' worth then (1.25 to 1.58
+        // trillion coins) is 4 points' worth now, so the same lifetime coins have exactly as much left
+        // to claim as before.
         let json = #"{"forks": 4, "forkPointsClaimed": 5, "runForkMultiplier": 1.5, "stats": {"forksPerformed": 2}}"#
         let state = try GameCoding.decoder().decode(GameState.self, from: Data(json.utf8))
         #expect(state.prestigePoints == 4)
@@ -133,8 +134,12 @@ struct PrestigeTests {
         let version3 = #"{"version": 3, "forkPointsClaimed": 5}"#
         #expect(try GameCoding.decoder().decode(GameState.self, from: Data(version3.utf8)).prestigePotentialClaimed == 4)
         let version3Big = #"{"version": 3, "forkPointsClaimed": 100}"#
-        #expect(try GameCoding.decoder().decode(GameState.self, from: Data(version3Big.utf8)).prestigePotentialClaimed == 95)
-        let current = #"{"version": 4, "forkPointsClaimed": 5}"#
+        #expect(try GameCoding.decoder().decode(GameState.self, from: Data(version3Big.utf8)).prestigePotentialClaimed == 90)
+        let version4 = #"{"version": 4, "forkPointsClaimed": 5}"#
+        #expect(try GameCoding.decoder().decode(GameState.self, from: Data(version4.utf8)).prestigePotentialClaimed == 4)
+        let version4Big = #"{"version": 4, "forkPointsClaimed": 100}"#
+        #expect(try GameCoding.decoder().decode(GameState.self, from: Data(version4Big.utf8)).prestigePotentialClaimed == 94)
+        let current = #"{"version": 5, "forkPointsClaimed": 5}"#
         #expect(try GameCoding.decoder().decode(GameState.self, from: Data(current.utf8)).prestigePotentialClaimed == 5)
     }
 }
@@ -176,11 +181,11 @@ struct PerkTests {
                 #expect(required.branch == perk.branch)
             }
         }
-        #expect(PerkID.allCases.reduce(0) { $0 + $1.cost } == 6_363)
+        #expect(PerkID.allCases.reduce(0) { $0 + $1.cost } == 30_363)
     }
 
     @Test func keepPerksSurviveAPrestige() {
-        var game = rich(points: 2_000)
+        var game = rich(points: 10_000)
         for perk in [PerkID.headStart, .blueprints, .engineeringTeam, .strongFingers, .muscleMemory] {
             #expect(game.buyPerk(perk) == true)
         }
@@ -195,7 +200,7 @@ struct PerkTests {
     }
 
     @Test func miningPerks() {
-        var game = rich(points: 10_000)
+        var game = rich(points: 25_000)
         #expect(game.price(of: .server, quantity: 3) == GameState.wholePrice(MinerID.server.baseCost * (pow(1.15, 3) - 1) / 0.15))
         #expect(game.buyPerk(.headStart) == true)
         #expect(game.buyPerk(.bulkDiscount) == true)
@@ -403,17 +408,17 @@ struct AirdropTests {
 struct AchievementTests {
     @Test func catalogIsWellFormed() {
         let all = AchievementCatalog.all
-        #expect(all.count == 51)
+        #expect(all.count == 53)
         #expect(Set(all.map(\.id)).count == all.count)
-        #expect(AchievementCatalog.tierCount == 204)
+        #expect(AchievementCatalog.tierCount == 212)
         for achievement in all {
             #expect(achievement.thresholds.count == 4)
             #expect(achievement.thresholds == achievement.thresholds.sorted())
             #expect(Set(achievement.thresholds).count == 4)
             #expect((achievement.emoji == nil) != (achievement.imageName == nil))
         }
-        #expect(all.first { $0.id == "upgrader" }?.thresholds.last == 20) // Every upgrade.
-        #expect(UpgradeID.allCases.count == 20)
+        #expect(all.first { $0.id == "upgrader" }?.thresholds.last == 22) // Every upgrade.
+        #expect(UpgradeID.allCases.count == 22)
         #expect(all.first { $0.id == "own-spaceColony" }?.detail == "Own Space Mining Colonies at once")
         // Every coin finish can be unlocked.
         #expect(CoinFinish.allCases.allSatisfy { $0.starsNeeded <= AchievementCatalog.tierCount })

@@ -80,11 +80,11 @@ struct TimeTests {
         #expect(report.sources.first { $0.id == "desktop" }?.count == 10)
         #expect(report.sources.first { $0.id == "autoTaps" }?.count == 1)
         #expect(approx(report.sources.reduce(0) { $0 + $1.coins }, report.earned))
-        #expect(approx(report.multipliers.upgrades, 2))
+        #expect(approx(report.multipliers.upgrades, 1.75))
         #expect(approx(report.multipliers.prestige, 1.1))
         #expect(approx(report.multipliers.achievements, 1.02))
         #expect(report.multipliers.difficulty == 1)
-        #expect(approx(report.multipliers.total, 2 * 1.1 * 1.02))
+        #expect(approx(report.multipliers.total, 1.75 * 1.1 * 1.02))
     }
 
     @Test func aBackwardsClockReanchorsWithoutPaying() {

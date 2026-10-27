@@ -81,9 +81,10 @@ private struct DailyPage: View {
         let today = store.today
         let yesterday = store.yesterday
         let midnight = StepDay.calendar().startOfDay(for: .now).addingTimeInterval(86_400)
+        let isFirstDay = game.isFirstDay(today)
         DailyRewardCard(streak: game.currentStreak(today: today, yesterday: yesterday),
                         nextStreak: game.streakIfClaimed(today: today, yesterday: yesterday),
-                        isReady: game.isDailyRewardReady(today: today), resetsAt: midnight)
+                        isReady: game.isDailyRewardReady(today: today), isFirstDay: isFirstDay, resetsAt: midnight)
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 Label("Today's Quests", systemImage: "scroll.fill")
@@ -94,7 +95,7 @@ private struct DailyPage: View {
                     .foregroundStyle(.subtext)
             }
             if game.daily.quests.isEmpty {
-                Text("New quests are on their way.")
+                Text(isFirstDay ? "Your first quests and daily challenge arrive tomorrow." : "New quests are on their way.")
                     .font(.subheadline)
                     .foregroundStyle(.subtext)
             }
@@ -147,6 +148,8 @@ private struct DailyRewardCard: View {
     /// The streak that claiming today makes (or made).
     let nextStreak: Int
     let isReady: Bool
+    /// The game's first day: rewards start tomorrow.
+    var isFirstDay = false
     let resetsAt: Date
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.hapticsKey) private var haptics = true
@@ -170,7 +173,7 @@ private struct DailyRewardCard: View {
             HStack(spacing: 6) {
                 ForEach(1...Tuning.streakCycle, id: \.self) { day in
                     StreakDayChip(day: day, reward: game.streakReward(day: day),
-                                  isClaimed: day < cycleDay || (day == cycleDay && !isReady),
+                                  isClaimed: !isFirstDay && (day < cycleDay || (day == cycleDay && !isReady)),
                                   isToday: day == cycleDay)
                 }
             }
@@ -191,12 +194,14 @@ private struct DailyRewardCard: View {
                 .buttonStyle(.borderedProminent)
                 .tint(Theme.accent)
             } else {
-                Label("Next reward in \(Text(resetsAt, style: .relative))", systemImage: "clock.fill")
+                Label("\(isFirstDay ? "First" : "Next") reward in \(Text(resetsAt, style: .relative))", systemImage: "clock.fill")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.subtext)
             }
             if !isReady || streak == 0 {
-                Text("Claim a reward every day to keep your streak. Day 7 pays an hour of income, then the week starts over.")
+                Text(isFirstDay
+                     ? "Daily rewards, quests and challenges start on your second day. Claim a reward every day to keep your streak: day 7 pays an hour of income."
+                     : "Claim a reward every day to keep your streak. Day 7 pays an hour of income, then the week starts over.")
                     .font(.caption)
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)

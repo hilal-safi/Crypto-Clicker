@@ -75,6 +75,7 @@ extension GameState {
         coins = 0
         tokens = [:]
         blackjackStake = nil
+        pokerRound = nil // A hand left waiting goes with the tokens it was bet with.
         miners = [:]
         if !hasPerk(.engineeringTeam) { minerUpgrades = [:] }
         let keepsProduction = hasPerk(.blueprints)

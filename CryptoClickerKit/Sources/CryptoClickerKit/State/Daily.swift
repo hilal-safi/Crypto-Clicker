@@ -4,7 +4,7 @@ import Foundation
 public enum QuestKind: String, Codable, CaseIterable, Sendable {
     case tapCoin, buyMiners, earnCoins, catchAirdrops, walkSteps
     case winBlackjack, spinSlots, clearLines, eatSnakeCoins, breakBricks, popBubbles, sellTokens, score2048
-    case cashOutMoon, hitPumpCoins
+    case cashOutMoon, hitPumpCoins, winPoker, matchTokens
 
     /// The instruction, with the target filled in: "Tap the coin 500 times".
     public func title(target: Double) -> String {
@@ -25,6 +25,8 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .score2048: "Score \(amount) points in 2048"
         case .cashOutMoon: "Cash out \(amount) times in To the Moon"
         case .hitPumpCoins: "Hit \(amount) coins in Pump and Dump"
+        case .winPoker: "Win \(amount) Video Poker hands"
+        case .matchTokens: "Match \(amount) tokens in Token Swap"
         }
     }
 
@@ -46,6 +48,8 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .score2048: "square.grid.3x3.fill"
         case .cashOutMoon: "airplane.departure"
         case .hitPumpCoins: "hammer.fill"
+        case .winPoker: "suit.diamond.fill"
+        case .matchTokens: "diamond.fill"
         }
     }
 }
@@ -81,8 +85,8 @@ public struct Quest: Codable, Equatable, Sendable, Identifiable {
 /// What a daily challenge asks for. Each kind belongs to one game (or, for the arcade mix, to
 /// three of them), and is only picked once that game is unlocked.
 public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
-    case tetris, merge2048, snake, brickBreaker, bubbleBlaster, pumpDump
-    case blackjack, slots, moon
+    case tetris, merge2048, snake, brickBreaker, bubbleBlaster, pumpDump, tokenSwap
+    case blackjack, slots, moon, videoPoker
     /// Score in three different arcade games.
     case arcadeMix
 
@@ -95,9 +99,11 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .brickBreaker: .brickBreaker
         case .bubbleBlaster: .bubbleBlaster
         case .pumpDump: .pumpDump
+        case .tokenSwap: .tokenSwap
         case .blackjack: .blackjack
         case .slots: .slots
         case .moon: .moon
+        case .videoPoker: .videoPoker
         case .arcadeMix: nil
         }
     }
@@ -111,7 +117,8 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .brickBreaker: "Precision Day"
         case .bubbleBlaster: "Pop Day"
         case .pumpDump: "Reflex Day"
-        case .blackjack, .slots, .moon: "Casino Day"
+        case .tokenSwap: "Match Day"
+        case .blackjack, .slots, .moon, .videoPoker: "Casino Day"
         case .arcadeMix: "Arcade Day"
         }
     }
@@ -126,9 +133,11 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .brickBreaker: "Break \(amount) bricks in one Brick Breaker game"
         case .bubbleBlaster: "Pop \(amount) bubbles in one Bubble Blaster game"
         case .pumpDump: "Score \(amount) in one round of Pump and Dump"
+        case .tokenSwap: "Score \(amount) in one round of Token Swap"
         case .blackjack: "Win \(amount) Blackjack hands today"
         case .slots: "Win \(amount) spins at Crypto Slots today"
         case .moon: "Cash out at 2× or more \(amount) times in To the Moon today"
+        case .videoPoker: "Make two pair or better \(amount) times in Video Poker today"
         case .arcadeMix: "Score in \(amount) different arcade games today"
         }
     }
@@ -136,8 +145,8 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
     /// Counts the best single game rather than a running total for the day.
     public var isBestOfOneGame: Bool {
         switch self {
-        case .tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump: true
-        case .blackjack, .slots, .moon, .arcadeMix: false
+        case .tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap: true
+        case .blackjack, .slots, .moon, .videoPoker, .arcadeMix: false
         }
     }
 
@@ -150,9 +159,11 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .brickBreaker: [25, 35, 50]
         case .bubbleBlaster: [30, 45, 60]
         case .pumpDump: [300, 450, 600]
+        case .tokenSwap: [2_000, 3_000, 4_000]
         case .blackjack: [2, 3, 4]
         case .slots: [3, 5]
         case .moon: [2, 3]
+        case .videoPoker: [2, 3]
         case .arcadeMix: [3]
         }
     }
@@ -211,6 +222,9 @@ public struct ChallengeReward: Equatable, Sendable {
 
 /// Daily quests, the daily-reward streak and the daily challenge.
 public struct DailyProgress: Codable, Equatable, Sendable {
+    /// The day the game began (a `StepDay` key). Daily rewards, quests and the challenge start the
+    /// day after, so they don't swamp the first minutes of play. `nil` for games begun before this.
+    public internal(set) var firstDay: String?
     /// The day today's quests belong to (a `StepDay` key).
     public internal(set) var questDay: String?
     public internal(set) var quests: [Quest] = []
@@ -226,11 +240,12 @@ public struct DailyProgress: Codable, Equatable, Sendable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case questDay, quests, streak, lastRewardDay, challenge, challengeWeek, challengesThisWeek
+        case firstDay, questDay, quests, streak, lastRewardDay, challenge, challengeWeek, challengesThisWeek
     }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        firstDay = c.value(.firstDay, default: nil)
         quests = c.value(.quests, default: [])
         // Quests that can't be read are issued again rather than lost for the day.
         questDay = quests.isEmpty ? nil : c.value(.questDay, default: nil)
@@ -244,6 +259,7 @@ public struct DailyProgress: Codable, Equatable, Sendable {
 
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(firstDay, forKey: .firstDay)
         try c.encodeIfPresent(questDay, forKey: .questDay)
         try c.encode(quests, forKey: .quests)
         try c.encode(streak, forKey: .streak)

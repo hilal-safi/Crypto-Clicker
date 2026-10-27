@@ -96,11 +96,11 @@ public enum PerkID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .comboMaster: 75
         case .bullMarket: 100
         case .bulkDiscount: 150
-        case .luckyStreak: 250
-        case .whaleWatcher: 400
-        case .autoClickerPro: 750
-        case .engineeringTeam: 1_500
-        case .compoundInterest: 3_000
+        case .luckyStreak: 400
+        case .whaleWatcher: 1_000
+        case .autoClickerPro: 2_500
+        case .engineeringTeam: 6_000
+        case .compoundInterest: 20_000
         }
     }
 

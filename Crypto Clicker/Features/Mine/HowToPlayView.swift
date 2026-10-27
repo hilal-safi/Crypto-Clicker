@@ -21,9 +21,9 @@ struct HowToPlayView: View {
         ("shippingbox.fill", "Airdrops",
          "Every few minutes an airdrop falls. Catch it for a pile of coins, or a Bull Run that multiplies production by 7 for a minute. Now and then a whale swims by instead: catch it for an hour of income at once."),
         ("gift.fill", "Daily rewards and quests",
-         "Claim a reward every day in Trophies › Daily to build a streak: the week builds up to an hour of income on day 7. Three new quests arrive each day."),
+         "From your second day, claim a reward every day in Trophies › Daily to build a streak: the week builds up to an hour of income on day 7. Three new quests arrive each day too."),
         ("target", "Daily challenge",
-         "Each day brings a challenge in one of your games: a score in Tetris, a tile in 2048, a round of Pump and Dump, wins at the casino, or points in three different arcade games. Complete it for 15 minutes of income, and complete five in a week (Monday to Sunday) for two hours more. On Block Day, Tetris deals everyone the same pieces."),
+         "From your second day, each day brings a challenge in one of your games: a score in Tetris, a tile in 2048, a round of Pump and Dump or Token Swap, good hands at the casino, or points in three different arcade games. Complete it for 15 minutes of income, and complete five in a week (Monday to Sunday) for two hours more. On Block Day, Tetris deals everyone the same pieces."),
         ("chart.line.uptrend.xyaxis", "Coin Exchange",
          "In the Exchange tab, token prices drift every five minutes, usually by a few percent a day, and news nudges them up or down. Buy tokens to bet at the casino games, or to sell later: selling costs a 10% fee. Tokens reset when you prestige."),
         ("figure.walk", "Steps",
@@ -31,11 +31,11 @@ struct HowToPlayView: View {
         ("applewatch", "Apple Watch",
          "Tap to mine from your wrist and keep an eye on your balance. Taps are delivered to your iPhone and counted exactly once."),
         ("gamecontroller.fill", "Arcade",
-         "Games unlock one at a time, each costing far more than the last, so a new one arrives about every hour of play. Blackjack, Crypto Slots and To the Moon pay tokens plus a coin bonus for every win. In To the Moon the multiplier climbs until the market crashes: cash out in time, or set an automatic cash-out. Tetris, 2048, Snake, Brick Breaker, Bubble Blaster and Pump and Dump pay coins for every point, and half as much again for a new best score; a minute of good play pays about two minutes of income. Making a 2048 tile pays ten minutes of income on top."),
+         "Games unlock one at a time: Blackjack and Tetris cost a few thousand coins, and each game after costs several times the one before, up to about a trillion. Blackjack, Crypto Slots, Video Poker and To the Moon pay tokens plus a coin bonus for wins. In Video Poker, hold the cards you want and draw once: Hint holds what a strong player would. In To the Moon the multiplier climbs until the market crashes: cash out in time, or set an automatic cash-out. Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump and Token Swap pay coins for every point, and half as much again for a new best score; a minute of good play pays about two minutes of income. Making a 2048 tile pays ten minutes of income on top."),
         ("trophy.fill", "Achievements",
          "Every bronze, silver, gold and mythic star permanently adds 1% to production, and stars unlock new finishes for the coin in Settings (the gear at the top of this screen)."),
         ("rosette", "Prestige and perks",
-         "Once you've mined 12.65 billion coins in all, you can prestige: start a new run for prestige points. Every point adds 5% production forever, and points also buy permanent perks. The Shop suggests prestiging once it would make you at least half as fast again. Your first prestige reveals three new miners. Harder difficulties earn more points."),
+         "Once you've mined 15 billion coins in all, you can prestige: start a new run for prestige points. Every point adds 5% production forever, and points also buy permanent perks. The Shop suggests prestiging once it would make you at least half as fast again. Your first prestige reveals three new miners. Harder difficulties earn more points."),
     ]
 
     var body: some View {

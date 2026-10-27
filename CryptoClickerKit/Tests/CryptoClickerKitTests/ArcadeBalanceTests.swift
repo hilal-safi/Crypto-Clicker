@@ -6,7 +6,8 @@ import Testing
 ///
 /// Each bot plays at a human pace (a Tetris piece a second, two 2048 moves a second, a Snake turn at
 /// most every 0.2 s, a tap every 0.2 s with a 0.35 s reaction in Pump and Dump), so the numbers are
-/// a strong player's, not a machine's. Pay is measured in seconds of idle income per minute played:
+/// a strong player's, not a machine's. Token Swap's bot makes a swap every 1.2 s, and waits a quarter
+/// second for each wave to clear. Pay is measured in seconds of idle income per minute played:
 /// 60 means a minute of play earns as much again as a minute of mining (which carries on while you
 /// play). Slower, less careful play earns roughly a quarter to a half as much.
 ///
@@ -25,7 +26,8 @@ struct ArcadeBalanceTests {
             case .brickBreaker: BrickBot.pointsPerMinute(seed: seed)
             case .bubbleBlaster: BubbleBot.pointsPerMinute(seed: seed)
             case .pumpDump: PumpDumpBot.pointsPerMinute(seed: seed)
-            case .blackjack, .slots, .moon: 0
+            case .tokenSwap: TokenSwapBot.pointsPerMinute(seed: seed)
+            case .blackjack, .slots, .moon, .videoPoker: 0
             }
         }
         return rates.reduce(0, +) / Double(rates.count)
@@ -36,7 +38,7 @@ struct ArcadeBalanceTests {
         pointsPerMinute(game) * game.secondsPerPoint
     }
 
-    @Test(arguments: [MiniGame.tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump])
+    @Test(arguments: [MiniGame.tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap])
     func everyArcadeGamePaysAboutTheSame(_ game: MiniGame) {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
         let points = Self.pointsPerMinute(game)
@@ -396,5 +398,43 @@ enum PumpDumpBot {
         }
         let minutes = Double(rounds) * (PumpDumpGame.roundLength + secondsBetweenRounds) / 60
         return Double(total) / minutes
+    }
+}
+
+/// Swaps where the board shows the biggest match (long and crossing matches first, lower on the
+/// board for more falling waves), judged from the board alone, at a human pace: 1.2 seconds to spot
+/// and make a swap, and a quarter second for each wave to clear.
+enum TokenSwapBot {
+    typealias Position = TokenSwapGame.Position
+    static let secondsPerSwap = 1.2
+    static let secondsPerWave = 0.25
+    static let secondsBetweenRounds = 3.0
+
+    static func pointsPerMinute(seed: UInt64, rounds: Int = 2) -> Double {
+        var total = 0
+        for round in 0..<rounds {
+            var game = TokenSwapGame(seed: seed &* 31 &+ UInt64(round))
+            while !game.isTimeUp {
+                guard let (a, b) = bestSwap(in: game) else { break }
+                game.advance(by: secondsPerSwap)
+                guard game.swap(a, b) else { break }
+                let waves = game.resolveAll()
+                game.advance(by: Double(waves.count) * secondsPerWave)
+            }
+            total += game.score
+        }
+        let minutes = Double(rounds) * (TokenSwapGame.roundLength + secondsBetweenRounds) / 60
+        return Double(total) / minutes
+    }
+
+    static func bestSwap(in game: TokenSwapGame) -> (Position, Position)? {
+        var best: (swap: (Position, Position), value: Double)?
+        for (a, b) in game.validSwaps {
+            var copy = game
+            guard copy.swap(a, b), let wave = copy.resolveStep() else { continue }
+            let value = Double(wave.cleared.count) + Double(wave.madeBlasts.count) * 4 + Double(max(a.row, b.row)) * 0.1
+            if value > best?.value ?? -1 { best = ((a, b), value) }
+        }
+        return best?.swap
     }
 }

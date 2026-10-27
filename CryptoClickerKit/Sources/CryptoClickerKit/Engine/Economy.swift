@@ -52,7 +52,7 @@ extension GameState {
         guard quantity > 0 else { return 0 }
         let growth = Tuning.costGrowth
         let first = miner.baseCost * minerPriceFactor * pow(growth, Double(owned(miner)))
-        return Self.wholePrice(first * (pow(growth, Double(quantity)) - 1) / (growth - 1))
+        return Self.wholePrice(first * ((pow(growth, Double(quantity)) - 1) / (growth - 1)))
     }
 
     /// How many units the current balance (or `budget`) can buy right now.

@@ -7,7 +7,7 @@ public enum AchievementMetric: Hashable, Sendable {
     case totalMiners, miner(MinerID), upgrades, minerUpgrades, bestCombo
     case blackjackWins, blackjackNaturals, tetrisLines, tetrisBestScore
     case slotsWins, snakeBestScore, bricksBroken, bubblesPopped, merge2048BestTile
-    case moonBestMultiplier, pumpDumpCoinsHit, challengesCompleted
+    case moonBestMultiplier, pumpDumpCoinsHit, pokerWins, tokenSwapTokens, challengesCompleted
     case tokensExchanged, token(TokenID), tokensSold
     case questsCompleted, longestStreak
     case airdrops, whaleAirdrops, prestiges, perks
@@ -86,6 +86,10 @@ public enum AchievementCatalog {
                     imageName: nil, metric: .moonBestMultiplier, thresholds: [2, 5, 20, 100]),
         Achievement(id: "whack-a-coin", name: "Coin Whacker", detail: "Hit coins in Pump and Dump", emoji: "🔨",
                     imageName: nil, metric: .pumpDumpCoinsHit, thresholds: [100, 1_000, 10_000, 50_000]),
+        Achievement(id: "poker-face", name: "Poker Face", detail: "Win Video Poker hands", emoji: "♦️",
+                    imageName: nil, metric: .pokerWins, thresholds: [10, 100, 1_000, 5_000]),
+        Achievement(id: "token-swapper", name: "Token Swapper", detail: "Match tokens in Token Swap", emoji: "💎",
+                    imageName: nil, metric: .tokenSwapTokens, thresholds: [250, 2_500, 25_000, 250_000]),
         Achievement(id: "exchanger", name: "Exchanger", detail: "Buy tokens on the exchange", emoji: "🔁", imageName: nil,
                     metric: .tokensExchanged, thresholds: [10, 100, 1_000, 100_000]),
         Achievement(id: "trader", name: "Trader", detail: "Sell tokens on the market", emoji: "📈", imageName: nil,

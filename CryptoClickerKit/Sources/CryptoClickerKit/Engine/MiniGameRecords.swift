@@ -13,6 +13,10 @@ extension GameState {
             "\(CoinFormat.grouped(s.slotsWins)) wins · \(CoinFormat.grouped(s.slotsJackpots)) jackpots"
         case .moon:
             s.moonCashOuts > 0 ? "Best cash-out \(CoinFormat.flight(s.moonBestMultiplier))" : "No cash-outs yet"
+        case .videoPoker:
+            s.pokerHands > 0
+                ? "\(CoinFormat.grouped(s.pokerWins)) hands won · best \((PokerHand(rawValue: s.pokerBestHand) ?? .nothing).name.lowercased())"
+                : "No hands yet"
         case .tetris:
             "Best \(CoinFormat.grouped(s.tetrisBestScore))"
         case .merge2048:
@@ -33,6 +37,10 @@ extension GameState {
             s.pumpDumpBestCombo > 0
                 ? "Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))"
                 : "Best \(CoinFormat.grouped(s.pumpDumpBestScore))"
+        case .tokenSwap:
+            s.tokenSwapBestChain > 1
+                ? "Best \(CoinFormat.grouped(s.tokenSwapBestScore)) · chain of \(CoinFormat.grouped(s.tokenSwapBestChain))"
+                : "Best \(CoinFormat.grouped(s.tokenSwapBestScore))"
         }
     }
 
@@ -43,12 +51,14 @@ extension GameState {
         case .blackjack: s.blackjackHands
         case .slots: s.slotsSpins
         case .moon: s.moonFlights
+        case .videoPoker: s.pokerHands
         case .tetris: s.tetrisGames
         case .merge2048: s.merge2048Games
         case .snake: s.snakeGames
         case .brickBreaker: s.brickBreakerGames
         case .bubbleBlaster: s.bubbleGames
         case .pumpDump: s.pumpDumpGames
+        case .tokenSwap: s.tokenSwapGames
         }
     }
 
@@ -62,7 +72,8 @@ extension GameState {
         case .brickBreaker: s.brickBreakerBestScore
         case .bubbleBlaster: s.bubbleBestScore
         case .pumpDump: s.pumpDumpBestScore
-        case .blackjack, .slots, .moon: 0
+        case .tokenSwap: s.tokenSwapBestScore
+        case .blackjack, .slots, .moon, .videoPoker: 0
         }
     }
 

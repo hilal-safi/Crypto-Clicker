@@ -24,10 +24,11 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
     public let game: MiniGame
     public let score: Int
     /// What else the game reports when it ends, depending on the game: lines (Tetris), length
-    /// (Snake), bricks, bubbles, the best tile (2048) or coins hit (Pump and Dump).
+    /// (Snake), bricks, bubbles, the best tile (2048), coins hit (Pump and Dump) or tokens matched
+    /// (Token Swap).
     public let detail: Int
     /// A second game-specific number: the level reached (Brick Breaker), the most bubbles cleared
-    /// by one shot (Bubble Blaster) or the best combo (Pump and Dump).
+    /// by one shot (Bubble Blaster), the best combo (Pump and Dump) or the longest chain (Token Swap).
     public let extra: Int
 
     public init(game: MiniGame, score: Int, detail: Int, extra: Int = 0) {
@@ -60,8 +61,8 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
 /// extensions, so the app can only change state through tested methods.
 public struct GameState: Codable, Equatable, Sendable {
     /// 2: Hard Forks became Prestige. 3: prestige potential needs 10% more lifetime coins.
-    /// 4: and 15% more again.
-    public static let saveVersion = 4
+    /// 4: and 15% more again. 5: 15 billion for the first point.
+    public static let saveVersion = 5
 
     public internal(set) var coins: Double = 0
     public internal(set) var miners: [MinerID: Int] = [:]
@@ -89,6 +90,8 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var blackjackStake: BlackjackStake?
     /// A To the Moon flight in the air.
     public internal(set) var moonRound: MoonRound?
+    /// A Video Poker hand dealt but not yet drawn.
+    public internal(set) var pokerRound: PokerRound?
     public internal(set) var unfinishedRun: ArcadeRun?
     /// Highest tier count earned per achievement id (0 to 4).
     public internal(set) var achievementTiers: [String: Int] = [:]
@@ -109,6 +112,7 @@ public struct GameState: Codable, Equatable, Sendable {
         lastUpdate = now
         runStart = now
         created = now
+        daily.firstDay = StepDay.key(for: now)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -118,7 +122,8 @@ public struct GameState: Codable, Equatable, Sendable {
         case prestigePotentialClaimed = "forkPointsClaimed"
         case runPrestigeMultiplier = "runForkMultiplier"
         case prestigePointsSpent, perks, difficulty
-        case boost, offlineMiningLevel, unlockedGames, blackjackStake, moonRound, unfinishedRun, achievementTiers, daily
+        case boost, offlineMiningLevel, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun
+        case achievementTiers, daily
         case incomeHistory, stats, steps, recentWatchBatches, lastUpdate, runStart, created
     }
 
@@ -154,6 +159,7 @@ public struct GameState: Codable, Equatable, Sendable {
         unlockedGames = c.enumSet(.unlockedGames, as: MiniGame.self)
         blackjackStake = c.value(.blackjackStake, default: nil)
         moonRound = c.value(.moonRound, default: nil)
+        pokerRound = c.value(.pokerRound, default: nil)
         unfinishedRun = c.value(.unfinishedRun, default: nil)
         achievementTiers = c.value(.achievementTiers, default: [:])
         daily = c.value(.daily, default: DailyProgress())
@@ -185,6 +191,7 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encode(unlockedGames.sortedRawValues, forKey: .unlockedGames)
         try c.encodeIfPresent(blackjackStake, forKey: .blackjackStake)
         try c.encodeIfPresent(moonRound, forKey: .moonRound)
+        try c.encodeIfPresent(pokerRound, forKey: .pokerRound)
         try c.encodeIfPresent(unfinishedRun, forKey: .unfinishedRun)
         try c.encode(achievementTiers, forKey: .achievementTiers)
         try c.encode(daily, forKey: .daily)

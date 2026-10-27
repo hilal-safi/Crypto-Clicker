@@ -1,10 +1,11 @@
 import Foundation
 
-/// Every balance number in one place. Tuned with a progression simulation: the first ten miners
-/// unlock over about a day and a quarter of casual play, the first prestige is worth taking after
-/// about two days, mini-games unlock about an hour of play apart, and prestiges, perks and the three extra miner tiers keep new things
-/// arriving for about two weeks. Prices in the catalogs are list prices: `scaledPrice` sets the
-/// pace. Coin amounts here are whole numbers; only rates may be fractional.
+/// Every balance number in one place. Tuned with simulated players who catch airdrops, claim the
+/// dailies, play some arcade and earn achievements (see `PacingTests`): casual play reaches the
+/// first ten miners and every mini-game in about a day and a half and the first prestige after about
+/// two days, and prestiges, perks and the three extra miner tiers keep new things arriving for about
+/// two weeks. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts
+/// here are whole numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
     /// Each additional unit of a miner costs this much more than the previous one.
@@ -66,12 +67,11 @@ public enum Tuning {
     public static let stepWindowDays = 7
 
     // MARK: Pace
-    /// Every price is its list price times this: 44% more for the cheapest things, easing to 26.5%
-    /// more from a million coins up. Raising every price is the same as slowing all income, so the
-    /// game runs about 44% slower than the list prices in its first hour or so and 26.5% slower
-    /// overall. (Two rounds of slowing: 15% early and 10% overall, then 25% and 15% more.)
+    /// Every price is its list price times this: about 58% more for the cheapest things, easing to
+    /// about 52% more from a million coins up. Raising every price is the same as slowing all income.
+    /// (Three rounds of slowing: 15% early and 10% overall, then 25% and 15% more, then 10% and 20%.)
     public static func priceScale(forListPrice price: Double) -> Double {
-        let early = 1.15 * 1.25, late = 1.10 * 1.15, start = 5_000.0, end = 1e6
+        let early = 1.15 * 1.25 * 1.1, late = 1.10 * 1.15 * 1.2, start = 5_000.0, end = 1e6
         guard price.isFinite, price > start else { return early }
         guard price < end else { return late }
         return early + (late - early) * log10(price / start) / log10(end / start)
@@ -85,16 +85,16 @@ public enum Tuning {
     }
 
     // MARK: Prestige
-    /// Lifetime coins needed for the first point of prestige potential (10 billion, raised by the
-    /// late pace to 12.65 billion). Potential grows with the cube root of lifetime coins, so each
-    /// prestige takes longer than the one before.
-    public static let prestigeScale = 1.265e10
+    /// Lifetime coins needed for the first point of prestige potential: 15 billion. Potential grows
+    /// with the cube root of lifetime coins, so each prestige takes longer than the one before.
+    public static let prestigeScale = 1.5e10
     /// The scale each older save version counted potential against, so loading one carries its
     /// prestige progress over (see `GameState.init(from:)`).
     static func prestigeScale(savedBy version: Int) -> Double {
         switch version {
         case ..<3: 1e10
         case 3: 1.1e10
+        case 4: 1.265e10
         default: prestigeScale
         }
     }
@@ -167,6 +167,11 @@ public enum Tuning {
     public static let moonStakeShare = 0.05
     /// ...up to this many seconds of idle income for each multiple above 1×.
     public static let moonWinSeconds = 15.0
+    /// A Video Poker hand of two pair or better pays this share of its stake's coin value for each
+    /// multiple of the bet...
+    public static let pokerStakeShare = 0.05
+    /// ...up to this many seconds of idle income for each multiple.
+    public static let pokerWinSeconds = 15.0
     /// Arcade games pay this many seconds of idle income per point when they end. Simulated skilled
     /// players (see ArcadeBalanceTests) earn about two minutes of income for each minute they play
     /// in any of them, on top of the mining that carries on meanwhile; an average player about one.
@@ -177,6 +182,7 @@ public enum Tuning {
     public static let bubbleSecondsPerPoint = 0.1
     public static let merge2048SecondsPerPoint = 0.055
     public static let pumpDumpSecondsPerPoint = 0.055
+    public static let tokenSwapSecondsPerPoint = 0.023
     /// Making a 2048 tile also pays this many seconds of income.
     public static let merge2048WinSeconds = 600.0
     /// ...and this much more for a new best score.

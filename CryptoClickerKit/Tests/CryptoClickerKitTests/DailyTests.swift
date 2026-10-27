@@ -105,6 +105,38 @@ struct DailyQuestTests {
 struct DailyRewardTests {
     func player() -> GameState { GameState.make(miners: [.desktop: 5]) } // 10 coins per second.
 
+    @Test func dailiesStartOnTheGamesSecondDay() throws {
+        var game = GameState(now: t0)
+        let first = StepDay.key(for: t0)
+        let second = StepDay.key(for: at(86_400))
+        #expect(game.daily.firstDay == first)
+        #expect(game.isFirstDay(first))
+        // No reward, quests or challenge on the first day, even with a game unlocked...
+        game.unlockedGames = [.tetris]
+        #expect(!game.isDailyRewardReady(today: first))
+        #expect(game.claimDailyReward(today: first, yesterday: "2000-01-01", at: t0) == nil)
+        #expect(!game.needsDailyRefresh(today: first))
+        #expect(game.refreshDaily(today: first, canWalk: false, at: t0).isEmpty)
+        #expect(game.daily.quests.isEmpty && game.dailyChallenge(today: first) == nil)
+        // ...then all of them from the next day on.
+        #expect(game.isDailyRewardReady(today: second))
+        #expect(game.needsDailyRefresh(today: second))
+        game.refreshDaily(today: second, canWalk: false, at: at(86_400))
+        #expect(game.daily.quests.count == 3)
+        #expect(game.dailyChallenge(today: second) != nil)
+        #expect(game.claimDailyReward(today: second, yesterday: first, at: at(86_400)) == .coins(300))
+        #expect(game.daily.streak == 1)
+        // The day is saved, and games begun before it was (with no first day) are never held back.
+        let saved = try GameCoding.decoder().decode(GameState.self, from: GameCoding.encoder().encode(game))
+        #expect(saved.daily.firstDay == first)
+        let older = try GameCoding.decoder().decode(DailyProgress.self, from: Data(#"{"streak": 3}"#.utf8))
+        #expect(older.firstDay == nil)
+        #expect(player().isDailyRewardReady(today: StepDay.key(for: t0)) == false)
+        var veteran = player()
+        veteran.daily = older
+        #expect(veteran.isDailyRewardReady(today: StepDay.key(for: t0)))
+    }
+
     @Test func theStreakGrowsOnConsecutiveDaysAndRestartsAfterAGap() {
         var game = player()
         #expect(game.isDailyRewardReady(today: "2026-10-01"))

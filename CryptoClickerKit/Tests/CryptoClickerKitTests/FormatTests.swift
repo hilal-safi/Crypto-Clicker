@@ -101,7 +101,8 @@ struct FormatTests {
         #expect(UpgradeID.coinClicker.summary == "Taps earn +1 coin")
         #expect(UpgradeID.automatedClicker.summary == "+1 automatic tap per second, worth 25% of a tap")
         #expect(UpgradeID.roboticFinger.summary == "+1 automatic tap per second, worth 25% of a tap")
-        #expect(UpgradeID.mechanicalKeyboard.summary == "Every tap also earns 15% of a second's production")
-        #expect(UpgradeID.overclocking.summary == "All miners produce ×2")
+        #expect(UpgradeID.mechanicalKeyboard.summary == "Every tap also earns 12% of a second's production")
+        #expect(UpgradeID.overclocking.summary == "All miners produce ×1.75")
+        #expect(UpgradeID.asicChips.summary == "All miners produce ×1.5")
     }
 }
