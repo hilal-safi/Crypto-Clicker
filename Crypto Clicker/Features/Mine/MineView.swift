@@ -2,7 +2,8 @@ import SwiftUI
 import CryptoClickerKit
 
 /// The home screen, in order of importance: the balance, the coin to tap, a tip for new players,
-/// what the player owns (miners and tokens), and steps once they are unlocked.
+/// what the player owns (miners and power-ups, and crypto), and steps once they are unlocked.
+/// No title, so the game gets the room.
 struct MineView: View {
     let openShop: () -> Void
     let openPowerUps: () -> Void
@@ -12,6 +13,7 @@ struct MineView: View {
     @State private var showingStats = false
     @State private var showingHelp = false
     @State private var showingStepsIntro = false
+    @State private var showingSettings = false
     #if DEBUG
     @State private var showingTestingTools = false
     #endif
@@ -40,8 +42,9 @@ struct MineView: View {
                         .ignoresSafeArea()
                 }
             }
-            .navigationTitle("Crypto Clicker")
+            .navigationTitle("Crypto Clicker") // Kept for VoiceOver and the app switcher, but not shown.
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar(removing: .title)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("How to Play", systemImage: "questionmark.circle") { showingHelp = true }
@@ -54,7 +57,11 @@ struct MineView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Statistics", systemImage: "chart.bar.xaxis") { showingStats = true }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Settings", systemImage: "gearshape") { showingSettings = true }
+                }
             }
+            .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(isPresented: $showingStats) { StatsView() }
             .sheet(isPresented: $showingHelp) { HowToPlayView() }
             .sheet(isPresented: $showingStepsIntro) { StepsIntroView() }
@@ -67,7 +74,7 @@ struct MineView: View {
     private var content: some View {
         let game = store.game
         let now = Date.now
-        return VStack(spacing: 14) {
+        return VStack(spacing: 10) {
             BalanceHeader(coins: game.coins, boost: game.activeBoost(at: now), showsExact: exactNumbers) {
                 withAnimation(.snappy) { exactNumbers.toggle() }
             }
@@ -86,7 +93,7 @@ struct MineView: View {
             }
             .animation(.snappy, value: store.comboStreak >= 5)
             GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openDaily: openDaily)
-            InventoryStrip(game: game, openShop: openShop, openExchange: openExchange)
+            InventoryStrip(game: game, market: store.market, openShop: openShop, openExchange: openExchange)
             StepsCard(learnMore: { showingStepsIntro = true })
         }
         .padding(.horizontal, 20)
@@ -99,8 +106,7 @@ struct MineView: View {
 }
 
 /// The balance, large: the short form from 10,000 up, or every digit when `showsExact` is on
-/// (tap it to switch). During a Bull Run its countdown sits beside "coins", so the coin below
-/// keeps its size.
+/// (tap it to switch). During a Bull Run its countdown shows just under the number.
 struct BalanceHeader: View {
     let coins: Double
     let boost: Boost?
@@ -132,27 +138,20 @@ struct BalanceHeader: View {
             .accessibilityAddTraits(.isButton)
             .accessibilityHint(showsExact ? "Shows the short form" : "Shows every digit")
             .accessibilityAction(.default, toggleExact)
-            HStack(spacing: 8) {
-                Text("coins")
-                    .foregroundStyle(.subtext)
-                    .accessibilityHidden(true) // The number above already says "coins".
-                if let boost {
-                    TimelineView(.periodic(from: .now, by: 1)) { context in
-                        let remaining = CoinFormat.duration(boost.endsAt.timeIntervalSince(context.date))
-                        Label("Bull Run \(CoinFormat.multiplier(boost.multiplier)) · \(remaining)", systemImage: "flame.fill")
-                            .foregroundStyle(Theme.accent)
-                            .padding(.horizontal, 8)
-                            .background(Theme.accent.opacity(0.14), in: .capsule)
-                    }
-                    .transition(.scale.combined(with: .opacity))
+            if let boost {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    let remaining = CoinFormat.duration(boost.endsAt.timeIntervalSince(context.date))
+                    Label("Bull Run \(CoinFormat.multiplier(boost.multiplier)) · \(remaining)", systemImage: "flame.fill")
+                        .font(.headline.monospacedDigit())
+                        .foregroundStyle(Theme.accent)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .padding(.horizontal, 8)
+                        .background(Theme.accent.opacity(0.14), in: .capsule)
                 }
+                .transition(.scale.combined(with: .opacity))
             }
-            .font(.headline.monospacedDigit())
-            .lineLimit(1)
-            .minimumScaleFactor(0.75)
-            .accessibilityElement(children: .combine)
         }
-        .padding(.top, 8)
         .animation(.spring, value: boost)
     }
 

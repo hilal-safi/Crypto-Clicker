@@ -2,7 +2,7 @@ import SwiftUI
 import CryptoClickerKit
 
 enum AppTab: Hashable {
-    case mine, shop, arcade, trophies, settings
+    case mine, shop, arcade, exchange, trophies
 }
 
 /// A short message that slides in at the top of the screen.

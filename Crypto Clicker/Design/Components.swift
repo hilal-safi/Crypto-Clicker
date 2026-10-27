@@ -32,21 +32,36 @@ struct CoinAmount: View {
     }
 }
 
-/// Bronze, silver and gold stars for achievement tiers.
+/// Bronze, silver, gold and mythic stars for achievement tiers. Earned stars are metal; the
+/// mythic one shimmers through every color.
 struct TierStars: View {
     let earned: Int
     var size: CGFloat = 12
 
     var body: some View {
+        let total = AchievementCatalog.tierNames.count
         HStack(spacing: 2) {
-            ForEach(0..<3, id: \.self) { tier in
-                Image(systemName: tier < earned ? "star.fill" : "star")
-                    .font(.system(size: size, weight: .semibold))
-                    .foregroundStyle(tier < earned ? Theme.tierColor(tier) : Theme.subtext.opacity(0.6))
+            ForEach(0..<total, id: \.self) { tier in
+                if tier >= earned {
+                    Image(systemName: "star")
+                        .font(.system(size: size, weight: .semibold))
+                        .foregroundStyle(Theme.subtext.opacity(0.6))
+                } else if tier == total - 1 {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: size + 2, weight: .semibold))
+                        .foregroundStyle(AngularGradient(colors: TierStyle.mythic, center: .center))
+                        .shadow(color: Theme.tierColor(3).opacity(0.8), radius: 3)
+                } else {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: size, weight: .semibold))
+                        .foregroundStyle(LinearGradient(colors: TierStyle.metal(tier), startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing))
+                        .shadow(color: .black.opacity(0.25), radius: 0.5, y: 0.5)
+                }
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(earned) of 3 stars")
+        .accessibilityLabel("\(earned) of \(total) stars")
     }
 }
 

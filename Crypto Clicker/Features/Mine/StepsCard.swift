@@ -3,7 +3,7 @@ import CryptoClickerKit
 
 /// Steps on the home screen. Hidden until the player has tapped the coin 2,500 times; then a
 /// one-line invitation ("Earn coins from steps!" with Learn More and Start), and once steps are
-/// connected, today's count. Kept compact so the coin stays big.
+/// connected, today's count. Kept small so the coin and the inventory strip get the room.
 struct StepsCard: View {
     /// Opens the explanation sheet, which the home screen presents.
     let learnMore: () -> Void
@@ -22,16 +22,16 @@ struct StepsCard: View {
     }
 
     private var invitation: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             Image(systemName: "figure.walk")
-                .font(.headline.weight(.bold))
+                .font(.subheadline.weight(.bold))
                 .foregroundStyle(.white)
-                .frame(width: 38, height: 38)
+                .frame(width: 30, height: 30)
                 .background(Theme.steps.gradient, in: .circle)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text("Earn coins from steps!")
-                    .font(.subheadline.weight(.bold))
+                    .font(.footnote.weight(.bold))
                 Button("Learn More", action: learnMore)
                     .font(.caption.weight(.semibold))
                     .buttonStyle(.borderless)
@@ -42,8 +42,8 @@ struct StepsCard: View {
                 Task { await store.connectSteps() }
             } label: {
                 Text("Start")
-                    .font(.subheadline.weight(.bold))
-                    .padding(.horizontal, 4)
+                    .font(.footnote.weight(.bold))
+                    .padding(.horizontal, 2)
             }
             .buttonStyle(.glassProminent)
             .tint(Theme.stepsButton)
@@ -56,9 +56,9 @@ struct StepsCard: View {
             .buttonStyle(.borderless)
             .accessibilityHint("You can start later in Settings")
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .glassEffect(.regular.tint(Theme.steps.opacity(0.18)), in: .rect(cornerRadius: 22))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .glassEffect(.regular.tint(Theme.steps.opacity(0.18)), in: .rect(cornerRadius: 18))
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 }
@@ -70,17 +70,17 @@ private struct StepsTodayCard: View {
     var body: some View {
         let game = store.game
         let isToday = game.steps.todayKey == StepDay.key(for: .now)
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             Image(systemName: "figure.walk")
-                .font(.title3.weight(.semibold))
+                .font(.headline.weight(.semibold))
                 .foregroundStyle(Theme.steps)
-                .frame(width: 30)
-            VStack(alignment: .leading, spacing: 1) {
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 0) {
                 Text("\(CoinFormat.grouped(isToday ? game.steps.todaySteps : 0)) steps today")
-                    .font(.headline)
+                    .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
                 Text("Every step earns \(CoinFormat.short(game.stepValue)) coin\(game.stepValue == 1 ? "" : "s")")
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundStyle(.subtext)
             }
             Spacer(minLength: 0)
@@ -91,17 +91,17 @@ private struct StepsTodayCard: View {
                     ProgressView()
                 } else {
                     Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.title3.weight(.semibold))
+                        .font(.headline.weight(.semibold))
                 }
             }
             .buttonStyle(.borderless)
             .disabled(store.isSyncingSteps)
             .accessibilityLabel("Sync steps")
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
-        .glassEffect(.regular.tint(Theme.steps.opacity(0.18)), in: .rect(cornerRadius: 22))
+        .glassEffect(.regular.tint(Theme.steps.opacity(0.18)), in: .rect(cornerRadius: 18))
     }
 }
 

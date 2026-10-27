@@ -3,6 +3,7 @@ import CryptoClickerKit
 
 struct SettingsView: View {
     @Environment(GameStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
     @AppStorage(Preferences.appearanceKey) private var appearance = Appearance.auto
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @AppStorage(Preferences.tapHapticStrengthKey) private var tapStrength = TapHapticStrength.strong
@@ -97,6 +98,12 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .background { AppBackground(tint: Theme.settings) }
             .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done", systemImage: "checkmark") { dismiss() }
+                }
+            }
             .confirmationDialog("Reset all progress?", isPresented: $confirmingReset, titleVisibility: .visible) {
                 Button("Reset Everything", role: .destructive) { store.resetGame() }
             } message: {

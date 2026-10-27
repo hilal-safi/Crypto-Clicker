@@ -113,7 +113,8 @@ public enum Market {
         guard StableHash.unit(hash) < Tuning.marketNewsChance else { return nil }
         let detail = StableHash.mix(hash, 7)
         let sign: Double = detail & 1 == 0 ? 1 : -1
-        let strength = sign * (0.25 + 0.35 * StableHash.unit(detail >> 1))
+        let range = Tuning.marketNewsStrength
+        let strength = sign * (range.lowerBound + (range.upperBound - range.lowerBound) * StableHash.unit(detail >> 1))
         let shortest = Tuning.marketNewsTicks / 3
         let ticks = shortest + Int(StableHash.mix(detail, 3) % UInt64(Tuning.marketNewsTicks - shortest + 1))
         return (strength, ticks, detail)
@@ -151,16 +152,17 @@ public enum Market {
 }
 
 extension TokenID {
-    /// How far the price swings: meme coins swing most, Bitcoin least.
+    /// How far the price swings, at most about this share either way before news: meme coins
+    /// swing a little more, Bitcoin least. Kept small so prices drift rather than jump.
     var volatility: Double {
         switch self {
-        case .shibaInu: 1.0
-        case .dogecoin: 0.9
-        case .xrp: 0.75
-        case .cardano: 0.7
-        case .solana: 0.8
-        case .ethereum: 0.6
-        case .bitcoin: 0.5
+        case .shibaInu: 0.24
+        case .dogecoin: 0.22
+        case .xrp: 0.20
+        case .cardano: 0.20
+        case .solana: 0.18
+        case .ethereum: 0.15
+        case .bitcoin: 0.12
         }
     }
 }

@@ -7,7 +7,7 @@ struct HowToPlayView: View {
 
     private let topics: [(icon: String, title: String, text: String)] = [
         ("hand.tap.fill", "Tap to mine",
-         "Tap the coin to earn coins. Tapping upgrades make every tap also earn a share of a second's production, up to a whole second's worth, so tapping always pays. Tap the balance to switch between the short form (12.3K) and every digit (12,345); what each tap earns shows the same way."),
+         "Tap the coin to earn coins. Tapping upgrades make every tap also earn a share of a second's production, up to a whole second's worth, so tapping always pays. Tap the balance to switch between the short form (12.3K) and every digit (12,345); what each tap earns shows the same way. Tap the income bar at the bottom to see where every coin comes from."),
         ("flame.fill", "Combos",
          "Keep tapping quickly and a combo builds: after 40 quick taps every tap earns twice as much. Pause for more than about half a second and it starts over."),
         ("cpu", "Buy miners",
@@ -23,7 +23,7 @@ struct HowToPlayView: View {
         ("gift.fill", "Daily rewards and quests",
          "Claim a reward every day in Trophies › Daily to build a streak: the week builds up to an hour of income on day 7. Three new quests arrive each day, and the daily Tetris challenge gives everyone the same pieces, with double coins for your first game."),
         ("chart.line.uptrend.xyaxis", "Coin Exchange",
-         "Token prices move every five minutes, and news can send them soaring or sinking. Buy tokens to bet at Blackjack or Crypto Slots, or to sell later: selling costs a 10% fee. Tokens reset when you prestige."),
+         "In the Exchange tab, token prices drift every five minutes, usually by a few percent a day, and news nudges them up or down. Buy tokens to bet at Blackjack or Crypto Slots, or to sell later: selling costs a 10% fee. Tokens reset when you prestige."),
         ("figure.walk", "Steps",
          "After 2,500 taps you can turn steps into coins. Every step you take, on iPhone or Apple Watch, is paid once, and steps grow more valuable as your income grows."),
         ("applewatch", "Apple Watch",
@@ -31,7 +31,7 @@ struct HowToPlayView: View {
         ("gamecontroller.fill", "Arcade",
          "Blackjack and Crypto Slots pay tokens plus a coin bonus for every win. Tetris, Snake, Brick Breaker and Bubble Blaster pay coins for every point, and half as much again for a new best score."),
         ("trophy.fill", "Achievements",
-         "Every bronze, silver and gold star permanently adds 1% to production, and stars unlock new finishes for the coin in Settings."),
+         "Every bronze, silver, gold and mythic star permanently adds 1% to production, and stars unlock new finishes for the coin in Settings (the gear at the top of this screen)."),
         ("rosette", "Prestige and perks",
          "Once you've mined 10 billion coins in all, you can prestige: start a new run for prestige points. Every point adds 5% production forever, and points also buy permanent perks. The Shop suggests prestiging once it would make you at least half as fast again. Your first prestige reveals three new miners. Harder difficulties earn more points."),
     ]

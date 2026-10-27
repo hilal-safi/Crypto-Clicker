@@ -391,11 +391,11 @@ struct AchievementTests {
         let all = AchievementCatalog.all
         #expect(all.count == 47)
         #expect(Set(all.map(\.id)).count == all.count)
-        #expect(AchievementCatalog.tierCount == 141)
+        #expect(AchievementCatalog.tierCount == 188)
         for achievement in all {
-            #expect(achievement.thresholds.count == 3)
+            #expect(achievement.thresholds.count == 4)
             #expect(achievement.thresholds == achievement.thresholds.sorted())
-            #expect(Set(achievement.thresholds).count == 3)
+            #expect(Set(achievement.thresholds).count == 4)
             #expect((achievement.emoji == nil) != (achievement.imageName == nil))
         }
         #expect(all.first { $0.id == "upgrader" }?.thresholds.last == 20) // Every upgrade.

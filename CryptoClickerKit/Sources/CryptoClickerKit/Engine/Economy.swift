@@ -210,10 +210,10 @@ extension GameState {
     }
 
     /// The flat part of a tap, which grows with prestige and achievements.
-    var tapBase: Double { tapFlatTotal * prestigeBonus * achievementBonus }
+    public var tapBase: Double { tapFlatTotal * prestigeBonus * achievementBonus }
 
     /// Strong Fingers makes every tap earn 50% more.
-    var tapPerkMultiplier: Double { hasPerk(.strongFingers) ? 1.5 : 1 }
+    public var tapPerkMultiplier: Double { hasPerk(.strongFingers) ? 1.5 : 1 }
 
     /// Coins one tap earns with `production` coins per second: the flat part plus a share of
     /// production, rounded to a whole coin and never less than one.

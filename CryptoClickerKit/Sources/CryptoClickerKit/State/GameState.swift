@@ -85,7 +85,7 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var unlockedGames: Set<MiniGame> = []
     public internal(set) var blackjackStake: BlackjackStake?
     public internal(set) var unfinishedRun: ArcadeRun?
-    /// Highest tier count earned per achievement id (0 to 3).
+    /// Highest tier count earned per achievement id (0 to 4).
     public internal(set) var achievementTiers: [String: Int] = [:]
     public internal(set) var daily = DailyProgress()
     /// Idle income sampled every half hour, oldest first, for the income chart.

@@ -35,7 +35,7 @@ extension GameState {
         }
     }
 
-    /// Tiers earned for an achievement (0 to 3).
+    /// Tiers earned for an achievement (0 to 4).
     public func tiersEarned(_ achievement: Achievement) -> Int {
         achievementTiers[achievement.id, default: 0]
     }

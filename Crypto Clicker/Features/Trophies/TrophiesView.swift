@@ -350,12 +350,15 @@ private struct TrophySummary: View {
     }
 }
 
-/// One achievement: its stars, and progress toward the next tier.
+/// One achievement: its stars, and progress toward the next tier. Unearned cards keep the plain
+/// look; earned ones take on the metal of their highest tier, bronze, silver or gold, with a shine
+/// sweeping across them. Mythic cards are iridescent.
 private struct AchievementCard: View {
     let achievement: Achievement
     let tiers: Int
     let value: Double
     let next: Double?
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -387,14 +390,56 @@ private struct AchievementCard: View {
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.subtext)
             } else {
-                Label("Complete", systemImage: "checkmark.seal.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.tierColor(2))
+                Label("Mythic", systemImage: "sparkles")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Theme.tierColor(3))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .rowCard()
+        .padding(14)
+        .background { background }
         .opacity(tiers == 0 ? 0.75 : 1)
         .accessibilityElement(children: .combine)
+        .accessibilityValue(tiers == 0 ? "Not earned yet" : AchievementCatalog.tierNames[min(tiers, 4) - 1])
+    }
+
+    @ViewBuilder private var background: some View {
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        if tiers == 0 {
+            CardSurface(cornerRadius: 20)
+        } else {
+            let tier = tiers - 1
+            let isDark = colorScheme == .dark
+            ZStack {
+                CardSurface(cornerRadius: 20)
+                Group {
+                    if tier >= 3 {
+                        MythicGradient()
+                            .opacity(isDark ? 0.32 : 0.26)
+                    } else {
+                        LinearGradient(colors: TierStyle.metal(tier), startPoint: .topLeading, endPoint: .bottomTrailing)
+                            .opacity(isDark ? 0.34 : 0.30)
+                    }
+                    MetalShine(period: TierStyle.shinePeriod(tier), delay: Self.delay(for: achievement.id),
+                               intensity: tier >= 3 ? 0.7 : 0.5)
+                }
+                .clipShape(shape)
+                Group {
+                    if tier >= 3 {
+                        MythicGradient()
+                    } else {
+                        LinearGradient(colors: TierStyle.metal(tier), startPoint: .topLeading, endPoint: .bottomTrailing)
+                    }
+                }
+                .mask(shape.strokeBorder(lineWidth: tier >= 3 ? 3 : 2))
+            }
+            .shadow(color: (tier >= 3 ? Theme.tierColor(3) : TierStyle.metal(tier)[1]).opacity(isDark ? 0.45 : 0.35),
+                    radius: tier >= 2 ? 10 : 6)
+        }
+    }
+
+    /// A steady offset per achievement, so cards side by side shine at different moments.
+    private static func delay(for id: String) -> Double {
+        Double(id.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) % 997 } % 40) / 10
     }
 }

@@ -8,8 +8,8 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 
 - **Mining.** Tap the coin (coins shower down as you do), then buy miners, from a Chromebook to a Space
   Mining Colony, and after your first prestige, three more beyond it. Each unit costs 15% more than the
-  last. Owning 25, 50, 100, 200 and every 100 up to 1,000 of a miner doubles its output. Your miners
-  and tokens show under the coin.
+  last. Owning 25, 50, 100, 200 and every 100 up to 1,000 of a miner doubles its output. Under the
+  coin, one card shows your miners and power-ups and another your crypto and what it's worth.
 - **Mk upgrades.** At 25, 50, 100, 200 and 400 owned, a miner's next Mk upgrade (Mk II to Mk VI)
   appears in the Shop. Each doubles that miner for the rest of the run.
 - **Whole coins.** Every tap, step and reward pays whole coins. Amounts are written out in full up to
@@ -30,8 +30,9 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 - **Daily.** A daily reward with a streak that builds to an hour of income on day 7, three new quests
   every day, and a daily Tetris challenge with the same pieces for everyone and double coins for the
   first scoring game.
-- **Coin Exchange.** Token prices move every five minutes, with news that can send them up or down. Buy
-  tokens to bet or to sell later (selling costs a 10% fee). Tokens reset when you prestige.
+- **Coin Exchange.** Its own tab. Token prices drift every five minutes, within about a quarter of
+  their usual price, with news that nudges them up or down. Buy tokens to bet or to sell later
+  (selling costs a 10% fee). Tokens reset when you prestige.
 - **Steps.** After 2,500 taps, connect Apple Health and every step you take, on iPhone or Apple Watch,
   is paid out exactly once. A step is worth at least one coin and grows with your income.
 - **Apple Watch.** Tap to mine from your wrist, watch your balance tick up live, and see today's steps.
@@ -40,15 +41,17 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   coins.
 - **Arcade.** Tetris, Snake, Brick Breaker and Bubble Blaster pay coins for every point, and 50% more
   for a new best score.
-- **Trophies.** 47 achievements with bronze, silver and gold tiers. Each star adds 1% production forever,
-  and stars unlock new finishes for the coin.
+- **Trophies.** 47 achievements with bronze, silver, gold and mythic tiers, each card shining in the
+  metal it has earned. Each star adds 1% production forever, and stars unlock new finishes for the coin.
 - **Prestige.** Once you've mined 10 billion coins in all, start a new run for prestige points. Points
   grow with the cube root of lifetime coins, so each prestige takes longer than the last. Every point
   adds 5% production forever, and points buy permanent perks in three branches (Mining, Tapping and
   Fortune). The Shop suggests prestiging once it would make you at least half as fast again.
 - **Difficulty.** Easy produces more but earns fewer prestige points; Hard produces less and earns more.
 - **Notifications.** Optional reminders when Offline Mining runs out and when a daily reward is waiting.
-- **Statistics.** A chart of income over the week, plus everything the game counts.
+- **Statistics.** A chart of income over the week, plus everything the game counts, in short form or
+  with every digit. Tapping the income bar at the bottom of the home screen shows where every coin
+  comes from: each miner's share, automatic taps, multipliers and what makes up a tap.
 
 ## Requirements
 
@@ -62,8 +65,8 @@ Crypto Clicker/                 iPhone and iPad app
   App/                          Entry point, GameStore (state, clock, saving), preferences
   Services/                     StepTracker (HealthKit), WatchBridge (WatchConnectivity), notifications, tap sound
   Design/                       Theme, backgrounds, coin finishes, Liquid Glass cards, shared components
-  Features/                     Mine, Shop (with prestige and perks), Arcade (exchange and six games),
-                                Trophies (daily and achievements), Settings
+  Features/                     Mine (with Statistics and Settings), Shop (with prestige and perks),
+                                Arcade (six games), Exchange, Trophies (daily and achievements)
 Crypto Clicker Watch App/       Apple Watch app
 CryptoClickerKit/               Swift package with all game rules, shared by both apps
   Sources/CryptoClickerKit/

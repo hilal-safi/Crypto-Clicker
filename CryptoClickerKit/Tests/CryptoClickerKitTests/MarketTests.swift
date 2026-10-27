@@ -18,8 +18,9 @@ struct MarketTests {
                 lowest = min(lowest, factor)
                 highest = max(highest, factor)
             }
-            // Over ten days every token swings by at least half its low.
-            #expect(highest / lowest > 1.5, "\(token) barely moved")
+            // Over ten days every token moves, by at least a tenth, but no token runs away.
+            #expect(highest / lowest > 1.1, "\(token) barely moved")
+            #expect(highest / lowest < 1.8, "\(token) swung too far")
         }
     }
 
@@ -53,8 +54,8 @@ struct MarketTests {
 
     @Test func newsBreaksAFewTimesADayAndMovesThePrice() throws {
         let month = Market.news(before: noon, span: 30 * 86_400)
-        // About one story per token per day; allow plenty of luck either way.
-        #expect((60...400).contains(month.count))
+        // About five stories a day across all tokens; allow plenty of luck either way.
+        #expect((40...300).contains(month.count))
         #expect(month.map(\.date) == month.map(\.date).sorted(by: >)) // Newest first.
         #expect(month.contains { $0.isGood } && month.contains { !$0.isGood })
         let story = try #require(month.first)
@@ -63,7 +64,7 @@ struct MarketTests {
         let before = Market.priceFactor(story.token, at: story.date.addingTimeInterval(-1))
         let after = Market.priceFactor(story.token, at: story.date)
         let range = Tuning.marketPriceRange
-        if !range.contains(before * 1.2) || !range.contains(after / 1.2) { return } // Pinned at a limit.
+        if !range.contains(before * 1.04) || !range.contains(before / 1.04) { return } // Near a limit.
         #expect(story.isGood ? after > before : after < before)
     }
 

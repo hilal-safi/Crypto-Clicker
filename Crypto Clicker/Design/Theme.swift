@@ -37,11 +37,13 @@ enum Theme {
         })
     }
 
+    /// Bronze, silver, gold and mythic (0 to 3), for stars and progress bars.
     static func tierColor(_ tier: Int) -> Color {
         switch tier {
         case 0: Color(red: 0.80, green: 0.50, blue: 0.20)
-        case 1: Color(red: 0.75, green: 0.78, blue: 0.82)
-        default: Color(red: 1.00, green: 0.80, blue: 0.10)
+        case 1: Color(red: 0.62, green: 0.67, blue: 0.73)
+        case 2: Color(red: 1.00, green: 0.78, blue: 0.10)
+        default: Color(red: 0.70, green: 0.40, blue: 1.00)
         }
     }
 

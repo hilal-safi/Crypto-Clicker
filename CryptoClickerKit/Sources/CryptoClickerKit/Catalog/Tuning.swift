@@ -112,9 +112,11 @@ public enum Tuning {
     /// Token prices move every five minutes...
     public static let marketTick: TimeInterval = 5 * 60
     /// ...between these factors of a token's list price.
-    public static let marketPriceRange: ClosedRange<Double> = 0.35...2.8
+    public static let marketPriceRange: ClosedRange<Double> = 0.7...1.4
     /// Chance per tick that news breaks for a token.
-    public static let marketNewsChance = 0.004
+    public static let marketNewsChance = 0.0025
+    /// How far a story moves a price at first, in log terms: 0.04 is about 4%, 0.1 about 10%.
+    public static let marketNewsStrength: ClosedRange<Double> = 0.04...0.10
     /// News moves a price for up to this many ticks (six hours).
     public static let marketNewsTicks = 72
     /// Share of a sale the market keeps (Market Insider waives it).

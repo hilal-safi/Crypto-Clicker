@@ -4,8 +4,7 @@ import CryptoClickerKit
 struct RootView: View {
     @Environment(GameStore.self) private var store
     @State private var tab = AppTab.mine
-    /// Counts the home screen's requests to show the Arcade's Coin Exchange.
-    @State private var exchangeRequests = 0
+    @State private var showingIncome = false
     /// Counts the welcome-back screen's requests to show the Shop's power-ups.
     @State private var powerUpRequests = 0
     /// Counts requests (from the Daily page) to open today's Tetris challenge in the Arcade.
@@ -17,10 +16,7 @@ struct RootView: View {
         @Bindable var store = store
         TabView(selection: $tab) {
             Tab("Mine", systemImage: "bitcoinsign.circle.fill", value: AppTab.mine) {
-                MineView(openShop: { tab = .shop }, openPowerUps: openPowerUps, openExchange: {
-                    exchangeRequests += 1
-                    tab = .arcade
-                }, openDaily: {
+                MineView(openShop: { tab = .shop }, openPowerUps: openPowerUps, openExchange: { tab = .exchange }, openDaily: {
                     dailyRequests += 1
                     tab = .trophies
                 })
@@ -29,7 +25,10 @@ struct RootView: View {
                 ShopView(powerUpRequests: powerUpRequests)
             }
             Tab("Arcade", systemImage: "gamecontroller.fill", value: AppTab.arcade) {
-                ArcadeView(exchangeRequests: exchangeRequests, challengeRequests: challengeRequests)
+                ArcadeView(challengeRequests: challengeRequests)
+            }
+            Tab("Exchange", systemImage: "chart.line.uptrend.xyaxis", value: AppTab.exchange) {
+                ExchangeView()
             }
             Tab("Trophies", systemImage: "trophy.fill", value: AppTab.trophies) {
                 TrophiesView(dailyRequests: dailyRequests, openChallenge: {
@@ -38,14 +37,14 @@ struct RootView: View {
                 })
             }
             .badge(store.dailyBadgeCount)
-            Tab("Settings", systemImage: "gearshape.fill", value: AppTab.settings) {
-                SettingsView()
-            }
         }
         .tint(Theme.accent)
         .tabBarMinimizeBehavior(.onScrollDown)
         .tabViewBottomAccessory {
-            BalanceAccessory(isMineTab: tab == .mine)
+            BalanceAccessory(isMineTab: tab == .mine, openIncome: { showingIncome = true })
+        }
+        .sheet(isPresented: $showingIncome) {
+            IncomeBreakdownView()
         }
         .overlay(alignment: .top) {
             NotificationStack()
@@ -70,10 +69,12 @@ struct RootView: View {
 }
 
 /// The bar above the tab bar: the balance on every tab, or rates while on Mine (which shows
-/// the balance itself). Numbers use the form chosen by tapping the balance: every digit, or the
-/// short form. Long numbers scroll sideways. It collapses next to the tab bar when scrolling.
+/// the balance itself). Tapping the rates opens a breakdown of where the coins come from. Numbers
+/// use the form chosen by tapping the balance: every digit, or the short form. Long numbers scroll
+/// sideways. It collapses next to the tab bar when scrolling.
 struct BalanceAccessory: View {
     let isMineTab: Bool
+    let openIncome: () -> Void
     @Environment(GameStore.self) private var store
     @Environment(\.tabViewBottomAccessoryPlacement) private var placement
     @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
@@ -108,9 +109,20 @@ struct BalanceAccessory: View {
         let rate = exactNumbers ? CoinFormat.exactRate(income) : CoinFormat.rate(income)
         return HStack(spacing: 12) {
             if isMineTab && placement != .inline {
-                Label("\(rate)/s", systemImage: "bolt.fill")
-                Label("\(amount(game.tapValue(at: now))) per tap", systemImage: "hand.tap.fill")
-                    .foregroundStyle(.subtext)
+                Button(action: openIncome) {
+                    HStack(spacing: 12) {
+                        Label("\(rate)/s", systemImage: "bolt.fill")
+                        Label("\(amount(game.tapValue(at: now))) per tap", systemImage: "hand.tap.fill")
+                            .foregroundStyle(.subtext)
+                        Image(systemName: "chart.pie.fill")
+                            .foregroundStyle(Theme.accent)
+                            .accessibilityHidden(true)
+                    }
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(rate) coins per second, \(amount(game.tapValue(at: now))) per tap")
+                .accessibilityHint("Shows where your coins come from")
             } else {
                 let balance = store.heldCoins ?? game.coins
                 Button {
@@ -127,8 +139,12 @@ struct BalanceAccessory: View {
                 .accessibilityLabel("\(amount(balance)) coins")
                 .accessibilityHint(exactNumbers ? "Shows the short form" : "Shows every digit")
                 if placement != .inline {
-                    Text("+\(rate)/s")
-                        .foregroundStyle(.subtext)
+                    Button(action: openIncome) {
+                        Text("+\(rate)/s")
+                            .foregroundStyle(.subtext)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Shows where your coins come from")
                 }
             }
         }
