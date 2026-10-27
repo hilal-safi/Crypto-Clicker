@@ -22,12 +22,12 @@ struct InventoryStrip: View {
                                       badge: game.minerUpgradeLevel(miner) > 0
                                         ? "Mk \(MinerID.markName(level: game.minerUpgradeLevel(miner) - 1))" : nil) {
                             Text(miner.emoji)
-                                .font(.system(size: 30))
+                                .font(.system(size: 27))
                         }
                     }
                     if !miners.isEmpty && hasPowerUps {
                         Divider()
-                            .frame(height: 44)
+                            .frame(height: 40)
                     }
                     if game.offlineMiningLevel > 0 {
                         InventoryChip(count: CoinFormat.duration(game.offlineCap)) {
@@ -52,7 +52,7 @@ struct InventoryStrip: View {
                 HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Exchange", action: openExchange) {
                     ForEach(tokens) { token in
                         InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token)))) {
-                            TokenImage(token: token, size: 32)
+                            TokenImage(token: token, size: 29)
                         }
                     }
                 }
@@ -83,7 +83,7 @@ struct InventoryStrip: View {
 
     private func symbol(_ name: String, color: Color) -> some View {
         Image(systemName: name)
-            .font(.system(size: 24, weight: .semibold))
+            .font(.system(size: 22, weight: .semibold))
             .foregroundStyle(color)
     }
 
@@ -114,8 +114,8 @@ private struct HoldingCard<Chips: View>: View {
                 HStack(spacing: 12) {
                     chips
                 }
-                .padding(.top, 12) // Includes room for Mk badges.
-                .padding(.bottom, 10)
+                .padding(.top, 10) // Includes room for Mk badges.
+                .padding(.bottom, 8)
             }
             // Margins on the scrolled content (not padding inside it), so the last chip stops
             // clear of the card's rounded edge, and no edge fade over the chips at either end.
@@ -144,7 +144,7 @@ private struct InventoryChip<Icon: View>: View {
     var body: some View {
         VStack(spacing: 3) {
             icon
-                .frame(height: 36)
+                .frame(height: 32)
                 .overlay(alignment: .topTrailing) {
                     if let badge {
                         Text(badge)
@@ -162,6 +162,6 @@ private struct InventoryChip<Icon: View>: View {
                 .lineLimit(1)
                 .fixedSize()
         }
-        .frame(minWidth: 48)
+        .frame(minWidth: 44)
     }
 }

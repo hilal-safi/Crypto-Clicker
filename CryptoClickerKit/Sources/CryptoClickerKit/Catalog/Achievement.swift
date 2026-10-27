@@ -7,6 +7,7 @@ public enum AchievementMetric: Hashable, Sendable {
     case totalMiners, miner(MinerID), upgrades, minerUpgrades, bestCombo
     case blackjackWins, blackjackNaturals, tetrisLines, tetrisBestScore
     case slotsWins, snakeBestScore, bricksBroken, bubblesPopped, merge2048BestTile
+    case moonBestMultiplier, pumpDumpCoinsHit, challengesCompleted
     case tokensExchanged, token(TokenID), tokensSold
     case questsCompleted, longestStreak
     case airdrops, whaleAirdrops, prestiges, perks
@@ -81,6 +82,10 @@ public enum AchievementCatalog {
                     metric: .bubblesPopped, thresholds: [100, 1_000, 10_000, 100_000]),
         Achievement(id: "merge-master", name: "Merge Master", detail: "Make a tile this big in 2048", emoji: "🔢",
                     imageName: nil, metric: .merge2048BestTile, thresholds: [128, 512, 2_048, 8_192]),
+        Achievement(id: "moonshot", name: "Moonshot", detail: "Cash out at this multiplier in To the Moon", emoji: "🚀",
+                    imageName: nil, metric: .moonBestMultiplier, thresholds: [2, 5, 20, 100]),
+        Achievement(id: "whack-a-coin", name: "Coin Whacker", detail: "Hit coins in Pump and Dump", emoji: "🔨",
+                    imageName: nil, metric: .pumpDumpCoinsHit, thresholds: [100, 1_000, 10_000, 50_000]),
         Achievement(id: "exchanger", name: "Exchanger", detail: "Buy tokens on the exchange", emoji: "🔁", imageName: nil,
                     metric: .tokensExchanged, thresholds: [10, 100, 1_000, 100_000]),
         Achievement(id: "trader", name: "Trader", detail: "Sell tokens on the market", emoji: "📈", imageName: nil,
@@ -97,6 +102,8 @@ public enum AchievementCatalog {
                     metric: .questsCompleted, thresholds: [5, 50, 300, 1_000]),
         Achievement(id: "loyal-miner", name: "Loyal Miner", detail: "Claim the daily reward days in a row", emoji: "📅",
                     imageName: nil, metric: .longestStreak, thresholds: [3, 7, 30, 100]),
+        Achievement(id: "challenger", name: "Challenger", detail: "Complete daily challenges", emoji: "🎯",
+                    imageName: nil, metric: .challengesCompleted, thresholds: [1, 10, 50, 200]),
     ]
 
     private static let prestige: [Achievement] = [

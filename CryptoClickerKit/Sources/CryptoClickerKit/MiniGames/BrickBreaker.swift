@@ -3,6 +3,10 @@ import Foundation
 /// Brick Breaker: keep the ball in play with the paddle and clear every brick to reach the next,
 /// faster level. Three balls per game. The field is 1 unit wide and 1.5 units tall, y pointing down.
 ///
+/// Level 1 is always a plain wall. From level 2 each wall takes a random shape (a checkerboard, a
+/// pyramid, columns, stripes, a diamond, a frame or scattered bricks), and tough bricks that take
+/// two hits make up the difference, so every wall takes about as many hits as a full one.
+///
 /// The ball moves in small sub-steps (never more than half its radius), so it can't pass through
 /// a brick or the paddle on a slow frame.
 public struct BrickBreakerGame: Sendable {
@@ -49,8 +53,11 @@ public struct BrickBreakerGame: Sendable {
     public private(set) var paddleHits = 0
     private var serves = 0
     private var nextBrickID = 0
+    /// Shapes the walls after level 1.
+    private var rng: SeededGenerator
 
-    public init() {
+    public init(seed: UInt64 = .random(in: 0...UInt64.max)) {
+        rng = SeededGenerator(seed: seed)
         layOutBricks()
         serve()
     }
@@ -203,22 +210,56 @@ public struct BrickBreakerGame: Sendable {
         ball = Vector2(x: paddleX, y: Self.paddleTop - Self.ballRadius - 0.002)
     }
 
-    /// Fills the wall for the current level. From level 3, the top rows take two hits.
+    /// Hits a full wall takes on `level`: every brick once, plus the top rows twice from level 3.
+    static func fullWallHits(level: Int) -> Int {
+        let rows = rows(for: level)
+        return rows * columns + (level >= 3 ? min(rows, level - 2) * columns : 0)
+    }
+
+    /// Fills the wall for the current level: level 1's plain wall, then random shapes with enough
+    /// tough bricks to take about as many hits as a full wall.
     private mutating func layOutBricks() {
         let rows = Self.rows(for: level)
-        let toughRows = level >= 3 ? min(rows, level - 2) : 0
+        let cells = Self.cells(level: level, rows: rows, using: &rng)
+        let toughCount = level == 1 ? 0 : min(cells.count, max(0, Self.fullWallHits(level: level) - cells.count))
+        let tough = Set(cells.indices.shuffled(using: &rng).prefix(toughCount))
         let width = (Self.width - 2 * Self.sideMargin - Double(Self.columns - 1) * Self.brickGap) / Double(Self.columns)
         bricks = []
-        for row in 0..<rows {
-            for column in 0..<Self.columns {
-                let frame = Box(minX: Self.sideMargin + Double(column) * (width + Self.brickGap),
-                                minY: Self.brickTop + Double(row) * (Self.brickHeight + Self.brickGap),
-                                width: width, height: Self.brickHeight)
-                let hits = row < toughRows ? 2 : 1
-                bricks.append(Brick(id: nextBrickID, row: row, frame: frame, maxHits: hits, hitsLeft: hits))
-                nextBrickID += 1
-            }
+        for (index, cell) in cells.enumerated() {
+            let frame = Box(minX: Self.sideMargin + Double(cell.column) * (width + Self.brickGap),
+                            minY: Self.brickTop + Double(cell.row) * (Self.brickHeight + Self.brickGap),
+                            width: width, height: Self.brickHeight)
+            let hits = tough.contains(index) ? 2 : 1
+            bricks.append(Brick(id: nextBrickID, row: cell.row, frame: frame, maxHits: hits, hitsLeft: hits))
+            nextBrickID += 1
         }
+    }
+
+    /// The cells with a brick on `level`, row by row. Every shape keeps at least two rows' worth.
+    static func cells<R: RandomNumberGenerator>(level: Int, rows: Int, using rng: inout R) -> [(row: Int, column: Int)] {
+        let all = (0..<rows).flatMap { row in (0..<columns).map { (row: row, column: $0) } }
+        guard level > 1 else { return all }
+        let middle = columns / 2
+        let flip = Bool.random(using: &rng)
+        let shape = Int.random(in: 0..<8, using: &rng)
+        let scattered = Set(all.indices.filter { _ in Double.random(in: 0..<1, using: &rng) < 0.65 })
+        let picked = all.enumerated().filter { index, cell in
+            let (row, column) = cell
+            switch shape {
+            case 0: return true // A full wall.
+            case 1: return (row + column + (flip ? 1 : 0)) % 2 == 0 // A checkerboard.
+            case 2: return abs(column - middle) <= (flip ? rows - 1 - row : row) // A pyramid, up or down.
+            case 3: return column % 2 == (flip ? 1 : 0) // Columns.
+            case 4: return row % 2 == (flip ? 1 : 0) // Stripes.
+            case 5: // A diamond.
+                let across = Double(abs(column - middle)) / (Double(middle) + 0.5)
+                let down = abs(Double(row) - Double(rows - 1) / 2) / (Double(rows) / 2)
+                return across + down <= 1
+            case 6: return row == 0 || row == rows - 1 || column == 0 || column == columns - 1 // A frame.
+            default: return scattered.contains(index)
+            }
+        }.map(\.element)
+        return picked.count >= 2 * columns ? picked : all
     }
 
     #if DEBUG

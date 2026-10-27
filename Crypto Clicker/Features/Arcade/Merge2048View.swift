@@ -97,7 +97,7 @@ struct Merge2048View: View {
                 GamePanel(title: result.endedByPlayer ? "Well Played" : "Game Over", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.payout.isNewBest,
                                     best: store.game.stats.merge2048BestScore, reward: result.payout.coins,
-                                    details: result.details)
+                                    details: result.details, challenge: result.payout.challenge)
                 }
             } else {
                 GamePanel(title: "2048", buttonTitle: "Start", action: start) {

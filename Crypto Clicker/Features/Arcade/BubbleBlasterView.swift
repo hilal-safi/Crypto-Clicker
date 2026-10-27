@@ -60,7 +60,7 @@ struct BubbleBlasterView: View {
                 store.releaseArcadeRun()
             case .background:
                 isPaused = true
-                store.holdArcadeRun(ArcadeRun(game: .bubbleBlaster, score: game.score, detail: game.popped))
+                store.holdArcadeRun(ArcadeRun(game: .bubbleBlaster, score: game.score, detail: game.popped, extra: game.bestClear))
             default:
                 isPaused = true
             }
@@ -142,7 +142,8 @@ struct BubbleBlasterView: View {
                 GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.isNewBest,
                                     best: store.game.stats.bubbleBestScore, reward: result.reward,
-                                    details: ["\(CoinFormat.grouped(result.detail)) bubbles popped"])
+                                    details: ["\(CoinFormat.grouped(result.detail)) bubbles popped"],
+                                    challenge: result.challenge)
                 }
             } else {
                 GamePanel(title: "Bubble Blaster", buttonTitle: "Start", action: start) {
@@ -188,7 +189,7 @@ struct BubbleBlasterView: View {
         isPlaying = false
         isPaused = false
         aim = nil
-        let payout = store.finishBubbleBlaster(score: game.score, popped: game.popped)
+        let payout = store.finishBubbleBlaster(score: game.score, popped: game.popped, bestShot: game.bestClear)
         result = GameResult(score: game.score, payout: payout, detail: game.popped)
     }
 }

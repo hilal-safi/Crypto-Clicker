@@ -5,7 +5,7 @@ import CryptoClickerKit
 struct TrophiesView: View {
     /// Goes up by one each time another tab asks to show the Daily page.
     var dailyRequests = 0
-    /// Opens today's Tetris challenge in the Arcade.
+    /// Opens today's challenge in the Arcade.
     let openChallenge: () -> Void
     @Environment(GameStore.self) private var store
     @State private var page = Page.daily
@@ -71,7 +71,7 @@ struct TrophiesView: View {
 
 // MARK: - Daily
 
-/// The daily reward and its streak, the day's quests and the Tetris challenge.
+/// The daily reward and its streak, the day's quests and the daily challenge.
 private struct DailyPage: View {
     let openChallenge: () -> Void
     @Environment(GameStore.self) private var store
@@ -105,9 +105,11 @@ private struct DailyPage: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .rowCard()
-        if game.isUnlocked(.tetris) {
-            DailyChallengeRow(isBonusAvailable: game.isDailyChallengeBonusAvailable(today: today),
-                              best: game.dailyChallengeBest(today: today), play: openChallenge)
+        if let challenge = game.dailyChallenge(today: today) {
+            let canPlay = !challenge.isComplete && challenge.kind.game.map(game.isUnlocked) == true
+            ChallengeCard(challenge: challenge, weekCount: game.challengesCompleted(inWeekOf: today),
+                          reward: game.challengeReward, weeklyBonus: game.weeklyChallengeBonus,
+                          play: canPlay ? openChallenge : nil)
         }
         Text(game.hasPerk(.luckyStreak)
              ? "Lucky Streak doubles every daily reward. Coin rewards grow with your income."
@@ -285,39 +287,6 @@ private struct QuestRow: View {
     }
 }
 
-private struct DailyChallengeRow: View {
-    let isBonusAvailable: Bool
-    let best: Int
-    let play: () -> Void
-
-    var body: some View {
-        HStack(spacing: 14) {
-            Text("🧩")
-                .font(.system(size: 30))
-                .frame(width: 52, height: 52)
-                .background(MiniGame.tetris.color.opacity(0.18), in: .rect(cornerRadius: 14))
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Daily Tetris Challenge")
-                    .font(.headline)
-                Text(isBonusAvailable ? "Same pieces for everyone today. First scoring game pays double."
-                                      : best > 0 ? "Double reward claimed. Best today \(CoinFormat.grouped(best))."
-                                                 : "Double reward claimed.")
-                    .font(.subheadline)
-                    .foregroundStyle(.subtext)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 8)
-            Button("Play", action: play)
-                .buttonStyle(.borderedProminent)
-                .tint(MiniGame.tetris.color)
-                .font(.subheadline.weight(.bold))
-                .accessibilityLabel("Play the daily Tetris challenge")
-        }
-        .rowCard()
-    }
-}
-
 // MARK: - Achievements
 
 private struct TrophySummary: View {
@@ -421,7 +390,7 @@ private struct AchievementCard: View {
                             .opacity(isDark ? 0.34 : 0.30)
                     }
                     MetalShine(period: TierStyle.shinePeriod(tier), delay: Self.delay(for: achievement.id),
-                               intensity: tier >= 3 ? 0.7 : 0.5)
+                               intensity: TierStyle.shineIntensity(tier))
                 }
                 .clipShape(shape)
                 Group {

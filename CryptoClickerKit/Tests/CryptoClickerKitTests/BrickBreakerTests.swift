@@ -153,9 +153,54 @@ struct BrickBreakerTests {
         }
         #expect(game.score == 10 + 100 + 10 + 200)
         #expect(game.speed > startSpeed)
-        // Level 3: seven rows, and the top one takes two hits.
-        #expect(game.bricks.count == 7 * Game.columns)
-        #expect(game.bricks.filter { $0.maxHits == 2 }.count == Game.columns)
-        #expect(game.bricks.filter { $0.maxHits == 2 }.allSatisfy { $0.row == 0 })
+        // Level 3: up to seven rows, with tough bricks making the wall take up to 56 hits.
+        let hits = game.bricks.reduce(0) { $0 + $1.maxHits }
+        #expect(game.bricks.count >= 2 * Game.columns)
+        #expect(hits <= Game.fullWallHits(level: 3))
+        #expect(hits >= min(Game.fullWallHits(level: 3), 2 * game.bricks.count))
+        #expect(game.bricks.contains { $0.maxHits == 2 })
+    }
+
+    @Test func wallsTakeRandomShapesAfterLevelOne() {
+        var shapes = Set<[Int]>()
+        for seed in UInt64(1)...40 {
+            var rng = SeededGenerator(seed: seed)
+            let level1 = Game.cells(level: 1, rows: Game.rows(for: 1), using: &rng)
+            #expect(level1.count == 5 * Game.columns)
+            for level in 2...6 {
+                let rows = Game.rows(for: level)
+                let cells = Game.cells(level: level, rows: rows, using: &rng)
+                #expect(cells.count >= 2 * Game.columns)
+                #expect(cells.allSatisfy { (0..<rows).contains($0.row) && (0..<Game.columns).contains($0.column) })
+                #expect(Set(cells.map { $0.row * Game.columns + $0.column }).count == cells.count)
+                shapes.insert(cells.map { $0.row * Game.columns + $0.column })
+            }
+        }
+        #expect(shapes.count >= 10)
+        // A game's walls follow its seed, so the same seed plays the same game.
+        #expect(Game(seed: 7).bricks.map(\.frame) == Game(seed: 7).bricks.map(\.frame))
+    }
+
+    @Test func everyWallFitsTheField() {
+        for seed in UInt64(1)...20 {
+            var rng = SeededGenerator(seed: seed)
+            for level in 2...8 {
+                let cells = Game.cells(level: level, rows: Game.rows(for: level), using: &rng)
+                #expect(cells.count <= Game.rows(for: level) * Game.columns)
+            }
+        }
+        var game = Game(seed: 3)
+        for level in 2...5 {
+            game.load(ball: Vector2(x: 0.5, y: 0.6), velocity: Vector2(x: 0, y: -0.8),
+                      bricks: [Box(minX: 0.4, minY: 0.5, width: 0.2, height: 0.05)])
+            game.update(by: 0.05)
+            #expect(game.level == level)
+            for (index, brick) in game.bricks.enumerated() {
+                #expect(brick.frame.minX >= 0 && brick.frame.maxX <= Game.width)
+                #expect(brick.frame.maxY < Game.paddleTop)
+                #expect((1...2).contains(brick.maxHits))
+                for other in game.bricks[(index + 1)...] { #expect(!overlaps(brick.frame, other.frame)) }
+            }
+        }
     }
 }

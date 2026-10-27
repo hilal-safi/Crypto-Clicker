@@ -67,13 +67,13 @@ extension GameState {
         }
     }
 
-    /// Makes the daily reward, new quests and the daily challenge bonus available again today,
+    /// Makes the daily reward, new quests and a fresh daily challenge available again today,
     /// keeping the streak going.
     public mutating func debugResetDaily(yesterday: String) {
         if daily.lastRewardDay != nil { daily.lastRewardDay = yesterday }
         daily.questDay = nil
         daily.quests = []
-        daily.challengeRewarded = false
+        daily.challenge = nil
     }
 
     /// Moves the game clock back, as if the app had been closed for `seconds`. The next

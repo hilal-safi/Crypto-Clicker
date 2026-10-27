@@ -41,7 +41,8 @@ struct SaveTests {
         state.refreshDaily(today: "2026-10-24", canWalk: true, at: at(20))
         state.claimDailyReward(today: "2026-10-24", yesterday: "2026-10-23", at: at(20))
         state.recordIncomeSample(at: at(20))
-        state.holdArcadeRun(ArcadeRun(game: .tetris, score: 700, detail: 3, challengeDay: "2026-10-24"))
+        state.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: 700, detail: 30, extra: 2))
+        state.moonRound = MoonRound(token: .cardano, bet: 3, crashPoint: 2.5, autoCashOut: 2)
         state.stats.bestCombo = 44
         state.stats.whaleAirdrops = 2
         return state
@@ -58,7 +59,9 @@ struct SaveTests {
         #expect(decoded.daily.quests.count == 3)
         #expect(decoded.daily.streak == 1)
         #expect(decoded.incomeHistory.count == 1)
-        #expect(decoded.unfinishedRun?.challengeDay == "2026-10-24")
+        #expect(decoded.unfinishedRun == ArcadeRun(game: .brickBreaker, score: 700, detail: 30, extra: 2))
+        #expect(decoded.moonRound == MoonRound(token: .cardano, bet: 3, crashPoint: 2.5, autoCashOut: 2))
+        #expect(decoded.daily.challenge != nil)
     }
 
     @Test func enumKeyedValuesAreWrittenAsReadableJSON() throws {

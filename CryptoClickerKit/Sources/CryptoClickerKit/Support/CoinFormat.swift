@@ -48,6 +48,13 @@ public enum CoinFormat {
         "×" + compact(factor)
     }
 
+    /// A To the Moon multiplier with two decimals: `2.35×`, `1,000.00×`.
+    public static func flight(_ multiplier: Double) -> String {
+        guard multiplier.isFinite else { return "∞×" }
+        let hundredths = Int(min(max(multiplier, 0), 1e7) * 100 + 1e-7)
+        return "\(grouped(hundredths / 100)).\(String(format: "%02d", hundredths % 100))×"
+    }
+
     /// `45s`, `3m 5s`, `2h 14m`, `3d 4h`.
     public static func duration(_ seconds: TimeInterval) -> String {
         guard seconds.isFinite else { return "∞" }

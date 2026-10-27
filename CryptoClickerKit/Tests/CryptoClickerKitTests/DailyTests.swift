@@ -153,37 +153,152 @@ struct DailyRewardTests {
 
 @Suite("Daily challenge")
 struct DailyChallengeTests {
-    func player() -> GameState { GameState.make(miners: [.desktop: 5]) } // 10 coins per second.
-
-    @Test func theFirstScoringGameOfTheDayPaysDouble() {
-        var game = player()
-        #expect(game.isDailyChallengeBonusAvailable(today: "2026-10-24"))
-        // A game that scores nothing doesn't use up the bonus.
-        #expect(game.finishTetris(score: 0, lines: 0, challengeDay: "2026-10-24").isChallengeBonus == false)
-        let first = game.finishTetris(score: 1_000, lines: 8, challengeDay: "2026-10-24")
-        #expect(first == ArcadePayout(coins: 1_800, isNewBest: true, isChallengeBonus: true)) // 600 × 1.5 × 2
-        #expect(!game.isDailyChallengeBonusAvailable(today: "2026-10-24"))
-        let second = game.finishTetris(score: 1_200, lines: 9, challengeDay: "2026-10-24")
-        #expect(second == ArcadePayout(coins: 1_080, isNewBest: true, isChallengeBonus: false))
-        #expect(game.dailyChallengeBest(today: "2026-10-24") == 1_200)
-        // A new day brings a new challenge.
-        #expect(game.isDailyChallengeBonusAvailable(today: "2026-10-25"))
-        #expect(game.dailyChallengeBest(today: "2026-10-25") == 0)
-        #expect(game.finishTetris(score: 500, lines: 3, challengeDay: "2026-10-25").isChallengeBonus)
-        #expect(game.dailyChallengeBest(today: "2026-10-25") == 500)
+    func player(_ games: Set<MiniGame> = []) -> GameState {
+        var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
+        game.unlockedGames = games
+        return game
     }
 
-    @Test func aChallengeHeldOvernightPaysAsAnOrdinaryGame() {
-        var game = player()
-        game.finishTetris(score: 100, lines: 1, challengeDay: "2026-10-25")
-        game.holdArcadeRun(ArcadeRun(game: .tetris, score: 400, detail: 2, challengeDay: "2026-10-24"))
-        let paid = game.payUnfinishedRun()
-        #expect(paid?.payout.isChallengeBonus == false)
-        #expect(game.daily.challengeDay == "2026-10-25")
-        #expect(game.dailyChallengeBest(today: "2026-10-25") == 100)
+    func with(_ kind: DailyChallengeKind, target: Int, day: String = "2026-10-26", games: Set<MiniGame> = []) -> GameState {
+        var game = player(games)
+        game.daily.challenge = DailyChallenge(day: day, kind: kind, target: target)
+        return game
     }
 
-    @Test func everyoneGetsTheSamePiecesAllDay() {
+    @Test func aChallengeArrivesOnceAGameIsUnlocked() throws {
+        var game = player()
+        game.refreshDaily(today: "2026-10-26", canWalk: false, at: t0)
+        #expect(game.daily.challenge == nil)
+        #expect(!game.needsDailyRefresh(today: "2026-10-26"))
+        game.unlockedGames.insert(.snake)
+        #expect(game.needsDailyRefresh(today: "2026-10-26"))
+        game.refreshDaily(today: "2026-10-26", canWalk: false, at: t0)
+        let challenge = try #require(game.dailyChallenge(today: "2026-10-26"))
+        #expect(challenge.kind == .snake)
+        #expect(DailyChallengeKind.snake.targets.contains(challenge.target))
+        #expect(challenge.goal == "Eat \(challenge.target) coins in one Snake game")
+        // Asking again the same day changes nothing, even with more games unlocked.
+        game.unlockedGames.insert(.tetris)
+        #expect(!game.needsDailyRefresh(today: "2026-10-26"))
+        game.refreshDaily(today: "2026-10-26", canWalk: false, at: t0)
+        #expect(game.daily.challenge == challenge)
+        #expect(game.dailyChallenge(today: "2026-10-27") == nil)
+    }
+
+    @Test func challengesRotateAndDontRepeatTheDayBefore() {
+        var game = player([.tetris, .snake, .merge2048, .blackjack])
+        var kinds: [DailyChallengeKind] = []
+        for day in 20...30 {
+            game.refreshDaily(today: "2026-10-\(day)", canWalk: false, at: t0)
+            kinds.append(game.daily.challenge?.kind ?? .arcadeMix)
+        }
+        for (yesterday, today) in zip(kinds, kinds.dropFirst()) { #expect(yesterday != today) }
+        #expect(Set(kinds).count >= 3)
+        // The arcade mix is possible with three arcade games unlocked.
+        #expect(Set(kinds).isSubset(of: [.tetris, .snake, .merge2048, .blackjack, .arcadeMix]))
+        #expect(!player([.tetris, .snake, .blackjack]).eligibleChallengeKinds().contains(.arcadeMix))
+    }
+
+    @Test func aBestOfOneGameChallengeCountsTheBestGame() throws {
+        var game = with(.snake, target: 12, games: [.snake])
+        let first = game.finishSnake(score: 100, length: 13) // 10 coins.
+        #expect(first.challenge == nil)
+        #expect(game.daily.challenge?.progress == 10)
+        let second = game.finishSnake(score: 50, length: 8)
+        #expect(second.challenge == nil)
+        #expect(game.daily.challenge?.progress == 10)
+        let coinsBefore = game.coins
+        let third = game.finishSnake(score: 120, length: 15)
+        let reward = try #require(third.challenge)
+        #expect(reward == ChallengeReward(coins: 9_000, weeklyBonus: 0)) // 15 minutes at 10 coins per second.
+        #expect(game.coins == coinsBefore + third.coins + 9_000)
+        #expect(game.daily.challenge?.isComplete == true)
+        #expect(game.stats.challengesCompleted == 1)
+        #expect(game.stats.earnedFromDaily == 9_000)
+        // It pays once.
+        #expect(game.finishSnake(score: 300, length: 33).challenge == nil)
+        #expect(game.stats.challengesCompleted == 1)
+    }
+
+    @Test func otherGamesDontCount() {
+        var game = with(.tetris, target: 2_000, games: [.tetris, .snake])
+        game.finishSnake(score: 5_000, length: 400)
+        #expect(game.daily.challenge?.progress == 0)
+        game.finishTetris(score: 2_500, lines: 12, rewardPoints: 2_500)
+        #expect(game.daily.challenge?.isComplete == true)
+    }
+
+    @Test func casinoChallengesAddUpOverTheDay() {
+        var blackjack = with(.blackjack, target: 3, games: [.blackjack])
+        blackjack.tokens = [.dogecoin: 20]
+        blackjack.settleBlackjack([BlackjackResult(outcome: .win, bet: 1, payout: 2), BlackjackResult(outcome: .lose, bet: 1, payout: 0)],
+                                  token: .dogecoin)
+        blackjack.settleBlackjack([BlackjackResult(outcome: .push, bet: 1, payout: 1)], token: .dogecoin)
+        #expect(blackjack.daily.challenge?.progress == 1)
+        blackjack.settleBlackjack([BlackjackResult(outcome: .win, bet: 1, payout: 2), BlackjackResult(outcome: .blackjack, bet: 1, payout: 3)],
+                                  token: .dogecoin)
+        #expect(blackjack.daily.challenge?.isComplete == true)
+        #expect(blackjack.stats.challengesCompleted == 1)
+
+        var moon = with(.moon, target: 2, games: [.moon])
+        moon.tokens = [.dogecoin: 100]
+        var rng = SeededGenerator(seed: 1)
+        for _ in 0..<40 where moon.daily.challenge?.isComplete == false {
+            moon.launchMoon(.dogecoin, bet: 1, autoCashOut: 2, using: &rng)
+            moon.settleMoon(after: 60)
+        }
+        #expect(moon.daily.challenge?.isComplete == true)
+        #expect(moon.daily.challenge?.progress == 2)
+    }
+
+    @Test func theArcadeMixNeedsThreeDifferentGames() {
+        var game = with(.arcadeMix, target: 3, games: [.tetris, .snake, .merge2048])
+        game.finishSnake(score: 10, length: 4)
+        game.finishSnake(score: 20, length: 5)
+        game.finishTetris(score: 0, lines: 0, rewardPoints: 0) // Scoring nothing doesn't count.
+        #expect(game.daily.challenge?.progress == 1)
+        game.finishTetris(score: 300, lines: 1, rewardPoints: 300)
+        #expect(game.finishMerge2048(score: 16, bestTile: 8).challenge != nil)
+        #expect(game.daily.challenge?.gamesScored == [.snake, .tetris, .merge2048])
+    }
+
+    @Test func theFifthChallengeOfAWeekPaysTheWeeklyBonus() {
+        var game = player([.snake])
+        var bonuses: [Double] = []
+        // Monday 19 October to Monday 26 October 2026.
+        for day in 19...26 {
+            game.daily.challenge = DailyChallenge(day: "2026-10-\(day)", kind: .snake, target: 1)
+            bonuses.append(game.finishSnake(score: 10, length: 4).challenge?.weeklyBonus ?? -1)
+        }
+        #expect(bonuses == [0, 0, 0, 0, 72_000, 0, 0, 0]) // Two hours at 10 coins per second, on the fifth.
+        #expect(game.challengesCompleted(inWeekOf: "2026-10-26") == 1)
+        #expect(game.challengesCompleted(inWeekOf: "2026-10-25") == 0)
+        #expect(game.stats.challengesCompleted == 8)
+    }
+
+    @Test func luckyStreakDoublesTheReward() {
+        var game = with(.tetris, target: 100, games: [.tetris])
+        game.perks = [.luckyStreak]
+        #expect(game.finishTetris(score: 100, lines: 1, rewardPoints: 100).challenge?.coins == 18_000)
+    }
+
+    @Test func weeksStartOnMonday() {
+        #expect(StepDay.weekKey(of: "2026-10-26") == "2026-10-26") // A Monday.
+        #expect(StepDay.weekKey(of: "2026-10-25") == "2026-10-19") // A Sunday.
+        #expect(StepDay.weekKey(of: "2026-10-21") == "2026-10-19")
+        #expect(StepDay.weekKey(of: "2027-01-01") == "2026-12-28") // Across the new year.
+        #expect(StepDay.weekKey(of: "2024-03-01") == "2024-02-26") // Across a leap day.
+        #expect(StepDay.weekKey(of: "not a day") == "not a day")
+    }
+
+    @Test func anOlderSavesTetrisChallengeMakesWayForANewOne() throws {
+        let json = #"{"streak": 2, "lastRewardDay": "2026-10-25", "challengeDay": "2026-10-25", "challengeBest": 900, "challengeRewarded": true}"#
+        let daily = try GameCoding.decoder().decode(DailyProgress.self, from: Data(json.utf8))
+        #expect(daily.challenge == nil)
+        #expect(daily.streak == 2)
+    }
+
+    @Test func everyoneGetsTheSameTetrisPiecesAllDay() {
         #expect(GameState.dailyChallengeSeed(day: "2026-10-24") == GameState.dailyChallengeSeed(day: "2026-10-24"))
         #expect(GameState.dailyChallengeSeed(day: "2026-10-24") != GameState.dailyChallengeSeed(day: "2026-10-25"))
     }

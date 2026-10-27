@@ -81,6 +81,10 @@ public struct TetrisGame: Sendable {
     public private(set) var piece: TetrisPiece?
     public private(set) var queue: [Tetromino] = []
     public private(set) var score = 0
+    /// The score without the level multiplier: line clears at their level 1 value, plus drops. Coins
+    /// are paid on these, so the multiplier that keeps climbing in a long game makes points worth
+    /// more on screen without making Tetris pay far more than the other games.
+    public private(set) var rewardPoints = 0
     public private(set) var lines = 0
     public private(set) var isOver = false
     private var groundedTicks = 0
@@ -144,6 +148,7 @@ public struct TetrisGame: Sendable {
         if isValid(current.moved(dy: 1)) {
             piece = current.moved(dy: 1)
             score += 1
+            rewardPoints += 1
             groundedTicks = 0
         } else {
             lock(using: &rng)
@@ -154,6 +159,7 @@ public struct TetrisGame: Sendable {
     public mutating func hardDrop<R: RandomNumberGenerator>(using rng: inout R) {
         guard !isOver, let current = piece, let landing = ghost else { return }
         score += 2 * (landing.y - current.y)
+        rewardPoints += 2 * (landing.y - current.y)
         piece = landing
         lock(using: &rng)
     }
@@ -211,6 +217,7 @@ public struct TetrisGame: Sendable {
         let empty = Array(repeating: Array(repeating: 0, count: Self.width), count: cleared)
         board = (empty + kept).flatMap { $0 }
         score += Self.lineScores[min(cleared, 4)] * level
+        rewardPoints += Self.lineScores[min(cleared, 4)]
         lines += cleared
     }
 

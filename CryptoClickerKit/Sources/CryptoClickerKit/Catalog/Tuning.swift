@@ -153,18 +153,32 @@ public enum Tuning {
     public static let slotsStakeShare = 0.05
     /// ...up to this many seconds of idle income for each multiple.
     public static let slotsWinSeconds = 3.0
-    /// Arcade games pay this many seconds of idle income per point when they end...
-    public static let tetrisSecondsPerPoint = 0.06
-    public static let snakeSecondsPerPoint = 0.5
-    public static let brickBreakerSecondsPerPoint = 0.25
-    public static let bubbleSecondsPerPoint = 0.12
-    public static let merge2048SecondsPerPoint = 0.04
+    /// A To the Moon cash-out pays this share of its stake's coin value for each multiple above 1×...
+    public static let moonStakeShare = 0.05
+    /// ...up to this many seconds of idle income for each multiple above 1×.
+    public static let moonWinSeconds = 15.0
+    /// Arcade games pay this many seconds of idle income per point when they end. Simulated skilled
+    /// players (see ArcadeBalanceTests) earn about two minutes of income for each minute they play
+    /// in any of them, on top of the mining that carries on meanwhile; an average player about one.
+    /// Tetris pays on its points before the level multiplier (`TetrisGame.rewardPoints`)...
+    public static let tetrisSecondsPerPoint = 0.025
+    public static let snakeSecondsPerPoint = 0.6
+    public static let brickBreakerSecondsPerPoint = 0.4
+    public static let bubbleSecondsPerPoint = 0.1
+    public static let merge2048SecondsPerPoint = 0.055
+    public static let pumpDumpSecondsPerPoint = 0.055
     /// Making a 2048 tile also pays this many seconds of income.
     public static let merge2048WinSeconds = 600.0
     /// ...and this much more for a new best score.
     public static let newBestBonus = 0.5
-    /// The day's first daily-challenge Tetris game pays this many times as much.
-    public static let dailyChallengeMultiplier = 2.0
+
+    // MARK: Daily challenge
+    /// Completing the day's challenge pays this many seconds of income...
+    public static let challengeRewardSeconds = 900.0
+    /// ...and completing this many in one week (Monday to Sunday)...
+    public static let weeklyChallengeGoal = 5
+    /// ...pays this many more.
+    public static let weeklyChallengeBonusSeconds = 7_200.0
 
     // MARK: Watch
     /// Upper bound on taps accepted from a single watch batch.

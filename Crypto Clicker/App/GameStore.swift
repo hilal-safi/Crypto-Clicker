@@ -13,6 +13,20 @@ struct Toast: Identifiable, Equatable {
     let message: String
 }
 
+/// What the welcome-back screen shows: what the miners earned while the app was closed, what that
+/// unlocked, and the best thing to buy with it.
+struct WelcomeBack: Identifiable {
+    let report: OfflineReport
+    /// Achievement tiers the coins earned away reached.
+    let achievements: [EarnedTier]
+    /// Prestige points the time away made claimable.
+    let newPrestigePoints: Int
+    /// The affordable purchase that adds income fastest for its price, when there is one.
+    let suggestion: PurchaseSuggestion?
+
+    var id: Double { report.id }
+}
+
 /// An airdrop on screen, waiting to be caught before it expires.
 struct Airdrop: Identifiable, Equatable {
     let id = UUID()
@@ -65,7 +79,7 @@ struct MarketBoard: Equatable {
 @Observable @MainActor
 final class GameStore {
     private(set) var game: GameState
-    var welcomeBack: OfflineReport?
+    var welcomeBack: WelcomeBack?
     var errorMessage: String?
     private(set) var toasts: [Toast] = []
     private(set) var airdrop: Airdrop?
@@ -202,6 +216,11 @@ final class GameStore {
                        message: "\(CoinFormat.grouped(stake.amount)) \(stake.token.ticker) from an unfinished Blackjack hand"))
             save()
         }
+        if let round = game.refundMoonRound() {
+            show(Toast(icon: MiniGame.moon.icon, title: "Bet returned",
+                       message: "\(CoinFormat.grouped(round.bet)) \(round.token.ticker) from an unfinished flight"))
+            save()
+        }
         if let paid = game.payUnfinishedRun() {
             show(Toast(icon: paid.run.game.icon, title: "\(paid.run.game.name) paid out",
                        message: "+\(CoinFormat.short(paid.payout.coins)) coins for \(CoinFormat.grouped(paid.run.score)) points"))
@@ -249,11 +268,15 @@ final class GameStore {
         }
     }
 
-    /// Credits income up to `now`; time away is reported once it is long enough to matter.
+    /// Credits income up to `now`; time away is reported once it is long enough to matter. The
+    /// welcome-back screen gathers what the time away unlocked, rather than a pile of toasts.
     private func catchUp(to now: Date) {
+        let claimableBefore = game.claimablePrestigePoints
         guard let report = game.advance(to: now), report.earned >= 1 else { return }
         if report.elapsed >= Self.welcomeBackThreshold && shouldWelcomeBack(report, at: now) {
-            welcomeBack = report
+            welcomeBack = WelcomeBack(report: report, achievements: game.refreshAchievements(),
+                                      newPrestigePoints: max(0, game.claimablePrestigePoints - claimableBefore),
+                                      suggestion: game.bestPurchase)
         } else {
             let message = report.offlineCap == 0
                 ? "+\(CoinFormat.short(report.earned)) coins · miners stop a minute after you leave"
@@ -280,12 +303,23 @@ final class GameStore {
     private func perform<Result>(_ action: (inout GameState, Date) -> Result) -> Result {
         let now = Date.now
         if isInForeground { catchUp(to: now) }
+        let challengeWasComplete = game.daily.challenge?.isComplete ?? true
         let result = action(&game, now)
         hasUnsavedChanges = true
+        if !challengeWasComplete, game.daily.challenge?.isComplete == true { announceChallenge() }
         announceAchievements()
         refreshDailyStatus(at: now)
         if !isInForeground { save() }
         return result
+    }
+
+    /// Celebrates a completed daily challenge (and the week's bonus when it came with it).
+    private func announceChallenge() {
+        let week = game.daily.challengesThisWeek
+        let bonus = week == Tuning.weeklyChallengeGoal
+            ? " · weekly bonus +\(CoinFormat.short(game.weeklyChallengeBonus))" : ""
+        show(Toast(icon: "🎯", title: "Daily challenge complete!",
+                   message: "+\(CoinFormat.short(game.challengeReward)) coins\(bonus)"))
     }
 
     /// Updates the daily badge, assigning only real changes so views don't redraw for nothing.
@@ -324,6 +358,12 @@ final class GameStore {
     }
 
     /// Buys the next Offline Mining level. Saved at once, since it changes what time away pays.
+    /// Buys a suggested purchase (from the welcome-back screen).
+    @discardableResult
+    func buy(_ purchase: Purchase) -> Bool {
+        perform { game, _ in game.buy(purchase) }
+    }
+
     @discardableResult
     func buyOfflineMining() -> Bool {
         let bought = perform { game, _ in game.buyOfflineMining() }
@@ -457,31 +497,66 @@ final class GameStore {
         return spin
     }
 
-    /// Pays a finished Tetris game. `challengeDay` marks a daily challenge game.
+    /// Launches a To the Moon flight: the bet is taken and the flight saved at once, so a flight
+    /// cut short by the app closing is refunded on the next launch.
     @discardableResult
-    func finishTetris(score: Int, lines: Int, challengeDay: String? = nil) -> ArcadePayout {
-        let payout = perform { game, _ in game.finishTetris(score: score, lines: lines, challengeDay: challengeDay) }
+    func launchMoon(_ token: TokenID, bet: Int, autoCashOut: Double?) -> Bool {
+        let launched = perform { game, _ in
+            var rng = SystemRandomNumberGenerator()
+            return game.launchMoon(token, bet: bet, autoCashOut: autoCashOut, using: &rng)
+        }
+        if launched { save() }
+        return launched
+    }
+
+    /// Returns the bet of a flight left without its screen (it can't be watched, so it can't be won).
+    func refundMoonRound() {
+        guard game.moonRound != nil else { return }
+        perform { game, _ in game.refundMoonRound() }
+        save()
+    }
+
+    /// Ends the flight `seconds` after launch: a cash-out, or a crash.
+    @discardableResult
+    func settleMoon(after seconds: TimeInterval) -> MoonResult? {
+        let result = perform { game, _ in game.settleMoon(after: seconds) }
+        if result != nil { save() }
+        return result
+    }
+
+    @discardableResult
+    func finishTetris(score: Int, lines: Int, rewardPoints: Int) -> ArcadePayout {
+        let payout = perform { game, _ in game.finishTetris(score: score, lines: lines, rewardPoints: rewardPoints) }
         save()
         return payout
     }
 
     @discardableResult
-    func finishSnake(score: Int) -> ArcadePayout {
-        let payout = perform { game, _ in game.finishSnake(score: score) }
+    func finishSnake(score: Int, length: Int) -> ArcadePayout {
+        let payout = perform { game, _ in game.finishSnake(score: score, length: length) }
         save()
         return payout
     }
 
     @discardableResult
-    func finishBrickBreaker(score: Int, bricks: Int) -> ArcadePayout {
-        let payout = perform { game, _ in game.finishBrickBreaker(score: score, bricks: bricks) }
+    func finishBrickBreaker(score: Int, bricks: Int, level: Int) -> ArcadePayout {
+        let payout = perform { game, _ in game.finishBrickBreaker(score: score, bricks: bricks, level: level) }
         save()
         return payout
     }
 
     @discardableResult
-    func finishBubbleBlaster(score: Int, popped: Int) -> ArcadePayout {
-        let payout = perform { game, _ in game.finishBubbleBlaster(score: score, popped: popped) }
+    func finishBubbleBlaster(score: Int, popped: Int, bestShot: Int) -> ArcadePayout {
+        let payout = perform { game, _ in game.finishBubbleBlaster(score: score, popped: popped, bestShot: bestShot) }
+        save()
+        return payout
+    }
+
+    @discardableResult
+    func finishPumpDump(score: Int, coinsHit: Int, bestCombo: Int, scamsHit: Int) -> ArcadePayout {
+        let payout = perform { game, _ in
+            game.finishPumpDump(score: score, coinsHit: coinsHit, bestCombo: bestCombo, scamsHit: scamsHit)
+        }
         save()
         return payout
     }
@@ -508,14 +583,15 @@ final class GameStore {
 
     // MARK: Dailies
 
-    /// Issues the day's quests once the day changes, paying any finished ones left from before.
-    /// Checked every few seconds, since midnight can pass while the app is open.
+    /// Issues the day's quests and challenge once the day changes (or the first game is unlocked),
+    /// paying any finished quests left from before. Checked every few seconds, since midnight can
+    /// pass while the app is open.
     private func refreshDaily(at now: Date, force: Bool = false) {
         guard !isSaveLocked, force || now.timeIntervalSince(lastDayCheck) >= 5 else { return }
         lastDayCheck = now
         let today = StepDay.key(for: now)
         refreshDailyStatus(at: now) // The badge also changes at midnight and as quests finish.
-        guard game.daily.questDay != today else { return }
+        guard game.needsDailyRefresh(today: today) else { return }
         let canWalk = canTrackSteps
         let paid = perform { game, now in game.refreshDaily(today: today, canWalk: canWalk, at: now) }
         for payout in paid {
@@ -766,7 +842,7 @@ extension GameStore {
         debugChange { game, _ in game.debugCompleteQuests() }
     }
 
-    /// Makes today's reward, quests and challenge bonus available again (the streak carries on).
+    /// Makes today's reward, quests and a fresh challenge available again (the streak carries on).
     func debugResetDaily() {
         let yesterday = yesterday
         debugChange { game, _ in game.debugResetDaily(yesterday: yesterday) }

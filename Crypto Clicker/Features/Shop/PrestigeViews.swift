@@ -257,6 +257,8 @@ private struct PerkRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(perk.name)
                     .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Text(perk.summary)
                     .font(.subheadline)
                     .foregroundStyle(.subtext)

@@ -2,8 +2,8 @@ import SwiftUI
 import CryptoClickerKit
 
 /// Tetris with guideline rules from `TetrisGame`. Points pay coins when the game ends,
-/// including when the player leaves mid-game. With a `challengeDay` it is that day's challenge:
-/// the same pieces for everyone, and the day's first scoring game pays double.
+/// including when the player leaves mid-game. With a `challengeDay` it deals that day's pieces:
+/// the same for everyone, all day (the Daily page opens it on Block Day).
 ///
 /// The controls sit in the space beside the well: on the left, force drop, pause and move left;
 /// on the right, drop, rotate and move right. The board also takes taps, drags and swipes.
@@ -79,7 +79,7 @@ struct TetrisView: View {
         .background { AppBackground(tint: .cyan) }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
-        .navigationTitle(challengeDay == nil ? "Tetris" : "Daily Challenge")
+        .navigationTitle(challengeDay == nil ? "Tetris" : "Today's Pieces")
         .navigationBarTitleDisplayMode(.inline)
         .sensoryFeedback(.impact(weight: .heavy), trigger: game.lines) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.impact(weight: .medium), trigger: hardDrops) { _, _ in haptics }
@@ -92,7 +92,7 @@ struct TetrisView: View {
                 store.releaseArcadeRun()
             case .background:
                 isPaused = true
-                store.holdArcadeRun(ArcadeRun(game: .tetris, score: game.score, detail: game.lines, challengeDay: challengeDay))
+                store.holdArcadeRun(ArcadeRun(game: .tetris, score: game.score, detail: game.lines, extra: game.rewardPoints))
             default:
                 isPaused = true
             }
@@ -129,15 +129,14 @@ struct TetrisView: View {
                 GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.isNewBest,
                                     best: store.game.stats.tetrisBestScore, reward: result.reward,
-                                    details: resultDetails(result))
+                                    details: ["\(CoinFormat.grouped(result.detail)) lines cleared"],
+                                    challenge: result.challenge)
                 }
             } else if let challengeDay {
-                let bonus = store.game.isDailyChallengeBonusAvailable(today: challengeDay)
-                GamePanel(title: "Daily Challenge", buttonTitle: "Start", action: start) {
-                    GameIntro(best: store.game.dailyChallengeBest(today: challengeDay),
-                              howTo: bonus
-                                ? "Today's pieces are the same for everyone, every game. Your first game that scores pays double."
-                                : "You've had today's double reward. Play the same pieces again to beat your best.")
+                let goal = store.game.dailyChallenge(today: challengeDay).flatMap { $0.kind == .tetris ? $0.goal : nil }
+                GamePanel(title: "Today's Pieces", buttonTitle: "Start", action: start) {
+                    GameIntro(best: store.game.stats.tetrisBestScore,
+                              howTo: "Everyone gets the same pieces today, every game." + (goal.map { " Daily challenge: \($0)." } ?? ""))
                 }
             } else {
                 GamePanel(title: "Tetris", buttonTitle: "Start", action: start) {
@@ -146,12 +145,6 @@ struct TetrisView: View {
                 }
             }
         }
-    }
-
-    private func resultDetails(_ result: GameResult) -> [String] {
-        var details = ["\(CoinFormat.grouped(result.detail)) lines cleared"]
-        if result.isChallengeBonus { details.append("Daily challenge: double reward") }
-        return details
     }
 
     /// Tap to rotate, drag sideways to move a column at a time, swipe down to hard drop.
@@ -223,7 +216,7 @@ struct TetrisView: View {
         guard isPlaying else { return }
         isPlaying = false
         isPaused = false
-        let payout = store.finishTetris(score: game.score, lines: game.lines, challengeDay: challengeDay)
+        let payout = store.finishTetris(score: game.score, lines: game.lines, rewardPoints: game.rewardPoints)
         result = GameResult(score: game.score, payout: payout, detail: game.lines)
     }
 }
@@ -232,17 +225,18 @@ struct TetrisView: View {
 struct GameResult: Equatable {
     let score: Int
     let isNewBest: Bool
-    let isChallengeBonus: Bool
     let reward: Double
     /// A game-specific number: lines, length, bricks or bubbles.
     let detail: Int
+    /// Set when the game completed the daily challenge.
+    let challenge: ChallengeReward?
 
     init(score: Int, payout: ArcadePayout, detail: Int) {
         self.score = score
         isNewBest = payout.isNewBest
-        isChallengeBonus = payout.isChallengeBonus
         reward = payout.coins
         self.detail = detail
+        challenge = payout.challenge
     }
 }
 

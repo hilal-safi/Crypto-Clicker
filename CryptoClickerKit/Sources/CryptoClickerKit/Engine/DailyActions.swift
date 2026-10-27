@@ -1,6 +1,6 @@
 import Foundation
 
-/// Daily quests, the daily-reward streak and the daily Tetris challenge. Days are `StepDay` keys
+/// Daily quests, the daily-reward streak and the daily challenge. Days are `StepDay` keys
 /// (`yyyy-MM-dd` in the player's time zone), passed in so tests can choose them.
 extension GameState {
     // MARK: Quests
@@ -21,6 +21,8 @@ extension GameState {
         case .popBubbles: Double(stats.bubblesPopped)
         case .sellTokens: Double(stats.tokensSold)
         case .score2048: Double(stats.merge2048Points)
+        case .cashOutMoon: Double(stats.moonCashOuts)
+        case .hitPumpCoins: Double(stats.pumpDumpCoinsHit)
         }
     }
 
@@ -50,14 +52,23 @@ extension GameState {
             case .popBubbles: isUnlocked(.bubbleBlaster)
             case .sellTokens: stats.totalTokensBought > 0
             case .score2048: isUnlocked(.merge2048)
+            case .cashOutMoon: isUnlocked(.moon)
+            case .hitPumpCoins: isUnlocked(.pumpDump)
             }
         }
     }
 
-    /// Issues `today`'s quests if they haven't been issued yet. Quests finished on an earlier day
-    /// but never claimed are paid first, so nothing earned is lost overnight. Returns those payouts.
+    /// Today's quests or challenge haven't been issued yet.
+    public func needsDailyRefresh(today: String) -> Bool {
+        daily.questDay != today || (daily.challenge?.day != today && !eligibleChallengeKinds().isEmpty)
+    }
+
+    /// Issues `today`'s quests and challenge if they haven't been issued yet. Quests finished on an
+    /// earlier day but never claimed are paid first, so nothing earned is lost overnight. Returns
+    /// those payouts.
     @discardableResult
     public mutating func refreshDaily(today: String, canWalk: Bool, at now: Date) -> [RewardPayout] {
+        refreshChallenge(today: today)
         guard daily.questDay != today else { return [] }
         var paid: [RewardPayout] = []
         for index in daily.quests.indices where !daily.quests[index].isClaimed && isComplete(daily.quests[index]) {
@@ -98,6 +109,8 @@ extension GameState {
         case .popBubbles: [20, 40, 60]
         case .sellTokens: [3, 5, 10]
         case .score2048: [2_000, 5_000, 10_000]
+        case .cashOutMoon: [3, 5, 10]
+        case .hitPumpCoins: [30, 60, 100]
         }
         return choices.randomElement(using: &rng) ?? choices[0]
     }
@@ -207,20 +220,100 @@ extension GameState {
         }
     }
 
-    // MARK: Daily Tetris challenge
+    /// Coins worth `seconds` of income, paid as a daily reward (Lucky Streak doubles them).
+    mutating func payDailyCoins(seconds: Double) -> Double {
+        let amount = Self.wholeCoins(seconds * rewardIncome * dailyRewardMultiplier, minimum: 1)
+        credit(amount, source: .daily)
+        return amount
+    }
 
-    /// The seed for `day`'s challenge: the same pieces all day, for everyone.
+    // MARK: Daily challenge
+
+    /// The seed for Tetris pieces on `day`: the same pieces all day, for everyone.
     public static func dailyChallengeSeed(day: String) -> UInt64 {
         StableHash.of("tetris-challenge-" + day)
     }
 
-    /// Today's first challenge game that scores still pays double.
-    public func isDailyChallengeBonusAvailable(today: String) -> Bool {
-        !(daily.challengeDay == today && daily.challengeRewarded)
+    /// Today's challenge, once it has been issued.
+    public func dailyChallenge(today: String) -> DailyChallenge? {
+        daily.challenge?.day == today ? daily.challenge : nil
     }
 
-    /// The best challenge score today.
-    public func dailyChallengeBest(today: String) -> Int {
-        daily.challengeDay == today ? daily.challengeBest : 0
+    /// Challenges the player can take on: the game must be unlocked, and the arcade mix needs three
+    /// arcade games.
+    func eligibleChallengeKinds() -> [DailyChallengeKind] {
+        DailyChallengeKind.allCases.filter { kind in
+            if let game = kind.game { return isUnlocked(game) }
+            return unlockedGames.filter { !$0.isCasino }.count >= 3
+        }
+    }
+
+    /// Issues today's challenge if there isn't one yet, avoiding the last one's kind when there's a
+    /// choice. Picked the same way however often it is asked, so it can't be re-rolled.
+    mutating func refreshChallenge(today: String) {
+        guard daily.challenge?.day != today else { return }
+        var kinds = eligibleChallengeKinds()
+        guard !kinds.isEmpty else { return }
+        if kinds.count > 1, let last = daily.challenge?.kind { kinds.removeAll { $0 == last } }
+        var rng = SeededGenerator(seed: StableHash.mix(StableHash.of("challenge-" + today), StableHash.of(created)))
+        let kind = kinds.randomElement(using: &rng) ?? kinds[0]
+        let target = kind.targets.randomElement(using: &rng) ?? kind.targets[0]
+        daily.challenge = DailyChallenge(day: today, kind: kind, target: target)
+    }
+
+    /// Counts a finished game toward the challenge: `value` is what the game measures (a score,
+    /// coins eaten, hands won) and `scored` whether it scored at all, for the arcade mix. Completing
+    /// the challenge pays its reward, and the week's bonus with the fifth one.
+    @discardableResult
+    mutating func recordChallenge(_ game: MiniGame, value: Int, scored: Bool) -> ChallengeReward? {
+        guard var challenge = daily.challenge, !challenge.isComplete else { return nil }
+        if challenge.kind == .arcadeMix {
+            guard scored, !game.isCasino else { return nil }
+            challenge.gamesScored.insert(game)
+            challenge.progress = challenge.gamesScored.count
+        } else {
+            guard challenge.kind.game == game else { return nil }
+            challenge.progress = challenge.kind.isBestOfOneGame
+                ? max(challenge.progress, value)
+                : challenge.progress + max(0, value)
+        }
+        var reward: ChallengeReward?
+        if challenge.progress >= challenge.target {
+            challenge.isComplete = true
+            reward = payChallenge(day: challenge.day)
+        }
+        daily.challenge = challenge
+        return reward
+    }
+
+    /// Pays a completed challenge, plus the weekly bonus when it's the week's
+    /// `Tuning.weeklyChallengeGoal`th.
+    private mutating func payChallenge(day: String) -> ChallengeReward {
+        stats.challengesCompleted += 1
+        let coins = payDailyCoins(seconds: Tuning.challengeRewardSeconds)
+        let week = StepDay.weekKey(of: day)
+        if daily.challengeWeek != week {
+            daily.challengeWeek = week
+            daily.challengesThisWeek = 0
+        }
+        daily.challengesThisWeek += 1
+        let bonus = daily.challengesThisWeek == Tuning.weeklyChallengeGoal
+            ? payDailyCoins(seconds: Tuning.weeklyChallengeBonusSeconds) : 0
+        return ChallengeReward(coins: coins, weeklyBonus: bonus)
+    }
+
+    /// Coins completing a challenge pays now (it grows with income; Lucky Streak doubles it).
+    public var challengeReward: Double {
+        Self.wholeCoins(Tuning.challengeRewardSeconds * rewardIncome * dailyRewardMultiplier, minimum: 1)
+    }
+
+    /// Coins the week's bonus pays now.
+    public var weeklyChallengeBonus: Double {
+        Self.wholeCoins(Tuning.weeklyChallengeBonusSeconds * rewardIncome * dailyRewardMultiplier, minimum: 1)
+    }
+
+    /// Challenges completed in the week containing `today`.
+    public func challengesCompleted(inWeekOf today: String) -> Int {
+        daily.challengeWeek == StepDay.weekKey(of: today) ? daily.challengesThisWeek : 0
     }
 }

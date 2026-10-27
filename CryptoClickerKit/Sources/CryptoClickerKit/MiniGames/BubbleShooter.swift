@@ -57,6 +57,8 @@ public struct BubbleShooterGame: Sendable {
     /// Bubbles removed by the most recent popping shot; `clears` counts those shots.
     public private(set) var lastCleared: [ClearedBubble] = []
     public private(set) var clears = 0
+    /// The most bubbles one shot has cleared, popped and dropped together.
+    public private(set) var bestClear = 0
     /// Flight distance carried over from the last frame, less than one step.
     private var unspentFlight = 0.0
 
@@ -239,6 +241,7 @@ public struct BubbleShooterGame: Sendable {
             popped += group.count + falling.count
             lastCleared = cleared
             clears += 1
+            bestClear = max(bestClear, cleared.count)
         } else {
             misses += 1
             if misses >= Self.missesPerRow {

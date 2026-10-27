@@ -18,7 +18,7 @@ struct StatsView: View {
         let held = TokenID.allCases.filter { game.tokenCount($0) > 0 || stats.tokensBought[$0, default: 0] > 0 }
         let walletValue = TokenID.allCases.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
         let today = store.today
-        let gamesPlayed = stats.tetrisGames + stats.merge2048Games + stats.snakeGames + stats.brickBreakerGames + stats.bubbleGames
+        let gamesPlayed = game.arcadeGamesPlayed
         NavigationStack {
             List {
                 Section {
@@ -106,8 +106,11 @@ struct StatsView: View {
                     row("Longest streak", "\(CoinFormat.grouped(stats.longestStreak)) days")
                     row("Quests today", "\(game.daily.quests.filter(\.isClaimed).count) of \(game.daily.quests.count) claimed")
                     row("Quests completed", CoinFormat.grouped(stats.questsCompleted))
-                    row("Tetris challenge today", game.dailyChallengeBest(today: today) > 0
-                        ? "Best \(CoinFormat.grouped(game.dailyChallengeBest(today: today)))" : "Not played")
+                    if let challenge = game.dailyChallenge(today: today) {
+                        row("Today's challenge", challenge.isComplete ? "Done · \(challenge.goal)" : challenge.goal)
+                    }
+                    row("Challenges this week", "\(game.challengesCompleted(inWeekOf: today)) of \(Tuning.weeklyChallengeGoal)")
+                    row("Challenges completed", CoinFormat.grouped(stats.challengesCompleted))
                 }
 
                 Section("Steps") {
@@ -132,17 +135,30 @@ struct StatsView: View {
                     row("Blackjack hands", CoinFormat.grouped(stats.blackjackHands))
                     row("Blackjack wins", "\(CoinFormat.grouped(stats.blackjackWins))\(winRate(stats.blackjackWins, of: stats.blackjackHands))")
                     row("Naturals", CoinFormat.grouped(stats.blackjackNaturals))
+                    row("Win streak", "\(CoinFormat.grouped(stats.blackjackStreak)) now · best \(CoinFormat.grouped(stats.blackjackBestStreak))")
+                    row("Biggest Blackjack win", amount(stats.blackjackBiggestWin))
                     row("Slot spins", CoinFormat.grouped(stats.slotsSpins))
                     row("Slot wins", "\(CoinFormat.grouped(stats.slotsWins))\(winRate(stats.slotsWins, of: stats.slotsSpins))")
                     row("Jackpots", CoinFormat.grouped(stats.slotsJackpots))
+                    row("Best spin", stats.slotsBestMultiple >= 2 ? "×\(CoinFormat.grouped(stats.slotsBestMultiple)) the bet" : "No wins yet")
+                    row("Slots bet · paid", "\(amount(stats.slotsWagered)) · \(amount(stats.slotsPaidOut))\(returnRate(stats.slotsPaidOut, of: stats.slotsWagered))")
+                    row("Moon flights", CoinFormat.grouped(stats.moonFlights))
+                    row("Cash-outs", "\(CoinFormat.grouped(stats.moonCashOuts))\(winRate(stats.moonCashOuts, of: stats.moonFlights))")
+                    row("Best cash-out", stats.moonCashOuts > 0 ? CoinFormat.flight(stats.moonBestMultiplier) : "None yet")
+                    row("Biggest Moon win", amount(stats.moonBiggestWin))
+                    row("Moon bet · paid", "\(amount(stats.moonWagered)) · \(amount(stats.moonPaidOut))\(returnRate(stats.moonPaidOut, of: stats.moonWagered))")
+                    Text("Bets and payouts count tokens at their list price.")
+                        .font(.footnote)
+                        .foregroundStyle(.subtext)
                 }
 
                 Section("Arcade") {
                     row("Tetris", "Best \(CoinFormat.grouped(stats.tetrisBestScore)) · \(CoinFormat.grouped(stats.tetrisLines)) lines · \(CoinFormat.grouped(stats.tetrisGames)) games")
                     row("2048", "Best \(CoinFormat.grouped(stats.merge2048BestScore)) · top tile \(stats.merge2048BestTile) · \(CoinFormat.grouped(stats.merge2048Games)) games")
-                    row("Snake", "Best \(CoinFormat.grouped(stats.snakeBestScore)) · \(CoinFormat.grouped(stats.snakeCoinsEaten)) coins eaten · \(CoinFormat.grouped(stats.snakeGames)) games")
-                    row("Brick Breaker", "Best \(CoinFormat.grouped(stats.brickBreakerBestScore)) · \(CoinFormat.grouped(stats.bricksBroken)) bricks · \(CoinFormat.grouped(stats.brickBreakerGames)) games")
-                    row("Bubble Blaster", "Best \(CoinFormat.grouped(stats.bubbleBestScore)) · \(CoinFormat.grouped(stats.bubblesPopped)) popped · \(CoinFormat.grouped(stats.bubbleGames)) games")
+                    row("Snake", "Best \(CoinFormat.grouped(stats.snakeBestScore)) · longest \(CoinFormat.grouped(stats.snakeLongest)) · \(CoinFormat.grouped(stats.snakeCoinsEaten)) coins eaten · \(CoinFormat.grouped(stats.snakeGames)) games")
+                    row("Brick Breaker", "Best \(CoinFormat.grouped(stats.brickBreakerBestScore)) · level \(CoinFormat.grouped(stats.brickBreakerBestLevel)) · \(CoinFormat.grouped(stats.bricksBroken)) bricks · \(CoinFormat.grouped(stats.brickBreakerGames)) games")
+                    row("Bubble Blaster", "Best \(CoinFormat.grouped(stats.bubbleBestScore)) · best shot \(CoinFormat.grouped(stats.bubbleBestShot)) · \(CoinFormat.grouped(stats.bubblesPopped)) popped · \(CoinFormat.grouped(stats.bubbleGames)) games")
+                    row("Pump and Dump", "Best \(CoinFormat.grouped(stats.pumpDumpBestScore)) · combo \(CoinFormat.grouped(stats.pumpDumpBestCombo)) · \(CoinFormat.grouped(stats.pumpDumpCoinsHit)) coins hit · \(CoinFormat.grouped(stats.pumpDumpScamsHit)) scams · \(CoinFormat.grouped(stats.pumpDumpGames)) rounds")
                     row("Games played", CoinFormat.grouped(gamesPlayed))
                 }
             }
@@ -173,6 +189,11 @@ struct StatsView: View {
 
     private func winRate(_ wins: Int, of total: Int) -> String {
         total > 0 ? " · \(CoinFormat.percent(Double(wins) / Double(total)))" : ""
+    }
+
+    /// What came back for what went in: " · 95% back".
+    private func returnRate(_ paid: Double, of bet: Double) -> String {
+        bet > 0 ? " · \(CoinFormat.percent(paid / bet)) back" : ""
     }
 
     private func row(_ title: String, _ value: String) -> some View {

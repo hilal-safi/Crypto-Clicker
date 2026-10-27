@@ -24,6 +24,9 @@ extension GameState {
         case .bricksBroken: Double(stats.bricksBroken)
         case .bubblesPopped: Double(stats.bubblesPopped)
         case .merge2048BestTile: Double(stats.merge2048BestTile)
+        case .moonBestMultiplier: stats.moonBestMultiplier
+        case .pumpDumpCoinsHit: Double(stats.pumpDumpCoinsHit)
+        case .challengesCompleted: Double(stats.challengesCompleted)
         case .tokensExchanged: Double(stats.totalTokensBought)
         case .token(let token): Double(stats.tokensBought[token, default: 0])
         case .tokensSold: Double(stats.tokensSold)

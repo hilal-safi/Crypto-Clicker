@@ -34,39 +34,45 @@ struct MinerRow: View {
     }
 
     private var mainRow: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             Text(miner.emoji)
                 .font(.system(size: 30))
                 .frame(width: 52, height: 52)
                 .background(Theme.shop.opacity(0.14), in: .circle)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(miner.name)
-                        .font(.headline)
-                    if owned > 0 {
-                        Text("×\(CoinFormat.grouped(owned))")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.subtext)
+                // The name has a line to itself, so it never breaks in two.
+                Text(miner.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                if owned > 0 || mkLevel > 0 {
+                    HStack(spacing: 6) {
+                        if owned > 0 {
+                            Text("Owned \(CoinFormat.grouped(owned))")
+                                .font(.subheadline.weight(.semibold).monospacedDigit())
+                                .foregroundStyle(.subtext)
+                        }
+                        if mkLevel > 0 {
+                            Text("Mk \(MinerID.markName(level: mkLevel - 1))")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(Theme.accent)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 1)
+                                .background(Theme.accent.opacity(0.14), in: .capsule)
+                        }
                     }
-                    if mkLevel > 0 {
-                        Text("Mk \(MinerID.markName(level: mkLevel - 1))")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(Theme.accent)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
-                            .background(Theme.accent.opacity(0.14), in: .capsule)
-                    }
+                    .lineLimit(1)
                 }
                 Text(owned > 0 ? "\(CoinFormat.rate(rate)) coins per second" : miner.blurb)
                     .font(.subheadline)
                     .foregroundStyle(.subtext)
-                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let nextMilestone, owned > 0 {
                     MilestoneProgress(owned: owned, next: nextMilestone)
                 }
             }
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
             Button {
                 if store.buy(miner, quantity: buyCount) { purchases += 1 } else { refusals += 1 }
             } label: {
@@ -79,6 +85,7 @@ struct MinerRow: View {
                 .frame(minWidth: 72)
             }
             .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
+            .fixedSize()
             .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
             .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
             .accessibilityLabel("Buy \(buyCount) \(miner.name) for \(CoinFormat.cost(price)) coins")
@@ -107,11 +114,14 @@ struct MinerUpgradeOffer: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(miner.upgradeName(level: level))
                     .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 Text("Doubles what your \(miner.pluralName) mine")
                     .font(.caption)
                     .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
             Button {
                 if store.buyMinerUpgrade(miner) { purchases += 1 } else { refusals += 1 }
             } label: {
@@ -120,6 +130,7 @@ struct MinerUpgradeOffer: View {
                     .frame(minWidth: 72)
             }
             .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
+            .fixedSize()
             .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
             .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
             .accessibilityLabel("Buy \(miner.upgradeName(level: level)) for \(CoinFormat.cost(price)) coins")
@@ -197,12 +208,14 @@ struct UpgradeRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(upgrade.name)
                     .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Text(upgrade.summary)
                     .font(.subheadline)
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
             Button {
                 if store.buy(upgrade) { purchases += 1 } else { refusals += 1 }
             } label: {
@@ -211,6 +224,7 @@ struct UpgradeRow: View {
                     .frame(minWidth: 72)
             }
             .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
+            .fixedSize()
             .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
             .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
             .accessibilityLabel("Buy \(upgrade.name) for \(CoinFormat.cost(upgrade.cost)) coins")
@@ -240,14 +254,14 @@ struct OfflineMiningRow: View {
                 .background(Color.indigo.opacity(0.15), in: .circle)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("Offline Mining")
-                        .font(.headline)
-                    if level > 0 {
-                        Text("Level \(level)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.subtext)
-                    }
+                Text("Offline Mining")
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                if level > 0 {
+                    Text("Level \(level)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.subtext)
                 }
                 Text(level == 0
                      ? "Miners stop a minute after you leave the app. Keep them mining while it's closed."
@@ -261,7 +275,7 @@ struct OfflineMiningRow: View {
                         .foregroundStyle(.subtext)
                 }
             }
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
             if let price {
                 Button {
                     if store.buyOfflineMining() { purchases += 1 } else { refusals += 1 }
@@ -271,6 +285,7 @@ struct OfflineMiningRow: View {
                         .frame(minWidth: 72)
                 }
                 .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
+                .fixedSize()
                 .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
                 .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
                 .accessibilityLabel("Buy Offline Mining level \(level + 1) for \(CoinFormat.cost(price)) coins")

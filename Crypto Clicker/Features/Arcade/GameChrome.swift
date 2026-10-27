@@ -147,43 +147,75 @@ struct GamePanel<Content: View>: View {
     }
 }
 
-/// What a finished arcade game earned.
+/// What a finished arcade game earned. Everything is large enough to read at a glance: the
+/// panel has room to spare.
 struct GameOverSummary: View {
     let score: Int
     let isNewBest: Bool
     let best: Int
     let reward: Double
     var details: [String] = []
+    /// Set when this game completed the daily challenge.
+    var challenge: ChallengeReward? = nil
 
     var body: some View {
-        VStack(spacing: 8) {
-            Text(CoinFormat.grouped(score))
-                .font(.system(size: 52, weight: .heavy, design: .rounded))
-                .monospacedDigit()
-            Text("points")
-                .font(.headline)
-                .foregroundStyle(.subtext)
+        VStack(spacing: 10) {
+            VStack(spacing: 0) {
+                Text(CoinFormat.grouped(score))
+                    .font(.system(size: 56, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
+                Text("points")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.subtext)
+            }
             if isNewBest {
                 Label("New best! +\(CoinFormat.percent(Tuning.newBestBonus)) coins", systemImage: "star.fill")
-                    .font(.headline)
+                    .font(.title3.bold())
                     .foregroundStyle(Theme.accent)
             } else {
                 Text("Best \(CoinFormat.grouped(best))")
-                    .font(.subheadline)
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(.subtext)
             }
             ForEach(details, id: \.self) { detail in
                 Text(detail)
-                    .font(.subheadline)
+                    .font(.headline)
                     .foregroundStyle(.subtext)
             }
-            HStack(spacing: 6) {
+            if let challenge {
+                ChallengeCompleteBadge(reward: challenge)
+            }
+            HStack(spacing: 8) {
                 Text("You earned")
-                    .font(.headline)
-                CoinAmount(amount: reward, font: .title2.bold(), iconSize: 26)
+                    .font(.title3.weight(.semibold))
+                CoinAmount(amount: reward, font: .title.bold(), iconSize: 30)
             }
             .padding(.top, 6)
         }
+    }
+}
+
+/// "Daily challenge complete", with what it paid (and the week's bonus when it came too).
+struct ChallengeCompleteBadge: View {
+    let reward: ChallengeReward
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Label("Daily challenge complete!", systemImage: "target")
+                .font(.headline)
+                .foregroundStyle(Theme.accent)
+            Text(reward.weeklyBonus > 0
+                 ? "+\(CoinFormat.short(reward.coins)) coins, and +\(CoinFormat.short(reward.weeklyBonus)) for the week's \(Tuning.weeklyChallengeGoal)th"
+                 : "+\(CoinFormat.short(reward.coins)) coins")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.subtext)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 14)
+        .background(Theme.accent.opacity(0.12), in: .rect(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -193,14 +225,14 @@ struct GameIntro: View {
     let howTo: String
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             if best > 0 {
                 Text("Best \(CoinFormat.grouped(best))")
-                    .font(.headline)
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(.subtext)
             }
             Text(howTo)
-                .font(.subheadline)
+                .font(.body)
                 .foregroundStyle(.subtext)
         }
     }

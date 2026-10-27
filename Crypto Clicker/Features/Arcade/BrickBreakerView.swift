@@ -68,7 +68,7 @@ struct BrickBreakerView: View {
                 store.releaseArcadeRun()
             case .background:
                 isPaused = true
-                store.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: game.score, detail: game.bricksBroken))
+                store.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: game.score, detail: game.bricksBroken, extra: game.level))
             default:
                 isPaused = true
             }
@@ -131,12 +131,13 @@ struct BrickBreakerView: View {
                 GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.isNewBest,
                                     best: store.game.stats.brickBreakerBestScore, reward: result.reward,
-                                    details: ["\(CoinFormat.grouped(result.detail)) bricks broken"])
+                                    details: ["\(CoinFormat.grouped(result.detail)) bricks broken", "Reached level \(game.level)"],
+                                    challenge: result.challenge)
                 }
             } else {
                 GamePanel(title: "Brick Breaker", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.brickBreakerBestScore,
-                              howTo: "Drag to move the paddle and lift your finger to launch. Clear every brick to reach a faster level. You have three balls.")
+                              howTo: "Drag to move the paddle and lift your finger to launch. Clear every brick to reach a faster level with a new wall. You have three balls.")
                 }
             }
         }
@@ -164,7 +165,7 @@ struct BrickBreakerView: View {
         guard isPlaying else { return }
         isPlaying = false
         isPaused = false
-        let payout = store.finishBrickBreaker(score: game.score, bricks: game.bricksBroken)
+        let payout = store.finishBrickBreaker(score: game.score, bricks: game.bricksBroken, level: game.level)
         result = GameResult(score: game.score, payout: payout, detail: game.bricksBroken)
     }
 }

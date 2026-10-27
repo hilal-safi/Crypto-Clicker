@@ -134,37 +134,37 @@ struct Merge2048RewardTests {
     @Test func scoresPayLikeTheOtherArcadeGames() {
         var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
         let first = game.finishMerge2048(score: 2_000, bestTile: 256)
-        #expect(first == ArcadePayout(coins: 1_200, isNewBest: true, isChallengeBonus: false)) // 2,000 × 0.04 × 10 × 1.5
+        #expect(first == ArcadePayout(coins: 1_650, isNewBest: true)) // 2,000 × 0.055 × 10 × 1.5
         #expect(game.stats.merge2048Games == 1)
         #expect(game.stats.merge2048BestScore == 2_000)
         #expect(game.stats.merge2048BestTile == 256)
         #expect(game.stats.merge2048Points == 2_000)
-        #expect(game.merge2048Reward(score: 1_000, bestTile: 128) == 400) // Not a new best.
+        #expect(game.merge2048Reward(score: 1_000, bestTile: 128) == 550) // Not a new best.
         let second = game.finishMerge2048(score: 1_000, bestTile: 128)
-        #expect(second.coins == 400)
+        #expect(second.coins == 550)
         #expect(game.stats.merge2048BestTile == 256)
         #expect(game.stats.merge2048Points == 3_000)
-        #expect(game.coins == 1_600)
-        #expect(game.stats.earnedFromGames == 1_600)
+        #expect(game.coins == 2_200)
+        #expect(game.stats.earnedFromGames == 2_200)
     }
 
     @Test func makingA2048TilePaysTenMinutesMore() {
         var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
         #expect(game.merge2048TileBonus == 6_000)
-        #expect(game.merge2048Reward(score: 20_000, bestTile: 1_024) == 12_000)
-        #expect(game.merge2048Reward(score: 20_000, bestTile: 2_048) == 18_000)
+        #expect(game.merge2048Reward(score: 20_000, bestTile: 1_024) == 16_500)
+        #expect(game.merge2048Reward(score: 20_000, bestTile: 2_048) == 22_500)
         let payout = game.finishMerge2048(score: 20_000, bestTile: 2_048)
         #expect(payout.tileBonus == 6_000)
-        #expect(payout.coins == 12_000 + 6_000)
-        #expect(game.coins == 18_000)
+        #expect(payout.coins == 16_500 + 6_000)
+        #expect(game.coins == 22_500)
         #expect(game.stats.merge2048BestTile == 2_048)
     }
 
     @Test func aGameLeftOpenIsPaidWithItsBestTile() {
         var game = GameState.make(miners: [.desktop: 5])
-        game.holdArcadeRun(ArcadeRun(game: .merge2048, score: 500, detail: 64))
+        game.holdArcadeRun(ArcadeRun(game: .merge2048, score: 400, detail: 64))
         let paid = game.payUnfinishedRun()
-        #expect(paid?.payout.coins == 300)
+        #expect(paid?.payout.coins == 330) // 400 × 0.055 × 10 × 1.5
         #expect(game.stats.merge2048BestTile == 64)
         #expect(game.unfinishedRun == nil)
     }

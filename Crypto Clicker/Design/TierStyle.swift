@@ -24,13 +24,25 @@ enum TierStyle {
         Color(red: 1.00, green: 0.90, blue: 0.40), Color(red: 1.00, green: 0.35, blue: 0.75),
     ]
 
-    /// Seconds between shines: the higher the tier, the livelier.
+    /// Seconds between shines: the metals glint now and then, gold a little more often; mythic
+    /// stays lively.
     static func shinePeriod(_ tier: Int) -> Double {
         switch tier {
-        case 0: 5.5
-        case 1: 5
-        case 2: 4.2
+        case 0: 9
+        case 1: 8
+        case 2: 7
         default: 3.2
+        }
+    }
+
+    /// How bright the sweep of light is: a faint glint for bronze, a little more for silver and
+    /// gold, and a bright one for mythic.
+    static func shineIntensity(_ tier: Int) -> Double {
+        switch tier {
+        case 0: 0.12
+        case 1: 0.17
+        case 2: 0.22
+        default: 0.7
         }
     }
 }
@@ -50,7 +62,7 @@ struct MetalShine: View {
             let width = proxy.size.width
             if !reduceMotion {
                 LinearGradient(colors: [.clear, .white.opacity(intensity), .clear], startPoint: .leading, endPoint: .trailing)
-                    .frame(width: max(40, width * 0.3), height: proxy.size.height * 2)
+                    .frame(width: max(32, width * 0.22), height: proxy.size.height * 2)
                     .rotationEffect(.degrees(18))
                     // Travels well past the right edge, so each sweep is followed by a pause.
                     .offset(x: sweeping ? width * 2.6 : -width * 0.6, y: -proxy.size.height * 0.5)

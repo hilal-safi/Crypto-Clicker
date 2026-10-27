@@ -88,7 +88,8 @@ struct SnakeView: View {
                 GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.isNewBest,
                                     best: store.game.stats.snakeBestScore, reward: result.reward,
-                                    details: ["Grew to \(result.detail) long"])
+                                    details: ["Grew to \(result.detail) long"],
+                                    challenge: result.challenge)
                 }
             } else {
                 GamePanel(title: "Snake", buttonTitle: "Start", action: start) {
@@ -161,7 +162,7 @@ struct SnakeView: View {
         guard isPlaying else { return }
         isPlaying = false
         isPaused = false
-        let payout = store.finishSnake(score: game.score)
+        let payout = store.finishSnake(score: game.score, length: game.body.count)
         result = GameResult(score: game.score, payout: payout, detail: game.body.count)
     }
 }

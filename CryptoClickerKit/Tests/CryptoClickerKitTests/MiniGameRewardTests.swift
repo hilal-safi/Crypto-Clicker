@@ -88,37 +88,37 @@ struct MiniGameRewardTests {
 
     @Test func tetrisPaysByScoreWithABonusForANewBest() {
         var game = earner()
-        let first = game.finishTetris(score: 1_000, lines: 8)
-        #expect(first == ArcadePayout(coins: 1_000 * 0.06 * 10 * 1.5, isNewBest: true, isChallengeBonus: false))
+        let first = game.finishTetris(score: 1_000, lines: 8, rewardPoints: 1_000)
+        #expect(first == ArcadePayout(coins: 375, isNewBest: true)) // 1,000 × 0.025 × 10 × 1.5
         #expect(game.stats.tetrisGames == 1)
         #expect(game.stats.tetrisLines == 8)
         #expect(game.stats.tetrisBestScore == 1_000)
-        let second = game.finishTetris(score: 800, lines: 5)
-        #expect(second == ArcadePayout(coins: 480, isNewBest: false, isChallengeBonus: false))
-        #expect(game.finishTetris(score: 0, lines: 0).coins == 0)
+        let second = game.finishTetris(score: 800, lines: 5, rewardPoints: 800)
+        #expect(second == ArcadePayout(coins: 200, isNewBest: false))
+        #expect(game.finishTetris(score: 0, lines: 0, rewardPoints: 0).coins == 0)
         #expect(game.stats.tetrisGames == 3)
         #expect(game.stats.tetrisBestScore == 1_000)
     }
 
     @Test func arcadeGamesPayWholeCoinsForTheirScores() {
         var game = earner() // 10 coins per second. Every first score is a new best: +50%.
-        #expect(game.finishSnake(score: 120).coins == 900) // 120 × 0.5 × 10 × 1.5
+        #expect(game.finishSnake(score: 120, length: 15).coins == 1_080) // 120 × 0.6 × 10 × 1.5
         #expect(game.stats.snakeGames == 1)
         #expect(game.stats.snakeBestScore == 120)
         #expect(game.stats.snakeCoinsEaten == 12)
-        #expect(game.finishBrickBreaker(score: 450, bricks: 35).coins == 1_688) // 1,687.5, paid as 1,688.
+        #expect(game.finishBrickBreaker(score: 400, bricks: 35, level: 2).coins == 2_400) // 400 × 0.4 × 10 × 1.5
         #expect(game.stats.brickBreakerGames == 1)
-        #expect(game.stats.brickBreakerBestScore == 450)
+        #expect(game.stats.brickBreakerBestScore == 400)
         #expect(game.stats.bricksBroken == 35)
-        #expect(game.finishBubbleBlaster(score: 333, popped: 21).coins == 599) // 599.4, paid as 599.
+        #expect(game.finishBubbleBlaster(score: 333, popped: 21, bestShot: 7).coins == 500) // 499.5, paid as 500.
         #expect(game.stats.bubbleGames == 1)
         #expect(game.stats.bubbleBestScore == 333)
         #expect(game.stats.bubblesPopped == 21)
-        #expect(game.finishSnake(score: 0) == ArcadePayout(coins: 0, isNewBest: false, isChallengeBonus: false))
+        #expect(game.finishSnake(score: 0, length: 3) == ArcadePayout(coins: 0, isNewBest: false))
         #expect(game.stats.snakeGames == 2)
         #expect(game.stats.snakeBestScore == 120)
-        #expect(game.coins == 900 + 1_688 + 599)
-        #expect(game.stats.earnedFromGames == 900 + 1_688 + 599)
+        #expect(game.coins == 1_080 + 2_400 + 500)
+        #expect(game.stats.earnedFromGames == 1_080 + 2_400 + 500)
     }
 
     @Test func aGameLeftOpenIsPaidOnceAfterTheAppCloses() throws {
@@ -130,7 +130,7 @@ struct MiniGameRewardTests {
         #expect(reloaded.unfinishedRun == ArcadeRun(game: .snake, score: 120, detail: 15))
         let payment = reloaded.payUnfinishedRun()
         let paid = try #require(payment)
-        #expect(paid.payout.coins == 900)
+        #expect(paid.payout.coins == 1_080)
         #expect(reloaded.stats.snakeGames == 1)
         #expect(reloaded.unfinishedRun == nil)
         #expect(reloaded.payUnfinishedRun() == nil)
@@ -139,7 +139,7 @@ struct MiniGameRewardTests {
     @Test func finishingOrReturningClearsTheHeldRun() {
         var game = earner()
         game.holdArcadeRun(ArcadeRun(game: .tetris, score: 900, detail: 4))
-        game.finishTetris(score: 1_200, lines: 6)
+        game.finishTetris(score: 1_200, lines: 6, rewardPoints: 1_200)
         #expect(game.unfinishedRun == nil)
         game.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: 300, detail: 30))
         game.releaseArcadeRun()
@@ -156,11 +156,11 @@ struct MiniGameRewardTests {
             #expect(game.isUnlocked(miniGame))
         }
         #expect(game.coins == 0)
-        #expect(MiniGame.allCases.filter(\.isCasino) == [.blackjack, .slots])
+        #expect(MiniGame.allCases.filter(\.isCasino) == [.blackjack, .slots, .moon])
     }
 
     @Test func rewardsHaveAFloorOnDayOne() {
         var game = GameState.make()
-        #expect(game.finishTetris(score: 500, lines: 2).coins == 45) // 500 × 0.06 × 1 coin/s × 1.5.
+        #expect(game.finishTetris(score: 900, lines: 2, rewardPoints: 600).coins == 23) // 600 × 0.025 × 1 coin/s × 1.5 = 22.5.
     }
 }

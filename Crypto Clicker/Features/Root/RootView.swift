@@ -7,7 +7,7 @@ struct RootView: View {
     @State private var showingIncome = false
     /// Counts the welcome-back screen's requests to show the Shop's power-ups.
     @State private var powerUpRequests = 0
-    /// Counts requests (from the Daily page) to open today's Tetris challenge in the Arcade.
+    /// Counts requests (from the Daily page) to open today's challenge in the Arcade.
     @State private var challengeRequests = 0
     /// Counts requests (from the Mine tab's tips) to show the Daily page.
     @State private var dailyRequests = 0
@@ -49,8 +49,8 @@ struct RootView: View {
         .overlay(alignment: .top) {
             NotificationStack()
         }
-        .sheet(item: $store.welcomeBack) { report in
-            WelcomeBackView(report: report, openPowerUps: openPowerUps)
+        .sheet(item: $store.welcomeBack) { welcome in
+            WelcomeBackView(welcome: welcome, openPowerUps: openPowerUps)
         }
         .alert("Something went wrong", isPresented: Binding(
             get: { store.errorMessage != nil },

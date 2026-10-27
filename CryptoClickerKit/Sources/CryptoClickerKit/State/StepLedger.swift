@@ -25,6 +25,22 @@ public struct StepDay: Equatable, Sendable {
         return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
 
+    /// The key of the Monday starting the week that contains the day `dayKey` (weeks run Monday to
+    /// Sunday). Returns `dayKey` itself if it isn't a `yyyy-MM-dd` key.
+    public static func weekKey(of dayKey: String) -> String {
+        let parts = dayKey.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return dayKey }
+        let utc = TimeZone(identifier: "UTC") ?? .current
+        let calendar = calendar(in: utc)
+        guard let date = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])) else {
+            return dayKey
+        }
+        // Weekday is 1 for Sunday through 7 for Saturday; count back to Monday.
+        let daysSinceMonday = (calendar.component(.weekday, from: date) + 5) % 7
+        let monday = calendar.date(byAdding: .day, value: -daysSinceMonday, to: date) ?? date
+        return key(for: monday, in: utc)
+    }
+
     /// The key of the day before the one containing `date` (handles daylight-saving changes).
     public static func previousKey(before date: Date, in timeZone: TimeZone = .current) -> String {
         let calendar = calendar(in: timeZone)

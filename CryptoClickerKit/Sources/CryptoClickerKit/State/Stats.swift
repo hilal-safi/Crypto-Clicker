@@ -28,26 +28,53 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var blackjackHands = 0
     public internal(set) var blackjackWins = 0
     public internal(set) var blackjackNaturals = 0
+    /// Hands won in a row right now (a push doesn't end the streak).
+    public internal(set) var blackjackStreak = 0
+    public internal(set) var blackjackBestStreak = 0
+    /// The most a round has won, in coins: tokens at list price plus the coin bonus.
+    public internal(set) var blackjackBiggestWin: Double = 0
     public internal(set) var tetrisGames = 0
     public internal(set) var tetrisLines = 0
     public internal(set) var tetrisBestScore = 0
     public internal(set) var slotsSpins = 0
     public internal(set) var slotsWins = 0
     public internal(set) var slotsJackpots = 0
+    /// Tokens bet and paid at Crypto Slots, valued in coins at list price.
+    public internal(set) var slotsWagered: Double = 0
+    public internal(set) var slotsPaidOut: Double = 0
+    /// The biggest win, as a multiple of the bet.
+    public internal(set) var slotsBestMultiple = 0
     public internal(set) var snakeGames = 0
     public internal(set) var snakeBestScore = 0
     public internal(set) var snakeCoinsEaten = 0
+    public internal(set) var snakeLongest = 0
     public internal(set) var brickBreakerGames = 0
     public internal(set) var brickBreakerBestScore = 0
     public internal(set) var bricksBroken = 0
+    public internal(set) var brickBreakerBestLevel = 0
     public internal(set) var bubbleGames = 0
     public internal(set) var bubbleBestScore = 0
     public internal(set) var bubblesPopped = 0
+    /// Most bubbles cleared by one shot.
+    public internal(set) var bubbleBestShot = 0
     public internal(set) var merge2048Games = 0
     public internal(set) var merge2048BestScore = 0
     public internal(set) var merge2048BestTile = 0
     /// Points scored in 2048 over all games.
     public internal(set) var merge2048Points = 0
+    public internal(set) var moonFlights = 0
+    public internal(set) var moonCashOuts = 0
+    public internal(set) var moonBestMultiplier: Double = 0
+    /// Tokens bet and paid at To the Moon, valued in coins at list price.
+    public internal(set) var moonWagered: Double = 0
+    public internal(set) var moonPaidOut: Double = 0
+    /// The most a flight has won, in coins: profit in tokens at list price plus the coin bonus.
+    public internal(set) var moonBiggestWin: Double = 0
+    public internal(set) var pumpDumpGames = 0
+    public internal(set) var pumpDumpBestScore = 0
+    public internal(set) var pumpDumpCoinsHit = 0
+    public internal(set) var pumpDumpScamsHit = 0
+    public internal(set) var pumpDumpBestCombo = 0
 
     public internal(set) var tokensBought: [TokenID: Int] = [:]
     public internal(set) var tokensSold = 0
@@ -58,6 +85,8 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var prestiges = 0
     public internal(set) var questsCompleted = 0
     public internal(set) var longestStreak = 0
+    /// Daily challenges completed.
+    public internal(set) var challengesCompleted = 0
 
     public internal(set) var earnedFromTaps: Double = 0
     public internal(set) var earnedFromIdle: Double = 0
@@ -76,13 +105,17 @@ public struct Stats: Codable, Equatable, Sendable {
         case lifetimeCoins, runCoins, spent, peakIncome, taps, bestTap, bestCombo, lifetimeSteps, bestDaySteps
         case maxOwned, maxTotalMiners, maxUpgrades, minersBought, minerUpgradesBought
         case blackjackHands, blackjackWins, blackjackNaturals, tetrisGames, tetrisLines, tetrisBestScore
+        case blackjackStreak, blackjackBestStreak, blackjackBiggestWin, slotsWagered, slotsPaidOut, slotsBestMultiple
+        case snakeLongest, brickBreakerBestLevel, bubbleBestShot
         case slotsSpins, slotsWins, slotsJackpots, snakeGames, snakeBestScore, snakeCoinsEaten
         case brickBreakerGames, brickBreakerBestScore, bricksBroken, bubbleGames, bubbleBestScore, bubblesPopped
         case merge2048Games, merge2048BestScore, merge2048BestTile, merge2048Points
+        case moonFlights, moonCashOuts, moonBestMultiplier, moonWagered, moonPaidOut, moonBiggestWin
+        case pumpDumpGames, pumpDumpBestScore, pumpDumpCoinsHit, pumpDumpScamsHit, pumpDumpBestCombo
         case tokensBought, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
         case prestiges = "forksPerformed" // Saved under its old Hard Fork name.
         case earnedFromTaps, earnedFromIdle, earnedOffline, earnedFromSteps, earnedFromGames, earnedFromAirdrops
-        case earnedFromDaily
+        case earnedFromDaily, challengesCompleted
     }
 
     public init(from decoder: Decoder) throws {
@@ -138,6 +171,27 @@ public struct Stats: Codable, Equatable, Sendable {
         earnedFromGames = c.value(.earnedFromGames, default: 0)
         earnedFromAirdrops = c.value(.earnedFromAirdrops, default: 0)
         earnedFromDaily = c.value(.earnedFromDaily, default: 0)
+        blackjackStreak = c.value(.blackjackStreak, default: 0)
+        blackjackBestStreak = c.value(.blackjackBestStreak, default: 0)
+        blackjackBiggestWin = c.value(.blackjackBiggestWin, default: 0)
+        slotsWagered = c.value(.slotsWagered, default: 0)
+        slotsPaidOut = c.value(.slotsPaidOut, default: 0)
+        slotsBestMultiple = c.value(.slotsBestMultiple, default: 0)
+        snakeLongest = c.value(.snakeLongest, default: 0)
+        brickBreakerBestLevel = c.value(.brickBreakerBestLevel, default: 0)
+        bubbleBestShot = c.value(.bubbleBestShot, default: 0)
+        moonFlights = c.value(.moonFlights, default: 0)
+        moonCashOuts = c.value(.moonCashOuts, default: 0)
+        moonBestMultiplier = c.value(.moonBestMultiplier, default: 0)
+        moonWagered = c.value(.moonWagered, default: 0)
+        moonPaidOut = c.value(.moonPaidOut, default: 0)
+        moonBiggestWin = c.value(.moonBiggestWin, default: 0)
+        pumpDumpGames = c.value(.pumpDumpGames, default: 0)
+        pumpDumpBestScore = c.value(.pumpDumpBestScore, default: 0)
+        pumpDumpCoinsHit = c.value(.pumpDumpCoinsHit, default: 0)
+        pumpDumpScamsHit = c.value(.pumpDumpScamsHit, default: 0)
+        pumpDumpBestCombo = c.value(.pumpDumpBestCombo, default: 0)
+        challengesCompleted = c.value(.challengesCompleted, default: 0)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -193,5 +247,26 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(earnedFromGames, forKey: .earnedFromGames)
         try c.encode(earnedFromAirdrops, forKey: .earnedFromAirdrops)
         try c.encode(earnedFromDaily, forKey: .earnedFromDaily)
+        try c.encode(blackjackStreak, forKey: .blackjackStreak)
+        try c.encode(blackjackBestStreak, forKey: .blackjackBestStreak)
+        try c.encode(blackjackBiggestWin, forKey: .blackjackBiggestWin)
+        try c.encode(slotsWagered, forKey: .slotsWagered)
+        try c.encode(slotsPaidOut, forKey: .slotsPaidOut)
+        try c.encode(slotsBestMultiple, forKey: .slotsBestMultiple)
+        try c.encode(snakeLongest, forKey: .snakeLongest)
+        try c.encode(brickBreakerBestLevel, forKey: .brickBreakerBestLevel)
+        try c.encode(bubbleBestShot, forKey: .bubbleBestShot)
+        try c.encode(moonFlights, forKey: .moonFlights)
+        try c.encode(moonCashOuts, forKey: .moonCashOuts)
+        try c.encode(moonBestMultiplier, forKey: .moonBestMultiplier)
+        try c.encode(moonWagered, forKey: .moonWagered)
+        try c.encode(moonPaidOut, forKey: .moonPaidOut)
+        try c.encode(moonBiggestWin, forKey: .moonBiggestWin)
+        try c.encode(pumpDumpGames, forKey: .pumpDumpGames)
+        try c.encode(pumpDumpBestScore, forKey: .pumpDumpBestScore)
+        try c.encode(pumpDumpCoinsHit, forKey: .pumpDumpCoinsHit)
+        try c.encode(pumpDumpScamsHit, forKey: .pumpDumpScamsHit)
+        try c.encode(pumpDumpBestCombo, forKey: .pumpDumpBestCombo)
+        try c.encode(challengesCompleted, forKey: .challengesCompleted)
     }
 }

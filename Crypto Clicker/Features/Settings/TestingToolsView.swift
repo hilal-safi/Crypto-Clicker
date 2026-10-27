@@ -87,7 +87,7 @@ struct TestingToolsView: View {
                 } header: {
                     Text("Daily")
                 } footer: {
-                    Text("A new day makes the daily reward, fresh quests and the challenge's double reward available again, and keeps the streak going.")
+                    Text("A new day makes the daily reward, fresh quests and a new daily challenge available again, and keeps the streak going.")
                 }
 
                 Section {

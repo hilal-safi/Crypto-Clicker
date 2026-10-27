@@ -4,6 +4,7 @@ import Foundation
 public enum QuestKind: String, Codable, CaseIterable, Sendable {
     case tapCoin, buyMiners, earnCoins, catchAirdrops, walkSteps
     case winBlackjack, spinSlots, clearLines, eatSnakeCoins, breakBricks, popBubbles, sellTokens, score2048
+    case cashOutMoon, hitPumpCoins
 
     /// The instruction, with the target filled in: "Tap the coin 500 times".
     public func title(target: Double) -> String {
@@ -22,6 +23,8 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .popBubbles: "Pop \(amount) bubbles"
         case .sellTokens: "Sell \(amount) tokens on the market"
         case .score2048: "Score \(amount) points in 2048"
+        case .cashOutMoon: "Cash out \(amount) times in To the Moon"
+        case .hitPumpCoins: "Hit \(amount) coins in Pump and Dump"
         }
     }
 
@@ -41,6 +44,8 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .popBubbles: "circle.hexagongrid.fill"
         case .sellTokens: "chart.line.uptrend.xyaxis"
         case .score2048: "square.grid.3x3.fill"
+        case .cashOutMoon: "airplane.departure"
+        case .hitPumpCoins: "hammer.fill"
         }
     }
 }
@@ -73,7 +78,138 @@ public struct Quest: Codable, Equatable, Sendable, Identifiable {
     public var title: String { kind.title(target: target) }
 }
 
-/// Daily quests, the daily-reward streak and the daily Tetris challenge.
+/// What a daily challenge asks for. Each kind belongs to one game (or, for the arcade mix, to
+/// three of them), and is only picked once that game is unlocked.
+public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
+    case tetris, merge2048, snake, brickBreaker, bubbleBlaster, pumpDump
+    case blackjack, slots, moon
+    /// Score in three different arcade games.
+    case arcadeMix
+
+    /// The game this challenge is played in; `nil` for the arcade mix.
+    public var game: MiniGame? {
+        switch self {
+        case .tetris: .tetris
+        case .merge2048: .merge2048
+        case .snake: .snake
+        case .brickBreaker: .brickBreaker
+        case .bubbleBlaster: .bubbleBlaster
+        case .pumpDump: .pumpDump
+        case .blackjack: .blackjack
+        case .slots: .slots
+        case .moon: .moon
+        case .arcadeMix: nil
+        }
+    }
+
+    /// The day's theme, shown above the goal.
+    public var dayName: String {
+        switch self {
+        case .tetris: "Block Day"
+        case .merge2048: "Puzzle Day"
+        case .snake: "Survival Day"
+        case .brickBreaker: "Precision Day"
+        case .bubbleBlaster: "Pop Day"
+        case .pumpDump: "Reflex Day"
+        case .blackjack, .slots, .moon: "Casino Day"
+        case .arcadeMix: "Arcade Day"
+        }
+    }
+
+    /// The goal, with the target filled in: "Eat 15 coins in one Snake game".
+    public func goal(target: Int) -> String {
+        let amount = CoinFormat.grouped(target)
+        return switch self {
+        case .tetris: "Score \(amount) in one Tetris game"
+        case .merge2048: "Make a \(target) tile in 2048"
+        case .snake: "Eat \(amount) coins in one Snake game"
+        case .brickBreaker: "Break \(amount) bricks in one Brick Breaker game"
+        case .bubbleBlaster: "Pop \(amount) bubbles in one Bubble Blaster game"
+        case .pumpDump: "Score \(amount) in one round of Pump and Dump"
+        case .blackjack: "Win \(amount) Blackjack hands today"
+        case .slots: "Win \(amount) spins at Crypto Slots today"
+        case .moon: "Cash out at 2× or more \(amount) times in To the Moon today"
+        case .arcadeMix: "Score in \(amount) different arcade games today"
+        }
+    }
+
+    /// Counts the best single game rather than a running total for the day.
+    public var isBestOfOneGame: Bool {
+        switch self {
+        case .tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump: true
+        case .blackjack, .slots, .moon, .arcadeMix: false
+        }
+    }
+
+    /// The targets a day can ask for.
+    var targets: [Int] {
+        switch self {
+        case .tetris: [2_000, 3_500, 5_000]
+        case .merge2048: [256, 512]
+        case .snake: [12, 18, 25]
+        case .brickBreaker: [25, 35, 50]
+        case .bubbleBlaster: [30, 45, 60]
+        case .pumpDump: [300, 450, 600]
+        case .blackjack: [2, 3, 4]
+        case .slots: [3, 5]
+        case .moon: [2, 3]
+        case .arcadeMix: [3]
+        }
+    }
+}
+
+/// Today's challenge and how far it has come.
+public struct DailyChallenge: Codable, Equatable, Sendable {
+    /// The day it belongs to (a `StepDay` key).
+    public let day: String
+    public let kind: DailyChallengeKind
+    public let target: Int
+    /// The best single game so far today, or today's running total, depending on the kind.
+    public internal(set) var progress = 0
+    /// Arcade games scored in today, for the arcade mix.
+    public internal(set) var gamesScored: Set<MiniGame> = []
+    /// Reached the target; the reward has been paid.
+    public internal(set) var isComplete = false
+
+    public var goal: String { kind.goal(target: target) }
+
+    public init(day: String, kind: DailyChallengeKind, target: Int) {
+        self.day = day
+        self.kind = kind
+        self.target = target
+    }
+
+    private enum CodingKeys: String, CodingKey { case day, kind, target, progress, gamesScored, isComplete }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        day = try c.decode(String.self, forKey: .day)
+        kind = try c.decode(DailyChallengeKind.self, forKey: .kind)
+        target = max(1, try c.decode(Int.self, forKey: .target))
+        progress = max(0, c.value(.progress, default: 0))
+        gamesScored = c.enumSet(.gamesScored, as: MiniGame.self)
+        isComplete = c.value(.isComplete, default: false)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(day, forKey: .day)
+        try c.encode(kind, forKey: .kind)
+        try c.encode(target, forKey: .target)
+        try c.encode(progress, forKey: .progress)
+        try c.encode(gamesScored.sortedRawValues, forKey: .gamesScored)
+        try c.encode(isComplete, forKey: .isComplete)
+    }
+}
+
+/// What completing a daily challenge paid.
+public struct ChallengeReward: Equatable, Sendable {
+    public let coins: Double
+    /// Paid as well when this challenge completed the week's set; 0 otherwise.
+    public let weeklyBonus: Double
+}
+
+/// Daily quests, the daily-reward streak and the daily challenge.
 public struct DailyProgress: Codable, Equatable, Sendable {
     /// The day today's quests belong to (a `StepDay` key).
     public internal(set) var questDay: String?
@@ -81,16 +217,16 @@ public struct DailyProgress: Codable, Equatable, Sendable {
     /// Consecutive days the daily reward was claimed, as of `lastRewardDay`.
     public internal(set) var streak = 0
     public internal(set) var lastRewardDay: String?
-    /// The day of the last daily Tetris challenge game, its best score, and whether that day's
-    /// double reward has been paid.
-    public internal(set) var challengeDay: String?
-    public internal(set) var challengeBest = 0
-    public internal(set) var challengeRewarded = false
+    /// The latest daily challenge (today's, once it has been issued).
+    public internal(set) var challenge: DailyChallenge?
+    /// The week (the `StepDay` key of its Monday) that `challengesThisWeek` counts.
+    public internal(set) var challengeWeek: String?
+    public internal(set) var challengesThisWeek = 0
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case questDay, quests, streak, lastRewardDay, challengeDay, challengeBest, challengeRewarded
+        case questDay, quests, streak, lastRewardDay, challenge, challengeWeek, challengesThisWeek
     }
 
     public init(from decoder: Decoder) throws {
@@ -100,9 +236,10 @@ public struct DailyProgress: Codable, Equatable, Sendable {
         questDay = quests.isEmpty ? nil : c.value(.questDay, default: nil)
         streak = max(0, c.value(.streak, default: 0))
         lastRewardDay = c.value(.lastRewardDay, default: nil)
-        challengeDay = c.value(.challengeDay, default: nil)
-        challengeBest = c.value(.challengeBest, default: 0)
-        challengeRewarded = c.value(.challengeRewarded, default: false)
+        // Older saves kept a Tetris-only challenge under other names; a new one is issued instead.
+        challenge = c.value(.challenge, default: nil)
+        challengeWeek = c.value(.challengeWeek, default: nil)
+        challengesThisWeek = max(0, c.value(.challengesThisWeek, default: 0))
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -111,9 +248,9 @@ public struct DailyProgress: Codable, Equatable, Sendable {
         try c.encode(quests, forKey: .quests)
         try c.encode(streak, forKey: .streak)
         try c.encodeIfPresent(lastRewardDay, forKey: .lastRewardDay)
-        try c.encodeIfPresent(challengeDay, forKey: .challengeDay)
-        try c.encode(challengeBest, forKey: .challengeBest)
-        try c.encode(challengeRewarded, forKey: .challengeRewarded)
+        try c.encodeIfPresent(challenge, forKey: .challenge)
+        try c.encodeIfPresent(challengeWeek, forKey: .challengeWeek)
+        try c.encode(challengesThisWeek, forKey: .challengesThisWeek)
     }
 }
 

@@ -37,11 +37,18 @@ struct BlackjackView: View {
                     }
                 }
                 .frame(height: 56)
-                ForEach(table.hands) { hand in
-                    HandView(hand: hand,
-                             isActive: table.activeHand?.id == hand.id && table.hands.count > 1,
-                             result: table.results.indices.contains(hand.id) ? table.results[hand.id] : nil,
-                             token: roundToken, cardSize: cardSize)
+                if table.hands.count > 1 {
+                    // Split hands sit side by side, so the whole table fits without scrolling.
+                    HStack(alignment: .top, spacing: 8) {
+                        ForEach(table.hands) { hand in
+                            handView(hand, cardSize: CGSize(width: cardSize.width * 0.82, height: cardSize.height * 0.82),
+                                     isCompact: true)
+                        }
+                    }
+                } else {
+                    ForEach(table.hands) { hand in
+                        handView(hand, cardSize: cardSize, isCompact: false)
+                    }
                 }
             }
             .padding(12)
@@ -79,6 +86,13 @@ struct BlackjackView: View {
             if phase == .background { leaveTable() }
         }
         .gameScreen()
+    }
+
+    private func handView(_ hand: BlackjackHand, cardSize: CGSize, isCompact: Bool) -> some View {
+        HandView(hand: hand,
+                 isActive: table.activeHand?.id == hand.id && table.hands.count > 1,
+                 result: table.results.indices.contains(hand.id) ? table.results[hand.id] : nil,
+                 token: roundToken, cardSize: cardSize, isCompact: isCompact)
     }
 
     // MARK: Controls
@@ -283,22 +297,26 @@ private struct HandView: View {
     let result: BlackjackResult?
     let token: TokenID
     let cardSize: CGSize
+    /// Half the table's width, beside the other half of a split: everything stacks.
+    var isCompact = false
 
     var body: some View {
         VStack(spacing: 8) {
-            CardRow(cards: hand.cards, hidesSecondCard: false, cardSize: cardSize)
-            HStack(spacing: 10) {
-                Text(hand.isBlackjack ? "Blackjack!" : hand.isBust ? "Bust" : "\(hand.isSoft ? "Soft " : "")\(hand.total)")
-                    .font(.headline.monospacedDigit())
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(.black.opacity(0.3), in: .capsule)
-                Spacer()
-                ChipStack(token: token, amount: hand.bet)
-                if let result {
-                    Text(result.outcome.title)
-                        .font(.subheadline.bold())
-                        .foregroundStyle(result.net > 0 ? Theme.gold : result.net == 0 ? .white : Color(red: 1, green: 0.45, blue: 0.45))
+            CardRow(cards: hand.cards, hidesSecondCard: false, cardSize: cardSize, overlap: isCompact ? 0.52 : 0.36)
+            if isCompact {
+                total
+                HStack(spacing: 6) {
+                    ChipStack(token: token, amount: hand.bet)
+                    outcome
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            } else {
+                HStack(spacing: 10) {
+                    total
+                    Spacer()
+                    ChipStack(token: token, amount: hand.bet)
+                    outcome
                 }
             }
         }
@@ -309,6 +327,22 @@ private struct HandView: View {
                 .strokeBorder(isActive ? Theme.gold : .white.opacity(0.18), lineWidth: isActive ? 2 : 1)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var total: some View {
+        Text(hand.isBlackjack ? "Blackjack!" : hand.isBust ? "Bust" : "\(hand.isSoft ? "Soft " : "")\(hand.total)")
+            .font(.headline.monospacedDigit())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(.black.opacity(0.3), in: .capsule)
+    }
+
+    @ViewBuilder private var outcome: some View {
+        if let result {
+            Text(result.outcome.title)
+                .font(.subheadline.bold())
+                .foregroundStyle(result.net > 0 ? Theme.gold : result.net == 0 ? .white : Color(red: 1, green: 0.45, blue: 0.45))
+        }
     }
 }
 
@@ -341,9 +375,11 @@ private struct CardRow: View {
     let cards: [Card]
     let hidesSecondCard: Bool
     let cardSize: CGSize
+    /// How much of each card the next one covers.
+    var overlap = 0.36
 
     var body: some View {
-        HStack(spacing: -cardSize.width * 0.36) {
+        HStack(spacing: -cardSize.width * overlap) {
             ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
                 // A gentle fan, centred on the middle of the hand.
                 let tilt = (Double(index) - Double(cards.count - 1) / 2) * 3

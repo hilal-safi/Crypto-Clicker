@@ -23,26 +23,28 @@ public struct BlackjackStake: Codable, Equatable, Sendable {
 public struct ArcadeRun: Codable, Equatable, Sendable {
     public let game: MiniGame
     public let score: Int
-    /// Lines, bricks, bubbles or (in 2048) the best tile, depending on the game.
+    /// What else the game reports when it ends, depending on the game: lines (Tetris), length
+    /// (Snake), bricks, bubbles, the best tile (2048) or coins hit (Pump and Dump).
     public let detail: Int
-    /// The day (a `StepDay` key) whose daily Tetris challenge this game was, if it was one.
-    public let challengeDay: String?
+    /// A second game-specific number: the level reached (Brick Breaker), the most bubbles cleared
+    /// by one shot (Bubble Blaster) or the best combo (Pump and Dump).
+    public let extra: Int
 
-    public init(game: MiniGame, score: Int, detail: Int, challengeDay: String? = nil) {
+    public init(game: MiniGame, score: Int, detail: Int, extra: Int = 0) {
         self.game = game
         self.score = score
         self.detail = detail
-        self.challengeDay = challengeDay
+        self.extra = extra
     }
 
-    private enum CodingKeys: String, CodingKey { case game, score, detail, challengeDay }
+    private enum CodingKeys: String, CodingKey { case game, score, detail, extra }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         game = try c.decode(MiniGame.self, forKey: .game)
         score = try c.decode(Int.self, forKey: .score)
         detail = try c.decode(Int.self, forKey: .detail)
-        challengeDay = c.value(.challengeDay, default: nil)
+        extra = c.value(.extra, default: 0)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -50,7 +52,7 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
         try c.encode(game, forKey: .game)
         try c.encode(score, forKey: .score)
         try c.encode(detail, forKey: .detail)
-        try c.encodeIfPresent(challengeDay, forKey: .challengeDay)
+        try c.encode(extra, forKey: .extra)
     }
 }
 
@@ -84,6 +86,8 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var offlineMiningLevel = 0
     public internal(set) var unlockedGames: Set<MiniGame> = []
     public internal(set) var blackjackStake: BlackjackStake?
+    /// A To the Moon flight in the air.
+    public internal(set) var moonRound: MoonRound?
     public internal(set) var unfinishedRun: ArcadeRun?
     /// Highest tier count earned per achievement id (0 to 4).
     public internal(set) var achievementTiers: [String: Int] = [:]
@@ -113,7 +117,7 @@ public struct GameState: Codable, Equatable, Sendable {
         case prestigePotentialClaimed = "forkPointsClaimed"
         case runPrestigeMultiplier = "runForkMultiplier"
         case prestigePointsSpent, perks, difficulty
-        case boost, offlineMiningLevel, unlockedGames, blackjackStake, unfinishedRun, achievementTiers, daily
+        case boost, offlineMiningLevel, unlockedGames, blackjackStake, moonRound, unfinishedRun, achievementTiers, daily
         case incomeHistory, stats, steps, recentWatchBatches, lastUpdate, runStart, created
     }
 
@@ -146,6 +150,7 @@ public struct GameState: Codable, Equatable, Sendable {
         offlineMiningLevel = min(max(savedLevel, legacyLevel, 0), Tuning.offlineMiningMaxLevel)
         unlockedGames = c.enumSet(.unlockedGames, as: MiniGame.self)
         blackjackStake = c.value(.blackjackStake, default: nil)
+        moonRound = c.value(.moonRound, default: nil)
         unfinishedRun = c.value(.unfinishedRun, default: nil)
         achievementTiers = c.value(.achievementTiers, default: [:])
         daily = c.value(.daily, default: DailyProgress())
@@ -176,6 +181,7 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encode(offlineMiningLevel, forKey: .offlineMiningLevel)
         try c.encode(unlockedGames.sortedRawValues, forKey: .unlockedGames)
         try c.encodeIfPresent(blackjackStake, forKey: .blackjackStake)
+        try c.encodeIfPresent(moonRound, forKey: .moonRound)
         try c.encodeIfPresent(unfinishedRun, forKey: .unfinishedRun)
         try c.encode(achievementTiers, forKey: .achievementTiers)
         try c.encode(daily, forKey: .daily)
