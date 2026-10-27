@@ -19,7 +19,7 @@ struct RootView: View {
                 MineView(openShop: { tab = .shop }, openPowerUps: openPowerUps, openExchange: { tab = .exchange }, openDaily: {
                     dailyRequests += 1
                     tab = .trophies
-                })
+                }, openIncome: { showingIncome = true })
             }
             Tab("Shop", systemImage: "cart.fill", value: AppTab.shop) {
                 ShopView(powerUpRequests: powerUpRequests)
@@ -40,8 +40,9 @@ struct RootView: View {
         }
         .tint(Theme.accent)
         .tabBarMinimizeBehavior(.onScrollDown)
-        .tabViewBottomAccessory {
-            BalanceAccessory(isMineTab: tab == .mine, openIncome: { showingIncome = true })
+        // Mine shows the balance and rates at the top, so the bar is left off there.
+        .balanceAccessory(isEnabled: tab != .mine) {
+            BalanceAccessory(openIncome: { showingIncome = true })
         }
         .sheet(isPresented: $showingIncome) {
             IncomeBreakdownView()
@@ -68,12 +69,28 @@ struct RootView: View {
     }
 }
 
-/// The bar above the tab bar: the balance on every tab, or rates while on Mine (which shows
-/// the balance itself). Tapping the rates opens a breakdown of where the coins come from. Numbers
-/// use the form chosen by tapping the balance: every digit, or the short form. Long numbers scroll
-/// sideways. It collapses next to the tab bar when scrolling.
+private extension View {
+    /// The balance bar above the tab bar, left off while `isEnabled` is false. Leaving it off takes
+    /// iOS 26.2 (and an Xcode with its SDK); before that, the bar shows on every tab.
+    @ViewBuilder
+    func balanceAccessory(isEnabled: Bool, @ViewBuilder content: () -> some View) -> some View {
+        #if compiler(>=6.3)
+        if #available(iOS 26.2, *) {
+            tabViewBottomAccessory(isEnabled: isEnabled, content: content)
+        } else {
+            tabViewBottomAccessory(content: content)
+        }
+        #else
+        tabViewBottomAccessory(content: content)
+        #endif
+    }
+}
+
+/// The bar above the tab bar on every tab but Mine: the balance and coins per second. Tapping the
+/// rate opens a breakdown of where the coins come from. Numbers use the form chosen by tapping the
+/// balance: every digit, or the short form. Long numbers scroll sideways. It collapses next to the
+/// tab bar when scrolling.
 struct BalanceAccessory: View {
-    let isMineTab: Bool
     let openIncome: () -> Void
     @Environment(GameStore.self) private var store
     @Environment(\.tabViewBottomAccessoryPlacement) private var placement
@@ -107,45 +124,28 @@ struct BalanceAccessory: View {
     private func figures(_ game: GameState, at now: Date) -> some View {
         let income = game.idleIncome(at: now)
         let rate = exactNumbers ? CoinFormat.exactRate(income) : CoinFormat.rate(income)
+        let balance = store.heldCoins ?? game.coins
         return HStack(spacing: 12) {
-            if isMineTab && placement != .inline {
+            Button {
+                withAnimation(.snappy) { exactNumbers.toggle() }
+            } label: {
+                HStack(spacing: 4) {
+                    CoinIcon(size: 20)
+                    Text(amount(balance))
+                        .font(.headline.monospacedDigit())
+                        .contentTransition(.numericText(value: balance))
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(amount(balance)) coins")
+            .accessibilityHint(exactNumbers ? "Shows the short form" : "Shows every digit")
+            if placement != .inline {
                 Button(action: openIncome) {
-                    HStack(spacing: 12) {
-                        Label("\(rate)/s", systemImage: "bolt.fill")
-                        Label("\(amount(game.tapValue(at: now))) per tap", systemImage: "hand.tap.fill")
-                            .foregroundStyle(.subtext)
-                        Image(systemName: "chart.pie.fill")
-                            .foregroundStyle(Theme.accent)
-                            .accessibilityHidden(true)
-                    }
-                    .contentShape(.rect)
+                    Text("+\(rate)/s")
+                        .foregroundStyle(.subtext)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(rate) coins per second, \(amount(game.tapValue(at: now))) per tap")
                 .accessibilityHint("Shows where your coins come from")
-            } else {
-                let balance = store.heldCoins ?? game.coins
-                Button {
-                    withAnimation(.snappy) { exactNumbers.toggle() }
-                } label: {
-                    HStack(spacing: 4) {
-                        CoinIcon(size: 20)
-                        Text(amount(balance))
-                            .font(.headline.monospacedDigit())
-                            .contentTransition(.numericText(value: balance))
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(amount(balance)) coins")
-                .accessibilityHint(exactNumbers ? "Shows the short form" : "Shows every digit")
-                if placement != .inline {
-                    Button(action: openIncome) {
-                        Text("+\(rate)/s")
-                            .foregroundStyle(.subtext)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHint("Shows where your coins come from")
-                }
             }
         }
         .fixedSize()

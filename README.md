@@ -10,7 +10,8 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   Mining Colony, and after your first prestige, three more beyond it. Each unit costs 15% more than the
   last. Owning 25, 50, 100, 200 and every 100 up to 1,000 of a miner doubles its output. Under the
   coin, two slim cards show your miners and power-ups and your crypto; tap one to open the Shop or the
-  Exchange.
+  Exchange. Your coins per second and per tap sit just under the balance on the home screen, and in a
+  bar at the bottom of the other tabs.
 - **Mk upgrades.** At 25, 50, 100, 200 and 400 owned, a miner's next Mk upgrade (Mk II to Mk VI)
   appears in the Shop. Each doubles that miner for the rest of the run.
 - **Whole coins.** Every tap, step and reward pays whole coins. Amounts are written out in full up to
@@ -21,7 +22,8 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   a whole second's worth late in the game. Quick taps build a combo, up to twice the coins per tap.
   Automatic taps are worth a quarter of a tap, so tapping yourself stays the fastest way to mine.
 - **Upgrades.** 20 one-time upgrades. They boost tapping, multiply production, add automatic taps, and
-  raise step and mini-game rewards. Upgrades are revealed as you progress.
+  raise step and mini-game rewards. Upgrades are revealed as you progress (mini-game ones once you've
+  unlocked a game).
 - **Offline Mining.** At first, miners stop a minute after you leave the app. The Offline Mining
   power-up keeps them earning while it's closed: 30 minutes more per level up to a day, then an hour more
   per level, up to three days. Power-ups stay when you prestige. A welcome-back screen shows what you
@@ -45,6 +47,10 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   price chart until the market crashes: cash out in time (or set an automatic cash-out), and every
   target returns 97% on average. Wins pay tokens plus a coin bonus, with confetti and a shower of coins.
   Split Blackjack hands sit side by side.
+- **Unlocking games.** The nine games unlock one at a time, each costing far more than the last (from
+  about 32 million coins for Blackjack to 101 trillion for Bubble Blaster), so a player who keeps
+  playing gets a new one about every hour, and one who checks in four times a day gets them all within
+  about four days.
 - **Arcade.** Tetris, 2048, Snake, Brick Breaker, Bubble Blaster and Pump and Dump (whack the coins,
   dodge the scams and rug pulls) pay coins for every point, and 50% more for a new best score. Each is
   tuned so a minute of skilled play pays about two minutes of income. 2048 keeps the classic numbered
@@ -52,15 +58,16 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   every level after the first; Snake and 2048 are played with swipes anywhere on the screen.
 - **Trophies.** 51 achievements with bronze, silver, gold and mythic tiers, each card glinting in the
   metal it has earned. Each star adds 1% production forever, and stars unlock new finishes for the coin.
-- **Prestige.** Once you've mined 11 billion coins in all, start a new run for prestige points. Points
+- **Prestige.** Once you've mined 12.65 billion coins in all, start a new run for prestige points. Points
   grow with the cube root of lifetime coins, so each prestige takes longer than the last. Every point
   adds 5% production forever, and points buy permanent perks in three branches (Mining, Tapping and
   Fortune). The Shop suggests prestiging once it would make you at least half as fast again.
 - **Difficulty.** Easy produces more but earns fewer prestige points; Hard produces less and earns more.
 - **Notifications.** Optional reminders when Offline Mining runs out and when a daily reward is waiting.
 - **Statistics.** A chart of income over the week, plus everything the game counts (win streaks,
-  biggest wins, what the casino paid back, records for every game), in short form or with every digit. Tapping the income bar at the bottom of the home screen shows where every coin
-  comes from: each miner's share, automatic taps, multipliers and what makes up a tap.
+  biggest wins, what the casino paid back, records for every game), in short form or with every digit.
+  Tapping the rates under the balance (or the bar at the bottom of the other tabs) shows where every
+  coin comes from: each miner's share, automatic taps, multipliers and what makes up a tap.
 
 ## Requirements
 
@@ -133,9 +140,9 @@ swift test
 
 In Xcode, Product › Test (⌘U) on the Crypto Clicker scheme runs the same suite. It includes simulated
 players that check the economy's pacing. A casual player who checks in four times a day buys Offline
-Mining in the first session, unlocks the first ten miners in about a day and a half, and is first
-advised to prestige after about two days. With prestiges and perks, new things keep arriving for
-about two weeks.
+Mining in the first session, unlocks the first ten miners in about a day and a quarter, and is first
+advised to prestige after about two days. A player who keeps playing unlocks a new mini-game about
+every hour. With prestiges and perks, new things keep arriving for about two weeks.
 
 Simulated skilled players for every arcade game check that each pays about the same for a minute of
 play (about two minutes of income). They take a few minutes, so they run only when asked:
@@ -146,8 +153,8 @@ RUN_BALANCE_TESTS=1 swift test --filter ArcadeBalanceTests
 
 ## Testing tools
 
-Builds run from Xcode (the Debug configuration) include a Testing Tools screen: tap the ladybug on the
-Mine tab, or open Settings › Testing Tools. It adds coins (up to 1 sextillion at a time), tokens, miners,
+Builds run from Xcode (the Debug configuration) include a Testing Tools screen, tucked away in
+Settings › Testing Tools (the gear at the top of the home screen). It adds coins (up to 1 sextillion at a time), tokens, miners,
 upgrades, Offline Mining levels and prestige points, unlocks every mini-game and steps, completes the
 day's quests or starts a new day, starts a Bull Run, drops an airdrop or a whale, and pretends you were
 away for an hour or eight. The screen and its code are compiled out of Release builds, so they never

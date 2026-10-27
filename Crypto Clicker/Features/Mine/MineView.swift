@@ -1,22 +1,21 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// The home screen, in order of importance: the balance, the coin to tap, a tip for new players,
-/// what the player owns (miners and power-ups, and crypto), and steps once they are unlocked.
-/// No title, so the game gets the room.
+/// The home screen, in order of importance: the balance with coins per second and per tap, the coin
+/// to tap, a tip for new players, what the player owns (miners and power-ups, and crypto), and steps
+/// once they are unlocked. No title, so the game gets the room.
 struct MineView: View {
     let openShop: () -> Void
     let openPowerUps: () -> Void
     let openExchange: () -> Void
     let openDaily: () -> Void
+    /// Shows where the coins come from.
+    let openIncome: () -> Void
     @Environment(GameStore.self) private var store
     @State private var showingStats = false
     @State private var showingHelp = false
     @State private var showingStepsIntro = false
     @State private var showingSettings = false
-    #if DEBUG
-    @State private var showingTestingTools = false
-    #endif
     @State private var effects = Effects()
     /// Every digit or the short form, for the balance and tap values. Tapping the balance switches.
     @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
@@ -49,11 +48,6 @@ struct MineView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("How to Play", systemImage: "questionmark.circle") { showingHelp = true }
                 }
-                #if DEBUG
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Testing Tools", systemImage: "ladybug") { showingTestingTools = true }
-                }
-                #endif
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Statistics", systemImage: "chart.bar.xaxis") { showingStats = true }
                 }
@@ -65,9 +59,6 @@ struct MineView: View {
             .sheet(isPresented: $showingStats) { StatsView() }
             .sheet(isPresented: $showingHelp) { HowToPlayView() }
             .sheet(isPresented: $showingStepsIntro) { StepsIntroView() }
-            #if DEBUG
-            .sheet(isPresented: $showingTestingTools) { TestingToolsView() }
-            #endif
         }
     }
 
@@ -75,7 +66,8 @@ struct MineView: View {
         let game = store.game
         let now = Date.now
         return VStack(spacing: 10) {
-            BalanceHeader(coins: game.coins, boost: game.activeBoost(at: now), showsExact: exactNumbers) {
+            BalanceHeader(coins: game.coins, boost: game.activeBoost(at: now), showsExact: exactNumbers,
+                          income: game.idleIncome(at: now), tapValue: game.tapValue(at: now), openIncome: openIncome) {
                 withAnimation(.snappy) { exactNumbers.toggle() }
             }
             CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers,
@@ -106,11 +98,16 @@ struct MineView: View {
 }
 
 /// The balance, large: the short form from 10,000 up, or every digit when `showsExact` is on
-/// (tap it to switch). During a Bull Run its countdown shows just under the number.
+/// (tap it to switch). Coins per second and per tap sit just under it, and during a Bull Run its
+/// countdown below them.
 struct BalanceHeader: View {
     let coins: Double
     let boost: Boost?
     let showsExact: Bool
+    /// Coins per second, Bull Run included.
+    let income: Double
+    let tapValue: Double
+    let openIncome: () -> Void
     let toggleExact: () -> Void
 
     var body: some View {
@@ -138,6 +135,7 @@ struct BalanceHeader: View {
             .accessibilityAddTraits(.isButton)
             .accessibilityHint(showsExact ? "Shows the short form" : "Shows every digit")
             .accessibilityAction(.default, toggleExact)
+            RatesLine(income: income, tapValue: tapValue, showsExact: showsExact, open: openIncome)
             if let boost {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     let remaining = CoinFormat.duration(boost.endsAt.timeIntervalSince(context.date))
@@ -164,6 +162,42 @@ struct BalanceHeader: View {
             .lineLimit(1)
             .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
             .animation(.snappy(duration: 0.25), value: coins)
+    }
+}
+
+/// Coins per second and per tap, in the form the balance uses. Tapping them shows where the coins
+/// come from.
+private struct RatesLine: View {
+    let income: Double
+    let tapValue: Double
+    let showsExact: Bool
+    let open: () -> Void
+
+    var body: some View {
+        let rate = showsExact ? CoinFormat.exactRate(income) : CoinFormat.rate(income)
+        let tap = showsExact ? CoinFormat.exact(tapValue) : CoinFormat.short(tapValue)
+        Button(action: open) {
+            HStack(spacing: 14) {
+                Label("\(rate)/s", systemImage: "bolt.fill")
+                Label("\(tap) per tap", systemImage: "hand.tap.fill")
+                    .foregroundStyle(.subtext)
+                Image(systemName: "chart.pie.fill")
+                    .foregroundStyle(Theme.accent)
+                    .accessibilityHidden(true)
+            }
+            .font(.subheadline.weight(.semibold).monospacedDigit())
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .glassEffect(.regular.interactive(), in: .capsule)
+            .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(rate) coins per second, \(tap) per tap")
+        .accessibilityHint("Shows where your coins come from")
+        .accessibilityAddTraits(.isButton)
     }
 }
 

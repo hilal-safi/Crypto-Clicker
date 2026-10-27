@@ -37,8 +37,8 @@ struct PriceTests {
 
     @Test func eachUnitCostsFifteenPercentMoreRoundedUp() {
         let state = GameState.make(miners: [.chromebook: 5])
-        #expect(MinerID.chromebook.baseCost == 58) // A list price of 50, raised 15% for the pace.
-        #expect(state.price(of: .chromebook, quantity: 1) == 117) // 58 × 1.15⁵ = 116.66
+        #expect(MinerID.chromebook.baseCost == 72) // A list price of 50, raised 43.75% for the early pace.
+        #expect(state.price(of: .chromebook, quantity: 1) == 145) // 72 × 1.15⁵ = 144.82
     }
 
     @Test func maxAffordableIsExactAtPriceBoundaries() {
@@ -54,21 +54,21 @@ struct PriceTests {
 
     @Test func maxAffordableHandlesTinyAndHugeBudgets() {
         let state = GameState.make()
-        #expect(state.maxAffordable(.chromebook, budget: 57.99) == 0)
+        #expect(state.maxAffordable(.chromebook, budget: 71.99) == 0)
         #expect(state.maxAffordable(.chromebook, budget: 0) == 0)
         #expect(state.maxAffordable(.chromebook, budget: .infinity) == 0)
         #expect(state.maxAffordable(.chromebook, budget: .nan) == 0)
         let count = state.maxAffordable(.chromebook, budget: 1e30)
-        #expect(count == 451)
+        #expect(count == 450)
         #expect(state.price(of: .chromebook, quantity: count) <= 1e30)
         #expect(state.price(of: .chromebook, quantity: count + 1) > 1e30)
     }
 
     @Test func maxAffordableUsesTheBalanceByDefault() {
-        let state = GameState.make(coins: 300)
-        // 58 + 66.7 + 76.71 + 88.21 = 289.62, rounded up to 290; a fifth unit would make it 391.
+        let state = GameState.make(coins: 400)
+        // 72 + 82.8 + 95.22 + 109.5 = 359.52, rounded up to 360; a fifth unit would make it 486.
         #expect(state.maxAffordable(.chromebook) == 4)
-        #expect(state.price(of: .chromebook, quantity: 4) == 290)
+        #expect(state.price(of: .chromebook, quantity: 4) == 360)
     }
 }
 
@@ -191,18 +191,18 @@ struct ProductionTests {
 
     @Test func offlineMiningLevelsCostMoreEachTimeAndStopAtTheMaximum() {
         var state = GameState.make(coins: 1_000)
-        #expect(state.offlineMiningPrice == 1_725) // A list price of 1,500, raised 15% for the pace.
+        #expect(state.offlineMiningPrice == 2_157) // A list price of 1,500, raised 43.75% for the early pace.
         #expect(state.buyOfflineMining() == false) // Can't afford it yet.
-        state.coins = 1_725 + 2_588 + 100
+        state.coins = 2_157 + 3_235 + 100
         let first = state.buyOfflineMining()
         #expect(first)
         #expect(state.offlineMiningLevel == 1)
         #expect(state.offlineCap == 30 * 60)
-        #expect(state.offlineMiningPrice == 2_588) // 2,250 × 1.15, rounded up.
+        #expect(state.offlineMiningPrice == 3_235) // 2,250 × 1.4375, rounded up.
         let second = state.buyOfflineMining()
         #expect(second)
         #expect(state.coins == 100)
-        #expect(state.stats.spent == 4_313)
+        #expect(state.stats.spent == 5_392)
         state.offlineMiningLevel = Tuning.offlineMiningMaxLevel
         state.coins = 1e300
         #expect(state.offlineMiningPrice == nil)
@@ -258,16 +258,16 @@ struct ShopTests {
         var state = GameState.make(coins: 200)
         #expect(state.buy(.chromebook, quantity: 2) == true)
         #expect(state.owned(.chromebook) == 2)
-        #expect(state.coins == 200 - 125) // 58 + 66.7, rounded up.
-        #expect(state.stats.spent == 125)
+        #expect(state.coins == 200 - 155) // 72 + 82.8, rounded up.
+        #expect(state.stats.spent == 155)
         #expect(state.stats.maxOwned[.chromebook] == 2)
         #expect(state.stats.maxTotalMiners == 2)
     }
 
     @Test func buyingFailsWithoutEnoughCoinsOrBeforeReveal() {
-        var state = GameState.make(coins: 49)
+        var state = GameState.make(coins: 71)
         #expect(state.buy(.chromebook, quantity: 1) == false)
-        #expect(state.coins == 49)
+        #expect(state.coins == 71)
         state.coins = 1e9
         #expect(state.buy(.desktop, quantity: 1) == false)
         #expect(state.buy(.chromebook, quantity: 0) == false)
@@ -285,18 +285,31 @@ struct ShopTests {
         #expect(state.buy(.upgradedClicker) == false) // Revealed, but costs more than is left.
     }
 
+    @Test func miniGameUpgradesWaitForAGame() {
+        var state = GameState.make(coins: 1e12)
+        state.stats.runCoins = 1e12
+        #expect(!state.isRevealed(.bonusReward1))
+        let early = state.buy(.bonusReward1)
+        #expect(!early)
+        let unlocked = state.unlock(.blackjack)
+        #expect(unlocked)
+        #expect(state.isRevealed(.bonusReward1))
+        let bought = state.buy(.bonusReward1)
+        #expect(bought)
+    }
+
     @Test func hiddenUpgradesCannotBeBought() {
         var state = GameState.make(coins: 1e12)
         #expect(state.buy(.dysonSwarm) == false)
     }
 
     @Test func miniGamesUnlockOnce() {
-        var state = GameState.make(coins: 1_500)
+        var state = GameState.make(coins: 40e6)
         #expect(state.unlock(.blackjack) == true)
         #expect(state.isUnlocked(.blackjack))
         #expect(state.unlock(.blackjack) == false)
-        #expect(state.unlock(.tetris) == false)
-        #expect(state.coins == 1_500 - 1_150) // A list price of 1,000, raised 15% for the pace.
+        #expect(state.unlock(.snake) == false)
+        #expect(state.coins == 40e6 - 31_625_000) // A list price of 25 million, raised 26.5% for the late pace.
     }
 
     @Test func tappingPaysAndRecords() {

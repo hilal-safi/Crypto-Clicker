@@ -26,10 +26,11 @@ extension GameState {
     }
 
     /// Upgrades appear once this run has earned a tenth of their price. Step upgrades also wait
-    /// until steps are unlocked.
+    /// until steps are unlocked, and mini-game upgrades until a game is.
     public func isRevealed(_ upgrade: UpgradeID) -> Bool {
         if upgrades.contains(upgrade) { return true }
         if upgrade.category == .steps && !areStepsUnlocked { return false }
+        if upgrade.category == .miniGames && unlockedGames.isEmpty { return false }
         return stats.runCoins >= upgrade.cost * 0.1
     }
 

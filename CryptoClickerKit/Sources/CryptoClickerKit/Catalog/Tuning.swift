@@ -1,8 +1,8 @@
 import Foundation
 
 /// Every balance number in one place. Tuned with a progression simulation: the first ten miners
-/// unlock over a day and a half to two days of casual play, the first prestige is worth taking
-/// at about the same time, and prestiges, perks and the three extra miner tiers keep new things
+/// unlock over about a day and a quarter of casual play, the first prestige is worth taking after
+/// about two days, mini-games unlock about an hour of play apart, and prestiges, perks and the three extra miner tiers keep new things
 /// arriving for about two weeks. Prices in the catalogs are list prices: `scaledPrice` sets the
 /// pace. Coin amounts here are whole numbers; only rates may be fractional.
 public enum Tuning {
@@ -66,11 +66,12 @@ public enum Tuning {
     public static let stepWindowDays = 7
 
     // MARK: Pace
-    /// Every price is its list price times this: 15% more for the cheapest things, easing to 10% more
-    /// from a million coins up. Raising every price is the same as slowing all income, so the game
-    /// runs about 15% slower in its first hour or so and 10% slower overall.
+    /// Every price is its list price times this: 44% more for the cheapest things, easing to 26.5%
+    /// more from a million coins up. Raising every price is the same as slowing all income, so the
+    /// game runs about 44% slower than the list prices in its first hour or so and 26.5% slower
+    /// overall. (Two rounds of slowing: 15% early and 10% overall, then 25% and 15% more.)
     public static func priceScale(forListPrice price: Double) -> Double {
-        let early = 1.15, late = 1.10, start = 5_000.0, end = 1e6
+        let early = 1.15 * 1.25, late = 1.10 * 1.15, start = 5_000.0, end = 1e6
         guard price.isFinite, price > start else { return early }
         guard price < end else { return late }
         return early + (late - early) * log10(price / start) / log10(end / start)
@@ -85,9 +86,18 @@ public enum Tuning {
 
     // MARK: Prestige
     /// Lifetime coins needed for the first point of prestige potential (10 billion, raised by the
-    /// late pace). Potential grows with the cube root of lifetime coins, so each prestige takes
-    /// longer than the one before.
-    public static let prestigeScale = 1.1e10
+    /// late pace to 12.65 billion). Potential grows with the cube root of lifetime coins, so each
+    /// prestige takes longer than the one before.
+    public static let prestigeScale = 1.265e10
+    /// The scale each older save version counted potential against, so loading one carries its
+    /// prestige progress over (see `GameState.init(from:)`).
+    static func prestigeScale(savedBy version: Int) -> Double {
+        switch version {
+        case ..<3: 1e10
+        case 3: 1.1e10
+        default: prestigeScale
+        }
+    }
     /// Production added by every prestige point ever earned, spent on perks or not.
     public static let productionPerPrestigePoint = 0.05
     /// Prestige points stop counting here. Far beyond reach in play, and small enough for `Int`

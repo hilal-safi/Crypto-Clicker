@@ -15,44 +15,44 @@ public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
     public var info: MiniGameInfo {
         switch self {
         case .blackjack:
-            MiniGameInfo(name: "Blackjack", icon: "🃏", category: .casino, listCost: 1_000,
+            MiniGameInfo(name: "Blackjack", icon: "🃏", category: .casino, listCost: 25e6,
                          pitch: "Beat the dealer with tokens. Wins pay a coin bonus that grows with your bet.",
                          color: .init(red: 0.05, green: 0.47, blue: 0.25))
         case .slots:
-            MiniGameInfo(name: "Crypto Slots", icon: "🎰", category: .casino, listCost: 5_000,
+            MiniGameInfo(name: "Crypto Slots", icon: "🎰", category: .casino, listCost: 12e9,
                          pitch: "Spin three reels of crypto. Three Bitcoins pay 500 times your bet.",
                          color: .init(red: 0.60, green: 0.20, blue: 0.75))
         case .moon:
-            MiniGameInfo(name: "To the Moon", icon: "🚀", category: .casino, listCost: 20_000,
+            MiniGameInfo(name: "To the Moon", icon: "🚀", category: .casino, listCost: 2e12,
                          pitch: "Ride the chart as the multiplier climbs. Cash out before the market crashes.",
                          color: .init(red: 0.24, green: 0.22, blue: 0.62))
         case .tetris:
-            MiniGameInfo(name: "Tetris", icon: "🧱", category: .arcade, listCost: 10_000,
+            MiniGameInfo(name: "Tetris", icon: "🧱", category: .arcade, listCost: 800e9,
                          pitch: "Clear lines for points. Every point pays coins.",
                          color: .init(red: 0.00, green: 0.46, blue: 0.62),
                          secondsPerPoint: Tuning.tetrisSecondsPerPoint)
         case .merge2048:
-            MiniGameInfo(name: "2048", icon: "🔢", category: .arcade, listCost: 25_000,
+            MiniGameInfo(name: "2048", icon: "🔢", category: .arcade, listCost: 6e12,
                          pitch: "Slide numbered tiles and merge matching pairs. Make 2048 for a bonus.",
                          color: .init(red: 0.75, green: 0.13, blue: 0.42),
                          secondsPerPoint: Tuning.merge2048SecondsPerPoint)
         case .snake:
-            MiniGameInfo(name: "Snake", icon: "🐍", category: .arcade, listCost: 2_500,
+            MiniGameInfo(name: "Snake", icon: "🐍", category: .arcade, listCost: 750e6,
                          pitch: "Eat coins and grow longer, but don't bite your own tail.",
                          color: .init(red: 0.22, green: 0.50, blue: 0.08),
                          secondsPerPoint: Tuning.snakeSecondsPerPoint)
         case .brickBreaker:
-            MiniGameInfo(name: "Brick Breaker", icon: "💥", category: .arcade, listCost: 50_000,
+            MiniGameInfo(name: "Brick Breaker", icon: "💥", category: .arcade, listCost: 20e12,
                          pitch: "Smash every brick with the coin ball. Each level is faster.",
                          color: .init(red: 0.75, green: 0.33, blue: 0.00),
                          secondsPerPoint: Tuning.brickBreakerSecondsPerPoint)
         case .bubbleBlaster:
-            MiniGameInfo(name: "Bubble Blaster", icon: "🫧", category: .arcade, listCost: 250_000,
+            MiniGameInfo(name: "Bubble Blaster", icon: "🫧", category: .arcade, listCost: 80e12,
                          pitch: "Match three bubbles to pop them. Cut-off clusters fall for double points.",
                          color: .init(red: 0.00, green: 0.40, blue: 0.90),
                          secondsPerPoint: Tuning.bubbleSecondsPerPoint)
         case .pumpDump:
-            MiniGameInfo(name: "Pump and Dump", icon: "🔨", category: .arcade, listCost: 7_500,
+            MiniGameInfo(name: "Pump and Dump", icon: "🔨", category: .arcade, listCost: 150e9,
                          pitch: "Tap the coins before they vanish. Dodge scam tokens and rug pulls.",
                          color: .init(red: 0.72, green: 0.10, blue: 0.16),
                          secondsPerPoint: Tuning.pumpDumpSecondsPerPoint)
@@ -62,6 +62,8 @@ public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
     public var name: String { info.name }
 
     /// The price to unlock: the list price, raised by the game's pace (see `Tuning.scaledPrice`).
+    /// Prices climb steeply, so a player who keeps playing unlocks a new game about every hour
+    /// (Blackjack first, Bubble Blaster last; see `PacingTests`).
     public var unlockCost: Double { Tuning.scaledPrice(listCost) }
 
     /// The unlock price before the pace adjustment.

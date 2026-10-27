@@ -7,7 +7,7 @@ struct HowToPlayView: View {
 
     private let topics: [(icon: String, title: String, text: String)] = [
         ("hand.tap.fill", "Tap to mine",
-         "Tap the coin to earn coins. Tapping upgrades make every tap also earn a share of a second's production, up to a whole second's worth, so tapping always pays. Tap the balance to switch between the short form (12.3K) and every digit (12,345); what each tap earns shows the same way. Tap the income bar at the bottom to see where every coin comes from."),
+         "Tap the coin to earn coins. Tapping upgrades make every tap also earn a share of a second's production, up to a whole second's worth, so tapping always pays. Tap the balance to switch between the short form (12.3K) and every digit (12,345); what each tap earns shows the same way. Tap the rates under your balance to see where every coin comes from."),
         ("flame.fill", "Combos",
          "Keep tapping quickly and a combo builds: after 40 quick taps every tap earns twice as much. Pause for more than about half a second and it starts over."),
         ("cpu", "Buy miners",
@@ -31,11 +31,11 @@ struct HowToPlayView: View {
         ("applewatch", "Apple Watch",
          "Tap to mine from your wrist and keep an eye on your balance. Taps are delivered to your iPhone and counted exactly once."),
         ("gamecontroller.fill", "Arcade",
-         "Blackjack, Crypto Slots and To the Moon pay tokens plus a coin bonus for every win. In To the Moon the multiplier climbs until the market crashes: cash out in time, or set an automatic cash-out. Tetris, 2048, Snake, Brick Breaker, Bubble Blaster and Pump and Dump pay coins for every point, and half as much again for a new best score; a minute of good play pays about two minutes of income. Making a 2048 tile pays ten minutes of income on top."),
+         "Games unlock one at a time, each costing far more than the last, so a new one arrives about every hour of play. Blackjack, Crypto Slots and To the Moon pay tokens plus a coin bonus for every win. In To the Moon the multiplier climbs until the market crashes: cash out in time, or set an automatic cash-out. Tetris, 2048, Snake, Brick Breaker, Bubble Blaster and Pump and Dump pay coins for every point, and half as much again for a new best score; a minute of good play pays about two minutes of income. Making a 2048 tile pays ten minutes of income on top."),
         ("trophy.fill", "Achievements",
          "Every bronze, silver, gold and mythic star permanently adds 1% to production, and stars unlock new finishes for the coin in Settings (the gear at the top of this screen)."),
         ("rosette", "Prestige and perks",
-         "Once you've mined 11 billion coins in all, you can prestige: start a new run for prestige points. Every point adds 5% production forever, and points also buy permanent perks. The Shop suggests prestiging once it would make you at least half as fast again. Your first prestige reveals three new miners. Harder difficulties earn more points."),
+         "Once you've mined 12.65 billion coins in all, you can prestige: start a new run for prestige points. Every point adds 5% production forever, and points also buy permanent perks. The Shop suggests prestiging once it would make you at least half as fast again. Your first prestige reveals three new miners. Harder difficulties earn more points."),
     ]
 
     var body: some View {

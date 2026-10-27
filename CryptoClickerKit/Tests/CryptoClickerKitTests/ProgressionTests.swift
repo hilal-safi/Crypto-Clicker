@@ -15,7 +15,7 @@ struct PrestigeTests {
     func cubed(_ points: Double) -> Double { points * points * points * Tuning.prestigeScale }
 
     @Test func potentialGrowsWithTheCubeRootOfLifetimeCoins() {
-        #expect(Tuning.prestigeScale == 1.1e10)
+        #expect(Tuning.prestigeScale == 1.265e10)
         #expect(state(lifetime: 0).prestigePotential == 0)
         #expect(state(lifetime: cubed(1) - 1).prestigePotential == 0)
         #expect(state(lifetime: cubed(1)).prestigePotential == 1)
@@ -118,9 +118,9 @@ struct PrestigeTests {
     }
 
     @Test func savesFromTheHardForkVersionKeepTheirPoints() throws {
-        // Versions 1 and 2 counted potential against 10 billion coins; it now takes 11 billion.
-        // 5 points' worth then (1.25 trillion coins) is 4 points' worth now, so the same lifetime
-        // coins have exactly as much left to claim as before.
+        // Versions 1 and 2 counted potential against 10 billion coins, version 3 against 11 billion;
+        // it now takes 12.65 billion. 5 points' worth then (1.25 or 1.375 trillion coins) is 4
+        // points' worth now, so the same lifetime coins have exactly as much left to claim as before.
         let json = #"{"forks": 4, "forkPointsClaimed": 5, "runForkMultiplier": 1.5, "stats": {"forksPerformed": 2}}"#
         let state = try GameCoding.decoder().decode(GameState.self, from: Data(json.utf8))
         #expect(state.prestigePoints == 4)
@@ -130,7 +130,11 @@ struct PrestigeTests {
         #expect(state.prestigePointsSpent == 0)
         let version2 = #"{"version": 2, "forkPointsClaimed": 5}"#
         #expect(try GameCoding.decoder().decode(GameState.self, from: Data(version2.utf8)).prestigePotentialClaimed == 4)
-        let current = #"{"version": 3, "forkPointsClaimed": 5}"#
+        let version3 = #"{"version": 3, "forkPointsClaimed": 5}"#
+        #expect(try GameCoding.decoder().decode(GameState.self, from: Data(version3.utf8)).prestigePotentialClaimed == 4)
+        let version3Big = #"{"version": 3, "forkPointsClaimed": 100}"#
+        #expect(try GameCoding.decoder().decode(GameState.self, from: Data(version3Big.utf8)).prestigePotentialClaimed == 95)
+        let current = #"{"version": 4, "forkPointsClaimed": 5}"#
         #expect(try GameCoding.decoder().decode(GameState.self, from: Data(current.utf8)).prestigePotentialClaimed == 5)
     }
 }

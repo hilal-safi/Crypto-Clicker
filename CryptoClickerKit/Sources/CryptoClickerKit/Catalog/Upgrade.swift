@@ -112,9 +112,9 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .stepBooster: 25_000
         case .upgradedStepBooster: 2_500_000
         case .ultimateStepBooster: 2_500_000_000
-        case .bonusReward1: 5_000
-        case .bonusReward2: 5_000_000
-        case .bonusReward3: 5_000_000_000
+        case .bonusReward1: 50_000_000 // About when the first games unlock.
+        case .bonusReward2: 50_000_000_000
+        case .bonusReward3: 5_000_000_000_000
         }
     }
 

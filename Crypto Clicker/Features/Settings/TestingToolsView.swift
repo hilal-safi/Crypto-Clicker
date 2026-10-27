@@ -4,7 +4,7 @@ import CryptoClickerKit
 
 /// Shortcuts for testing the economy, the mini-games and the rest of the game without hours of
 /// play. Only in builds run from Xcode (the Debug configuration): App Store builds leave this
-/// screen and its buttons out entirely. Open it from the ladybug on the Mine tab or from Settings.
+/// screen and its buttons out entirely. Open it from Settings.
 struct TestingToolsView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.dismiss) private var dismiss

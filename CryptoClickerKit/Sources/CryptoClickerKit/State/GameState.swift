@@ -60,7 +60,8 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
 /// extensions, so the app can only change state through tested methods.
 public struct GameState: Codable, Equatable, Sendable {
     /// 2: Hard Forks became Prestige. 3: prestige potential needs 10% more lifetime coins.
-    public static let saveVersion = 3
+    /// 4: and 15% more again.
+    public static let saveVersion = 4
 
     public internal(set) var coins: Double = 0
     public internal(set) var miners: [MinerID: Int] = [:]
@@ -134,9 +135,11 @@ public struct GameState: Codable, Equatable, Sendable {
         prestigePoints = min(max(0, c.value(.prestigePoints, default: 0)), Tuning.maxPrestigePoints)
         prestigePointsSpent = min(max(0, c.value(.prestigePointsSpent, default: 0)), prestigePoints)
         let claimed: Int = min(max(0, c.value(.prestigePotentialClaimed, default: 0)), Tuning.maxPrestigePoints)
-        // Versions 1 and 2 counted potential against 10 billion coins; carry what was claimed over
+        // Older versions counted potential against fewer lifetime coins; carry what was claimed over
         // to the current scale, so an older save neither loses nor gains points.
-        prestigePotentialClaimed = version < 3 ? Self.potentialOnCurrentScale(cubeRootPoints: claimed) : claimed
+        let savedScale = Tuning.prestigeScale(savedBy: version)
+        prestigePotentialClaimed = savedScale == Tuning.prestigeScale
+            ? claimed : Self.potentialOnCurrentScale(cubeRootPoints: claimed, savedScale: savedScale)
         perks = c.enumSet(.perks, as: PerkID.self)
         difficulty = c.value(.difficulty, default: .normal)
         // Only the difficulty multipliers are valid; anything else (a damaged save) falls back.
@@ -197,11 +200,11 @@ public struct GameState: Codable, Equatable, Sendable {
     /// Replaces NaN or infinity with zero so a bad value can never poison later math.
     static func finite(_ value: Double) -> Double { value.isFinite ? value : 0 }
 
-    /// The prestige potential, on today's scale, of the lifetime coins at which a version 1 or 2
-    /// save had claimed `cubeRootPoints` of potential.
-    static func potentialOnCurrentScale(cubeRootPoints points: Int) -> Int {
+    /// The prestige potential, on today's scale, of the lifetime coins at which an older save had
+    /// claimed `cubeRootPoints` of potential against `savedScale`.
+    static func potentialOnCurrentScale(cubeRootPoints points: Int, savedScale: Double) -> Int {
         guard points > 0 else { return 0 }
-        let lifetime = pow(Double(points), 3) * 1e10 // Then: points = cube root of lifetime / 10 billion.
+        let lifetime = pow(Double(points), 3) * savedScale // Then: points = cube root of lifetime / scale.
         return prestigePotential(lifetimeCoins: lifetime)
     }
 }

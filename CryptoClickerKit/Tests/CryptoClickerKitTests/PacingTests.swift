@@ -17,6 +17,14 @@ struct SimulatedPlayer {
     private(set) var prestigeSuggestedAt: TimeInterval?
     /// Taps in a row this session, for the combo.
     private var streak = 0
+    /// Saves for the next mini-game once it costs at most 15 minutes of income, buying nothing else
+    /// meanwhile.
+    var savesForGames = false
+    /// Prestiges as soon as the shop suggests it.
+    var prestigesWhenSuggested = false
+    private(set) var gamesUnlockedAt: [TimeInterval] = []
+    private(set) var prestiges = 0
+    static let gamesByPrice = MiniGame.allCases.sorted { $0.unlockCost < $1.unlockCost }
 
     init(tapsPerSecond: Int, awayHours: [Double] = []) {
         self.tapsPerSecond = tapsPerSecond
@@ -40,7 +48,7 @@ struct SimulatedPlayer {
             game.advance(to: now)
             streak = keepsCombos ? streak + tapsPerSecond : 1
             game.tap(count: tapsPerSecond, at: now, combo: streak)
-            if second % 2 == 0 { buyBest() }
+            if second % 2 == 0 && !saveForGames() { buyBest() }
             notePrestige()
         }
     }
@@ -48,13 +56,27 @@ struct SimulatedPlayer {
     mutating func leave(for seconds: TimeInterval) {
         now += seconds
         game.advance(to: now)
-        buyBest()
+        if !saveForGames() { buyBest() }
         notePrestige()
     }
 
     private mutating func notePrestige() {
         if firstPrestigeAt == nil && game.claimablePrestigePoints >= 1 { firstPrestigeAt = elapsed }
         if prestigeSuggestedAt == nil && game.isPrestigeRecommended { prestigeSuggestedAt = elapsed }
+        if prestigesWhenSuggested && game.isPrestigeRecommended {
+            game.prestige(at: now)
+            prestiges += 1
+        }
+    }
+
+    /// Unlocks the next mini-game if it can; true while still saving for it.
+    private mutating func saveForGames() -> Bool {
+        guard savesForGames else { return false }
+        while let next = Self.gamesByPrice.first(where: { !game.isUnlocked($0) }) {
+            guard game.unlock(next) else { return next.unlockCost <= income(game) * 900 }
+            gamesUnlockedAt.append(elapsed)
+        }
+        return false
     }
 
     /// What one more Offline Mining level adds, as income per second of play: the extra time it
@@ -115,9 +137,11 @@ struct PacingTests {
     }
 
     /// Four ten-minute check-ins a day, `days` days in a row.
-    func casualPlayer(days: Int) -> SimulatedPlayer {
+    func casualPlayer(days: Int, buyingGames: Bool = false) -> SimulatedPlayer {
         let gaps: [Double] = [3, 4, 5, 10]
         var player = SimulatedPlayer(tapsPerSecond: 3, awayHours: gaps)
+        player.savesForGames = buyingGames
+        player.prestigesWhenSuggested = buyingGames
         for _ in 0..<days {
             for gap in gaps {
                 player.play(seconds: 600)
@@ -168,6 +192,28 @@ struct PacingTests {
         #expect(player.prestigeSuggestedAt.map { (24 * 3_600...96 * 3_600).contains($0) } == true)
         // Offline Mining covers the longest absence (ten hours) by the end of the first day.
         #expect(player.game.offlineCap >= 10 * 3_600)
+    }
+
+    @Test func miniGamesUnlockAboutAnHourApart() {
+        // A player who keeps playing (and prestiges when the shop suggests it) gets a new game about
+        // every hour through the first run; the last few take later runs.
+        var active = SimulatedPlayer(tapsPerSecond: 3)
+        active.savesForGames = true
+        active.prestigesWhenSuggested = true
+        active.play(seconds: 6 * 3_600)
+        let times = active.gamesUnlockedAt
+        print("Games, active 6h:", times.map(hours).joined(separator: " "), "| prestiges", active.prestiges)
+        #expect((5...7).contains(times.count))
+        #expect(times.first.map { (30 * 60...75 * 60).contains($0) } == true)
+        for (earlier, later) in zip(times, times.dropFirst()).prefix(4) {
+            #expect((40 * 60...100 * 60).contains(later - earlier))
+        }
+        // Someone who checks in four times a day gets the first on day one and every game within a week.
+        let casual = casualPlayer(days: 7, buyingGames: true)
+        print("Games, casual:", casual.gamesUnlockedAt.map { String(format: "day %.1f", $0 / 86_400) }.joined(separator: ", "))
+        #expect(casual.gamesUnlockedAt.count == MiniGame.allCases.count)
+        #expect(casual.gamesUnlockedAt.first.map { $0 < 86_400 } == true)
+        #expect(casual.gamesUnlockedAt.last.map { $0 > 3 * 86_400 } == true)
     }
 
     @Test func offlineMiningIsEarnedInTheFirstSessionNotGivenAtTheStart() {

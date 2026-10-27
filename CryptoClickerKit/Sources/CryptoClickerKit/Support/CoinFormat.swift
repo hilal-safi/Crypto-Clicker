@@ -52,7 +52,9 @@ public enum CoinFormat {
     public static func flight(_ multiplier: Double) -> String {
         guard multiplier.isFinite else { return "∞×" }
         let hundredths = Int(min(max(multiplier, 0), 1e7) * 100 + 1e-7)
-        return "\(grouped(hundredths / 100)).\(String(format: "%02d", hundredths % 100))×"
+        let whole = grouped(hundredths / 100)
+        let cents = String(format: "%02d", hundredths % 100)
+        return whole + "." + cents + "×"
     }
 
     /// `45s`, `3m 5s`, `2h 14m`, `3d 4h`.
