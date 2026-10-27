@@ -3,7 +3,7 @@ import Foundation
 /// What a daily quest asks for. Progress counts up from the moment the quest is issued.
 public enum QuestKind: String, Codable, CaseIterable, Sendable {
     case tapCoin, buyMiners, earnCoins, catchAirdrops, walkSteps
-    case winBlackjack, spinSlots, clearLines, eatSnakeCoins, breakBricks, popBubbles, sellTokens
+    case winBlackjack, spinSlots, clearLines, eatSnakeCoins, breakBricks, popBubbles, sellTokens, score2048
 
     /// The instruction, with the target filled in: "Tap the coin 500 times".
     public func title(target: Double) -> String {
@@ -21,6 +21,7 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .breakBricks: "Break \(amount) bricks"
         case .popBubbles: "Pop \(amount) bubbles"
         case .sellTokens: "Sell \(amount) tokens on the market"
+        case .score2048: "Score \(amount) points in 2048"
         }
     }
 
@@ -39,6 +40,7 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .breakBricks: "square.grid.3x2.fill"
         case .popBubbles: "circle.hexagongrid.fill"
         case .sellTokens: "chart.line.uptrend.xyaxis"
+        case .score2048: "square.grid.3x3.fill"
         }
     }
 }

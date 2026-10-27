@@ -121,6 +121,7 @@ extension GameState {
         case .snake: finishSnake(score: run.score)
         case .brickBreaker: finishBrickBreaker(score: run.score, bricks: run.detail)
         case .bubbleBlaster: finishBubbleBlaster(score: run.score, popped: run.detail)
+        case .merge2048: finishMerge2048(score: run.score, bestTile: run.detail)
         case .blackjack, .slots: ArcadePayout(coins: 0, isNewBest: false, isChallengeBonus: false)
         }
         unfinishedRun = nil
@@ -187,6 +188,38 @@ extension GameState {
         return payArcade(score: score, secondsPerPoint: Tuning.bubbleSecondsPerPoint, isNewBest: isNewBest)
     }
 
+    /// Records a finished 2048 game and pays it once. Making a 2048 tile also pays a bonus of
+    /// `Tuning.merge2048WinSeconds` of income.
+    @discardableResult
+    public mutating func finishMerge2048(score: Int, bestTile: Int) -> ArcadePayout {
+        let isNewBest = score > stats.merge2048BestScore
+        stats.merge2048Games += 1
+        stats.merge2048BestScore = max(stats.merge2048BestScore, score)
+        stats.merge2048BestTile = max(stats.merge2048BestTile, bestTile)
+        // Stops at Int.max rather than trapping on a 32-bit watch.
+        let (points, overflow) = stats.merge2048Points.addingReportingOverflow(max(0, score))
+        stats.merge2048Points = overflow ? Int.max : points
+        let payout = payArcade(score: score, secondsPerPoint: Tuning.merge2048SecondsPerPoint, isNewBest: isNewBest)
+        guard bestTile >= Merge2048Game.winningValue else { return payout }
+        let bonus = merge2048TileBonus
+        credit(bonus, source: .games)
+        return ArcadePayout(coins: payout.coins + bonus, isNewBest: payout.isNewBest,
+                            isChallengeBonus: payout.isChallengeBonus, tileBonus: bonus)
+    }
+
+    /// The bonus for making a 2048 tile: `Tuning.merge2048WinSeconds` of income.
+    public var merge2048TileBonus: Double {
+        Self.wholeCoins(Tuning.merge2048WinSeconds * rewardIncome * miniGameMultiplier)
+    }
+
+    /// What ending a 2048 game now would pay, without paying it.
+    public func merge2048Reward(score: Int, bestTile: Int) -> Double {
+        let isNewBest = score > stats.merge2048BestScore
+        let points = arcadeReward(score: score, secondsPerPoint: Tuning.merge2048SecondsPerPoint,
+                                  multiplier: isNewBest ? 1 + Tuning.newBestBonus : 1)
+        return points + (bestTile >= Merge2048Game.winningValue ? merge2048TileBonus : 0)
+    }
+
     /// Pays a finished game: a new best score earns `Tuning.newBestBonus` more.
     private mutating func payArcade(score: Int, secondsPerPoint: Double, isNewBest: Bool,
                                     isChallengeBonus: Bool = false) -> ArcadePayout {
@@ -206,4 +239,6 @@ public struct ArcadePayout: Equatable, Sendable {
     public let isNewBest: Bool
     /// The reward was doubled as the day's first daily challenge.
     public let isChallengeBonus: Bool
+    /// Coins included for making a 2048 tile.
+    public internal(set) var tileBonus: Double = 0
 }

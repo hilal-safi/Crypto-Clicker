@@ -1,9 +1,9 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// What the player owns, under the coin, in two cards: miners and power-ups (tapping opens the
-/// Shop), and crypto tokens with what they're worth (tapping opens the Exchange). Each card
-/// appears once there is something to show, so a new game's home screen stays simple.
+/// What the player owns, under the coin, in two slim cards with no titles: miners and power-ups
+/// (tapping opens the Shop), and crypto tokens (tapping opens the Exchange). Each card appears
+/// once there is something to show, so a new game's home screen stays simple.
 struct InventoryStrip: View {
     let game: GameState
     let market: MarketBoard
@@ -16,8 +16,7 @@ struct InventoryStrip: View {
         let hasPowerUps = game.offlineMiningLevel > 0 || !game.perks.isEmpty || !game.upgrades.isEmpty
         VStack(spacing: 10) {
             if !miners.isEmpty || hasPowerUps {
-                HoldingCard(title: "Miners & Power-ups", detail: "Shop", action: openShop,
-                            label: minersLabel(miners)) {
+                HoldingCard(label: minersLabel(miners), hint: "Opens the Shop", action: openShop) {
                     ForEach(miners) { miner in
                         InventoryChip(count: CoinFormat.short(Double(game.owned(miner))),
                                       badge: game.minerUpgradeLevel(miner) > 0
@@ -50,8 +49,7 @@ struct InventoryStrip: View {
             }
             if !tokens.isEmpty {
                 let value = tokens.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
-                HoldingCard(title: "Crypto", detail: "Worth \(CoinFormat.short(value))", action: openExchange,
-                            label: tokensLabel(tokens, value: value)) {
+                HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Exchange", action: openExchange) {
                     ForEach(tokens) { token in
                         InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token)))) {
                             TokenImage(token: token, size: 32)
@@ -102,45 +100,27 @@ struct InventoryStrip: View {
     }
 }
 
-/// A titled card holding a row of chips that scrolls sideways when it's long. The whole card is
+/// A slim card holding a row of chips that scrolls sideways when it's long. The whole card is
 /// one button.
 private struct HoldingCard<Chips: View>: View {
-    let title: String
-    let detail: String
-    let action: () -> Void
     let label: String
+    let hint: String
+    let action: () -> Void
     @ViewBuilder let chips: Chips
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 4) {
-                    Text(title)
-                        .font(.caption.weight(.bold))
-                        .textCase(.uppercase)
-                        .foregroundStyle(.subtext)
-                    Spacer(minLength: 8)
-                    Text(detail)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.subtext)
-                    Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.subtext)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    chips
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        chips
-                    }
-                    .padding(.top, 4) // Room for Mk badges.
-                    .padding(.bottom, 10)
-                }
-                // Margins on the scrolled content (not padding inside it), so the last chip stops
-                // clear of the card's rounded edge, and no edge fade over the chips at either end.
-                .contentMargins(.horizontal, 16, for: .scrollContent)
-                .scrollEdgeEffectHidden(true, for: .horizontal)
+                .padding(.top, 12) // Includes room for Mk badges.
+                .padding(.bottom, 10)
             }
+            // Margins on the scrolled content (not padding inside it), so the last chip stops
+            // clear of the card's rounded edge, and no edge fade over the chips at either end.
+            .contentMargins(.horizontal, 16, for: .scrollContent)
+            .scrollEdgeEffectHidden(true, for: .horizontal)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -149,6 +129,7 @@ private struct HoldingCard<Chips: View>: View {
         .clipShape(.rect(cornerRadius: 24))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
+        .accessibilityHint(hint)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction(.default, action)
     }

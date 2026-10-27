@@ -11,14 +11,18 @@ struct PrestigeTests {
         return state
     }
 
+    /// Lifetime coins worth `points`³ of potential: the first point needs 11 billion coins.
+    func cubed(_ points: Double) -> Double { points * points * points * Tuning.prestigeScale }
+
     @Test func potentialGrowsWithTheCubeRootOfLifetimeCoins() {
+        #expect(Tuning.prestigeScale == 1.1e10)
         #expect(state(lifetime: 0).prestigePotential == 0)
-        #expect(state(lifetime: 1e10 - 1).prestigePotential == 0)
-        #expect(state(lifetime: 1e10).prestigePotential == 1)
-        #expect(state(lifetime: 8e10).prestigePotential == 2)
-        #expect(state(lifetime: 2.7e11).prestigePotential == 3)
-        #expect(state(lifetime: 1e13).prestigePotential == 10)
-        #expect(state(lifetime: 1e10 * 0x1p60).prestigePotential == 1_048_576) // Exactly (2^20)^3 points' worth.
+        #expect(state(lifetime: cubed(1) - 1).prestigePotential == 0)
+        #expect(state(lifetime: cubed(1)).prestigePotential == 1)
+        #expect(state(lifetime: cubed(2)).prestigePotential == 2)
+        #expect(state(lifetime: cubed(3)).prestigePotential == 3)
+        #expect(state(lifetime: cubed(10)).prestigePotential == 10)
+        #expect(state(lifetime: Tuning.prestigeScale * 0x1p60).prestigePotential == 1_048_576) // Exactly (2^20)^3 points' worth.
         #expect(state(lifetime: 1e40).prestigePotential == Tuning.maxPrestigePoints)
         #expect(state(lifetime: .infinity).prestigePotential == 0)
         #expect(state(lifetime: 1e300).prestigePotential == Tuning.maxPrestigePoints)
@@ -26,12 +30,12 @@ struct PrestigeTests {
     }
 
     @Test func nextPrestigePoint() {
-        #expect(state(lifetime: 0).nextPrestigePointAt == 1e10)
-        #expect(state(lifetime: 9e10).nextPrestigePointAt == 27e10)
+        #expect(state(lifetime: 0).nextPrestigePointAt == cubed(1))
+        #expect(state(lifetime: cubed(2) + 1).nextPrestigePointAt == cubed(3))
     }
 
     @Test func difficultyChangesThePointsEarned() {
-        var normal = state(lifetime: 8e10)
+        var normal = state(lifetime: cubed(2))
         #expect(normal.claimablePrestigePoints == 2)
         normal.runPrestigeMultiplier = Difficulty.hard.prestigeMultiplier
         #expect(normal.claimablePrestigePoints == 3)
@@ -40,7 +44,7 @@ struct PrestigeTests {
     }
 
     @Test func prestigingResetsTheRunAndKeepsTheRest() {
-        var game = state(lifetime: 8e10)
+        var game = state(lifetime: cubed(2))
         game.tokens = [.dogecoin: 3]
         game.blackjackStake = BlackjackStake(token: .dogecoin, amount: 1)
         game.minerUpgrades = [.server: 2]
@@ -62,7 +66,7 @@ struct PrestigeTests {
         #expect(game.upgrades.isEmpty)
         #expect(game.boost == nil)
         #expect(game.stats.runCoins == 0)
-        #expect(game.stats.lifetimeCoins == 8e10)
+        #expect(game.stats.lifetimeCoins == cubed(2))
         #expect(game.stats.prestiges == 1)
         #expect(game.unlockedGames == [.blackjack])
         #expect(game.achievementTiers == ["miner": 3])
@@ -78,25 +82,25 @@ struct PrestigeTests {
     }
 
     @Test func prestigingWithNothingToClaimChangesNothing() {
-        var game = state(lifetime: 5e9)
+        var game = state(lifetime: cubed(1) / 2)
         let before = game
         #expect(game.prestige(at: at(10)) == 0)
         #expect(game == before)
     }
 
     @Test func onlyNewPotentialCountsAfterAPrestige() {
-        var game = state(lifetime: 1e10)
+        var game = state(lifetime: cubed(1))
         #expect(game.prestige(at: t0) == 1)
-        game.stats.lifetimeCoins = 8e10
+        game.stats.lifetimeCoins = cubed(2)
         #expect(game.claimablePrestigePoints == 1)
-        game.stats.lifetimeCoins = 2.7e11
+        game.stats.lifetimeCoins = cubed(3)
         #expect(game.claimablePrestigePoints == 2)
     }
 
     @Test func theEstimateSuggestsAPrestigeOnceItSpeedsThingsUpByHalf() {
         var game = state(lifetime: 0)
         #expect(!game.isPrestigeRecommended)
-        game.stats.lifetimeCoins = 1.331e13 // 11 points: +55% production.
+        game.stats.lifetimeCoins = cubed(11) // 11 points: +55% production.
         #expect(approx(game.prestigeSpeedUp, 1.55))
         #expect(game.isPrestigeRecommended)
         game.prestigePoints = 30 // Production is already ×2.5; 11 more points add only 22%.
@@ -114,14 +118,20 @@ struct PrestigeTests {
     }
 
     @Test func savesFromTheHardForkVersionKeepTheirPoints() throws {
-        // Version 1 saved potential claimed as cube-root points of lifetime / 10 billion: the same scale.
+        // Versions 1 and 2 counted potential against 10 billion coins; it now takes 11 billion.
+        // 5 points' worth then (1.25 trillion coins) is 4 points' worth now, so the same lifetime
+        // coins have exactly as much left to claim as before.
         let json = #"{"forks": 4, "forkPointsClaimed": 5, "runForkMultiplier": 1.5, "stats": {"forksPerformed": 2}}"#
         let state = try GameCoding.decoder().decode(GameState.self, from: Data(json.utf8))
         #expect(state.prestigePoints == 4)
-        #expect(state.prestigePotentialClaimed == 5)
+        #expect(state.prestigePotentialClaimed == 4)
         #expect(state.runPrestigeMultiplier == 1.5)
         #expect(state.stats.prestiges == 2)
         #expect(state.prestigePointsSpent == 0)
+        let version2 = #"{"version": 2, "forkPointsClaimed": 5}"#
+        #expect(try GameCoding.decoder().decode(GameState.self, from: Data(version2.utf8)).prestigePotentialClaimed == 4)
+        let current = #"{"version": 3, "forkPointsClaimed": 5}"#
+        #expect(try GameCoding.decoder().decode(GameState.self, from: Data(current.utf8)).prestigePotentialClaimed == 5)
     }
 }
 
@@ -182,10 +192,10 @@ struct PerkTests {
 
     @Test func miningPerks() {
         var game = rich(points: 10_000)
-        #expect(game.price(of: .server, quantity: 3) == GameState.wholePrice(45_000 * (pow(1.15, 3) - 1) / 0.15))
+        #expect(game.price(of: .server, quantity: 3) == GameState.wholePrice(MinerID.server.baseCost * (pow(1.15, 3) - 1) / 0.15))
         #expect(game.buyPerk(.headStart) == true)
         #expect(game.buyPerk(.bulkDiscount) == true)
-        #expect(game.price(of: .server, quantity: 3) == GameState.wholePrice(45_000 * 0.9 * (pow(1.15, 3) - 1) / 0.15))
+        #expect(game.price(of: .server, quantity: 3) == GameState.wholePrice(MinerID.server.baseCost * 0.9 * (pow(1.15, 3) - 1) / 0.15))
         game.achievementTiers = ["miner": 3]
         #expect(approx(game.achievementBonus, 1.03))
         #expect(game.buyPerk(.compoundInterest) == true)
@@ -236,7 +246,7 @@ struct MinerUpgradeTests {
         game.miners[.desktop] = 25
         let next = game.availableMinerUpgrade(.desktop)
         #expect(next?.level == 0)
-        #expect(next?.price == GameState.wholePrice(200 * pow(1.15, 25) * 10))
+        #expect(next?.price == GameState.wholePrice(MinerID.desktop.baseCost * pow(1.15, 25) * 10))
         let rate = game.rate(of: .desktop)
         #expect(game.buyMinerUpgrade(.desktop) == true)
         #expect(game.minerUpgradeLevel(.desktop) == 1)
@@ -389,9 +399,9 @@ struct AirdropTests {
 struct AchievementTests {
     @Test func catalogIsWellFormed() {
         let all = AchievementCatalog.all
-        #expect(all.count == 47)
+        #expect(all.count == 48)
         #expect(Set(all.map(\.id)).count == all.count)
-        #expect(AchievementCatalog.tierCount == 188)
+        #expect(AchievementCatalog.tierCount == 192)
         for achievement in all {
             #expect(achievement.thresholds.count == 4)
             #expect(achievement.thresholds == achievement.thresholds.sorted())

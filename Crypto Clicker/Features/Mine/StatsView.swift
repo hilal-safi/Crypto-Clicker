@@ -18,7 +18,7 @@ struct StatsView: View {
         let held = TokenID.allCases.filter { game.tokenCount($0) > 0 || stats.tokensBought[$0, default: 0] > 0 }
         let walletValue = TokenID.allCases.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
         let today = store.today
-        let gamesPlayed = stats.tetrisGames + stats.snakeGames + stats.brickBreakerGames + stats.bubbleGames
+        let gamesPlayed = stats.tetrisGames + stats.merge2048Games + stats.snakeGames + stats.brickBreakerGames + stats.bubbleGames
         NavigationStack {
             List {
                 Section {
@@ -139,6 +139,7 @@ struct StatsView: View {
 
                 Section("Arcade") {
                     row("Tetris", "Best \(CoinFormat.grouped(stats.tetrisBestScore)) · \(CoinFormat.grouped(stats.tetrisLines)) lines · \(CoinFormat.grouped(stats.tetrisGames)) games")
+                    row("2048", "Best \(CoinFormat.grouped(stats.merge2048BestScore)) · top tile \(stats.merge2048BestTile) · \(CoinFormat.grouped(stats.merge2048Games)) games")
                     row("Snake", "Best \(CoinFormat.grouped(stats.snakeBestScore)) · \(CoinFormat.grouped(stats.snakeCoinsEaten)) coins eaten · \(CoinFormat.grouped(stats.snakeGames)) games")
                     row("Brick Breaker", "Best \(CoinFormat.grouped(stats.brickBreakerBestScore)) · \(CoinFormat.grouped(stats.bricksBroken)) bricks · \(CoinFormat.grouped(stats.brickBreakerGames)) games")
                     row("Bubble Blaster", "Best \(CoinFormat.grouped(stats.bubbleBestScore)) · \(CoinFormat.grouped(stats.bubblesPopped)) popped · \(CoinFormat.grouped(stats.bubbleGames)) games")

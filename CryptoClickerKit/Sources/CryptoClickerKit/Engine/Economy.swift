@@ -284,8 +284,8 @@ extension GameState {
     /// Price of the next Offline Mining level, or `nil` once it is at the maximum.
     public var offlineMiningPrice: Double? {
         guard offlineMiningLevel < Tuning.offlineMiningMaxLevel else { return nil }
-        return Self.wholePrice(Tuning.offlineMiningBaseCost
-                               * pow(Tuning.offlineMiningCostGrowth, Double(offlineMiningLevel)))
+        return Tuning.scaledPrice(Tuning.offlineMiningBaseCost
+                                  * pow(Tuning.offlineMiningCostGrowth, Double(offlineMiningLevel)))
     }
 
     // MARK: Airdrops

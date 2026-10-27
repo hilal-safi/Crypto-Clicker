@@ -486,6 +486,13 @@ final class GameStore {
         return payout
     }
 
+    @discardableResult
+    func finishMerge2048(score: Int, bestTile: Int) -> ArcadePayout {
+        let payout = perform { game, _ in game.finishMerge2048(score: score, bestTile: bestTile) }
+        save()
+        return payout
+    }
+
     /// Saves an arcade game in progress as the app goes to the background, so its points are
     /// paid on the next launch if iOS closes the app.
     func holdArcadeRun(_ run: ArcadeRun) {

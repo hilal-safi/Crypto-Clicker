@@ -50,6 +50,7 @@ struct ArcadeView: View {
                 case .blackjack: BlackjackView()
                 case .slots: SlotsView()
                 case .tetris: TetrisView()
+                case .merge2048: Merge2048View()
                 case .snake: SnakeView()
                 case .brickBreaker: BrickBreakerView()
                 case .bubbleBlaster: BubbleBlasterView()
@@ -80,6 +81,9 @@ struct ArcadeView: View {
         case .blackjack: "\(CoinFormat.grouped(stats.blackjackWins)) hands won"
         case .slots: "\(CoinFormat.grouped(stats.slotsWins)) wins · \(CoinFormat.grouped(stats.slotsJackpots)) jackpots"
         case .tetris: "Best \(CoinFormat.grouped(stats.tetrisBestScore))"
+        case .merge2048: stats.merge2048BestTile > 0
+            ? "Best \(CoinFormat.grouped(stats.merge2048BestScore)) · top tile \(stats.merge2048BestTile)"
+            : "Best 0"
         case .snake: "Best \(CoinFormat.grouped(stats.snakeBestScore))"
         case .brickBreaker: "Best \(CoinFormat.grouped(stats.brickBreakerBestScore))"
         case .bubbleBlaster: "Best \(CoinFormat.grouped(stats.bubbleBestScore))"
@@ -93,6 +97,7 @@ extension MiniGame {
         case .blackjack: "🃏"
         case .slots: "🎰"
         case .tetris: "🧱"
+        case .merge2048: "🔢"
         case .snake: "🐍"
         case .brickBreaker: "💥"
         case .bubbleBlaster: "🫧"
@@ -105,6 +110,7 @@ extension MiniGame {
         case .blackjack: Color(red: 0.05, green: 0.47, blue: 0.25)
         case .slots: Color(red: 0.60, green: 0.20, blue: 0.75)
         case .tetris: Color(red: 0.00, green: 0.46, blue: 0.62)
+        case .merge2048: Color(red: 0.75, green: 0.13, blue: 0.42)
         case .snake: Color(red: 0.22, green: 0.50, blue: 0.08)
         case .brickBreaker: Color(red: 0.75, green: 0.33, blue: 0.00)
         case .bubbleBlaster: Color(red: 0.00, green: 0.40, blue: 0.90)
@@ -121,6 +127,7 @@ extension MiniGame {
         case .blackjack: "Beat the dealer with tokens. Wins pay a coin bonus that grows with your bet."
         case .slots: "Spin three reels of crypto. Three Bitcoins pay 500 times your bet."
         case .tetris: "Clear lines for points. Every point pays coins."
+        case .merge2048: "Slide numbered tiles and merge matching pairs. Make 2048 for a bonus."
         case .snake: "Eat coins and grow longer, but don't bite your own tail."
         case .brickBreaker: "Smash every brick with the coin ball. Each level is faster."
         case .bubbleBlaster: "Match three bubbles to pop them. Cut-off clusters fall for double points."

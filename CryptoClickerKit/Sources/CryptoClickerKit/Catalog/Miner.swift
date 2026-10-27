@@ -74,8 +74,11 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 
-    /// Price of the first unit.
-    public var baseCost: Double {
+    /// Price of the first unit: the list price, raised by the game's pace (see `Tuning.scaledPrice`).
+    public var baseCost: Double { Tuning.scaledPrice(listCost) }
+
+    /// Price of the first unit before the pace adjustment.
+    public var listCost: Double {
         switch self {
         case .chromebook: 50
         case .desktop: 200

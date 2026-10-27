@@ -1,9 +1,10 @@
 import Foundation
 
 /// Every balance number in one place. Tuned with a progression simulation: the first ten miners
-/// unlock over roughly a day and a half of casual play, the first prestige is worth taking after
-/// about a day and a half, and prestiges, perks and the three extra miner tiers keep new things
-/// arriving for about two weeks. Coin amounts here are whole numbers; only rates may be fractional.
+/// unlock over a day and a half to two days of casual play, the first prestige is worth taking
+/// at about the same time, and prestiges, perks and the three extra miner tiers keep new things
+/// arriving for about two weeks. Prices in the catalogs are list prices: `scaledPrice` sets the
+/// pace. Coin amounts here are whole numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
     /// Each additional unit of a miner costs this much more than the previous one.
@@ -64,10 +65,29 @@ public enum Tuning {
     /// Days of HealthKit history checked on each sync, including today.
     public static let stepWindowDays = 7
 
+    // MARK: Pace
+    /// Every price is its list price times this: 15% more for the cheapest things, easing to 10% more
+    /// from a million coins up. Raising every price is the same as slowing all income, so the game
+    /// runs about 15% slower in its first hour or so and 10% slower overall.
+    public static func priceScale(forListPrice price: Double) -> Double {
+        let early = 1.15, late = 1.10, start = 5_000.0, end = 1e6
+        guard price.isFinite, price > start else { return early }
+        guard price < end else { return late }
+        return early + (late - early) * log10(price / start) / log10(end / start)
+    }
+
+    /// A list price with the pace applied, in whole coins (rounded up).
+    public static func scaledPrice(_ listPrice: Double) -> Double {
+        let price = listPrice * priceScale(forListPrice: listPrice)
+        guard price.isFinite, price < 0x1p52 else { return price } // Larger doubles are already whole.
+        return max(0, (price - 1e-6).rounded(.up))
+    }
+
     // MARK: Prestige
-    /// Lifetime coins needed for the first point of prestige potential. Potential grows with the
-    /// cube root of lifetime coins, so each prestige takes longer than the one before.
-    public static let prestigeScale = 1e10
+    /// Lifetime coins needed for the first point of prestige potential (10 billion, raised by the
+    /// late pace). Potential grows with the cube root of lifetime coins, so each prestige takes
+    /// longer than the one before.
+    public static let prestigeScale = 1.1e10
     /// Production added by every prestige point ever earned, spent on perks or not.
     public static let productionPerPrestigePoint = 0.05
     /// Prestige points stop counting here. Far beyond reach in play, and small enough for `Int`
@@ -138,6 +158,9 @@ public enum Tuning {
     public static let snakeSecondsPerPoint = 0.5
     public static let brickBreakerSecondsPerPoint = 0.25
     public static let bubbleSecondsPerPoint = 0.12
+    public static let merge2048SecondsPerPoint = 0.04
+    /// Making a 2048 tile also pays this many seconds of income.
+    public static let merge2048WinSeconds = 600.0
     /// ...and this much more for a new best score.
     public static let newBestBonus = 0.5
     /// The day's first daily-challenge Tetris game pays this many times as much.

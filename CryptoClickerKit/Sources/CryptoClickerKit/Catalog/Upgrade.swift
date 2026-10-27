@@ -89,7 +89,11 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 
-    public var cost: Double {
+    /// The price: the list price, raised by the game's pace (see `Tuning.scaledPrice`).
+    public var cost: Double { Tuning.scaledPrice(listCost) }
+
+    /// The price before the pace adjustment.
+    public var listCost: Double {
         switch self {
         case .coinClicker: 50
         case .upgradedClicker: 1_000

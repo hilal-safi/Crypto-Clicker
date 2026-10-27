@@ -1,7 +1,8 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Snake: swipe on the board (or use the arrows) to steer toward the coins.
+/// Snake: swipe anywhere in the play area to steer toward the coins; there are no buttons to
+/// reach for. A long swipe that bends (up, then left) turns twice.
 /// Points pay coins when the game ends, including when the player leaves mid-game.
 struct SnakeView: View {
     @Environment(GameStore.self) private var store
@@ -32,11 +33,13 @@ struct SnakeView: View {
             }
             .scoreBar()
             SnakeBoard(game: game)
-                .frame(maxHeight: .infinity)
-                .gesture(swipe)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Snake board")
                 .accessibilityValue("Score \(game.score), length \(game.body.count)")
+                .accessibilityAction(named: "Turn up") { turn(.up) }
+                .accessibilityAction(named: "Turn down") { turn(.down) }
+                .accessibilityAction(named: "Turn left") { turn(.left) }
+                .accessibilityAction(named: "Turn right") { turn(.right) }
                 .overlay {
                     if isPaused {
                         Button("Resume", systemImage: "play.fill") { isPaused = false }
@@ -44,15 +47,10 @@ struct SnakeView: View {
                             .font(.title3.bold())
                     }
                 }
-            GlassEffectContainer(spacing: 14) {
-                HStack(spacing: 14) {
-                    ArcadeButton(title: "Left", systemImage: "arrow.left") { turn(.left) }
-                    ArcadeButton(title: "Up", systemImage: "arrow.up") { turn(.up) }
-                    ArcadeButton(title: "Down", systemImage: "arrow.down") { turn(.down) }
-                    ArcadeButton(title: "Right", systemImage: "arrow.right") { turn(.right) }
-                }
-            }
-            .disabled(!isRunning)
+                // The whole play area under the score takes swipes, not just the board.
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(.rect)
+                .gesture(swipe)
         }
         .padding(12)
         .frame(maxWidth: 560)
@@ -95,16 +93,17 @@ struct SnakeView: View {
             } else {
                 GamePanel(title: "Snake", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.snakeBestScore,
-                              howTo: "Swipe on the board or use the arrows to steer. Every coin you eat is worth 10 points and makes you longer.")
+                              howTo: "Swipe anywhere to steer: up, down, left or right. Every coin you eat is worth 10 points and makes you longer.")
                 }
             }
         }
     }
 
-    /// Swipes turn the snake. A long drag can turn more than once: each recognised swipe
-    /// starts measuring again from where the finger is.
+    /// Swipes turn the snake as soon as the finger has moved far enough, without waiting for it to
+    /// lift. A long drag can turn more than once: each recognised swipe starts measuring again
+    /// from where the finger is.
     private var swipe: some Gesture {
-        DragGesture(minimumDistance: 8)
+        DragGesture(minimumDistance: 6)
             .onChanged { value in
                 if swipeStart != value.startLocation {
                     swipeStart = value.startLocation
@@ -113,7 +112,7 @@ struct SnakeView: View {
                 let origin = swipeOrigin ?? value.startLocation
                 let dx = value.location.x - origin.x
                 let dy = value.location.y - origin.y
-                guard max(abs(dx), abs(dy)) >= 22 else {
+                guard max(abs(dx), abs(dy)) >= 18 else {
                     if swipeOrigin == nil { swipeOrigin = origin }
                     return
                 }

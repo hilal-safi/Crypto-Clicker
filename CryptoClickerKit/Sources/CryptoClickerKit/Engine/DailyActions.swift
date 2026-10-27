@@ -20,6 +20,7 @@ extension GameState {
         case .breakBricks: Double(stats.bricksBroken)
         case .popBubbles: Double(stats.bubblesPopped)
         case .sellTokens: Double(stats.tokensSold)
+        case .score2048: Double(stats.merge2048Points)
         }
     }
 
@@ -48,6 +49,7 @@ extension GameState {
             case .breakBricks: isUnlocked(.brickBreaker)
             case .popBubbles: isUnlocked(.bubbleBlaster)
             case .sellTokens: stats.totalTokensBought > 0
+            case .score2048: isUnlocked(.merge2048)
             }
         }
     }
@@ -95,6 +97,7 @@ extension GameState {
         case .breakBricks: [20, 40, 60]
         case .popBubbles: [20, 40, 60]
         case .sellTokens: [3, 5, 10]
+        case .score2048: [2_000, 5_000, 10_000]
         }
         return choices.randomElement(using: &rng) ?? choices[0]
     }

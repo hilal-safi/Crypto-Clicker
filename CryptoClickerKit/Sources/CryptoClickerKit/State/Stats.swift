@@ -43,6 +43,11 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var bubbleGames = 0
     public internal(set) var bubbleBestScore = 0
     public internal(set) var bubblesPopped = 0
+    public internal(set) var merge2048Games = 0
+    public internal(set) var merge2048BestScore = 0
+    public internal(set) var merge2048BestTile = 0
+    /// Points scored in 2048 over all games.
+    public internal(set) var merge2048Points = 0
 
     public internal(set) var tokensBought: [TokenID: Int] = [:]
     public internal(set) var tokensSold = 0
@@ -73,6 +78,7 @@ public struct Stats: Codable, Equatable, Sendable {
         case blackjackHands, blackjackWins, blackjackNaturals, tetrisGames, tetrisLines, tetrisBestScore
         case slotsSpins, slotsWins, slotsJackpots, snakeGames, snakeBestScore, snakeCoinsEaten
         case brickBreakerGames, brickBreakerBestScore, bricksBroken, bubbleGames, bubbleBestScore, bubblesPopped
+        case merge2048Games, merge2048BestScore, merge2048BestTile, merge2048Points
         case tokensBought, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
         case prestiges = "forksPerformed" // Saved under its old Hard Fork name.
         case earnedFromTaps, earnedFromIdle, earnedOffline, earnedFromSteps, earnedFromGames, earnedFromAirdrops
@@ -113,6 +119,10 @@ public struct Stats: Codable, Equatable, Sendable {
         bubbleGames = c.value(.bubbleGames, default: 0)
         bubbleBestScore = c.value(.bubbleBestScore, default: 0)
         bubblesPopped = c.value(.bubblesPopped, default: 0)
+        merge2048Games = c.value(.merge2048Games, default: 0)
+        merge2048BestScore = c.value(.merge2048BestScore, default: 0)
+        merge2048BestTile = c.value(.merge2048BestTile, default: 0)
+        merge2048Points = c.value(.merge2048Points, default: 0)
         tokensBought = c.enumKeyed(.tokensBought, as: TokenID.self)
         tokensSold = c.value(.tokensSold, default: 0)
         coinsFromSales = c.value(.coinsFromSales, default: 0)
@@ -164,6 +174,10 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(bubbleGames, forKey: .bubbleGames)
         try c.encode(bubbleBestScore, forKey: .bubbleBestScore)
         try c.encode(bubblesPopped, forKey: .bubblesPopped)
+        try c.encode(merge2048Games, forKey: .merge2048Games)
+        try c.encode(merge2048BestScore, forKey: .merge2048BestScore)
+        try c.encode(merge2048BestTile, forKey: .merge2048BestTile)
+        try c.encode(merge2048Points, forKey: .merge2048Points)
         try c.encode(tokensBought.stringKeyed, forKey: .tokensBought)
         try c.encode(tokensSold, forKey: .tokensSold)
         try c.encode(coinsFromSales, forKey: .coinsFromSales)

@@ -6,7 +6,7 @@ public enum AchievementMetric: Hashable, Sendable {
     case lifetimeCoins, peakIncome, taps, bestTap, lifetimeSteps, bestDaySteps
     case totalMiners, miner(MinerID), upgrades, minerUpgrades, bestCombo
     case blackjackWins, blackjackNaturals, tetrisLines, tetrisBestScore
-    case slotsWins, snakeBestScore, bricksBroken, bubblesPopped
+    case slotsWins, snakeBestScore, bricksBroken, bubblesPopped, merge2048BestTile
     case tokensExchanged, token(TokenID), tokensSold
     case questsCompleted, longestStreak
     case airdrops, whaleAirdrops, prestiges, perks
@@ -79,6 +79,8 @@ public enum AchievementCatalog {
                     metric: .bricksBroken, thresholds: [50, 500, 5_000, 50_000]),
         Achievement(id: "bubble-popper", name: "Bubble Popper", detail: "Pop bubbles in Bubble Blaster", emoji: "🫧", imageName: nil,
                     metric: .bubblesPopped, thresholds: [100, 1_000, 10_000, 100_000]),
+        Achievement(id: "merge-master", name: "Merge Master", detail: "Make a tile this big in 2048", emoji: "🔢",
+                    imageName: nil, metric: .merge2048BestTile, thresholds: [128, 512, 2_048, 8_192]),
         Achievement(id: "exchanger", name: "Exchanger", detail: "Buy tokens on the exchange", emoji: "🔁", imageName: nil,
                     metric: .tokensExchanged, thresholds: [10, 100, 1_000, 100_000]),
         Achievement(id: "trader", name: "Trader", detail: "Sell tokens on the market", emoji: "📈", imageName: nil,

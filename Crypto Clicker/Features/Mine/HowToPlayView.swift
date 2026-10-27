@@ -29,11 +29,11 @@ struct HowToPlayView: View {
         ("applewatch", "Apple Watch",
          "Tap to mine from your wrist and keep an eye on your balance. Taps are delivered to your iPhone and counted exactly once."),
         ("gamecontroller.fill", "Arcade",
-         "Blackjack and Crypto Slots pay tokens plus a coin bonus for every win. Tetris, Snake, Brick Breaker and Bubble Blaster pay coins for every point, and half as much again for a new best score."),
+         "Blackjack and Crypto Slots pay tokens plus a coin bonus for every win. Tetris, 2048, Snake, Brick Breaker and Bubble Blaster pay coins for every point, and half as much again for a new best score. Making a 2048 tile pays ten minutes of income on top."),
         ("trophy.fill", "Achievements",
          "Every bronze, silver, gold and mythic star permanently adds 1% to production, and stars unlock new finishes for the coin in Settings (the gear at the top of this screen)."),
         ("rosette", "Prestige and perks",
-         "Once you've mined 10 billion coins in all, you can prestige: start a new run for prestige points. Every point adds 5% production forever, and points also buy permanent perks. The Shop suggests prestiging once it would make you at least half as fast again. Your first prestige reveals three new miners. Harder difficulties earn more points."),
+         "Once you've mined 11 billion coins in all, you can prestige: start a new run for prestige points. Every point adds 5% production forever, and points also buy permanent perks. The Shop suggests prestiging once it would make you at least half as fast again. Your first prestige reveals three new miners. Harder difficulties earn more points."),
     ]
 
     var body: some View {

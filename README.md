@@ -9,7 +9,8 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 - **Mining.** Tap the coin (coins shower down as you do), then buy miners, from a Chromebook to a Space
   Mining Colony, and after your first prestige, three more beyond it. Each unit costs 15% more than the
   last. Owning 25, 50, 100, 200 and every 100 up to 1,000 of a miner doubles its output. Under the
-  coin, one card shows your miners and power-ups and another your crypto and what it's worth.
+  coin, two slim cards show your miners and power-ups and your crypto; tap one to open the Shop or the
+  Exchange.
 - **Mk upgrades.** At 25, 50, 100, 200 and 400 owned, a miner's next Mk upgrade (Mk II to Mk VI)
   appears in the Shop. Each doubles that miner for the rest of the run.
 - **Whole coins.** Every tap, step and reward pays whole coins. Amounts are written out in full up to
@@ -39,11 +40,12 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 - **Casino.** Bet tokens at Blackjack or Crypto Slots. Wins pay tokens plus a coin bonus (up to a minute
   of income per winning hand, or three seconds per multiple at the slots), with confetti and a shower of
   coins.
-- **Arcade.** Tetris, Snake, Brick Breaker and Bubble Blaster pay coins for every point, and 50% more
-  for a new best score.
-- **Trophies.** 47 achievements with bronze, silver, gold and mythic tiers, each card shining in the
+- **Arcade.** Tetris, 2048, Snake, Brick Breaker and Bubble Blaster pay coins for every point, and 50%
+  more for a new best score. 2048 keeps the classic numbered tiles; making a 2048 tile pays ten minutes
+  of income on top, and you can end a game whenever you like to collect.
+- **Trophies.** 48 achievements with bronze, silver, gold and mythic tiers, each card shining in the
   metal it has earned. Each star adds 1% production forever, and stars unlock new finishes for the coin.
-- **Prestige.** Once you've mined 10 billion coins in all, start a new run for prestige points. Points
+- **Prestige.** Once you've mined 11 billion coins in all, start a new run for prestige points. Points
   grow with the cube root of lifetime coins, so each prestige takes longer than the last. Every point
   adds 5% production forever, and points buy permanent perks in three branches (Mining, Tapping and
   Fortune). The Shop suggests prestiging once it would make you at least half as fast again.
@@ -66,7 +68,7 @@ Crypto Clicker/                 iPhone and iPad app
   Services/                     StepTracker (HealthKit), WatchBridge (WatchConnectivity), notifications, tap sound
   Design/                       Theme, backgrounds, coin finishes, Liquid Glass cards, shared components
   Features/                     Mine (with Statistics and Settings), Shop (with prestige and perks),
-                                Arcade (six games), Exchange, Trophies (daily and achievements)
+                                Arcade (seven games), Exchange, Trophies (daily and achievements)
 Crypto Clicker Watch App/       Apple Watch app
 CryptoClickerKit/               Swift package with all game rules, shared by both apps
   Sources/CryptoClickerKit/
@@ -74,7 +76,7 @@ CryptoClickerKit/               Swift package with all game rules, shared by bot
                                 balance number (Tuning)
     State/                      GameState, statistics, daily progress and the step ledger (one Codable value)
     Engine/                     Economy, prestige, market, dailies, player actions and achievements
-    MiniGames/                  Blackjack, Slots, Tetris, Snake, Brick Breaker and Bubble Blaster engines
+    MiniGames/                  Blackjack, Slots, Tetris, 2048, Snake, Brick Breaker and Bubble Blaster engines
     Sync/                       Watch snapshot, tap batches and payload coding
     Support/                    Number formatting, geometry, forgiving decoding, seedable RNG, stable hashing
   Tests/                        Swift Testing suite (rules, edge cases, simulated-player pacing)
@@ -96,7 +98,8 @@ Config/                         Entitlements
   hash, so every device sees the same market and the past can be charted. Daily quests and the Tetris
   challenge are seeded the same way.
 - **Saves move forward.** Prestige values keep the names they were saved under when prestiging was called
-  a Hard Fork, and save version 2 carries older prestige progress over, so earlier saves load unchanged.
+  a Hard Fork, and each new save version carries older prestige progress over to the current scale, so
+  earlier saves load unchanged.
 - **Safety nets.** An unfinished Blackjack bet is saved and refunded if the app closes mid-hand. An arcade
   game left mid-run is paid on the next launch. Watch taps are written to disk the moment they arrive.
   A save that can't be read yet (before the first unlock after a restart) is never overwritten.
@@ -120,7 +123,7 @@ swift test
 In Xcode, Product › Test (⌘U) on the Crypto Clicker scheme runs the same suite. It includes simulated
 players that check the economy's pacing. A casual player who checks in four times a day buys Offline
 Mining in the first session, unlocks the first ten miners in about a day and a half, and is first
-advised to prestige at about the same time. With prestiges and perks, new things keep arriving for
+advised to prestige after about two days. With prestiges and perks, new things keep arriving for
 about two weeks.
 
 ## Testing tools
