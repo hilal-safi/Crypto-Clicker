@@ -11,6 +11,8 @@ public enum AchievementMetric: Hashable, Sendable {
     case tokensExchanged, token(TokenID), tokensSold
     case questsCompleted, longestStreak
     case airdrops, whaleAirdrops, prestiges, perks
+    case arcadeRank, tetrisSprints, brickBreakerBosses, bubbleBestWave, tokenSwapStars, merge2048DailyStars
+    case weeklyVarietyGoals
 }
 
 public struct Achievement: Identifiable, Hashable, Sendable {
@@ -29,7 +31,10 @@ public struct Achievement: Identifiable, Hashable, Sendable {
 public enum AchievementCatalog {
     public static let tierNames = ["Bronze", "Silver", "Gold", "Mythic"]
 
-    public static let all: [Achievement] = general + miners + games + tokens + daily + prestige
+    public static let all: [Achievement] = general + miners + games + arcade + tokens + daily + prestige
+
+    /// The achievements for playing the mini-games, whose tiers also give Arcade XP.
+    public static let arcadeIDs: Set<String> = Set((games + arcade).map(\.id)).subtracting(["exchanger", "trader"])
 
     public static var tierCount: Int { all.reduce(0) { $0 + $1.thresholds.count } }
 
@@ -94,6 +99,24 @@ public enum AchievementCatalog {
                     metric: .tokensExchanged, thresholds: [10, 100, 1_000, 100_000]),
         Achievement(id: "trader", name: "Trader", detail: "Sell tokens on the market", emoji: "📈", imageName: nil,
                     metric: .tokensSold, thresholds: [10, 250, 5_000, 100_000]),
+    ]
+
+    /// Records from the mini-game overhaul and Arcade Rank.
+    private static let arcade: [Achievement] = [
+        Achievement(id: "arcade-rank", name: "Arcade Star", detail: "Reach this Arcade Rank", emoji: "🕹️",
+                    imageName: nil, metric: .arcadeRank, thresholds: [5, 10, 20, 30]),
+        Achievement(id: "all-rounder", name: "All-Rounder", detail: "Meet the weekly variety goal", emoji: "🎲",
+                    imageName: nil, metric: .weeklyVarietyGoals, thresholds: [1, 4, 12, 52]),
+        Achievement(id: "sprinter", name: "Sprinter", detail: "Finish Tetris Sprints", emoji: "⏱️",
+                    imageName: nil, metric: .tetrisSprints, thresholds: [1, 10, 50, 200]),
+        Achievement(id: "boss-slayer", name: "Boss Slayer", detail: "Beat Brick Breaker bosses", emoji: "👾",
+                    imageName: nil, metric: .brickBreakerBosses, thresholds: [1, 5, 25, 100]),
+        Achievement(id: "wave-rider", name: "Wave Rider", detail: "Reach this wave in Bubble Blaster", emoji: "🌊",
+                    imageName: nil, metric: .bubbleBestWave, thresholds: [3, 5, 8, 12]),
+        Achievement(id: "star-collector", name: "Star Collector", detail: "Earn Token Swap level stars", emoji: "⭐",
+                    imageName: nil, metric: .tokenSwapStars, thresholds: [10, 25, 40, 54]),
+        Achievement(id: "puzzle-solver", name: "Puzzle Solver", detail: "Earn stars in the daily 2048 puzzle", emoji: "🧩",
+                    imageName: nil, metric: .merge2048DailyStars, thresholds: [3, 15, 60, 200]),
     ]
 
     private static let tokens: [Achievement] = TokenID.allCases.map { token in

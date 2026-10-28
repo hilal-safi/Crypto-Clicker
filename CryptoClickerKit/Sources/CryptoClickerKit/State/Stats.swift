@@ -93,6 +93,8 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var merge2048BestTile = 0
     /// Points scored in 2048 over all games.
     public internal(set) var merge2048Points = 0
+    /// 2048 tile goals reached over all games (a game that makes a 512 reaches three: 128, 256 and 512).
+    public internal(set) var merge2048Goals = 0
     public internal(set) var moonFlights = 0
     public internal(set) var moonCashOuts = 0
     public internal(set) var moonBestMultiplier: Double = 0
@@ -108,8 +110,12 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var pumpDumpBestCombo = 0
     /// Token Swap levels played to the end, won or lost.
     public internal(set) var tokenSwapLevelsPlayed = 0
+    /// Token Swap levels won, replays included (the quests count these).
+    public internal(set) var tokenSwapLevelWins = 0
     /// The furthest round a Pump and Dump run has reached.
     public internal(set) var pumpDumpBestRound = 0
+    /// Pump and Dump rounds cleared over all runs.
+    public internal(set) var pumpDumpRoundsCleared = 0
     public internal(set) var pokerHands = 0
     /// Hands that paid (a pair of jacks or better).
     public internal(set) var pokerWins = 0
@@ -169,9 +175,12 @@ public struct Stats: Codable, Equatable, Sendable {
         case snakeBestCoins, snakeLongestTime, snakePowerUps, snakeRushBestScore, snakeRushes
         case brickBreakerGames, brickBreakerBestScore, bricksBroken, bubbleGames, bubbleBestScore, bubblesPopped
         case merge2048Games, merge2048BestScore, merge2048BestTile, merge2048Points
+        case merge2048Goals
         case moonFlights, moonCashOuts, moonBestMultiplier, moonWagered, moonPaidOut, moonBiggestWin
         case pumpDumpGames, pumpDumpBestScore, pumpDumpCoinsHit, pumpDumpScamsHit, pumpDumpBestCombo, pumpDumpBestRound
+        case pumpDumpRoundsCleared
         case tokenSwapLevelsPlayed
+        case tokenSwapLevelWins
         case pokerHands, pokerWins, pokerWagered, pokerPaidOut, pokerBestHand, pokerRoyals, pokerBiggestWin
         case tokenSwapGames, tokenSwapBestScore, tokenSwapTokens, tokenSwapBestChain, tokenSwapBlasts
         case tokensBought, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
@@ -224,6 +233,7 @@ public struct Stats: Codable, Equatable, Sendable {
         merge2048BestScore = c.value(.merge2048BestScore, default: 0)
         merge2048BestTile = c.value(.merge2048BestTile, default: 0)
         merge2048Points = c.value(.merge2048Points, default: 0)
+        merge2048Goals = c.value(.merge2048Goals, default: 0)
         tokensBought = c.enumKeyed(.tokensBought, as: TokenID.self)
         tokensSold = c.value(.tokensSold, default: 0)
         coinsFromSales = c.value(.coinsFromSales, default: 0)
@@ -277,7 +287,9 @@ public struct Stats: Codable, Equatable, Sendable {
         pumpDumpScamsHit = c.value(.pumpDumpScamsHit, default: 0)
         pumpDumpBestCombo = c.value(.pumpDumpBestCombo, default: 0)
         pumpDumpBestRound = c.value(.pumpDumpBestRound, default: 0)
+        pumpDumpRoundsCleared = c.value(.pumpDumpRoundsCleared, default: 0)
         tokenSwapLevelsPlayed = c.value(.tokenSwapLevelsPlayed, default: 0)
+        tokenSwapLevelWins = c.value(.tokenSwapLevelWins, default: 0)
         pokerHands = c.value(.pokerHands, default: 0)
         pokerWins = c.value(.pokerWins, default: 0)
         pokerWagered = c.value(.pokerWagered, default: 0)
@@ -336,6 +348,7 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(merge2048BestScore, forKey: .merge2048BestScore)
         try c.encode(merge2048BestTile, forKey: .merge2048BestTile)
         try c.encode(merge2048Points, forKey: .merge2048Points)
+        try c.encode(merge2048Goals, forKey: .merge2048Goals)
         try c.encode(tokensBought.stringKeyed, forKey: .tokensBought)
         try c.encode(tokensSold, forKey: .tokensSold)
         try c.encode(coinsFromSales, forKey: .coinsFromSales)
@@ -388,7 +401,9 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(pumpDumpScamsHit, forKey: .pumpDumpScamsHit)
         try c.encode(pumpDumpBestCombo, forKey: .pumpDumpBestCombo)
         try c.encode(pumpDumpBestRound, forKey: .pumpDumpBestRound)
+        try c.encode(pumpDumpRoundsCleared, forKey: .pumpDumpRoundsCleared)
         try c.encode(tokenSwapLevelsPlayed, forKey: .tokenSwapLevelsPlayed)
+        try c.encode(tokenSwapLevelWins, forKey: .tokenSwapLevelWins)
         try c.encode(pokerHands, forKey: .pokerHands)
         try c.encode(pokerWins, forKey: .pokerWins)
         try c.encode(pokerWagered, forKey: .pokerWagered)

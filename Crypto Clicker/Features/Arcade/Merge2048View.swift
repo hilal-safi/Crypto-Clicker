@@ -46,6 +46,10 @@ struct Merge2048View: View {
     }
 
     var body: some View {
+        withLifecycle(withFeedback(layout))
+    }
+
+    private var layout: some View {
         VStack(spacing: 12) {
             scoreBar
             Merge2048Board(game: game)
@@ -87,6 +91,10 @@ struct Merge2048View: View {
         } message: {
             Text(endMessage)
         }
+    }
+
+    private func withFeedback(_ view: some View) -> some View {
+        view
         .sensoryFeedback(.impact(weight: .light), trigger: game.merges) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.success, trigger: hasWon) { _, new in haptics && new }
         .sensoryFeedback(.impact(weight: .medium), trigger: game.undosUsed) { (old: Int, new: Int) in haptics && new > old }
@@ -94,6 +102,12 @@ struct Merge2048View: View {
             guard haptics, let new else { return nil }
             return new.endedByPlayer || new.stars > 0 ? .success : .error
         }
+    }
+
+    /// Holding the game as the app goes to the background (it's paid if iOS closes the app), and
+    /// ending it when the screen goes away.
+    private func withLifecycle(_ view: some View) -> some View {
+        view
         .onChange(of: scenePhase) { _, phase in
             guard isPlaying else { return }
             switch phase {

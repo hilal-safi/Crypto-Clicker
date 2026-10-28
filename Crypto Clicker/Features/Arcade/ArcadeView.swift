@@ -19,6 +19,9 @@ struct ArcadeView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 12) {
+                    if game.unlockedGames.isEmpty == false {
+                        ArcadeRankCard(game: game, today: today)
+                    }
                     if let challenge = game.dailyChallenge(today: today) {
                         ChallengeCard(challenge: challenge, weekCount: game.challengesCompleted(inWeekOf: today),
                                       reward: game.challengeReward, weeklyBonus: game.weeklyChallengeBonus,

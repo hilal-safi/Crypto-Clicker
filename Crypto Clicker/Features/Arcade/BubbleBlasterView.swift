@@ -46,6 +46,10 @@ struct BubbleBlasterView: View {
     }
 
     var body: some View {
+        withLifecycle(withFeedback(layout))
+    }
+
+    private var layout: some View {
         VStack(spacing: 10) {
             HStack(spacing: 18) {
                 GameStat(title: "Score", value: CoinFormat.grouped(game.score))
@@ -80,37 +84,48 @@ struct BubbleBlasterView: View {
         .gameHelp(.bubbleBlaster, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
         }
-        .sensoryFeedback(.impact(weight: .light), trigger: shots) { _, _ in haptics }
-        .sensoryFeedback(.success, trigger: game.clears) { (old: Int, new: Int) in haptics && new > old }
-        .sensoryFeedback(.impact(weight: .heavy), trigger: blast) { _, new in haptics && new != nil }
-        .onChange(of: game.clears) { _, _ in showPops() }
-        .onChange(of: game.specialsEarned) { old, new in
-            if new > old, let special = game.lastEarned { show("\(special.name) earned!") }
-        }
-        .onChange(of: game.wave) { old, new in
-            if new > old {
-                effects.confetti(90, from: UnitPoint(x: 0.5, y: 0.3))
-                show("Wave \(new)!")
+    }
+
+    /// Haptics, pops, banners and confetti for what the game just did.
+    private func withFeedback(_ view: some View) -> some View {
+        view
+            .sensoryFeedback(.impact(weight: .light), trigger: shots) { _, _ in haptics }
+            .sensoryFeedback(.success, trigger: game.clears) { (old: Int, new: Int) in haptics && new > old }
+            .sensoryFeedback(.impact(weight: .heavy), trigger: blast) { _, new in haptics && new != nil }
+            .onChange(of: game.clears) { _, _ in showPops() }
+            .onChange(of: game.specialsEarned) { old, new in
+                if new > old, let special = game.lastEarned { show("\(special.name) earned!") }
             }
-        }
-        .onChange(of: scenePhase) { _, phase in
-            guard isPlaying else { return }
-            switch phase {
-            case .active:
-                store.releaseArcadeRun()
-            case .background:
-                isPaused = true
-                store.holdArcadeRun(ArcadeRun(game: .bubbleBlaster, score: game.score, detail: game.popped,
-                                              extra: game.bestClear, stage: game.wave))
-            default:
-                isPaused = true
+            .onChange(of: game.wave) { old, new in
+                if new > old {
+                    effects.confetti(90, from: UnitPoint(x: 0.5, y: 0.3))
+                    show("Wave \(new)!")
+                }
             }
-        }
-        .onChange(of: isRunning) { _, _ in lastFrame = nil }
-        .onDisappear {
-            if isPlaying { endGame() }
-        }
-        .gameScreen(blocksSwipeBack: true)
+    }
+
+    /// Pausing in the background (holding the run so it's paid if iOS closes the app), and ending
+    /// the game when the screen goes away.
+    private func withLifecycle(_ view: some View) -> some View {
+        view
+            .onChange(of: scenePhase) { _, phase in
+                guard isPlaying else { return }
+                switch phase {
+                case .active:
+                    store.releaseArcadeRun()
+                case .background:
+                    isPaused = true
+                    store.holdArcadeRun(ArcadeRun(game: .bubbleBlaster, score: game.score, detail: game.popped,
+                                                  extra: game.bestClear, stage: game.wave))
+                default:
+                    isPaused = true
+                }
+            }
+            .onChange(of: isRunning) { _, _ in lastFrame = nil }
+            .onDisappear {
+                if isPlaying { endGame() }
+            }
+            .gameScreen(blocksSwipeBack: true)
     }
 
     private var field: some View {

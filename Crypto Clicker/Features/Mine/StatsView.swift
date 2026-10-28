@@ -161,6 +161,8 @@ struct StatsView: View {
                 }
 
                 Section("Arcade") {
+                    row("Arcade Rank", "\(game.arcadeRank) · \(game.arcadeTitle) · \(CoinFormat.grouped(game.arcade.xp)) XP")
+                    row("Weekly variety goals", CoinFormat.grouped(game.arcade.weeklyGoals))
                     row("Tetris", "Best \(CoinFormat.grouped(stats.tetrisBestScore)) · level \(stats.tetrisBestLevel) · combo \(stats.tetrisBestCombo) · \(CoinFormat.grouped(stats.tetrisTetrises)) Tetrises · \(CoinFormat.grouped(stats.tetrisLines)) lines · \(CoinFormat.grouped(stats.tetrisGames)) games" + (stats.tetrisBestSprint > 0 ? " · Sprint \(CoinFormat.stopwatch(stats.tetrisBestSprint))" : ""))
                     row("2048", "Best \(CoinFormat.grouped(stats.merge2048BestScore)) · top tile \(stats.merge2048BestTile) · \(CoinFormat.grouped(stats.merge2048Games)) games · \(CoinFormat.grouped(game.merge2048Daily.wins)) daily puzzles · \(CoinFormat.grouped(game.merge2048Daily.totalStars)) stars")
                     row("Snake", "Best \(CoinFormat.grouped(stats.snakeBestScore)) · Coin Rush \(CoinFormat.grouped(stats.snakeRushBestScore)) · longest \(CoinFormat.grouped(stats.snakeLongest)) · most coins \(CoinFormat.grouped(stats.snakeBestCoins)) · longest game \(CoinFormat.stopwatch(stats.snakeLongestTime)) · \(CoinFormat.grouped(stats.snakePowerUps)) power-ups · \(CoinFormat.grouped(stats.snakeGames)) games")

@@ -428,6 +428,7 @@ extension GameState {
         stats.merge2048BestTile = max(stats.merge2048BestTile, bestTile)
         // Stops at Int.max rather than trapping on a 32-bit watch.
         stats.merge2048Points = stats.merge2048Points.addingCount(score)
+        stats.merge2048Goals = stats.merge2048Goals.addingCount(Merge2048Game.goalsReached(bestTile: bestTile))
         let bonus = bestTile >= Merge2048Game.winningValue ? merge2048TileBonus : 0
         credit(bonus, source: .games)
         return payArcade(.merge2048, score: score, isNewBest: isNewBest, challengeValue: bestTile, tileBonus: bonus)
@@ -442,6 +443,7 @@ extension GameState {
         stats.merge2048Games += 1
         stats.merge2048BestTile = max(stats.merge2048BestTile, bestTile)
         stats.merge2048Points = stats.merge2048Points.addingCount(score)
+        stats.merge2048Goals = stats.merge2048Goals.addingCount(Merge2048Game.goalsReached(bestTile: bestTile))
         let stars = Merge2048Game.dailyStars(score: score)
         let newStars = day.map { merge2048Daily.record(day: $0, score: score, stars: stars) } ?? 0
         let starCoins = Double(newStars) * merge2048DailyStarReward
@@ -478,6 +480,8 @@ extension GameState {
         stats.pumpDumpScamsHit = stats.pumpDumpScamsHit.addingCount(scamsHit)
         stats.pumpDumpBestCombo = max(stats.pumpDumpBestCombo, bestCombo)
         stats.pumpDumpBestRound = max(stats.pumpDumpBestRound, rounds)
+        // The run ended in the round it reached, so the ones before it were cleared.
+        stats.pumpDumpRoundsCleared = stats.pumpDumpRoundsCleared.addingCount(rounds - 1)
         return payArcade(.pumpDump, score: score, isNewBest: isNewBest, challengeValue: score)
     }
 
@@ -519,6 +523,7 @@ extension GameState {
         recordTokenSwapPlay(tokens: tokens, bestChain: bestChain, specials: specials)
         stats.tokenSwapLevelsPlayed += 1
         guard won else { return TokenSwapLevelPayout(stars: 0, newStars: 0, coins: 0, isNewBest: false) }
+        stats.tokenSwapLevelWins = stats.tokenSwapLevelWins.addingCount(1)
         tokenSwap.record(level: level.id, stars: stars, score: score)
         var coins = 0.0
         if stars > before {
@@ -533,6 +538,9 @@ extension GameState {
     @discardableResult
     public mutating func finishTokenSwapDaily(day: String, won: Bool, tokens: Int, bestChain: Int, specials: Int) -> Double {
         recordTokenSwapPlay(tokens: tokens, bestChain: bestChain, specials: specials)
+        // The daily puzzle counts as a level played (and won).
+        stats.tokenSwapLevelsPlayed = stats.tokenSwapLevelsPlayed.addingCount(1)
+        if won { stats.tokenSwapLevelWins = stats.tokenSwapLevelWins.addingCount(1) }
         guard won, !tokenSwap.hasWonDaily(day: day) else { return 0 }
         tokenSwap.dailyWonDay = day
         tokenSwap.dailyWins += 1

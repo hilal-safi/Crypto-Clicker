@@ -5,6 +5,7 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
     case tapCoin, buyMiners, earnCoins, catchAirdrops, walkSteps
     case winBlackjack, spinSlots, clearLines, eatSnakeCoins, breakBricks, popBubbles, sellTokens, score2048
     case cashOutMoon, hitPumpCoins, winPoker, matchTokens
+    case winTokenSwapLevels, clearPumpRounds, reach2048Goals
 
     /// The instruction, with the target filled in: "Tap the coin 500 times".
     public func title(target: Double) -> String {
@@ -27,6 +28,9 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .hitPumpCoins: "Hit \(amount) coins in Pump and Dump"
         case .winPoker: "Win \(amount) Video Poker hands"
         case .matchTokens: "Match \(amount) tokens in Token Swap"
+        case .winTokenSwapLevels: target == 1 ? "Win a Token Swap level" : "Win \(amount) Token Swap levels"
+        case .clearPumpRounds: "Clear \(amount) rounds in Pump and Dump"
+        case .reach2048Goals: "Reach \(amount) tile goals in 2048"
         }
     }
 
@@ -50,6 +54,9 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .hitPumpCoins: "hammer.fill"
         case .winPoker: "suit.diamond.fill"
         case .matchTokens: "diamond.fill"
+        case .winTokenSwapLevels: "star.circle.fill"
+        case .clearPumpRounds: "flag.checkered"
+        case .reach2048Goals: "target"
         }
     }
 }

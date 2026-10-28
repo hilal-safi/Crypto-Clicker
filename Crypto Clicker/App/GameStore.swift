@@ -311,10 +311,15 @@ final class GameStore {
         let now = Date.now
         if isInForeground { catchUp(to: now) }
         let challengeWasComplete = game.daily.challenge?.isComplete ?? true
+        let rankBefore = game.arcadeRank
+        let arcade = game.arcadeSnapshot
         let result = action(&game, now)
+        // Arcade XP and the weekly variety goal, for whatever games the action finished.
+        let award = game.awardArcadeProgress(since: arcade, today: StepDay.key(for: now))
         hasUnsavedChanges = true
         if !challengeWasComplete, game.daily.challenge?.isComplete == true { announceChallenge() }
         announceAchievements()
+        announceArcade(award, rankBefore: rankBefore)
         refreshDailyStatus(at: now)
         if !isInForeground { save() }
         return result
@@ -732,6 +737,25 @@ final class GameStore {
 
     func dismiss(_ toast: Toast) {
         toasts.removeAll { $0.id == toast.id }
+    }
+
+    /// Celebrates the weekly variety goal and a new Arcade Rank, with what the rank unlocked.
+    private func announceArcade(_ award: ArcadeAward?, rankBefore: Int) {
+        if let reward = award?.weeklyReward, reward > 0 {
+            show(Toast(icon: "🎲", title: "Weekly variety goal!",
+                       message: "\(Tuning.weeklyVarietyGames) different games this week · +\(CoinFormat.short(reward)) coins"))
+        }
+        let rank = game.arcadeRank
+        guard rank > rankBefore else { return }
+        let unlocked = (rankBefore + 1...rank).flatMap { Cosmetic.unlocked(atRank: $0) }
+        show(Toast(icon: "🕹️", title: "Arcade Rank \(rank) · \(game.arcadeTitle)",
+                   message: unlocked.isEmpty ? "Keep playing to rank up" : "New look: " + unlocked.map(\.name).joined(separator: ", ")))
+    }
+
+    /// Picks a look for a game.
+    func equip(_ cosmetic: Cosmetic) {
+        perform { game, _ in game.equip(cosmetic) }
+        save()
     }
 
     private func announceAchievements() {

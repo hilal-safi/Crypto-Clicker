@@ -38,6 +38,13 @@ extension GameState {
         case .whaleAirdrops: Double(stats.whaleAirdrops)
         case .prestiges: Double(stats.prestiges)
         case .perks: Double(perks.count)
+        case .arcadeRank: Double(arcadeRank)
+        case .tetrisSprints: Double(stats.tetrisSprints)
+        case .brickBreakerBosses: Double(stats.brickBreakerBosses)
+        case .bubbleBestWave: Double(stats.bubbleBestWave)
+        case .tokenSwapStars: Double(tokenSwap.totalStars)
+        case .merge2048DailyStars: Double(merge2048Daily.totalStars)
+        case .weeklyVarietyGoals: Double(arcade.weeklyGoals)
         }
     }
 
@@ -67,6 +74,7 @@ extension GameState {
             }
             achievementTiers[achievement.id] = reached
         }
+        awardAchievementXP(newlyEarned)
         return newlyEarned
     }
 }

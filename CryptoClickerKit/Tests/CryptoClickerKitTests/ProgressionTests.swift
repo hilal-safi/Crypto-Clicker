@@ -408,9 +408,9 @@ struct AirdropTests {
 struct AchievementTests {
     @Test func catalogIsWellFormed() {
         let all = AchievementCatalog.all
-        #expect(all.count == 53)
+        #expect(all.count == 60)
         #expect(Set(all.map(\.id)).count == all.count)
-        #expect(AchievementCatalog.tierCount == 212)
+        #expect(AchievementCatalog.tierCount == 240)
         for achievement in all {
             #expect(achievement.thresholds.count == 4)
             #expect(achievement.thresholds == achievement.thresholds.sorted())

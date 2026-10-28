@@ -84,7 +84,13 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   or Classic, a minute to score as much as you can.
 - **How to Play.** Every game explains its goal, controls, scoring, specials and hazards, how it ends,
   and a few tips. It opens by itself the first time, from a button in the game, and from the pause card.
-- **Trophies.** 53 achievements with bronze, silver, gold and mythic tiers, each card glinting in the
+- **Arcade Rank.** Finishing games earns XP, with more for a new best, the first game of each kind
+  each day, the daily challenge, stars and game achievements (casino rounds earn a little, up to a
+  daily cap). Ranks carry titles and, with achievements, unlock looks in Style: card backs, the
+  Blackjack felt, slot reels, Tetris blocks and snake skins. XP never pays coins. Playing six
+  different games in a week pays 30 minutes of income once a week, and quests now include winning
+  Token Swap levels, clearing Pump and Dump rounds and reaching 2048 tile goals.
+- **Trophies.** 60 achievements with bronze, silver, gold and mythic tiers, each card glinting in the
   metal it has earned. Each star adds 1% production forever, and stars unlock new finishes for the coin.
 - **Prestige.** Once you've mined 15 billion coins in all, start a new run for prestige points. Points
   grow with the cube root of lifetime coins, so each prestige takes longer than the last. Every point

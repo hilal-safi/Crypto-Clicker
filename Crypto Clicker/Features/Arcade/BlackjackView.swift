@@ -72,7 +72,8 @@ struct BlackjackView: View {
                 .padding(.bottom, 8)
                 .frame(maxWidth: 600)
         }
-        .background { FeltBackground() }
+        .background { FeltBackground(look: game.equipped(.felt)) }
+        .environment(\.cardBack, game.equipped(.cardBack))
         .overlay { EffectsLayer(effects: effects).ignoresSafeArea() }
         .environment(\.colorScheme, .dark)
         .navigationTitle("Blackjack")
@@ -536,22 +537,13 @@ private struct CardFace: View {
     }
 }
 
+/// The back of a card, in the card back picked in Style.
 private struct CardBack: View {
+    @Environment(\.cardBack) private var look
+
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color(red: 0.75, green: 0.12, blue: 0.15), Color(red: 0.45, green: 0.05, blue: 0.08)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-            Canvas { context, size in
-                var path = Path()
-                stride(from: -size.height, through: size.width, by: 8).forEach { offset in
-                    path.move(to: CGPoint(x: offset, y: 0))
-                    path.addLine(to: CGPoint(x: offset + size.height, y: size.height))
-                }
-                context.stroke(path, with: .color(.white.opacity(0.12)), lineWidth: 2)
-            }
-            RoundedRectangle(cornerRadius: 6)
-                .strokeBorder(Theme.gold.opacity(0.8), lineWidth: 1.5)
-                .padding(5)
+            CardBackFace(look: look)
             CoinIcon(size: 30)
         }
     }

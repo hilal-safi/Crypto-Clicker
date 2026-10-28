@@ -24,6 +24,10 @@ struct BrickBreakerView: View {
     private var isRunning: Bool { isPlaying && !isPaused }
 
     var body: some View {
+        withLifecycle(withFeedback(layout))
+    }
+
+    private var layout: some View {
         VStack(spacing: 10) {
             HStack(spacing: 16) {
                 GameStat(title: "Score", value: CoinFormat.grouped(game.score))
@@ -67,6 +71,11 @@ struct BrickBreakerView: View {
         .gameHelp(.brickBreaker, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
         }
+    }
+
+    /// Haptics and confetti for what the game just did.
+    private func withFeedback(_ view: some View) -> some View {
+        view
         .sensoryFeedback(.impact(weight: .light, intensity: 0.8), trigger: game.bricksBroken) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.impact(weight: .medium, intensity: 0.5), trigger: game.paddleHits) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.impact(weight: .heavy), trigger: game.explosions) { (old: Int, new: Int) in haptics && new > old }
@@ -79,6 +88,12 @@ struct BrickBreakerView: View {
         .onChange(of: game.bossesDefeated) { old, new in
             if new > old { effects.confetti(140, from: UnitPoint(x: 0.5, y: 0.2)) }
         }
+    }
+
+    /// Pausing in the background (holding the run so it's paid if iOS closes the app), and ending
+    /// the game when the screen goes away.
+    private func withLifecycle(_ view: some View) -> some View {
+        view
         .onChange(of: scenePhase) { _, phase in
             guard isPlaying else { return }
             switch phase {

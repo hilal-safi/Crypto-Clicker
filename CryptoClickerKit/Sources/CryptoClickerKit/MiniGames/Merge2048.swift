@@ -119,6 +119,9 @@ public struct Merge2048Game: Sendable {
     /// The next tile goal: the smallest goal tile not made yet.
     public var nextGoal: Int? { Self.goalTiles.first { $0 > bestTile } }
 
+    /// Goals a game with `bestTile` reached.
+    public static func goalsReached(bestTile: Int) -> Int { goalTiles.filter { $0 <= bestTile }.count }
+
     /// The highest tile on the board.
     public var bestTile: Int { tiles.map(\.value).max() ?? 0 }
 

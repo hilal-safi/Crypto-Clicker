@@ -270,8 +270,11 @@ struct GameIntro: View {
 
 /// Green baize for the card table.
 struct FeltBackground: View {
+    /// The felt picked in Style.
+    var look: Cosmetic = .feltGreen
+
     var body: some View {
-        RadialGradient(colors: [Color(red: 0.07, green: 0.47, blue: 0.27), Color(red: 0.02, green: 0.20, blue: 0.11)],
+        RadialGradient(colors: [look.feltColors.center, look.feltColors.edge],
                        center: .center, startRadius: 30, endRadius: 560)
             .overlay {
                 // A faint weave, so the felt doesn't look like flat plastic.

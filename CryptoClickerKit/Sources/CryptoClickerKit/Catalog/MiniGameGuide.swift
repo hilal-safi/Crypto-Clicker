@@ -168,7 +168,7 @@ extension MiniGame {
 
     private static var tetrisGuide: MiniGameGuide {
         MiniGameGuide(
-            objective: "Fit the falling pieces together to fill whole rows, which clear for points. Play Endless until the stack tops out, or Sprint: \(TetrisGame.sprintLines) lines against the clock.",
+            objective: "Fit the falling pieces together to fill whole rows, which clear for points. Play Endless until the stack tops out, Sprint: \(TetrisGame.sprintLines) lines against the clock, or Daily: Endless with today's pieces, the same for everyone.",
             controls: [
                 "Buttons beside the board move, rotate, drop and hold the piece.",
                 "Or on the board: tap to rotate, drag sideways to move, swipe down to drop at once, and swipe up to hold.",

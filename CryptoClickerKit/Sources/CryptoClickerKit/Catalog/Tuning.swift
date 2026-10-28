@@ -211,6 +211,25 @@ public enum Tuning {
     /// ...pays this many more.
     public static let weeklyChallengeBonusSeconds = 7_200.0
 
+    // MARK: Arcade Rank
+    /// XP for each arcade game finished...
+    public static let arcadeXPPerGame = 10
+    /// ...and each casino round, up to `arcadeCasinoXPPerDay` a day, so XP rewards playing, not betting.
+    public static let arcadeXPPerCasinoRound = 2
+    public static let arcadeCasinoXPPerDay = 40
+    /// More for a new best score (or a faster Sprint), the first game of each kind each day, the daily
+    /// challenge, each star (Token Swap levels and the daily 2048 puzzle), each tier of a game
+    /// achievement, and the week's variety goal.
+    public static let arcadeXPNewBest = 20
+    public static let arcadeXPFirstPlayToday = 15
+    public static let arcadeXPChallenge = 50
+    public static let arcadeXPPerStar = 5
+    public static let arcadeXPPerAchievementTier = 25
+    public static let arcadeXPWeeklyGoal = 100
+    /// Playing this many different games in a week (Monday to Sunday) pays `weeklyVarietySeconds` of income.
+    public static let weeklyVarietyGames = 6
+    public static let weeklyVarietySeconds = 1_800.0
+
     // MARK: Watch
     /// Upper bound on taps accepted from a single watch batch.
     public static let maxWatchTapsPerBatch = 2_000

@@ -1,9 +1,10 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Tetris with guideline rules from `TetrisGame`, in two modes: Endless (until the stack tops
-/// out, faster every 10 lines) and Sprint (40 lines against the clock). With a `challengeDay` it
-/// deals that day's pieces: the same for everyone, all day (the Daily page opens it on Block Day).
+/// Tetris with guideline rules from `TetrisGame`, in three modes: Endless (until the stack tops
+/// out, faster every 10 lines), Sprint (40 lines against the clock) and Daily, Endless with the
+/// day's pieces: the same for everyone, all day. With a `challengeDay` it deals that day's pieces
+/// straight away (the Daily page opens it on Block Day).
 /// Points pay coins when the game ends, including when the player leaves mid-game.
 ///
 /// The controls sit in the space beside the well: on the left, force drop, pause and move left;
@@ -19,6 +20,8 @@ struct TetrisView: View {
     @State private var rng = SeededGenerator(seed: .random(in: 0...UInt64.max))
     @State private var game = TetrisGame.fresh()
     @State private var mode = TetrisGame.Mode.endless
+    /// Endless with today's pieces, picked from the start card.
+    @State private var playsDaily = false
     @State private var isPlaying = false
     @State private var isPaused = false
     @State private var showingHelp = false
@@ -73,7 +76,7 @@ struct TetrisView: View {
                     .disabled(!isRunning)
                 }
                 .frame(width: Self.columnWidth)
-                TetrisBoard(game: game, flashRows: flashRows)
+                TetrisBoard(game: game, flashRows: flashRows, skin: store.game.equipped(.tetris))
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { boardWidth = $0 }
                     .gesture(boardGesture)
                     .overlay(alignment: .top) { bannerView }
@@ -109,7 +112,7 @@ struct TetrisView: View {
         }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
-        .navigationTitle(challengeDay == nil ? "Tetris" : "Today's Pieces")
+        .navigationTitle(piecesDay == nil || !(isPlaying || challengeDay != nil) ? "Tetris" : "Today's Pieces")
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.tetris, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
@@ -198,13 +201,16 @@ struct TetrisView: View {
             } else {
                 GamePanel(title: "Tetris", buttonTitle: "Start", action: start) {
                     VStack(spacing: 12) {
-                        Picker("Mode", selection: $mode) {
-                            Text("Endless").tag(TetrisGame.Mode.endless)
-                            Text("Sprint \(TetrisGame.sprintLines)").tag(TetrisGame.Mode.sprint(lines: TetrisGame.sprintLines))
+                        Picker("Mode", selection: modeChoice) {
+                            Text("Endless").tag(ModeChoice.endless)
+                            Text("Sprint \(TetrisGame.sprintLines)").tag(ModeChoice.sprint)
+                            Text("Daily").tag(ModeChoice.daily)
                         }
                         .pickerStyle(.segmented)
                         GameIntro(best: mode == .endless ? store.game.stats.tetrisBestScore : 0,
-                                  howTo: mode == .endless
+                                  howTo: playsDaily
+                                    ? "Endless with today's pieces: the same for everyone, every game today. Scores count toward your Endless best."
+                                    : mode == .endless
                                     ? "Play until the stack reaches the top. Every 10 lines the pieces fall faster, and clears in a row build a combo."
                                     : "Clear \(TetrisGame.sprintLines) lines as fast as you can. Points pay as usual; the record is your time.",
                                   note: mode == .endless ? nil : sprintNote,
@@ -214,6 +220,23 @@ struct TetrisView: View {
             }
         }
     }
+
+    enum ModeChoice: Hashable {
+        case endless, sprint, daily
+    }
+
+    /// The start card's mode picker: Daily is Endless with today's pieces.
+    private var modeChoice: Binding<ModeChoice> {
+        Binding {
+            playsDaily ? .daily : mode == .endless ? .endless : .sprint
+        } set: { choice in
+            playsDaily = choice == .daily
+            mode = choice == .sprint ? .sprint(lines: TetrisGame.sprintLines) : .endless
+        }
+    }
+
+    /// The day whose pieces this game deals, if any.
+    private var piecesDay: String? { challengeDay ?? (playsDaily ? store.today : nil) }
 
     private var sprintNote: String {
         let best = store.game.stats.tetrisBestSprint
@@ -284,8 +307,8 @@ struct TetrisView: View {
     }
 
     private func start() {
-        let playMode = challengeDay == nil ? mode : .endless
-        rng = SeededGenerator(seed: challengeDay.map(GameState.dailyChallengeSeed(day:)) ?? .random(in: 0...UInt64.max))
+        let playMode = piecesDay == nil ? mode : .endless
+        rng = SeededGenerator(seed: piecesDay.map(GameState.dailyChallengeSeed(day:)) ?? .random(in: 0...UInt64.max))
         game = TetrisGame(mode: playMode, using: &rng)
         result = nil
         banner = nil
@@ -397,18 +420,22 @@ extension TetrisGame {
 struct TetrisBoard: View {
     let game: TetrisGame
     var flashRows: [Int] = []
+    /// The blocks picked in Style.
+    var skin: Cosmetic = .tetrisClassic
 
     var body: some View {
         Canvas { context, size in
             let cell = size.width / CGFloat(TetrisGame.width)
+            func frame(_ x: Int, _ y: Int) -> CGRect {
+                CGRect(x: CGFloat(x) * cell, y: CGFloat(y) * cell, width: cell, height: cell)
+            }
             func rect(_ x: Int, _ y: Int) -> Path {
-                let frame = CGRect(x: CGFloat(x) * cell, y: CGFloat(y) * cell, width: cell, height: cell)
-                return Path(roundedRect: frame.insetBy(dx: 1, dy: 1), cornerRadius: cell * 0.2)
+                Path(roundedRect: frame(x, y).insetBy(dx: 1, dy: 1), cornerRadius: cell * 0.2)
             }
             for y in 0..<TetrisGame.height {
                 for x in 0..<TetrisGame.width {
                     if let kind = game.block(x: x, y: y) {
-                        context.fill(rect(x, y), with: .color(kind.color))
+                        skin.drawBlock(kind.color, in: frame(x, y), cell: cell, context: &context)
                     } else {
                         context.fill(rect(x, y), with: .color(.white.opacity(0.05)))
                     }
@@ -420,8 +447,8 @@ struct TetrisBoard: View {
                 }
             }
             if let piece = game.piece {
-                for cell in piece.cells where cell.y >= 0 {
-                    context.fill(rect(cell.x, cell.y), with: .color(piece.kind.color))
+                for block in piece.cells where block.y >= 0 {
+                    skin.drawBlock(piece.kind.color, in: frame(block.x, block.y), cell: cell, context: &context)
                 }
             }
             for row in flashRows {

@@ -111,6 +111,8 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var tokenSwap = TokenSwapProgress()
     /// The day's 2048 puzzle. Kept through prestiges.
     public internal(set) var merge2048Daily = Merge2048DailyProgress()
+    /// Arcade Rank, the week's variety goal and the cosmetics picked. Kept through prestiges.
+    public internal(set) var arcade = ArcadeProgress()
     /// Highest tier count earned per achievement id (0 to 4).
     public internal(set) var achievementTiers: [String: Int] = [:]
     public internal(set) var daily = DailyProgress()
@@ -141,7 +143,7 @@ public struct GameState: Codable, Equatable, Sendable {
         case runPrestigeMultiplier = "runForkMultiplier"
         case prestigePointsSpent, perks, difficulty
         case boost, offlineMiningLevel, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun, tokenSwap
-        case merge2048Daily, slotsFreeSpins
+        case merge2048Daily, slotsFreeSpins, arcade
         case achievementTiers, daily
         case incomeHistory, stats, steps, recentWatchBatches, lastUpdate, runStart, created
     }
@@ -183,6 +185,7 @@ public struct GameState: Codable, Equatable, Sendable {
         unfinishedRun = c.value(.unfinishedRun, default: nil)
         tokenSwap = c.value(.tokenSwap, default: TokenSwapProgress())
         merge2048Daily = c.value(.merge2048Daily, default: Merge2048DailyProgress())
+        arcade = c.value(.arcade, default: ArcadeProgress())
         achievementTiers = c.value(.achievementTiers, default: [:])
         daily = c.value(.daily, default: DailyProgress())
         incomeHistory = c.value(.incomeHistory, default: [])
@@ -192,6 +195,8 @@ public struct GameState: Codable, Equatable, Sendable {
         lastUpdate = c.value(.lastUpdate, default: now)
         runStart = c.value(.runStart, default: now)
         created = c.value(.created, default: now)
+        // A save from before Arcade Rank starts with XP for the games already played.
+        if !c.contains(.arcade) { arcade.xp = legacyArcadeXP }
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -218,6 +223,7 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encodeIfPresent(unfinishedRun, forKey: .unfinishedRun)
         try c.encode(tokenSwap, forKey: .tokenSwap)
         try c.encode(merge2048Daily, forKey: .merge2048Daily)
+        try c.encode(arcade, forKey: .arcade)
         try c.encode(achievementTiers, forKey: .achievementTiers)
         try c.encode(daily, forKey: .daily)
         try c.encode(incomeHistory, forKey: .incomeHistory)

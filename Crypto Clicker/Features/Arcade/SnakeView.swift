@@ -46,7 +46,7 @@ struct SnakeView: View {
             }
             .scoreBar()
             PowerUpStrip(game: game)
-            SnakeBoard(game: game, reduceMotion: reduceMotion)
+            SnakeBoard(game: game, reduceMotion: reduceMotion, skin: store.game.equipped(.snake))
                 .overlay(alignment: .top) { pickupBanner }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Snake board")
@@ -310,6 +310,8 @@ private struct PowerUpStrip: View {
 struct SnakeBoard: View {
     let game: SnakeGame
     var reduceMotion = false
+    /// The skin picked in Style.
+    var skin: Cosmetic = .snakeGreen
 
     var body: some View {
         Canvas { context, size in
@@ -342,11 +344,11 @@ struct SnakeBoard: View {
             let count = game.body.count
             let boosted = game.isActive(.speedBoost)
             for (index, segment) in game.body.enumerated().reversed() {
-                // Bright at the head, deeper green toward the tail; orange while boosted.
+                // Bright at the head, deeper toward the tail, in the skin's colors; orange while boosted.
                 let shade = count > 1 ? Double(index) / Double(count - 1) : 0
                 let color = boosted
                     ? Color(red: 1.0 - 0.3 * shade, green: 0.65 - 0.3 * shade, blue: 0.2)
-                    : Color(red: 0.55 - 0.35 * shade, green: 0.95 - 0.35 * shade, blue: 0.30 - 0.15 * shade)
+                    : skin.snakeColor(shade: shade, index: index)
                 let inset = index == 0 ? cell * 0.04 : cell * 0.1
                 context.fill(Path(roundedRect: frame(segment, inset: inset), cornerRadius: cell * 0.32), with: .color(color))
             }

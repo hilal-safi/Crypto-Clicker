@@ -25,6 +25,9 @@ extension GameState {
         case .hitPumpCoins: Double(stats.pumpDumpCoinsHit)
         case .winPoker: Double(stats.pokerWins)
         case .matchTokens: Double(stats.tokenSwapTokens)
+        case .winTokenSwapLevels: Double(stats.tokenSwapLevelWins)
+        case .clearPumpRounds: Double(stats.pumpDumpRoundsCleared)
+        case .reach2048Goals: Double(stats.merge2048Goals)
         }
     }
 
@@ -57,7 +60,9 @@ extension GameState {
             case .cashOutMoon: isUnlocked(.moon)
             case .hitPumpCoins: isUnlocked(.pumpDump)
             case .winPoker: isUnlocked(.videoPoker)
-            case .matchTokens: isUnlocked(.tokenSwap)
+            case .matchTokens, .winTokenSwapLevels: isUnlocked(.tokenSwap)
+            case .clearPumpRounds: isUnlocked(.pumpDump)
+            case .reach2048Goals: isUnlocked(.merge2048)
             }
         }
     }
@@ -123,6 +128,9 @@ extension GameState {
         case .hitPumpCoins: [30, 60, 100]
         case .winPoker: [3, 5, 8]
         case .matchTokens: [100, 200, 300]
+        case .winTokenSwapLevels: [1, 2, 3]
+        case .clearPumpRounds: [3, 5, 8]
+        case .reach2048Goals: [2, 3, 4]
         }
         return choices.randomElement(using: &rng) ?? choices[0]
     }

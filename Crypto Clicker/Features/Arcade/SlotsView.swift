@@ -19,6 +19,9 @@ struct SlotsView: View {
     @State private var revealed: SlotsSpin?
     /// The wallet as it was before the spin being revealed (the balance is held by the store).
     @State private var heldCounts: [TokenID: Int]?
+    /// The Bitcoin collection as it was before the spin being revealed, so it doesn't give a
+    /// Bitcoin away before the reels stop.
+    @State private var heldBitcoins: Int?
     @State private var reelStops = 0
     @State private var spinTask: Task<Void, Never>?
     @State private var showingPaytable = false
@@ -90,7 +93,8 @@ struct SlotsView: View {
         let winning = isSpinning ? [] : Set(revealed?.winningReels ?? [])
         return HStack(spacing: 10) {
             ForEach(0..<SlotMachine.reelCount, id: \.self) { reel in
-                ReelView(stop: stops[reel], isSpinning: spinning.contains(reel), isWinning: winning.contains(reel))
+                ReelView(stop: stops[reel], isSpinning: spinning.contains(reel), isWinning: winning.contains(reel),
+                         look: store.game.equipped(.reels))
             }
         }
         .padding(12)
@@ -101,7 +105,8 @@ struct SlotsView: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .strokeBorder(Theme.gold.gradient, lineWidth: 4)
+                .strokeBorder(LinearGradient(colors: store.game.equipped(.reels).reelFrame, startPoint: .top, endPoint: .bottom),
+                              lineWidth: 4)
         }
         .overlay {
             // The pay line.
@@ -197,7 +202,7 @@ struct SlotsView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("Wins pay tokens plus up to \(CoinFormat.short(game.slotsBonus(bet: free?.bet ?? bet, token: free?.token ?? token, multiple: SlotMachine.jackpot))) coins")
                 Spacer(minLength: 8)
-                BitcoinCollection(count: game.slotsBitcoinsTowardPrize, prize: game.slotsCollectionPrize)
+                BitcoinCollection(count: heldBitcoins ?? game.slotsBitcoinsTowardPrize, prize: game.slotsCollectionPrize)
             }
             .font(.footnote)
             .foregroundStyle(.subtext)
@@ -229,7 +234,9 @@ struct SlotsView: View {
         let game = store.game
         let counts = Dictionary(uniqueKeysWithValues: TokenID.allCases.map { ($0, game.tokenCount($0)) })
         let coins = game.coins
+        let bitcoins = game.slotsBitcoinsTowardPrize
         guard let result = store.spinSlots(token, bet: bet) else { return }
+        heldBitcoins = bitcoins
         // Show the wallet as it was, minus the bet (none for a free spin), until the reels stop.
         var held = counts
         held[result.token, default: 0] -= result.isFree ? 0 : result.bet
@@ -287,6 +294,7 @@ struct SlotsView: View {
     private func reveal(_ result: SlotsSpin) {
         pending = nil
         heldCounts = nil
+        heldBitcoins = nil
         store.heldCoins = nil
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { revealed = result }
         var announcement = title(for: result)
@@ -330,6 +338,8 @@ private struct ReelView: View {
     let stop: Int
     let isSpinning: Bool
     var isWinning = false
+    /// The reels picked in Style.
+    var look: Cosmetic = .reelsClassic
 
     var body: some View {
         ZStack {
@@ -351,8 +361,7 @@ private struct ReelView: View {
         .clipped()
         .background {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(LinearGradient(colors: [Color(white: 0.82), .white, Color(white: 0.82)],
-                                     startPoint: .top, endPoint: .bottom))
+                .fill(LinearGradient(colors: look.reelFace, startPoint: .top, endPoint: .bottom))
         }
         .clipShape(.rect(cornerRadius: 16, style: .continuous))
         .overlay {

@@ -69,6 +69,7 @@ struct VideoPokerView: View {
                 .frame(maxWidth: 560)
         }
         .background { PokerBackground() }
+        .environment(\.cardBack, game.equipped(.cardBack))
         .overlay { EffectsLayer(effects: effects).ignoresSafeArea() }
         .environment(\.colorScheme, .dark)
         .navigationTitle("Video Poker")
@@ -478,7 +479,12 @@ private struct PayTable: View {
         }
         .animation(.snappy, value: highlighted)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Pay table, \(unit): " + PokerHand.paying.map { "\($0.name) pays \($0.payout * bet)" }.joined(separator: ", "))
+        .accessibilityLabel(spokenTable)
+    }
+
+    private var spokenTable: String {
+        let lines: [String] = PokerHand.paying.map { hand in "\(hand.name) pays \(hand.payout * bet)" }
+        return "Pay table, \(unit): " + lines.joined(separator: ", ")
     }
 }
 
