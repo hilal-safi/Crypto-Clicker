@@ -1,9 +1,10 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// A quick guide to every system in the game.
+/// A guide to every system in the game, then the full rules of each mini-game. Opened from
+/// Settings, so it's a page in Settings' navigation rather than a sheet of its own.
 struct HowToPlayView: View {
-    @Environment(\.dismiss) private var dismiss
+    @AppStorage(Preferences.howToPlaySeenKey) private var seen = false
 
     private let topics: [(icon: String, title: String, text: String)] = [
         ("hand.tap.fill", "Tap to mine",
@@ -19,7 +20,7 @@ struct HowToPlayView: View {
         ("moon.zzz.fill", "Offline Mining",
          "At first, miners stop a minute after you leave the app. The Offline Mining power-up keeps them earning while it's closed: 30 minutes more per level up to a day, then an hour more per level, up to three days. Power-ups stay when you prestige."),
         ("shippingbox.fill", "Airdrops",
-         "Every few minutes an airdrop falls. Catch it for a pile of coins, or a Bull Run that multiplies production by 7 for a minute. Now and then a whale swims by instead: catch it for an hour of income at once."),
+         "Every few minutes an airdrop falls. Catch it for a pile of coins, or a Bull Run that multiplies production by 7 for a minute. Now and then a whale swims by instead: catch it for up to an hour of income at once (early in a run, at most what the run has mined so far)."),
         ("gift.fill", "Daily rewards and quests",
          "From your second day, claim a reward every day in Trophies › Daily to build a streak: the week builds up to an hour of income on day 7. Three new quests arrive each day too."),
         ("target", "Daily challenge",
@@ -33,18 +34,18 @@ struct HowToPlayView: View {
         ("gamecontroller.fill", "Arcade",
          "Games unlock one at a time: Blackjack and Tetris cost a few thousand coins, and each game after costs several times the one before, up to about a trillion. Blackjack, Crypto Slots, Video Poker and To the Moon pay tokens plus a coin bonus for wins. In Video Poker, hold the cards you want and draw once: Hint holds what a strong player would. In To the Moon the multiplier climbs until the market crashes: cash out in time, or set an automatic cash-out. Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump and Token Swap pay coins for every point, and half as much again for a new best score; a minute of good play pays about two minutes of income. Making a 2048 tile pays ten minutes of income on top. Token Swap also has levels, whose stars each pay once, and a daily puzzle paid once a day. Every game has a How to Play button with its full rules."),
         ("trophy.fill", "Achievements",
-         "Every bronze, silver, gold and mythic star permanently adds 1% to production, and stars unlock new finishes for the coin in Settings (the gear at the top of this screen)."),
+         "Every bronze, silver, gold and mythic star permanently adds 1% to production, and stars unlock new finishes for the coin in Settings › Coin Finish."),
         ("rosette", "Prestige and perks",
          "Once you've mined 15 billion coins in all, you can prestige: start a new run for prestige points. Every point adds 5% production forever, and points also buy permanent perks. The Shop suggests prestiging once it would make you at least half as fast again. Your first prestige reveals three new miners. Harder difficulties earn more points."),
     ]
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    Text("Mine coins, build a mining empire and keep it growing, even while you're away.")
-                        .font(.headline)
-                }
+        List {
+            Section {
+                Text("Mine coins, build a mining empire and keep it growing, even while you're away.")
+                    .font(.headline)
+            }
+            Section {
                 ForEach(topics, id: \.title) { topic in
                     Label {
                         VStack(alignment: .leading, spacing: 4) {
@@ -61,13 +62,28 @@ struct HowToPlayView: View {
                     .padding(.vertical, 4)
                 }
             }
-            .navigationTitle("How to Play")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done", systemImage: "checkmark") { dismiss() }
+            Section {
+                ForEach(MiniGame.byPrice) { game in
+                    NavigationLink {
+                        GameRulesPage(game: game)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Text(game.icon)
+                                .font(.title3)
+                                .frame(width: 30)
+                                .accessibilityHidden(true)
+                            Text(game.name)
+                        }
+                    }
                 }
+            } header: {
+                Text("Game Rules")
+            } footer: {
+                Text("The full rules for every game, locked or not. Each game also has a How to Play button of its own.")
             }
         }
+        .navigationTitle("How to Play")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { seen = true }
     }
 }

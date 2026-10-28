@@ -7,7 +7,7 @@ struct ArcadeProgressionTests {
     let monday = "2026-10-26"
 
     func player(_ games: Set<MiniGame> = Set(MiniGame.allCases)) -> GameState {
-        var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
+        var game = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
         game.unlockedGames = games
         return game
     }

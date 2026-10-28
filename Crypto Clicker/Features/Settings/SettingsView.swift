@@ -2,6 +2,8 @@ import SwiftUI
 import CryptoClickerKit
 
 struct SettingsView: View {
+    /// Opens straight to How to Play (from the Mine tab's tip), with Settings behind it.
+    var opensHowToPlay = false
     @Environment(GameStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @AppStorage(Preferences.appearanceKey) private var appearance = Appearance.auto
@@ -11,6 +13,8 @@ struct SettingsView: View {
     @AppStorage(Preferences.coinFinishKey) private var finish = CoinFinish.gold
     @AppStorage(Preferences.notifyMinersKey) private var notifyMiners = false
     @AppStorage(Preferences.notifyDailyKey) private var notifyDaily = false
+    @State private var showingHowToPlay = false
+    @State private var didOpenHowToPlay = false
     @State private var confirmingReset = false
     @State private var notificationsDenied = false
     #if DEBUG
@@ -21,6 +25,16 @@ struct SettingsView: View {
         let game = store.game
         NavigationStack {
             Form {
+                Section {
+                    NavigationLink {
+                        HowToPlayView()
+                    } label: {
+                        Label("How to Play", systemImage: "questionmark.circle")
+                    }
+                } footer: {
+                    Text("How every part of the game works, and the full rules of each mini-game.")
+                }
+
                 Section("Appearance") {
                     Picker("Theme", selection: $appearance) {
                         ForEach(Appearance.allCases) { Text($0.title).tag($0) }
@@ -99,6 +113,13 @@ struct SettingsView: View {
             .background { AppBackground(tint: Theme.settings) }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(isPresented: $showingHowToPlay) { HowToPlayView() }
+            .onAppear {
+                // Only the first time: coming back from How to Play shows Settings.
+                guard opensHowToPlay && !didOpenHowToPlay else { return }
+                didOpenHowToPlay = true
+                showingHowToPlay = true
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done", systemImage: "checkmark") { dismiss() }

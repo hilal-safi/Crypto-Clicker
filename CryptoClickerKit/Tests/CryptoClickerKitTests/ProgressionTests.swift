@@ -272,7 +272,7 @@ struct MinerUpgradeTests {
         while game.buyMinerUpgrade(.chromebook) { bought += 1 }
         #expect(bought == 5)
         #expect(game.availableMinerUpgrade(.chromebook) == nil)
-        #expect(game.rate(of: .chromebook) == 500 * GameState.milestoneMultiplier(owned: 500) * 32)
+        #expect(game.rate(of: .chromebook) == 500 * MinerID.chromebook.baseRate * GameState.milestoneMultiplier(owned: 500) * 32)
         #expect(MinerID.gpuRig.upgradeName(level: 0) == "GPU Rig Mk II")
         #expect(MinerID.gpuRig.upgradeName(level: 4) == "GPU Rig Mk VI")
     }
@@ -362,7 +362,7 @@ struct AirdropTests {
     }
 
     @Test func aBullRunBoostsProduction() {
-        var game = GameState.make(miners: [.desktop: 10])
+        var game = GameState.make(miners: [.desktop: 20]) // 20 coins per second.
         let reward = game.claimAirdrop(.bullRun, at: at(5))
         #expect(reward == .bullRun(multiplier: 7, duration: 60))
         #expect(game.boost == Boost(multiplier: 7, endsAt: at(65)))
@@ -383,24 +383,35 @@ struct AirdropTests {
     }
 
     @Test func coinDropsPayAShareOfTheBankWithinIncomeLimits() {
-        var rich = GameState.make(coins: 1e6, miners: [.desktop: 5]) // 10 coins per second.
+        var rich = GameState.make(coins: 1e6, miners: [.desktop: 10]) // 10 coins per second.
         #expect(rich.claimAirdrop(.coins, at: t0) == .coins(9_000)) // Capped at 15 minutes of income.
         #expect(rich.coins == 1e6 + 9_000)
         #expect(rich.stats.earnedFromAirdrops == 9_000)
 
-        var saver = GameState.make(coins: 20_000, miners: [.desktop: 5])
+        var saver = GameState.make(coins: 20_000, miners: [.desktop: 10])
         #expect(saver.claimAirdrop(.coins, at: t0) == .coins(3_000)) // 15% of the bank.
 
-        var broke = GameState.make(coins: 100, miners: [.desktop: 5])
+        var broke = GameState.make(coins: 100, miners: [.desktop: 10])
         #expect(broke.claimAirdrop(.coins, at: t0) == .coins(300)) // At least 30 seconds of income.
     }
 
     @Test func whalesPayAnHourOfIncome() {
-        var game = GameState.make(coins: 1e12, miners: [.desktop: 5])
+        var game = GameState.make(coins: 1e12, miners: [.desktop: 10]) // 10 coins per second.
+        game.stats.runCoins = 1e6
         #expect(game.claimAirdrop(.whale, at: t0) == .whale(36_000))
         #expect(game.stats.whaleAirdrops == 1)
         #expect(game.stats.airdrops == 1)
         #expect(game.stats.earnedFromAirdrops == 36_000)
+    }
+
+    @Test func anEarlyWhalePaysNoMoreThanTheRunHasMined() {
+        var early = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
+        early.stats.runCoins = 5_000
+        // Not an hour (36,000): at most what the run has mined so far, so it can't skip the opening.
+        #expect(early.whaleAmount == 5_000)
+        #expect(early.claimAirdrop(.whale, at: t0) == .whale(5_000))
+        // Never less than an ordinary airdrop's 30 seconds of income.
+        #expect(GameState.make(miners: [.desktop: 10]).whaleAmount == 300)
     }
 }
 

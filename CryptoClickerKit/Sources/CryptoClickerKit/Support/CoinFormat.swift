@@ -23,19 +23,26 @@ public enum CoinFormat {
     /// For huge balances this is the full decimal value of the stored number.
     public static func exact(_ value: Double) -> String { written(value, .down) }
 
-    /// Every digit of a rate, rounded to the nearest coin: `1,234,567`. Under half a coin shows as `<1`.
+    /// Every digit of a rate, rounded to the nearest coin: `1,234,567`. Small rates show tenths (see `rate`).
     public static func exactRate(_ value: Double) -> String {
-        if value > 0 && value < 0.5 { return "<1" }
-        return written(value, .nearest)
+        smallRate(value) ?? written(value, .nearest)
     }
 
     /// A price, rounded up so it is never understated.
     public static func cost(_ value: Double) -> String { format(value, .up) }
 
-    /// A rate such as coins per second, rounded to the nearest coin. Under half a coin shows as `<1`.
+    /// A rate such as coins per second, rounded to the nearest coin. Rates under 10 keep a tenth when
+    /// they aren't whole (a Chromebook's `0.5`, `2.5`), and under a twentieth of a coin show as `<0.1`.
     public static func rate(_ value: Double) -> String {
-        if value > 0 && value < 0.5 { return "<1" }
-        return format(value, .nearest)
+        smallRate(value) ?? format(value, .nearest)
+    }
+
+    /// A positive rate under 10 to the nearest tenth, without a trailing `.0`; `nil` for anything else.
+    static func smallRate(_ value: Double) -> String? {
+        guard value.isFinite, value > 0, value < 9.95 else { return nil }
+        if value < 0.05 { return "<0.1" }
+        let tenths = round(value, decimals: 1, .nearest)
+        return String(format: tenths == tenths.rounded(.down) ? "%.0f" : "%.1f", tenths)
     }
 
     /// `0.02` becomes `2%`.

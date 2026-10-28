@@ -102,7 +102,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .coinClicker: 100
         case .upgradedClicker: 2_000
         case .automatedClicker: 20_000
-        case .mechanicalKeyboard: 400_000
+        case .mechanicalKeyboard: 250_000
         case .roboticFinger: 12_000_000
         case .neuralInterface: 250_000_000
         case .hapticEngine: 25_000_000_000

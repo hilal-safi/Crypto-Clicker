@@ -6,7 +6,7 @@ import Testing
 struct MoonTests {
     /// 10 coins per second, with tokens to bet.
     func player() -> GameState {
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         game.tokens = [.shibaInu: 100, .dogecoin: 5]
         return game
     }

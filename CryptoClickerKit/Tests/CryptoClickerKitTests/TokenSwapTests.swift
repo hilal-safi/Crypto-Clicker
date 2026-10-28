@@ -900,7 +900,7 @@ struct TokenSwapLevelBalanceTests {
 @Suite("Token Swap: rewards")
 struct TokenSwapRewardTests {
     @Test func aClassicRoundPaysForEveryPoint() {
-        var game = GameState.make(miners: [.desktop: 5]) // 10 coins a second.
+        var game = GameState.make(miners: [.desktop: 10]) // 10 coins a second.
         let payout = game.finishTokenSwap(score: 2_000, tokens: 180, bestChain: 4, blasts: 3)
         #expect(payout.isNewBest)
         #expect(payout.coins == (2_000 * Tuning.tokenSwapSecondsPerPoint * 10 * 1.5).rounded())
@@ -918,7 +918,7 @@ struct TokenSwapRewardTests {
     }
 
     @Test func eachStarPaysOnceAndTheNextLevelOpens() {
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         let level = TokenSwapLevel.all[0]
         #expect(game.tokenSwap.isUnlocked(1) && !game.tokenSwap.isUnlocked(2))
         let one = game.finishTokenSwapLevel(level, won: true, score: 10, tokens: 30, bestChain: 2, specials: 1)
@@ -950,7 +950,7 @@ struct TokenSwapRewardTests {
     }
 
     @Test func theDailyPuzzlePaysOnceADay() {
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         #expect(game.finishTokenSwapDaily(day: "2026-10-26", won: false, tokens: 50, bestChain: 1, specials: 0) == 0)
         let first = game.finishTokenSwapDaily(day: "2026-10-26", won: true, tokens: 50, bestChain: 1, specials: 0)
         #expect(first == (Tuning.tokenSwapDailySeconds * 10).rounded())
@@ -961,7 +961,7 @@ struct TokenSwapRewardTests {
     }
 
     @Test func levelProgressIsSavedAndSurvivesPrestige() throws {
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         game.finishTokenSwapLevel(TokenSwapLevel.all[0], won: true, score: 99_999, tokens: 30, bestChain: 2, specials: 1)
         game.finishTokenSwapDaily(day: "2026-10-26", won: true, tokens: 1, bestChain: 1, specials: 0)
         let data = try GameCoding.encoder().encode(game)

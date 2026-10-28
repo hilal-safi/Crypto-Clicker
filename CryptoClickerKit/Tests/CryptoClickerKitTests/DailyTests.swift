@@ -5,7 +5,7 @@ import Testing
 @Suite("Daily quests")
 struct DailyQuestTests {
     /// 10 coins per second.
-    func player() -> GameState { GameState.make(miners: [.desktop: 5]) }
+    func player() -> GameState { GameState.make(miners: [.desktop: 10]) }
 
     @Test func threeDifferentQuestsAreIssuedOncePerDay() {
         var game = player()
@@ -103,7 +103,7 @@ struct DailyQuestTests {
 
 @Suite("Daily reward")
 struct DailyRewardTests {
-    func player() -> GameState { GameState.make(miners: [.desktop: 5]) } // 10 coins per second.
+    func player() -> GameState { GameState.make(miners: [.desktop: 10]) } // 10 coins per second.
 
     @Test func dailiesStartOnTheGamesSecondDay() throws {
         var game = GameState(now: t0)
@@ -186,7 +186,7 @@ struct DailyRewardTests {
 @Suite("Daily challenge")
 struct DailyChallengeTests {
     func player(_ games: Set<MiniGame> = []) -> GameState {
-        var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
+        var game = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
         game.unlockedGames = games
         return game
     }
@@ -378,7 +378,7 @@ struct DailyChallengeTests {
 @Suite("Income history")
 struct IncomeHistoryTests {
     @Test func samplesAreTakenEveryHalfHourForAWeek() {
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         game.recordIncomeSample(at: t0)
         game.recordIncomeSample(at: at(60))
         #expect(game.incomeHistory == [IncomeSample(date: t0, income: 10)])

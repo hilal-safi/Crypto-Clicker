@@ -290,7 +290,7 @@ struct SnakeTests {
     }
 
     @Test func coinRushKeepsItsOwnRecord() {
-        var state = GameState.make(miners: [.desktop: 5])
+        var state = GameState.make(miners: [.desktop: 10])
         let classic = state.finishSnake(score: 300, length: 33, coins: 30, time: 95, powerUps: 2)
         #expect(classic.isNewBest)
         let rush = state.finishSnake(score: 250, length: 28, coins: 22, time: 60, powerUps: 3, mode: .coinRush)
@@ -306,14 +306,14 @@ struct SnakeTests {
     }
 
     @Test func coinRushPointsPayLessBecauseTheyComeFaster() {
-        var classic = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
-        var rush = GameState.make(miners: [.desktop: 5])
+        var classic = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
+        var rush = GameState.make(miners: [.desktop: 10])
         #expect(classic.finishSnake(score: 200, length: 23).coins == 900) // 200 × 0.3 × 10 × 1.5
         #expect(rush.finishSnake(score: 200, length: 23, mode: .coinRush).coins == 540) // 60% of that.
     }
 
     @Test func aCoinRushLeftOpenIsPaidAsOne() {
-        var state = GameState.make(miners: [.desktop: 5])
+        var state = GameState.make(miners: [.desktop: 10])
         state.holdArcadeRun(ArcadeRun(game: .snake, score: 200, detail: 23, stage: ArcadeRun.coinRushStage))
         #expect(state.payUnfinishedRun()?.payout.coins == 540)
         #expect(state.stats.snakeRushes == 1)

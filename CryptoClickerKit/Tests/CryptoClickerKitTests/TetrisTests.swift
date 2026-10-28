@@ -385,7 +385,7 @@ struct TetrisTests {
     }
 
     @Test func sprintsKeepTheirOwnRecord() {
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         let endless = game.finishTetris(score: 5_000, lines: 30, rewardPoints: 3_000, level: 4, bestCombo: 3, tetrises: 2)
         #expect(endless.isNewBest)
         let slow = game.finishTetris(score: 9_000, lines: 40, rewardPoints: 4_000, level: 5, sprintTime: 150)

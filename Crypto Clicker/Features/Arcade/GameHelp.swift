@@ -56,73 +56,82 @@ private struct GameHelp: ViewModifier {
     }
 }
 
-/// The full rules for one game.
+/// The full rules for one game, in a sheet with a Done button (from the game's own How to Play).
 struct GameHelpView: View {
     let game: MiniGame
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        let guide = game.guide
         NavigationStack {
-            List {
-                Section {
-                    HStack(alignment: .top, spacing: 14) {
-                        Text(game.icon)
-                            .font(.system(size: 38))
-                            .accessibilityHidden(true)
-                        Text(guide.objective)
-                            .font(.body.weight(.semibold))
-                    }
-                    .padding(.vertical, 4)
-                }
-                Section("Controls") {
-                    ForEach(guide.controls, id: \.self) { line in
-                        Label(line, systemImage: "hand.point.up.left.fill")
+            GameRulesPage(game: game)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { dismiss() }
                     }
                 }
-                Section("Scoring") {
-                    ForEach(guide.scoring, id: \.self) { line in
-                        Label(line, systemImage: "star.fill")
-                    }
+        }
+    }
+}
+
+/// The full rules for one game: the page itself, so Settings › How to Play can push it too.
+struct GameRulesPage: View {
+    let game: MiniGame
+
+    var body: some View {
+        let guide = game.guide
+        List {
+            Section {
+                HStack(alignment: .top, spacing: 14) {
+                    Text(game.icon)
+                        .font(.system(size: 38))
+                        .accessibilityHidden(true)
+                    Text(guide.objective)
+                        .font(.body.weight(.semibold))
                 }
-                if !guide.items.isEmpty {
-                    Section("Specials and Hazards") {
-                        ForEach(guide.items) { item in
-                            HStack(spacing: 14) {
-                                GuideItemIcon(item: item, tint: game.color)
-                                    .frame(width: 48, height: 48)
-                                    .accessibilityHidden(true)
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(item.name)
-                                        .font(.headline)
-                                    Text(item.detail)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.subtext)
-                                }
+                .padding(.vertical, 4)
+            }
+            Section("Controls") {
+                ForEach(guide.controls, id: \.self) { line in
+                    Label(line, systemImage: "hand.point.up.left.fill")
+                }
+            }
+            Section("Scoring") {
+                ForEach(guide.scoring, id: \.self) { line in
+                    Label(line, systemImage: "star.fill")
+                }
+            }
+            if !guide.items.isEmpty {
+                Section("Specials and Hazards") {
+                    ForEach(guide.items) { item in
+                        HStack(spacing: 14) {
+                            GuideItemIcon(item: item, tint: game.color)
+                                .frame(width: 48, height: 48)
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(item.name)
+                                    .font(.headline)
+                                Text(item.detail)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.subtext)
                             }
-                            .padding(.vertical, 2)
-                            .accessibilityElement(children: .combine)
                         }
-                    }
-                }
-                Section("How It Ends") {
-                    Label(guide.ending, systemImage: "flag.checkered")
-                }
-                Section("Tips") {
-                    ForEach(guide.tips, id: \.self) { tip in
-                        Label(tip, systemImage: "lightbulb.fill")
+                        .padding(.vertical, 2)
+                        .accessibilityElement(children: .combine)
                     }
                 }
             }
-            .labelStyle(HelpLabelStyle(tint: game.color))
-            .navigationTitle("How to Play \(game.name)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+            Section("How It Ends") {
+                Label(guide.ending, systemImage: "flag.checkered")
+            }
+            Section("Tips") {
+                ForEach(guide.tips, id: \.self) { tip in
+                    Label(tip, systemImage: "lightbulb.fill")
                 }
             }
         }
+        .labelStyle(HelpLabelStyle(tint: game.color))
+        .navigationTitle("How to Play \(game.name)")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

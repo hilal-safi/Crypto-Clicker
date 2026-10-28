@@ -98,7 +98,7 @@ struct SlotsTests {
 
     @Test func freeSpinsArePlayedAtTheWinningBetForNothing() throws {
         var rng = SeededGenerator(seed: try #require(seed(where: SlotMachine.triggersFreeSpins)))
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         game.tokens = [.dogecoin: 10]
         let triggerSpin = game.spinSlots(.dogecoin, bet: 2, using: &rng)
         let trigger = try #require(triggerSpin)
@@ -139,7 +139,7 @@ struct SlotsTests {
 
     @Test func everyTenthBitcoinOnTheLinePaysAPrize() throws {
         var rng = SeededGenerator(seed: try #require(seed { $0.filter { $0 == .bitcoin }.count == 1 }))
-        var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
+        var game = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
         game.tokens = [.shibaInu: 10]
         game.stats.slotsBitcoins = SlotMachine.bitcoinsPerPrize - 1
         #expect(game.slotsBitcoinsTowardPrize == SlotMachine.bitcoinsPerPrize - 1)
@@ -154,7 +154,7 @@ struct SlotsTests {
 
     @Test func theBiggestWinCountsProfitAndBonus() throws {
         var rng = SeededGenerator(seed: try #require(seed { $0 == [.xrp, .xrp, .xrp] }))
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         game.tokens = [.shibaInu: 10]
         let result = game.spinSlots(.shibaInu, bet: 1, using: &rng)
         let spin = try #require(result)
@@ -174,7 +174,7 @@ struct SlotsTests {
     }
 
     @Test func aSpinTakesTheBetAndPaysInOneStep() throws {
-        var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
+        var game = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
         game.tokens = [.shibaInu: 50]
         var rng = SeededGenerator(seed: 3)
         let result = game.spinSlots(.shibaInu, bet: 4, using: &rng)
@@ -192,7 +192,7 @@ struct SlotsTests {
     }
 
     @Test func theCoinBonusGrowsWithTheMultipleUpToAnIncomeCap() {
-        var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
+        var game = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
         game.tokens = [.shibaInu: 1]
         // One Shiba Inu stakes 1,000 coins: 5% is 50 per multiple, capped at 3 seconds (30 coins) per multiple.
         #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 5) == 150)
@@ -209,7 +209,7 @@ struct SlotsTests {
             return SlotMachine.line(stops: SlotMachine.spin(using: &rng)) == [.bitcoin, .bitcoin, .bitcoin]
         }
         var rng = SeededGenerator(seed: try #require(seed))
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         game.tokens = [.dogecoin: 2]
         let result = game.spinSlots(.dogecoin, bet: 2, using: &rng)
         let spin = try #require(result)

@@ -22,6 +22,8 @@ enum Preferences {
     static let lastShortWelcomeDayKey = "lastShortWelcomeDay"
     /// First-run tips the player has closed, comma-separated.
     static let dismissedTipsKey = "dismissedTips"
+    /// The player has opened How to Play (in Settings), so the tip pointing there is done.
+    static let howToPlaySeenKey = "howToPlaySeen"
 
     /// The player has seen a mini-game's How to Play (it opens by itself the first time).
     static func helpSeenKey(_ game: MiniGame) -> String { "helpSeen.\(game.rawValue)" }

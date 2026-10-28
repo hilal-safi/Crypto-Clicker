@@ -252,6 +252,15 @@ extension GameState {
         return .coins
     }
 
+    /// What a whale pays: an hour of income, but never more than the coins mined so far this run
+    /// (and never less than an ordinary airdrop's 30 seconds), so a whale in the first minutes can't skip
+    /// the opening.
+    public var whaleAmount: Double {
+        let income = rewardIncome
+        let hour = income * Tuning.whaleIncomeSeconds
+        return Self.wholeCoins(max(min(hour, stats.runCoins), income * Tuning.airdropMinimumSeconds), minimum: 1)
+    }
+
     /// Pays an airdrop the player caught.
     @discardableResult
     public mutating func claimAirdrop(_ kind: AirdropKind, at now: Date) -> AirdropReward {
@@ -263,7 +272,7 @@ extension GameState {
             return .bullRun(multiplier: Tuning.bullRunMultiplier, duration: bullRunDuration)
         case .whale:
             stats.whaleAirdrops += 1
-            let amount = Self.wholeCoins(income * Tuning.whaleIncomeSeconds, minimum: 1)
+            let amount = whaleAmount
             credit(amount, source: .airdrop)
             return .whale(amount)
         case .coins:

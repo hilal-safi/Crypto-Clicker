@@ -4,9 +4,9 @@ import Testing
 
 @Suite("Time and offline earnings")
 struct TimeTests {
-    /// 10 desktops: 20 coins per second, no taps involved.
+    /// 20 desktops: 20 coins per second, no taps involved.
     func earner(offlineMiningLevel: Int = 0) -> GameState {
-        var state = GameState.make(miners: [.desktop: 10])
+        var state = GameState.make(miners: [.desktop: 20])
         state.offlineMiningLevel = offlineMiningLevel
         return state
     }

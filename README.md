@@ -6,9 +6,9 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 
 ## Features
 
-- **Mining.** Tap the coin (coins shower down as you do), then buy miners, from a Chromebook to a Space
-  Mining Colony, and after your first prestige, three more beyond it. Each unit costs 15% more than the
-  last. Owning 25, 50, 100, 200 and every 100 up to 1,000 of a miner doubles its output. Under the
+- **Mining.** Tap the coin (coins shower down as you do), then buy miners, from a Chromebook (a coin
+  every two seconds) to a Space Mining Colony, and after your first prestige, three more beyond it.
+  Each unit costs 15% more than the last. Owning 25, 50, 100, 200 and every 100 up to 1,000 of a miner doubles its output. Under the
   coin, two slim cards show your miners and power-ups and your crypto; tap one to open the Shop or the
   Exchange. Your coins per second and per tap sit just under the balance on the home screen, and in a
   bar at the bottom of the other tabs.
@@ -30,7 +30,8 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   earned, what that unlocked (achievements, prestige points, finished quests), the best thing to buy
   now with a button to buy it, and a breakdown by miner, time and multiplier.
 - **Airdrops.** Every 3–6 minutes an airdrop falls. Catch it within 20 seconds for a pile of coins, or for
-  a 60-second Bull Run that multiplies production ×7. One in twenty is a whale worth an hour of income.
+  a 60-second Bull Run that multiplies production ×7. One in twenty is a whale worth up to an hour of income
+  (early in a run, no more than the run has mined so far, so a lucky whale can't skip the opening).
 - **Daily.** From the second day: a daily reward with a streak that builds to an hour of income on day
   7, and three new quests every day. The first day is for learning to mine, without big handouts.
 - **Daily challenge.** From the second day, each day picks a challenge in one of your games: a score in
@@ -57,8 +58,8 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   Wins pay tokens plus a coin bonus, with confetti and a shower of coins. Every round is paid once.
 - **Unlocking games.** The eleven games unlock one at a time. Blackjack and Tetris cost a few thousand
   coins, and each game after costs several times the one before, up to about a trillion for Bubble
-  Blaster: a player who keeps playing gets the first three in minutes and the rest over the first few
-  hours, and one who checks in four times a day has them all by the second day.
+  Blaster: a player who keeps playing gets the first two in the first quarter hour and about seven in
+  three hours, and one who checks in four times a day has them all by about the third day.
 - **Arcade.** Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump and Token Swap pay
   coins for every point, and 50% more for a new best score. Each is tuned so a minute of skilled play
   pays about two minutes of income.
@@ -82,8 +83,10 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   Play 18 levels with goals and move limits (ice, chains, crates and gold bars to bring down), each
   star paying coins the first time; a daily puzzle with the same board for everyone, paid once a day;
   or Classic, a minute to score as much as you can.
-- **How to Play.** Every game explains its goal, controls, scoring, specials and hazards, how it ends,
-  and a few tips. It opens by itself the first time, from a button in the game, and from the pause card.
+- **How to Play.** In Settings (the gear at the top right of the home screen): a guide to every part of
+  the game, then the full rules of every mini-game. Each game also explains its goal, controls, scoring,
+  specials and hazards, how it ends, and a few tips, opening by itself the first time, from a button in
+  the game, and from the pause card. A tip on the home screen points new players to it.
 - **Arcade Rank.** Finishing games earns XP, with more for a new best, the first game of each kind
   each day, the daily challenge, stars and game achievements (casino rounds earn a little, up to a
   daily cap). Ranks carry titles and, with achievements, unlock looks in Style: card backs, the
@@ -99,7 +102,7 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   make you at least half as fast again.
 - **Difficulty.** Easy produces more but earns fewer prestige points; Hard produces less and earns more.
 - **Notifications.** Optional reminders when Offline Mining runs out and when a daily reward is waiting.
-- **Statistics.** A chart of income over the week, plus everything the game counts (win streaks,
+- **Statistics.** From the chart button at the top left of the home screen: a chart of income over the week, plus everything the game counts (win streaks,
   biggest wins, what the casino paid back, records for every game), in short form or with every digit.
   Tapping the rates under the balance (or the bar at the bottom of the other tabs) shows where every
   coin comes from: each miner's share, automatic taps, multipliers and what makes up a tap.
@@ -176,12 +179,13 @@ swift test
 In Xcode, Product › Test (⌘U) on the Crypto Clicker scheme runs the same suite. It includes simulated
 players that check the economy's pacing. They play the way people do: they tap, catch most airdrops,
 claim quests and daily rewards, play some arcade, earn achievements, unlock games, prestige when the
-Shop suggests it and buy perks. A player who keeps playing buys a Desktop in the first minute or two,
-a Data Center after about half an hour and nine miner tiers in three hours, with the Shop suggesting
-the first prestige at almost four hours. A casual player who checks in four times a day buys Offline
-Mining in the first session, has every game and the first ten miners in about a day and a half, and is
-first advised to prestige after about two days. With prestiges and perks, new things keep arriving for
-about two weeks.
+Shop suggests it and buy perks. A player who keeps playing buys a Desktop in the first couple of
+minutes, a GPU Rig after about ten, a Data Center after more than an hour and seven miner tiers in
+three hours, without a prestige point yet. A light player, who looks in for four minutes five times in
+twelve hours, has mined a couple of hundred thousand coins by then, mostly while away. A casual player
+who checks in four times a day buys Offline Mining in the first session, reaches the Data Center in
+about a day, has every game and the first ten miners in about three days, and is first advised to
+prestige soon after. With prestiges and perks, new things keep arriving for about two weeks.
 
 Simulated skilled players for every arcade game check that each pays about the same for a minute of
 play (about two minutes of income), Token Swap included. They take a few minutes, so they run only when asked:

@@ -3,8 +3,8 @@ import Foundation
 /// The repeatable generators that produce coins every second.
 /// From the Desktop on, each tier costs roughly 15x the previous one and pays back about
 /// 2.8x slower, so new tiers keep arriving without making older ones worthless.
-/// Every tier earns at least one whole coin per second. The last three tiers open up only
-/// after the first prestige.
+/// The Chromebook earns a coin every two seconds and every later tier at least a coin a second.
+/// The last three tiers open up only after the first prestige.
 public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
     case chromebook, desktop, gpuRig, server, dataCenter
     case mineCenter, robotAssistant, aiMiner, quantumComputer, spaceColony
@@ -96,22 +96,23 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 
-    /// Coins per second from one unit before any multipliers.
+    /// Coins per second from one unit before any multipliers. (Halved in version 31 to slow the
+    /// game down: every tier earned twice this before.)
     public var baseRate: Double {
         switch self {
-        case .chromebook: 1
-        case .desktop: 2
-        case .gpuRig: 12
-        case .server: 70
-        case .dataCenter: 400
-        case .mineCenter: 2_300
-        case .robotAssistant: 13_000
-        case .aiMiner: 75_000
-        case .quantumComputer: 430_000
-        case .spaceColony: 2_500_000
-        case .lunarBase: 14_500_000
-        case .asteroidHarvester: 84_000_000
-        case .galacticHashnet: 490_000_000
+        case .chromebook: 0.5
+        case .desktop: 1
+        case .gpuRig: 6
+        case .server: 35
+        case .dataCenter: 200
+        case .mineCenter: 1_150
+        case .robotAssistant: 6_500
+        case .aiMiner: 37_500
+        case .quantumComputer: 215_000
+        case .spaceColony: 1_250_000
+        case .lunarBase: 7_250_000
+        case .asteroidHarvester: 42_000_000
+        case .galacticHashnet: 245_000_000
         }
     }
 

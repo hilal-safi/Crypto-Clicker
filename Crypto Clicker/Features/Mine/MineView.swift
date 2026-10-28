@@ -13,9 +13,10 @@ struct MineView: View {
     let openIncome: () -> Void
     @Environment(GameStore.self) private var store
     @State private var showingStats = false
-    @State private var showingHelp = false
     @State private var showingStepsIntro = false
     @State private var showingSettings = false
+    /// Settings opened by the How to Play tip, straight to How to Play.
+    @State private var settingsOpensHowToPlay = false
     @State private var effects = Effects()
     /// Every digit or the short form, for the balance and tap values. Tapping the balance switches.
     @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
@@ -44,20 +45,21 @@ struct MineView: View {
             .navigationTitle("Crypto Clicker") // Kept for VoiceOver and the app switcher, but not shown.
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(removing: .title)
+            // Two buttons: Statistics on the left, Settings (with How to Play) on the right.
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("How to Play", systemImage: "questionmark.circle") { showingHelp = true }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
                     Button("Statistics", systemImage: "chart.bar.xaxis") { showingStats = true }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Settings", systemImage: "gearshape") { showingSettings = true }
+                    Button("Settings", systemImage: "gearshape") {
+                        settingsOpensHowToPlay = false
+                        showingSettings = true
+                    }
+                    .accessibilityHint("Also has How to Play")
                 }
             }
-            .sheet(isPresented: $showingSettings) { SettingsView() }
+            .sheet(isPresented: $showingSettings) { SettingsView(opensHowToPlay: settingsOpensHowToPlay) }
             .sheet(isPresented: $showingStats) { StatsView() }
-            .sheet(isPresented: $showingHelp) { HowToPlayView() }
             .sheet(isPresented: $showingStepsIntro) { StepsIntroView() }
         }
     }
@@ -84,7 +86,10 @@ struct MineView: View {
                 }
             }
             .animation(.snappy, value: store.comboStreak >= 5)
-            GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openDaily: openDaily)
+            GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openDaily: openDaily) {
+                settingsOpensHowToPlay = true
+                showingSettings = true
+            }
             InventoryStrip(game: game, market: store.market, openShop: openShop, openExchange: openExchange)
             StepsCard(learnMore: { showingStepsIntro = true })
         }

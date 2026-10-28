@@ -6,7 +6,7 @@ import Testing
 struct MiniGameRewardTests {
     /// 10 coins per second, so a full Blackjack bonus is 600 coins.
     func earner(upgrades: Set<UpgradeID> = []) -> GameState {
-        var game = GameState.make(miners: [.desktop: 5], upgrades: upgrades)
+        var game = GameState.make(miners: [.desktop: 10], upgrades: upgrades)
         game.tokens = [.shibaInu: 50, .dogecoin: 5]
         return game
     }
@@ -42,12 +42,12 @@ struct MiniGameRewardTests {
         var poor = GameState.make()
         poor.tokens = [.shibaInu: 1]
         #expect(poor.blackjackBonus(bet: 1, token: .shibaInu) == 60) // A minute at the 1 coin/s floor.
-        var rich = GameState.make(miners: [.desktop: 50]) // 400 coins per second: cap 24,000.
+        var rich = GameState.make(miners: [.desktop: 50]) // 200 coins per second: cap 12,000.
         rich.tokens = [.shibaInu: 100]
         #expect(rich.blackjackBonus(bet: 3, token: .shibaInu) == 1_500)
-        #expect(rich.blackjackBonus(bet: 60, token: .shibaInu) == 24_000)
-        #expect(rich.blackjackBonus(bet: 60, token: .shibaInu, isNatural: true) == 36_000)
-        #expect(rich.blackjackBetForFullBonus(.shibaInu) == 48)
+        #expect(rich.blackjackBonus(bet: 60, token: .shibaInu) == 12_000)
+        #expect(rich.blackjackBonus(bet: 60, token: .shibaInu, isNatural: true) == 18_000)
+        #expect(rich.blackjackBetForFullBonus(.shibaInu) == 24)
         #expect(rich.blackjackBetForFullBonus(.bitcoin) == 1)
     }
 

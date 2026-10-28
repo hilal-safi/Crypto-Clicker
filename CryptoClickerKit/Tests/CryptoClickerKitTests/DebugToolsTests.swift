@@ -69,7 +69,7 @@ struct DebugToolsTests {
     }
 
     @Test func rewindingPaysTimeAwayWithAReport() throws {
-        var game = GameState.make(miners: [.desktop: 10]) // 20 coins per second.
+        var game = GameState.make(miners: [.desktop: 20]) // 20 coins per second.
         game.debugAddOfflineMining(levels: 2) // An hour.
         game.debugRewind(3_600)
         let result = game.advance(to: t0)
@@ -79,7 +79,7 @@ struct DebugToolsTests {
     }
 
     @Test func rewindingKeepsABullRunToTheTimeItHadLeft() throws {
-        var game = GameState.make(miners: [.desktop: 10])
+        var game = GameState.make(miners: [.desktop: 20])
         game.debugAddOfflineMining(levels: 2)
         game.debugStartBullRun(at: t0)
         game.debugRewind(3_600)

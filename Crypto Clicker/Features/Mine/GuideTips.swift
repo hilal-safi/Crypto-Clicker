@@ -4,7 +4,7 @@ import CryptoClickerKit
 /// Tips for a new player, one at a time, each shown when the game reaches the moment it's about.
 /// A tip goes away once it no longer applies, or for good when the player closes it.
 enum GuideTip: String, CaseIterable {
-    case tapCoin, buyMiner, combo, offlineMining, daily, prestige
+    case tapCoin, buyMiner, combo, offlineMining, howToPlay, daily, prestige
 
     var icon: String {
         switch self {
@@ -12,6 +12,7 @@ enum GuideTip: String, CaseIterable {
         case .buyMiner: "💻"
         case .combo: "🔥"
         case .offlineMining: "🌙"
+        case .howToPlay: "📖"
         case .daily: "🎁"
         case .prestige: "🌟"
         }
@@ -23,6 +24,7 @@ enum GuideTip: String, CaseIterable {
         case .buyMiner: "You can afford a Chromebook. Miners earn coins for you every second."
         case .combo: "Tap quickly to build a combo: up to twice the coins per tap."
         case .offlineMining: "Miners stop a minute after you leave. Offline Mining keeps them earning while the app is closed."
+        case .howToPlay: "How to Play is in Settings, behind the gear at the top, with the rules for every game."
         case .daily: "A daily reward is waiting. Claim one every day to build a streak, and check the day's quests."
         case .prestige: "Prestiging now would speed you up a lot. Your points also buy permanent perks."
         }
@@ -34,6 +36,7 @@ enum GuideTip: String, CaseIterable {
         case .tapCoin, .combo: nil
         case .buyMiner: "Shop"
         case .offlineMining: "Get It"
+        case .howToPlay: "Open"
         case .daily: "Daily"
         case .prestige: "Prestige"
         }
@@ -50,6 +53,9 @@ enum GuideTip: String, CaseIterable {
             game.stats.bestCombo < 10 && game.stats.taps >= 60
         case .offlineMining:
             game.offlineMiningLevel == 0 && game.totalMiners >= 3 && game.offlineMiningPrice.map { game.coins >= $0 } == true
+        case .howToPlay:
+            // Once the first miners are working, for the rest of the first run's opening.
+            (2...15).contains(game.totalMiners) && game.stats.prestiges == 0
         case .daily:
             dailyRewardReady && game.stats.longestStreak == 0 && game.totalMiners > 0
         case .prestige:
@@ -63,11 +69,13 @@ struct GuideTipCard: View {
     let openShop: () -> Void
     let openPowerUps: () -> Void
     let openDaily: () -> Void
+    let openHowToPlay: () -> Void
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.dismissedTipsKey) private var dismissed = ""
+    @AppStorage(Preferences.howToPlaySeenKey) private var seenHowToPlay = false
 
     var body: some View {
-        let closed = Set(dismissed.split(separator: ",").map(String.init))
+        let closed = Set(dismissed.split(separator: ",").map(String.init) + (seenHowToPlay ? [GuideTip.howToPlay.rawValue] : []))
         let tip = GuideTip.allCases.first {
             !closed.contains($0.rawValue) && $0.applies(to: store.game, dailyRewardReady: store.isDailyRewardReady)
         }
@@ -109,6 +117,7 @@ struct GuideTipCard: View {
         case .buyMiner, .prestige: openShop()
         case .offlineMining: openPowerUps()
         case .daily: openDaily()
+        case .howToPlay: openHowToPlay()
         case .tapCoin, .combo: break
         }
     }

@@ -116,7 +116,7 @@ struct VideoPokerTests {
     // MARK: Betting
 
     func player() -> GameState {
-        var game = GameState.make(miners: [.desktop: 5]) // 10 coins a second.
+        var game = GameState.make(miners: [.desktop: 10]) // 10 coins a second.
         game.tokens = [.shibaInu: 100]
         return game
     }
@@ -202,7 +202,7 @@ struct VideoPokerPracticeTests {
         #expect(kings.bonus == 0)
         #expect(kings.net == 50)
         // The same draw through the wallet pays the same tokens, plus the coin bonus.
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         game.tokens = [.shibaInu: 25]
         game.pokerRound = round
         let paid = game.drawPoker(holding: [0, 1])

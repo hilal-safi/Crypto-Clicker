@@ -259,7 +259,7 @@ struct Merge2048ModeTests {
 @Suite("2048 rewards")
 struct Merge2048RewardTests {
     @Test func scoresPayLikeTheOtherArcadeGames() {
-        var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
+        var game = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
         let first = game.finishMerge2048(score: 2_000, bestTile: 256)
         #expect(first == ArcadePayout(coins: 1_650, isNewBest: true)) // 2,000 × 0.055 × 10 × 1.5
         #expect(game.stats.merge2048Games == 1)
@@ -276,7 +276,7 @@ struct Merge2048RewardTests {
     }
 
     @Test func makingA2048TilePaysTenMinutesMore() {
-        var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
+        var game = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
         #expect(game.merge2048TileBonus == 6_000)
         #expect(game.merge2048Reward(score: 20_000, bestTile: 1_024) == 16_500)
         #expect(game.merge2048Reward(score: 20_000, bestTile: 2_048) == 22_500)
@@ -288,7 +288,7 @@ struct Merge2048RewardTests {
     }
 
     @Test func aGameLeftOpenIsPaidWithItsBestTile() {
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         game.holdArcadeRun(ArcadeRun(game: .merge2048, score: 400, detail: 64))
         let paid = game.payUnfinishedRun()
         #expect(paid?.payout.coins == 330) // 400 × 0.055 × 10 × 1.5
@@ -306,7 +306,7 @@ struct Merge2048RewardTests {
     }
 
     @Test func dailyStarsPayOnceADay() {
-        var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
+        var game = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
         let star = game.merge2048DailyStarReward
         #expect(star == 2_000) // 200 seconds.
         let scores = Merge2048Game.dailyStarScores
@@ -342,7 +342,7 @@ struct Merge2048RewardTests {
     }
 
     @Test func aDailyPuzzleLeftOpenPaysItsPointsOnly() {
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         game.holdArcadeRun(ArcadeRun(game: .merge2048, score: 2_000, detail: 256, stage: ArcadeRun.dailyStage))
         let paid = game.payUnfinishedRun()
         #expect(paid?.payout.coins == game.arcadeReward(.merge2048, score: 2_000))

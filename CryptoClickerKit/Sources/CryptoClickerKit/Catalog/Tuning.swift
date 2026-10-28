@@ -1,11 +1,12 @@
 import Foundation
 
 /// Every balance number in one place. Tuned with simulated players who catch airdrops, claim the
-/// dailies, play some arcade and earn achievements (see `PacingTests`): casual play reaches the
-/// first ten miners and every mini-game in about a day and a half and the first prestige after about
-/// two days, and prestiges, perks and the three extra miner tiers keep new things arriving for about
-/// two weeks. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts
-/// here are whole numbers; only rates may be fractional.
+/// dailies, play some arcade and earn achievements (see `PacingTests`): someone who keeps playing
+/// buys a Data Center after more than an hour; casual play (four ten-minute visits a day) reaches
+/// the Data Center in about a day, the first ten miners and every mini-game in about three days and
+/// the first prestige soon after, and prestiges and perks keep new things arriving for about two
+/// weeks. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here
+/// are whole numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
     /// Each additional unit of a miner costs this much more than the previous one.
@@ -67,11 +68,12 @@ public enum Tuning {
     public static let stepWindowDays = 7
 
     // MARK: Pace
-    /// Every price is its list price times this: about 58% more for the cheapest things, easing to
-    /// about 52% more from a million coins up. Raising every price is the same as slowing all income.
-    /// (Three rounds of slowing: 15% early and 10% overall, then 25% and 15% more, then 10% and 20%.)
+    /// Every price is its list price times this: about double for everything under 5,000 coins,
+    /// easing to about 52% more from a million coins up, so the opening is the slowest part.
+    /// Raising every price is the same as slowing all income. (Four rounds of slowing: 15% early and
+    /// 10% overall, then 25% and 15% more, then 10% and 20%, then 30% more on the opening only.)
     public static func priceScale(forListPrice price: Double) -> Double {
-        let early = 1.15 * 1.25 * 1.1, late = 1.10 * 1.15 * 1.2, start = 5_000.0, end = 1e6
+        let early = 1.15 * 1.25 * 1.1 * 1.3, late = 1.10 * 1.15 * 1.2, start = 5_000.0, end = 1e6
         guard price.isFinite, price > start else { return early }
         guard price < end else { return late }
         return early + (late - early) * log10(price / start) / log10(end / start)
@@ -125,7 +127,8 @@ public enum Tuning {
     public static let airdropBankShare = 0.15
     public static let airdropIncomeSeconds = 900.0
     public static let airdropMinimumSeconds = 30.0
-    /// A rare whale airdrop pays this many seconds of income.
+    /// A rare whale airdrop pays this many seconds of income, but never more than the coins mined
+    /// so far in the run (see `GameState.whaleAmount`).
     public static let whaleChance = 0.05
     public static let whaleIncomeSeconds = 3_600.0
 

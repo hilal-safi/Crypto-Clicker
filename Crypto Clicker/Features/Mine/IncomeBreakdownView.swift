@@ -119,7 +119,7 @@ struct IncomeBreakdownView: View {
                         row("Each step", amount(game.stepValue))
                     }
                     row("Coin airdrop", "Up to \(amount(game.rewardIncome * Tuning.airdropIncomeSeconds))")
-                    row("Whale airdrop", amount(game.rewardIncome * Tuning.whaleIncomeSeconds))
+                    row("Whale airdrop", amount(game.whaleAmount))
                     row("Daily quests", "\(amount(game.rewardIncome * 600 * game.dailyRewardMultiplier)) to \(amount(game.rewardIncome * 1_800 * game.dailyRewardMultiplier))")
                 }
             }

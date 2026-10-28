@@ -255,7 +255,7 @@ struct PumpDumpTests {
     }
 
     @Test func runsPayAndCountTowardTheRecords() {
-        var game = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
+        var game = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
         let payout = game.finishPumpDump(score: 400, coinsHit: 40, bestCombo: 18, scamsHit: 2, rounds: 3)
         #expect(payout.isNewBest)
         #expect(payout.coins == (400 * Tuning.pumpDumpSecondsPerPoint * 10 * 1.5).rounded())

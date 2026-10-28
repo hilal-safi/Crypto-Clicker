@@ -59,7 +59,7 @@ struct ToastView: View {
 }
 
 /// A falling airdrop: catch it before it goes for coins or a Bull Run. A rare whale is bigger,
-/// bluer and worth an hour of income.
+/// bluer and worth up to an hour of income.
 struct AirdropButton: View {
     let airdrop: Airdrop
     let action: () -> Void

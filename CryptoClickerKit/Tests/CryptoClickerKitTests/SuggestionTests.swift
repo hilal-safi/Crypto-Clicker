@@ -7,12 +7,13 @@ struct SuggestionTests {
     @Test func theQuickestPaybackWins() throws {
         let game = GameState.make(coins: 10_000, miners: [.chromebook: 10, .desktop: 1])
         let best = try #require(game.bestPurchase)
-        // A Desktop (2 coins/s for about 265) beats a Chromebook (1 coin/s for about 235) and a GPU Rig.
+        // A Desktop (a coin a second for 474) beats a Chromebook (half a coin for 417) and a GPU Rig.
         #expect(best.purchase == .miner(.desktop))
         #expect(best.name == "Desktop")
         #expect(best.price == game.price(of: .miner(.desktop)))
-        #expect(best.incomeGain == 2)
-        #expect(abs(best.payback - best.price / 2) < 1e-9)
+        #expect(best.price == 474)
+        #expect(best.incomeGain == 1)
+        #expect(abs(best.payback - best.price) < 1e-9)
     }
 
     @Test func milestonesCount() throws {
@@ -20,7 +21,7 @@ struct SuggestionTests {
         let game = GameState.make(coins: 5_000, miners: [.chromebook: 24, .desktop: 3])
         let best = try #require(game.bestPurchase)
         #expect(best.purchase == .miner(.chromebook))
-        #expect(best.incomeGain == 26)
+        #expect(best.incomeGain == 13) // 25 × 0.5 × 2, up from 24 × 0.5.
     }
 
     @Test func onlyAffordableThingsThatAddIncomeAreSuggested() {
@@ -51,7 +52,7 @@ struct GameRecordTests {
     }
 
     @Test func recordsReadTheStatistics() {
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         #expect(game.record(for: .snake) == "Best 0")
         #expect(game.record(for: .moon) == "No cash-outs yet")
         game.finishSnake(score: 250, length: 28)
@@ -66,7 +67,7 @@ struct GameRecordTests {
     }
 
     @Test func casinoStatisticsTrackWinsAndStreaks() {
-        var game = GameState.make(miners: [.desktop: 5])
+        var game = GameState.make(miners: [.desktop: 10])
         game.tokens = [.shibaInu: 50]
         let win = BlackjackResult(outcome: .win, bet: 2, payout: 4)
         let loss = BlackjackResult(outcome: .lose, bet: 2, payout: 0)

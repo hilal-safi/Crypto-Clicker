@@ -227,16 +227,16 @@ struct PacingTests {
         player.play(seconds: 60 * 60)
         let first = MinerID.allCases.prefix(6).map { "\($0.name) \(Int(player.firstBought[$0] ?? -60) / 60)m" }
         print("Opening:", first.joined(separator: ", "))
-        // A Chromebook in the first minute and a Desktop soon after, but the GPU Rig takes a few
-        // minutes, a Server ten or more, and the Data Center most of half an hour.
+        // A Chromebook in the first minute and a Desktop a minute or two later, but the GPU Rig takes
+        // about ten minutes, a Server about half an hour, and the Data Center more than the first hour.
         #expect(player.firstBought[.chromebook].map { $0 < 60 } == true)
-        #expect(player.firstBought[.desktop].map { $0 < 4 * 60 } == true)
-        #expect(player.firstBought[.gpuRig].map { $0 > 3 * 60 } == true)
-        #expect(player.firstBought[.server].map { $0 > 10 * 60 } == true)
-        #expect(player.firstBought[.dataCenter].map { (20 * 60...50 * 60).contains($0) } == true)
-        // Blackjack and Tetris cost a few thousand coins: both arrive in the first quarter hour.
+        #expect(player.firstBought[.desktop].map { (60...5 * 60).contains($0) } == true)
+        #expect(player.firstBought[.gpuRig].map { $0 > 8 * 60 } == true)
+        #expect(player.firstBought[.server].map { $0 > 25 * 60 } == true)
+        #expect(player.firstBought[.dataCenter] == nil)
+        // Blackjack and Tetris cost a few thousand coins: both arrive in the first twenty minutes.
         #expect(player.gamesUnlockedAt[.blackjack].map { $0 < 15 * 60 } == true)
-        #expect(player.gamesUnlockedAt[.tetris].map { $0 < 15 * 60 } == true)
+        #expect(player.gamesUnlockedAt[.tetris].map { $0 < 20 * 60 } == true)
         // No daily reward or quests on the first day.
         #expect(player.game.stats.earnedFromDaily == 0)
     }
@@ -249,13 +249,14 @@ struct PacingTests {
         print("Active 3h:", tiers.joined(separator: ", "), "| first point", hours(player.firstPointAt),
               "| income", CoinFormat.short(player.game.baseIdleIncome))
         print("Active 3h games:", games.joined(separator: ", "))
-        // A first session should feel rewarding but leave the game ahead: prestige points start
-        // to build, but prestiging isn't worth it yet and the last tiers are still to come.
-        #expect((7...9).contains(player.firstBought.count))
+        // A first session should feel rewarding but leave most of the game ahead: a Data Center after
+        // more than an hour, about seven tiers in three hours, and no prestige points yet.
+        #expect(player.firstBought[.dataCenter].map { $0 > 3_600 } == true)
+        #expect((6...8).contains(player.firstBought.count))
         #expect(player.firstPointAt.map { $0 >= 1.5 * 3_600 } ?? true)
         #expect(player.prestigeTimes.isEmpty)
-        // New games keep coming: most of them in the first three hours, the last few later.
-        #expect((8...10).contains(player.gamesUnlockedAt.count))
+        // New games keep coming: more than half of them in the first three hours, the rest later.
+        #expect((6...9).contains(player.gamesUnlockedAt.count))
         // Nobody who stays in the app needs Offline Mining.
         #expect(player.game.offlineMiningLevel == 0)
     }
@@ -266,26 +267,48 @@ struct PacingTests {
         player.play(seconds: 3 * 3_600)
         print("Relaxed 3h: tiers", player.firstBought.count, "| first point", hours(player.firstPointAt),
               "| games", player.gamesUnlockedAt.count, "| income", CoinFormat.short(player.game.baseIdleIncome))
-        #expect((5...8).contains(player.firstBought.count))
+        #expect((4...7).contains(player.firstBought.count))
         #expect(player.prestigeTimes.isEmpty)
     }
 
-    @Test func aCasualPlayerReachesEveryTierAndAPrestigeWithinDays() {
+    /// A few short looks over half a day: tapping twice a second, catching half the airdrops and
+    /// never playing the arcade.
+    @Test func aLightPlayerEarnsHundredsOfThousandsNotMillionsInTheFirstHalfDay() {
+        var player = SimulatedPlayer(tapsPerSecond: 2, awayHours: [2, 3, 3, 3])
+        player.catchRate = 0.5
+        player.arcadeSecondsPerTen = 0
+        for gap in [2.0, 3, 3, 3, 1] {
+            player.play(seconds: 240)
+            player.leave(for: gap * 3_600 - 240)
+        }
+        let lifetime = player.game.stats.lifetimeCoins
+        print("Light 12h:", CoinFormat.short(lifetime), "mined | tiers", player.firstBought.count,
+              "| offline", CoinFormat.duration(player.game.offlineCap))
+        // Twenty minutes of play spread over twelve hours: a few miner tiers and a few hundred
+        // thousand coins, mostly earned while away, not millions.
+        #expect((50_000...500_000).contains(lifetime))
+        #expect((2...4).contains(player.firstBought.count))
+        #expect(player.game.offlineMiningLevel >= 1)
+    }
+
+    @Test func aCasualPlayerReachesTheTenthTierAndAPrestigeWithinDays() {
         let player = casualPlayer(days: 5)
         let tiers = MinerID.allCases.map { "\($0.name) \(days(player.firstBought[$0]))" }
         let lastGame = player.gamesUnlockedAt.values.max()
         print("Casual 5 days:", tiers.joined(separator: ", "), "| prestiges", player.prestigeTimes.map(days),
               "| every game by", days(lastGame), "| points", player.game.prestigePoints,
               "| offline", CoinFormat.duration(player.game.offlineCap))
-        // The first ten tiers take a day or two, and the Shop suggests the first prestige soon after.
+        // The Data Center takes about a day, the first ten tiers about three, and the Shop suggests the
+        // first prestige soon after.
+        #expect(player.firstBought[.dataCenter].map { (0.5 * 86_400...1.5 * 86_400).contains($0) } == true)
         let tenthTier = player.firstBought[.spaceColony]
-        #expect(tenthTier.map { (1 * 86_400...3 * 86_400).contains($0) } == true)
-        #expect(player.firstPrestigeAt.map { (1.25 * 86_400...3 * 86_400).contains($0) } == true)
-        #expect((3...7).contains(player.prestigeTimes.count))
-        // Every game by about the second day, and the extra tiers after the first prestiges.
+        #expect(tenthTier.map { (2 * 86_400...3.5 * 86_400).contains($0) } == true)
+        #expect(player.firstPrestigeAt.map { (2.5 * 86_400...4 * 86_400).contains($0) } == true)
+        #expect((1...3).contains(player.prestigeTimes.count))
+        // Every game by about the third day, and the first extra tier after the first prestige.
         #expect(player.gamesUnlockedAt.count == MiniGame.allCases.count)
-        #expect(lastGame.map { $0 < 2.5 * 86_400 } == true)
-        #expect(player.firstBought[.galacticHashnet] != nil)
+        #expect(lastGame.map { $0 < 3.5 * 86_400 } == true)
+        #expect(player.firstBought[.lunarBase] != nil)
         // Offline Mining covers the longest absence (ten hours) by the end of the first day.
         #expect(player.game.offlineCap >= 10 * 3_600)
     }
@@ -297,9 +320,11 @@ struct PacingTests {
         let player = casualPlayer(days: 14)
         let perks = PerkID.allCases.sorted { $0.cost < $1.cost }.map { "\($0.name) \(days(player.perksBoughtAt[$0]))" }
         print("Casual 14 days: prestiges", player.prestigeTimes.count, "| points", player.game.prestigePoints,
-              "| perks", perks.joined(separator: ", "))
-        // The cheap perks come with the first prestiges, the dearest ones after more than a week.
-        #expect(player.perksBoughtAt[.headStart].map { $0 < 3 * 86_400 } == true)
+              "| Galactic Hashnet", days(player.firstBought[.galacticHashnet]), "| perks", perks.joined(separator: ", "))
+        // The cheap perks come with the first prestiges, the dearest ones after more than a week, and
+        // the last miner tier within the two weeks.
+        #expect(player.perksBoughtAt[.headStart].map { $0 < 4 * 86_400 } == true)
+        #expect(player.firstBought[.galacticHashnet] != nil)
         #expect(player.perksBoughtAt[.engineeringTeam].map { $0 > 7 * 86_400 } ?? true)
         #expect(player.perksBoughtAt[.compoundInterest].map { $0 > 10 * 86_400 } ?? true)
         #expect(player.perksBoughtAt.count >= 12)
@@ -314,9 +339,9 @@ struct PacingTests {
     }
 
     @Test func tapsStayWorthHavingAllGameLong() {
-        // Half an hour in, three taps a second add more than half again to idle income...
+        // An hour in, three taps a second add more than half again to idle income...
         var early = SimulatedPlayer(tapsPerSecond: 3)
-        early.play(seconds: 30 * 60)
+        early.play(seconds: 60 * 60)
         let earlyGame = early.game
         #expect(3 * earlyGame.tapValue(at: early.now) >= 0.5 * earlyGame.baseIdleIncome)
         // ...and days in, a single tap is worth most of a second of production.
@@ -328,7 +353,8 @@ struct PacingTests {
                 late.leave(for: gap * 3_600 - 600)
             }
         }
-        #expect(late.game.tapValue(at: late.now) >= 0.75 * late.game.baseProduction)
+        // (Four of the five tapping upgrades by then, 65%: Satoshi's Touch comes later.)
+        #expect(late.game.tapValue(at: late.now) >= 0.6 * late.game.baseProduction)
         #expect(3 * late.game.tapValue(at: late.now) >= late.game.baseIdleIncome)
     }
 }

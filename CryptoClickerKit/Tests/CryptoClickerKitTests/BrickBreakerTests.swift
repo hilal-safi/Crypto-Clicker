@@ -371,7 +371,7 @@ struct BrickBreakerTests {
     }
 
     @Test func gamesRecordTheirLevelsBossesAndPowerUps() {
-        var state = GameState.make(miners: [.desktop: 5])
+        var state = GameState.make(miners: [.desktop: 10])
         state.finishBrickBreaker(score: 4_000, bricks: 120, level: 6, bosses: 1, powerUps: 7, bestStreak: 3)
         state.finishBrickBreaker(score: 900, bricks: 30, level: 2, bosses: 0, powerUps: 1, bestStreak: 1)
         #expect(state.stats.brickBreakerLevelsCleared == 6)

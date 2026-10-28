@@ -70,7 +70,7 @@ struct WatchSyncTests {
     }
 
     @Test func aSnapshotSentFromTheBackgroundProjectsFromTheGameClock() {
-        var game = GameState.make(miners: [.desktop: 10])
+        var game = GameState.make(miners: [.desktop: 20]) // 20 coins per second.
         game.offlineMiningLevel = 4 // Two hours.
         game.coins = 1_000
         // The phone app went to the background at t0 and is woken by the watch 3 hours later.
@@ -109,7 +109,7 @@ struct WatchSyncTests {
     }
 
     @Test func snapshotsCarryRatesAndSteps() {
-        var game = GameState.make(miners: [.desktop: 10], upgrades: [.coinClicker])
+        var game = GameState.make(miners: [.desktop: 20], upgrades: [.coinClicker])
         game.stats.taps = Tuning.stepsUnlockTaps
         game.connectSteps(today: "2026-10-24")
         game.creditSteps([StepDay(key: "2026-10-24", steps: 321)], today: "2026-10-24", at: t0)
