@@ -17,6 +17,7 @@ struct BlackjackView: View {
     @State private var lastBonus = 0.0
     @State private var settledRounds = 0
     @State private var effects = Effects()
+    @State private var showingHelp = false
     /// Height of the table above the controls; short screens get smaller cards so both hands fit.
     @State private var tableHeight: CGFloat = 600
 
@@ -69,6 +70,7 @@ struct BlackjackView: View {
         .navigationTitle("Blackjack")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .gameHelp(.blackjack, isPresented: $showingHelp)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 CoinAmount(amount: game.coins, font: .subheadline.weight(.semibold), iconSize: 16)

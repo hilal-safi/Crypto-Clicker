@@ -19,6 +19,7 @@ struct MoonView: View {
     @State private var result: MoonResult?
     @State private var flights = 0
     @State private var effects = Effects()
+    @State private var showingHelp = false
 
     private var isFlying: Bool { launchDate != nil && store.game.moonRound != nil }
 
@@ -57,6 +58,7 @@ struct MoonView: View {
         .navigationTitle("To the Moon")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .gameHelp(.moon, isPresented: $showingHelp, isEnabled: !isFlying)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 CoinAmount(amount: game.coins, font: .subheadline.weight(.semibold), iconSize: 16)

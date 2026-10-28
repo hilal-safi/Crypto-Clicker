@@ -21,6 +21,7 @@ struct SlotsView: View {
     @State private var spinTask: Task<Void, Never>?
     @State private var showingPaytable = false
     @State private var effects = Effects()
+    @State private var showingHelp = false
 
     private var isSpinning: Bool { !spinning.isEmpty }
 
@@ -60,6 +61,7 @@ struct SlotsView: View {
         .navigationTitle("Crypto Slots")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .gameHelp(.slots, isPresented: $showingHelp)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 CoinAmount(amount: store.heldCoins ?? game.coins, font: .subheadline.weight(.semibold), iconSize: 16)

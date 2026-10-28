@@ -369,21 +369,33 @@ enum BubbleBot {
 }
 
 /// Taps coins 0.35 s after they appear, at most one tap every 0.2 s, and leaves scams and shaking
-/// rug pulls alone. A round takes 30 seconds, plus about 3 to start the next.
+/// rug pulls alone. Plays whole runs, round after round until one falls short of its goal. A round
+/// takes 30 seconds, plus about 3 to start the next.
 enum PumpDumpBot {
     static let reaction = 0.35
     static let tapGap = 0.2
     static let secondsBetweenRounds = 3.0
 
-    static func pointsPerMinute(seed: UInt64, rounds: Int = 4) -> Double {
+    static func pointsPerMinute(seed: UInt64, runs: Int = 2, maxRounds: Int = 12) -> Double {
         var rng = SeededGenerator(seed: seed)
         var total = 0
-        for _ in 0..<rounds {
-            var game = PumpDumpGame()
+        var rounds = 0
+        for _ in 0..<runs {
+            let game = play(using: &rng, maxRounds: maxRounds)
+            total += game.score
+            rounds += game.round
+        }
+        let minutes = Double(rounds) * (PumpDumpGame.roundLength + secondsBetweenRounds) / 60
+        return Double(total) / minutes
+    }
+
+    static func play<R: RandomNumberGenerator>(using rng: inout R, maxRounds: Int = 12) -> PumpDumpGame {
+        var game = PumpDumpGame()
+        while true {
             var nextTap = 0.0
-            while !game.isOver {
+            while game.phase == .playing {
                 game.advance(by: 1.0 / 60, using: &rng)
-                guard game.time >= nextTap else { continue }
+                guard game.phase == .playing, game.time >= nextTap else { continue }
                 let now = game.time
                 let safe = game.targets.filter { target in
                     !target.isScam(at: now) && now - target.appearedAt >= reaction
@@ -394,10 +406,9 @@ enum PumpDumpBot {
                     nextTap = now + tapGap
                 }
             }
-            total += game.score
+            guard game.phase == .roundCleared, game.round < maxRounds else { return game }
+            game.startNextRound()
         }
-        let minutes = Double(rounds) * (PumpDumpGame.roundLength + secondsBetweenRounds) / 60
-        return Double(total) / minutes
     }
 }
 

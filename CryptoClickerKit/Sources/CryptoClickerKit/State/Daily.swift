@@ -132,7 +132,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .snake: "Eat \(amount) coins in one Snake game"
         case .brickBreaker: "Break \(amount) bricks in one Brick Breaker game"
         case .bubbleBlaster: "Pop \(amount) bubbles in one Bubble Blaster game"
-        case .pumpDump: "Score \(amount) in one round of Pump and Dump"
+        case .pumpDump: "Score \(amount) in one Pump and Dump run"
         case .tokenSwap: "Score \(amount) in one round of Token Swap"
         case .blackjack: "Win \(amount) Blackjack hands today"
         case .slots: "Win \(amount) spins at Crypto Slots today"
@@ -158,7 +158,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .snake: [12, 18, 25]
         case .brickBreaker: [25, 35, 50]
         case .bubbleBlaster: [30, 45, 60]
-        case .pumpDump: [300, 450, 600]
+        case .pumpDump: [2_000, 3_000, 4_500]
         case .tokenSwap: [2_000, 3_000, 4_000]
         case .blackjack: [2, 3, 4]
         case .slots: [3, 5]

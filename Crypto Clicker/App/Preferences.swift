@@ -1,4 +1,5 @@
 import SwiftUI
+import CryptoClickerKit
 
 /// Player preferences, stored in `UserDefaults` under the same keys as earlier versions.
 enum Preferences {
@@ -21,6 +22,9 @@ enum Preferences {
     static let lastShortWelcomeDayKey = "lastShortWelcomeDay"
     /// First-run tips the player has closed, comma-separated.
     static let dismissedTipsKey = "dismissedTips"
+
+    /// The player has seen a mini-game's How to Play (it opens by itself the first time).
+    static func helpSeenKey(_ game: MiniGame) -> String { "helpSeen.\(game.rawValue)" }
 }
 
 /// The haptic each tap on the coin plays.

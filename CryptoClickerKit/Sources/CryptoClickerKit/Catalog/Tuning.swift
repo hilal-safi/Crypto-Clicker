@@ -181,7 +181,8 @@ public enum Tuning {
     public static let brickBreakerSecondsPerPoint = 0.4
     public static let bubbleSecondsPerPoint = 0.1
     public static let merge2048SecondsPerPoint = 0.055
-    public static let pumpDumpSecondsPerPoint = 0.055
+    /// Pump and Dump runs go on round after round, and later rounds score faster.
+    public static let pumpDumpSecondsPerPoint = 0.043
     public static let tokenSwapSecondsPerPoint = 0.023
     /// Making a 2048 tile also pays this many seconds of income.
     public static let merge2048WinSeconds = 600.0

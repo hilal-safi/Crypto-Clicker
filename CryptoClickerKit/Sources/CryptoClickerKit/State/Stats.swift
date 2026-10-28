@@ -75,6 +75,8 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var pumpDumpCoinsHit = 0
     public internal(set) var pumpDumpScamsHit = 0
     public internal(set) var pumpDumpBestCombo = 0
+    /// The furthest round a Pump and Dump run has reached.
+    public internal(set) var pumpDumpBestRound = 0
     public internal(set) var pokerHands = 0
     /// Hands that paid (a pair of jacks or better).
     public internal(set) var pokerWins = 0
@@ -129,7 +131,7 @@ public struct Stats: Codable, Equatable, Sendable {
         case brickBreakerGames, brickBreakerBestScore, bricksBroken, bubbleGames, bubbleBestScore, bubblesPopped
         case merge2048Games, merge2048BestScore, merge2048BestTile, merge2048Points
         case moonFlights, moonCashOuts, moonBestMultiplier, moonWagered, moonPaidOut, moonBiggestWin
-        case pumpDumpGames, pumpDumpBestScore, pumpDumpCoinsHit, pumpDumpScamsHit, pumpDumpBestCombo
+        case pumpDumpGames, pumpDumpBestScore, pumpDumpCoinsHit, pumpDumpScamsHit, pumpDumpBestCombo, pumpDumpBestRound
         case pokerHands, pokerWins, pokerWagered, pokerPaidOut, pokerBestHand, pokerRoyals, pokerBiggestWin
         case tokenSwapGames, tokenSwapBestScore, tokenSwapTokens, tokenSwapBestChain, tokenSwapBlasts
         case tokensBought, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
@@ -211,6 +213,7 @@ public struct Stats: Codable, Equatable, Sendable {
         pumpDumpCoinsHit = c.value(.pumpDumpCoinsHit, default: 0)
         pumpDumpScamsHit = c.value(.pumpDumpScamsHit, default: 0)
         pumpDumpBestCombo = c.value(.pumpDumpBestCombo, default: 0)
+        pumpDumpBestRound = c.value(.pumpDumpBestRound, default: 0)
         pokerHands = c.value(.pokerHands, default: 0)
         pokerWins = c.value(.pokerWins, default: 0)
         pokerWagered = c.value(.pokerWagered, default: 0)
@@ -299,6 +302,7 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(pumpDumpCoinsHit, forKey: .pumpDumpCoinsHit)
         try c.encode(pumpDumpScamsHit, forKey: .pumpDumpScamsHit)
         try c.encode(pumpDumpBestCombo, forKey: .pumpDumpBestCombo)
+        try c.encode(pumpDumpBestRound, forKey: .pumpDumpBestRound)
         try c.encode(pokerHands, forKey: .pokerHands)
         try c.encode(pokerWins, forKey: .pokerWins)
         try c.encode(pokerWagered, forKey: .pokerWagered)

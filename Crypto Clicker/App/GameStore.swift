@@ -589,9 +589,9 @@ final class GameStore {
     }
 
     @discardableResult
-    func finishPumpDump(score: Int, coinsHit: Int, bestCombo: Int, scamsHit: Int) -> ArcadePayout {
+    func finishPumpDump(score: Int, coinsHit: Int, bestCombo: Int, scamsHit: Int, rounds: Int) -> ArcadePayout {
         let payout = perform { game, _ in
-            game.finishPumpDump(score: score, coinsHit: coinsHit, bestCombo: bestCombo, scamsHit: scamsHit)
+            game.finishPumpDump(score: score, coinsHit: coinsHit, bestCombo: bestCombo, scamsHit: scamsHit, rounds: rounds)
         }
         save()
         return payout

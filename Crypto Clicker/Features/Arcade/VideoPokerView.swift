@@ -23,6 +23,7 @@ struct VideoPokerView: View {
     @State private var holdTaps = 0
     @State private var wins = 0
     @State private var effects = Effects()
+    @State private var showingHelp = false
 
     enum Phase {
         /// Choosing a bet (and, after a hand, showing how it went).
@@ -66,6 +67,7 @@ struct VideoPokerView: View {
         .navigationTitle("Video Poker")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .gameHelp(.videoPoker, isPresented: $showingHelp)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 CoinAmount(amount: store.heldCoins ?? game.coins, font: .subheadline.weight(.semibold), iconSize: 16)

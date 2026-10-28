@@ -34,9 +34,11 @@ extension GameState {
         case .bubbleBlaster:
             "Best \(CoinFormat.grouped(s.bubbleBestScore))"
         case .pumpDump:
-            s.pumpDumpBestCombo > 0
-                ? "Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))"
-                : "Best \(CoinFormat.grouped(s.pumpDumpBestScore))"
+            s.pumpDumpBestRound > 0
+                ? "Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · round \(s.pumpDumpBestRound) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))"
+                : s.pumpDumpBestCombo > 0
+                    ? "Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))"
+                    : "Best \(CoinFormat.grouped(s.pumpDumpBestScore))"
         case .tokenSwap:
             s.tokenSwapBestChain > 1
                 ? "Best \(CoinFormat.grouped(s.tokenSwapBestScore)) · chain of \(CoinFormat.grouped(s.tokenSwapBestChain))"

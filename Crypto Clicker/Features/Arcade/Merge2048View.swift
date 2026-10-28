@@ -17,6 +17,7 @@ struct Merge2048View: View {
     @State private var hasWon = false
     @State private var showsWinBanner = false
     @State private var isConfirmingEnd = false
+    @State private var showingHelp = false
     /// The drag that already slid the board; each swipe slides once.
     @State private var swipeStart: CGPoint?
 
@@ -59,6 +60,7 @@ struct Merge2048View: View {
         .animation(.snappy, value: isPlaying)
         .navigationTitle("2048")
         .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.merge2048, isPresented: $showingHelp)
         .confirmationDialog("End this game?", isPresented: $isConfirmingEnd, titleVisibility: .visible) {
             Button("End and Collect") { endGame(byPlayer: true) }
             Button("Keep Playing", role: .cancel) {}
@@ -102,7 +104,8 @@ struct Merge2048View: View {
             } else {
                 GamePanel(title: "2048", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.merge2048BestScore,
-                              howTo: "Swipe to slide every tile. Two tiles with the same number merge into one, and the new number is added to your score. Make a 2048 tile for a bonus of \(CoinFormat.short(store.game.merge2048TileBonus)) coins. End the game whenever you like to collect.")
+                              howTo: "Swipe to slide every tile. Two tiles with the same number merge into one, and the new number is added to your score. Make a 2048 tile for a bonus of \(CoinFormat.short(store.game.merge2048TileBonus)) coins. End the game whenever you like to collect.",
+                              showHelp: { showingHelp = true })
                 }
             }
         }

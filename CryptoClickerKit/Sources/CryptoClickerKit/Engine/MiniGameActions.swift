@@ -276,7 +276,7 @@ extension GameState {
         case .brickBreaker: finishBrickBreaker(score: run.score, bricks: run.detail, level: run.extra)
         case .bubbleBlaster: finishBubbleBlaster(score: run.score, popped: run.detail, bestShot: run.extra)
         case .merge2048: finishMerge2048(score: run.score, bestTile: run.detail)
-        case .pumpDump: finishPumpDump(score: run.score, coinsHit: run.detail, bestCombo: run.extra)
+        case .pumpDump: finishPumpDump(score: run.score, coinsHit: run.detail, bestCombo: run.extra, rounds: max(1, run.stage))
         case .tokenSwap: finishTokenSwap(score: run.score, tokens: run.detail, bestChain: run.extra)
         case .blackjack, .slots, .moon, .videoPoker: ArcadePayout(coins: 0, isNewBest: false)
         }
@@ -362,14 +362,16 @@ extension GameState {
         return points + (bestTile >= Merge2048Game.winningValue ? merge2048TileBonus : 0)
     }
 
+    /// `rounds` is the round the run reached.
     @discardableResult
-    public mutating func finishPumpDump(score: Int, coinsHit: Int, bestCombo: Int, scamsHit: Int = 0) -> ArcadePayout {
+    public mutating func finishPumpDump(score: Int, coinsHit: Int, bestCombo: Int, scamsHit: Int = 0, rounds: Int = 1) -> ArcadePayout {
         let isNewBest = score > stats.pumpDumpBestScore
         stats.pumpDumpGames += 1
         stats.pumpDumpBestScore = max(stats.pumpDumpBestScore, score)
         stats.pumpDumpCoinsHit += max(0, coinsHit)
         stats.pumpDumpScamsHit += max(0, scamsHit)
         stats.pumpDumpBestCombo = max(stats.pumpDumpBestCombo, bestCombo)
+        stats.pumpDumpBestRound = max(stats.pumpDumpBestRound, rounds)
         return payArcade(.pumpDump, score: score, isNewBest: isNewBest, challengeValue: score)
     }
 

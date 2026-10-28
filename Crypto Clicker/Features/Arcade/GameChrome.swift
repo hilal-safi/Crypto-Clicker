@@ -111,7 +111,8 @@ struct ArcadeButton: View {
     }
 }
 
-/// The start and game-over card for arcade games: wide, over a dimmed screen.
+/// The start and game-over card for arcade games: wide, over a dimmed screen. On a screen too
+/// short for it (a small phone, or large text), the card scrolls.
 struct GamePanel<Content: View>: View {
     let title: String
     let buttonTitle: String
@@ -122,28 +123,41 @@ struct GamePanel<Content: View>: View {
         ZStack {
             Color.black.opacity(0.35)
                 .ignoresSafeArea()
-            VStack(spacing: 16) {
-                Text(title)
-                    .font(.largeTitle.bold())
-                content
-                Button(action: action) {
-                    Label(buttonTitle, systemImage: "play.fill")
-                        .font(.title3.bold())
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
+            ViewThatFits(in: .vertical) {
+                card
+                ScrollView {
+                    card
+                        .padding(.vertical, 16)
                 }
-                .buttonStyle(.glassProminent)
-                .padding(.top, 4)
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .multilineTextAlignment(.center)
-            .padding(24)
-            .frame(maxWidth: 440)
-            .glassEffect(.regular, in: .rect(cornerRadius: 30))
-            .padding(.horizontal, 16)
             .accessibilityElement(children: .contain)
             .accessibilityAddTraits(.isModal)
         }
         .transition(.opacity.combined(with: .scale(scale: 0.96)))
+    }
+
+    private var card: some View {
+        VStack(spacing: 16) {
+            Text(title)
+                .font(.largeTitle.bold())
+                .minimumScaleFactor(0.6)
+                .lineLimit(2)
+            content
+            Button(action: action) {
+                Label(buttonTitle, systemImage: "play.fill")
+                    .font(.title3.bold())
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+            }
+            .buttonStyle(.glassProminent)
+            .padding(.top, 4)
+        }
+        .multilineTextAlignment(.center)
+        .padding(24)
+        .frame(maxWidth: 440)
+        .glassEffect(.regular, in: .rect(cornerRadius: 30))
+        .padding(.horizontal, 16)
     }
 }
 
@@ -223,6 +237,10 @@ struct ChallengeCompleteBadge: View {
 struct GameIntro: View {
     let best: Int
     let howTo: String
+    /// Another line under the best score: a record, or today's rule.
+    var note: String? = nil
+    /// Shows a How to Play button.
+    var showHelp: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 10) {
@@ -231,9 +249,19 @@ struct GameIntro: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.subtext)
             }
+            if let note {
+                Text(note)
+                    .font(.headline)
+                    .foregroundStyle(.subtext)
+            }
             Text(howTo)
                 .font(.body)
                 .foregroundStyle(.subtext)
+            if let showHelp {
+                Button("How to Play", systemImage: "questionmark.circle", action: showHelp)
+                    .buttonStyle(.glass)
+                    .font(.headline)
+            }
         }
     }
 }

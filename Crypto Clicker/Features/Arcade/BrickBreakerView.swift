@@ -10,6 +10,7 @@ struct BrickBreakerView: View {
     @State private var game = BrickBreakerGame()
     @State private var isPlaying = false
     @State private var isPaused = false
+    @State private var showingHelp = false
     @State private var result: GameResult?
     @State private var lastFrame: Date?
     /// Where the current drag began, and whether a ball was waiting to be served then. Only a
@@ -51,10 +52,18 @@ struct BrickBreakerView: View {
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
         .background { AppBackground(tint: .orange) }
+        .overlay {
+            if isPaused {
+                PausedCard(game: .brickBreaker, resume: { isPaused = false }, showHelp: { showingHelp = true })
+            }
+        }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
         .navigationTitle("Brick Breaker")
         .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.brickBreaker, isPresented: $showingHelp) {
+            if isPlaying { isPaused = true }
+        }
         .sensoryFeedback(.impact(weight: .light, intensity: 0.8), trigger: game.bricksBroken) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.impact(weight: .medium, intensity: 0.5), trigger: game.paddleHits) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.error, trigger: game.lives) { (old: Int, new: Int) in haptics && new < old }
@@ -95,13 +104,6 @@ struct BrickBreakerView: View {
             }
         }
         .overlay { EffectsLayer(effects: effects) }
-        .overlay {
-            if isPaused {
-                Button("Resume", systemImage: "play.fill") { isPaused = false }
-                    .buttonStyle(.glassProminent)
-                    .font(.title3.bold())
-            }
-        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Brick Breaker field")
         .accessibilityValue("\(game.bricks.count) bricks left, \(game.lives) lives")
@@ -137,7 +139,8 @@ struct BrickBreakerView: View {
             } else {
                 GamePanel(title: "Brick Breaker", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.brickBreakerBestScore,
-                              howTo: "Drag to move the paddle and lift your finger to launch. Clear every brick to reach a faster level with a new wall. You have three balls.")
+                              howTo: "Drag to move the paddle and lift your finger to launch. Clear every brick to reach a faster level with a new wall. You have three balls.",
+                              showHelp: { showingHelp = true })
                 }
             }
         }

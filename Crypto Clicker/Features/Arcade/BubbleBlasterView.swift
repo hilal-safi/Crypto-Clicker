@@ -10,6 +10,7 @@ struct BubbleBlasterView: View {
     @State private var game = BubbleShooterGame.fresh()
     @State private var isPlaying = false
     @State private var isPaused = false
+    @State private var showingHelp = false
     @State private var result: GameResult?
     @State private var aim: Double?
     /// Where the current touch began; a new start means a new gesture, even if the last was cut short.
@@ -43,10 +44,18 @@ struct BubbleBlasterView: View {
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
         .background { AppBackground(tint: .blue) }
+        .overlay {
+            if isPaused {
+                PausedCard(game: .bubbleBlaster, resume: { isPaused = false }, showHelp: { showingHelp = true })
+            }
+        }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
         .navigationTitle("Bubble Blaster")
         .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.bubbleBlaster, isPresented: $showingHelp) {
+            if isPlaying { isPaused = true }
+        }
         .sensoryFeedback(.impact(weight: .light), trigger: shots) { _, _ in haptics }
         .sensoryFeedback(.success, trigger: game.clears) { (old: Int, new: Int) in haptics && new > old }
         .onChange(of: game.clears) { _, _ in showPops() }
@@ -86,13 +95,6 @@ struct BubbleBlasterView: View {
             }
         }
         .overlay { EffectsLayer(effects: effects) }
-        .overlay {
-            if isPaused {
-                Button("Resume", systemImage: "play.fill") { isPaused = false }
-                    .buttonStyle(.glassProminent)
-                    .font(.title3.bold())
-            }
-        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Bubble field")
         .accessibilityValue("Score \(game.score), level \(game.level)")
@@ -148,7 +150,8 @@ struct BubbleBlasterView: View {
             } else {
                 GamePanel(title: "Bubble Blaster", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.bubbleBestScore,
-                              howTo: "Match three or more of a color to pop them; anything left hanging falls for double points. Every six shots that pop nothing, a new row drops. Don't let the bubbles reach the line.")
+                              howTo: "Match three or more of a color to pop them; anything left hanging falls for double points. Every six shots that pop nothing, a new row drops. Don't let the bubbles reach the line.",
+                              showHelp: { showingHelp = true })
                 }
             }
         }

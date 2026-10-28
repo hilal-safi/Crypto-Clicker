@@ -114,6 +114,11 @@ struct TestingToolsView: View {
                         .disabled(MiniGame.allCases.allSatisfy(game.isUnlocked))
                     Button("Add 100 of Every Token") { store.debugAddTokens(100) }
                     Button("Add 10,000 of Every Token") { store.debugAddTokens(10_000) }
+                    Button("Show Each Game's How to Play Again") {
+                        for game in MiniGame.allCases {
+                            UserDefaults.standard.removeObject(forKey: Preferences.helpSeenKey(game))
+                        }
+                    }
                 }
 
                 Section {

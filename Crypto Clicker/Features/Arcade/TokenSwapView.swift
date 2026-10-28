@@ -15,6 +15,7 @@ struct TokenSwapView: View {
     @State private var game = TokenSwapGame(seed: .random(in: 0...UInt64.max))
     @State private var isPlaying = false
     @State private var isPaused = false
+    @State private var showingHelp = false
     @State private var result: GameResult?
     /// The token tapped first, waiting for a neighbor to swap with.
     @State private var selected: Position?
@@ -65,23 +66,24 @@ struct TokenSwapView: View {
                 .accessibilityValue("\(Int(game.timeLeft.rounded(.up))) seconds")
             board
                 .frame(maxHeight: .infinity)
-                .overlay {
-                    if isPaused {
-                        Button("Resume", systemImage: "play.fill") { isPaused = false }
-                            .buttonStyle(.glassProminent)
-                            .font(.title3.bold())
-                    }
-                }
             Legend()
         }
         .padding(12)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
         .background { AppBackground(tint: MiniGame.tokenSwap.color) }
+        .overlay {
+            if isPaused {
+                PausedCard(game: .tokenSwap, resume: { isPaused = false }, showHelp: { showingHelp = true })
+            }
+        }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
         .navigationTitle("Token Swap")
         .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.tokenSwap, isPresented: $showingHelp) {
+            if isPlaying { isPaused = true }
+        }
         .sensoryFeedback(.impact(weight: .light), trigger: waves) { _, _ in haptics }
         .sensoryFeedback(.impact(weight: .heavy), trigger: blasts) { _, _ in haptics }
         .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
@@ -355,7 +357,8 @@ struct TokenSwapView: View {
             } else {
                 GamePanel(title: "Token Swap", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.tokenSwapBestScore,
-                              howTo: "Drag a token onto its neighbor to swap them and line up three or more of a kind. Tokens that fall into new matches score more each time. Line up four, or match across and down at once, to make a Blast: match it to clear its whole row and column. You have a minute.")
+                              howTo: "Drag a token onto its neighbor to swap them and line up three or more of a kind. Tokens that fall into new matches score more each time. Line up four, or match across and down at once, to make a Blast: match it to clear its whole row and column. You have a minute.",
+                              showHelp: { showingHelp = true })
                 }
             }
         }
@@ -429,5 +432,22 @@ private struct Legend: View {
         .labelStyle(.titleAndIcon)
         .lineLimit(1)
         .minimumScaleFactor(0.7)
+    }
+}
+
+/// A Token Swap special for the How to Play sheet, drawn like the real thing.
+struct TokenSwapSpecialIcon: View {
+    let kind: Int
+
+    init?(guideID: String) {
+        guard guideID == "swap.blast" else { return nil }
+        kind = 1
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            TokenTile(kind: kind, isBlast: true, isSelected: false, isHinted: false, isRefused: false,
+                      size: min(proxy.size.width, proxy.size.height))
+        }
     }
 }

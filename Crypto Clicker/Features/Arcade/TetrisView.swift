@@ -17,6 +17,7 @@ struct TetrisView: View {
     @State private var game = TetrisGame.fresh()
     @State private var isPlaying = false
     @State private var isPaused = false
+    @State private var showingHelp = false
     @State private var result: GameResult?
     @State private var boardWidth: CGFloat = 1
     @State private var dragColumns = 0
@@ -50,13 +51,6 @@ struct TetrisView: View {
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Tetris board")
                     .accessibilityValue("Score \(game.score), \(game.lines) lines")
-                    .overlay {
-                        if isPaused {
-                            Button("Resume", systemImage: "play.fill") { isPaused = false }
-                                .buttonStyle(.glassProminent)
-                                .font(.title3.bold())
-                        }
-                    }
                 VStack(spacing: 12) {
                     ArcadeButton(title: "Drop", systemImage: "arrow.down", repeats: true) {
                         step { game, rng in game.softDrop(using: &rng) }
@@ -77,10 +71,18 @@ struct TetrisView: View {
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background { AppBackground(tint: .cyan) }
+        .overlay {
+            if isPaused {
+                PausedCard(game: .tetris, resume: { isPaused = false }, showHelp: { showingHelp = true })
+            }
+        }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
         .navigationTitle(challengeDay == nil ? "Tetris" : "Today's Pieces")
         .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.tetris, isPresented: $showingHelp) {
+            if isPlaying { isPaused = true }
+        }
         .sensoryFeedback(.impact(weight: .heavy), trigger: game.lines) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.impact(weight: .medium), trigger: hardDrops) { _, _ in haptics }
         .sensoryFeedback(.error, trigger: result) { _, new in haptics && new != nil }
@@ -141,7 +143,8 @@ struct TetrisView: View {
             } else {
                 GamePanel(title: "Tetris", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.tetrisBestScore,
-                              howTo: "Use the buttons beside the board, or tap the board to rotate, drag to move and swipe down to drop.")
+                              howTo: "Use the buttons beside the board, or tap the board to rotate, drag to move and swipe down to drop.",
+                              showHelp: { showingHelp = true })
                 }
             }
         }

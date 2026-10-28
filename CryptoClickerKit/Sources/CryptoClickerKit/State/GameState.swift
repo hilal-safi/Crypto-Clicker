@@ -30,15 +30,18 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
     /// A second game-specific number: the level reached (Brick Breaker), the most bubbles cleared
     /// by one shot (Bubble Blaster), the best combo (Pump and Dump) or the longest chain (Token Swap).
     public let extra: Int
+    /// A third number: the round reached (Pump and Dump). 0 for the other games.
+    public let stage: Int
 
-    public init(game: MiniGame, score: Int, detail: Int, extra: Int = 0) {
+    public init(game: MiniGame, score: Int, detail: Int, extra: Int = 0, stage: Int = 0) {
         self.game = game
         self.score = score
         self.detail = detail
         self.extra = extra
+        self.stage = stage
     }
 
-    private enum CodingKeys: String, CodingKey { case game, score, detail, extra }
+    private enum CodingKeys: String, CodingKey { case game, score, detail, extra, stage }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -46,6 +49,7 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
         score = try c.decode(Int.self, forKey: .score)
         detail = try c.decode(Int.self, forKey: .detail)
         extra = c.value(.extra, default: 0)
+        stage = c.value(.stage, default: 0)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -54,6 +58,7 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
         try c.encode(score, forKey: .score)
         try c.encode(detail, forKey: .detail)
         try c.encode(extra, forKey: .extra)
+        if stage != 0 { try c.encode(stage, forKey: .stage) }
     }
 }
 

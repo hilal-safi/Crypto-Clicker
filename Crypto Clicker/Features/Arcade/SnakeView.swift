@@ -11,6 +11,7 @@ struct SnakeView: View {
     @State private var game = SnakeGame.fresh()
     @State private var isPlaying = false
     @State private var isPaused = false
+    @State private var showingHelp = false
     @State private var result: GameResult?
     /// Where the current swipe is measured from; it moves after each recognised swipe.
     @State private var swipeOrigin: CGPoint?
@@ -40,26 +41,28 @@ struct SnakeView: View {
                 .accessibilityAction(named: "Turn down") { turn(.down) }
                 .accessibilityAction(named: "Turn left") { turn(.left) }
                 .accessibilityAction(named: "Turn right") { turn(.right) }
-                .overlay {
-                    if isPaused {
-                        Button("Resume", systemImage: "play.fill") { isPaused = false }
-                            .buttonStyle(.glassProminent)
-                            .font(.title3.bold())
-                    }
-                }
                 // The whole play area under the score takes swipes, not just the board.
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(.rect)
                 .gesture(swipe)
+            ControlHint(game: .snake)
         }
         .padding(12)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
         .background { AppBackground(tint: .green) }
+        .overlay {
+            if isPaused {
+                PausedCard(game: .snake, resume: { isPaused = false }, showHelp: { showingHelp = true })
+            }
+        }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
         .navigationTitle("Snake")
         .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.snake, isPresented: $showingHelp) {
+            if isPlaying { isPaused = true }
+        }
         .sensoryFeedback(.impact(weight: .light), trigger: game.eaten) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.error, trigger: result) { _, new in haptics && new != nil }
         .task(id: isRunning) { await run() }
@@ -94,7 +97,8 @@ struct SnakeView: View {
             } else {
                 GamePanel(title: "Snake", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.snakeBestScore,
-                              howTo: "Swipe anywhere to steer: up, down, left or right. Every coin you eat is worth 10 points and makes you longer.")
+                              howTo: "Swipe anywhere to steer: up, down, left or right. Every coin you eat is worth 10 points and makes you longer.",
+                              showHelp: { showingHelp = true })
                 }
             }
         }
