@@ -75,6 +75,8 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var pumpDumpCoinsHit = 0
     public internal(set) var pumpDumpScamsHit = 0
     public internal(set) var pumpDumpBestCombo = 0
+    /// Token Swap levels played to the end, won or lost.
+    public internal(set) var tokenSwapLevelsPlayed = 0
     /// The furthest round a Pump and Dump run has reached.
     public internal(set) var pumpDumpBestRound = 0
     public internal(set) var pokerHands = 0
@@ -88,12 +90,14 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var pokerRoyals = 0
     /// The most a hand has won, in coins: profit in tokens at list price plus the coin bonus.
     public internal(set) var pokerBiggestWin: Double = 0
+    /// Classic Token Swap rounds, and the best Classic score.
     public internal(set) var tokenSwapGames = 0
     public internal(set) var tokenSwapBestScore = 0
-    /// Tokens matched in Token Swap over all games.
+    /// Tokens matched in Token Swap over every mode.
     public internal(set) var tokenSwapTokens = 0
-    /// The most waves one swap set off.
+    /// The most waves one swap set off, in any mode.
     public internal(set) var tokenSwapBestChain = 0
+    /// Specials set off in any mode (saved under the name it had when there was only the Blast).
     public internal(set) var tokenSwapBlasts = 0
 
     public internal(set) var tokensBought: [TokenID: Int] = [:]
@@ -132,6 +136,7 @@ public struct Stats: Codable, Equatable, Sendable {
         case merge2048Games, merge2048BestScore, merge2048BestTile, merge2048Points
         case moonFlights, moonCashOuts, moonBestMultiplier, moonWagered, moonPaidOut, moonBiggestWin
         case pumpDumpGames, pumpDumpBestScore, pumpDumpCoinsHit, pumpDumpScamsHit, pumpDumpBestCombo, pumpDumpBestRound
+        case tokenSwapLevelsPlayed
         case pokerHands, pokerWins, pokerWagered, pokerPaidOut, pokerBestHand, pokerRoyals, pokerBiggestWin
         case tokenSwapGames, tokenSwapBestScore, tokenSwapTokens, tokenSwapBestChain, tokenSwapBlasts
         case tokensBought, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
@@ -214,6 +219,7 @@ public struct Stats: Codable, Equatable, Sendable {
         pumpDumpScamsHit = c.value(.pumpDumpScamsHit, default: 0)
         pumpDumpBestCombo = c.value(.pumpDumpBestCombo, default: 0)
         pumpDumpBestRound = c.value(.pumpDumpBestRound, default: 0)
+        tokenSwapLevelsPlayed = c.value(.tokenSwapLevelsPlayed, default: 0)
         pokerHands = c.value(.pokerHands, default: 0)
         pokerWins = c.value(.pokerWins, default: 0)
         pokerWagered = c.value(.pokerWagered, default: 0)
@@ -303,6 +309,7 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(pumpDumpScamsHit, forKey: .pumpDumpScamsHit)
         try c.encode(pumpDumpBestCombo, forKey: .pumpDumpBestCombo)
         try c.encode(pumpDumpBestRound, forKey: .pumpDumpBestRound)
+        try c.encode(tokenSwapLevelsPlayed, forKey: .tokenSwapLevelsPlayed)
         try c.encode(pokerHands, forKey: .pokerHands)
         try c.encode(pokerWins, forKey: .pokerWins)
         try c.encode(pokerWagered, forKey: .pokerWagered)

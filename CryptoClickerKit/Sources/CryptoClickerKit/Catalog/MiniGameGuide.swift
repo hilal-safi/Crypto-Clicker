@@ -292,23 +292,42 @@ extension MiniGame {
 
     private static var tokenSwapGuide: MiniGameGuide {
         MiniGameGuide(
-            objective: "Swap neighboring tokens to line up three or more of a kind before the minute runs out.",
+            objective: "Swap neighboring tokens to line up three or more of a kind. Win levels by reaching their goals in the moves allowed, solve the daily puzzle, or score big in a one-minute Classic round.",
             controls: [
-                "Drag a token onto a neighbor to swap them, or tap one token and then its neighbor.",
-                "A swap that makes no match isn't allowed.",
+                "Drag a token onto a neighbor to swap them, or tap one token and then the other.",
+                "A swap that makes no match springs back, unless it moves a special: swapping a special with any neighbor sets it off.",
+                "Swap two specials together to combine them.",
             ],
             scoring: [
-                "Each token cleared scores \(TokenSwapGame.pointsPerToken).",
-                "Tokens that fall into new matches score more each time: the second wave doubles, the third triples.",
+                "Each token cleared scores \(TokenSwapGame.pointsPerToken). Tokens that fall into new matches score more each wave: double, then triple.",
+                "Levels: winning earns a star, and higher scores earn the second and third. Each move left over adds \(TokenSwapGame.pointsPerMoveLeft) points. Each star pays coins the first time you earn it.",
+                "The daily puzzle pays its reward for the first win each day. Classic pays coins for every point.",
             ],
             items: [
-                .init(id: "swap.blast", symbol: "sparkle", name: "Blast token",
-                      detail: "Made by lining up four or more, or matching across and down at once. Match it to clear its row and column."),
+                .init(id: "swap.propeller", symbol: "fanblades.fill", name: "Propeller",
+                      detail: "Made by a 2×2 square. Clears the four tokens beside it, then flies to the most useful spot: an obstacle or token the level still needs."),
+                .init(id: "swap.rocket", symbol: "arrow.left.and.right", name: "Rocket",
+                      detail: "Made by four in a row. Four across clears its whole row; four down clears its column."),
+                .init(id: "swap.bomb", symbol: "flame.fill", name: "Bomb",
+                      detail: "Made by five in an L or T shape. Clears the 5×5 square around it."),
+                .init(id: "swap.colorClear", symbol: "sparkles", name: "Color Clear",
+                      detail: "Made by five in a row. Swap it with a token to clear every token of that color. Set off by a blast, it takes the commonest color."),
+                .init(id: "swap.combo", symbol: "plus.circle.fill", name: "Combinations",
+                      detail: "Two Rockets clear a row and a column; a Rocket and a Bomb, three of each; two Bombs, a 7×7 square. Two Propellers send three flying, and a Propeller carries a Rocket or Bomb to its target. A Color Clear turns a whole color into the special it's swapped with; two clear the board."),
+                .init(id: "swap.ice", symbol: "snowflake", name: "Ice",
+                      detail: "A frozen token can't move or match. A match beside it, or a blast, cracks the ice; thick ice takes two hits."),
+                .init(id: "swap.chain", symbol: "link", name: "Chain",
+                      detail: "A chained token can't be swapped and doesn't fall, but it can match. Matching it, or a blast, breaks the chain."),
+                .init(id: "swap.crate", symbol: "shippingbox.fill", name: "Crate",
+                      detail: "Fills a cell. Each match beside it, or blast, breaks a layer; some crates have two or three."),
+                .init(id: "swap.gold", symbol: "rectangle.fill", name: "Gold bar",
+                      detail: "Can't be matched. Clear the tokens under it to bring it down: it's collected on the bottom row."),
             ],
-            ending: "A round lasts \(Int(TokenSwapGame.roundLength)) seconds. Waves still falling when time runs out count.",
+            ending: "Classic ends after \(Int(TokenSwapGame.roundLength)) seconds; waves still falling count. A level or puzzle ends when every goal is reached, or when the moves run out.",
             tips: [
                 "Matches low on the board shake up more tokens for falling waves.",
-                "Hold still for a few seconds and a hint shows a swap.",
+                "Save specials to combine them: a combination clears far more than two specials on their own.",
+                "Hold still for a few seconds and a hint shows a good move.",
             ],
             controlHint: "Drag or tap to swap")
     }

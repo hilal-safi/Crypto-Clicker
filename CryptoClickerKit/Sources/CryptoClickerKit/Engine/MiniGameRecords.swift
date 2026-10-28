@@ -40,9 +40,10 @@ extension GameState {
                     ? "Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))"
                     : "Best \(CoinFormat.grouped(s.pumpDumpBestScore))"
         case .tokenSwap:
-            s.tokenSwapBestChain > 1
-                ? "Best \(CoinFormat.grouped(s.tokenSwapBestScore)) · chain of \(CoinFormat.grouped(s.tokenSwapBestChain))"
-                : "Best \(CoinFormat.grouped(s.tokenSwapBestScore))"
+            (tokenSwap.totalStars > 0 ? "\(tokenSwap.totalStars) stars · " : "")
+                + (s.tokenSwapBestChain > 1
+                    ? "Best \(CoinFormat.grouped(s.tokenSwapBestScore)) · chain of \(CoinFormat.grouped(s.tokenSwapBestChain))"
+                    : "Best \(CoinFormat.grouped(s.tokenSwapBestScore))")
         }
     }
 
@@ -60,7 +61,7 @@ extension GameState {
         case .brickBreaker: s.brickBreakerGames
         case .bubbleBlaster: s.bubbleGames
         case .pumpDump: s.pumpDumpGames
-        case .tokenSwap: s.tokenSwapGames
+        case .tokenSwap: s.tokenSwapGames + s.tokenSwapLevelsPlayed
         }
     }
 

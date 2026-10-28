@@ -98,6 +98,8 @@ public struct GameState: Codable, Equatable, Sendable {
     /// A Video Poker hand dealt but not yet drawn.
     public internal(set) var pokerRound: PokerRound?
     public internal(set) var unfinishedRun: ArcadeRun?
+    /// Token Swap levels won, and the daily puzzle. Kept through prestiges.
+    public internal(set) var tokenSwap = TokenSwapProgress()
     /// Highest tier count earned per achievement id (0 to 4).
     public internal(set) var achievementTiers: [String: Int] = [:]
     public internal(set) var daily = DailyProgress()
@@ -127,7 +129,7 @@ public struct GameState: Codable, Equatable, Sendable {
         case prestigePotentialClaimed = "forkPointsClaimed"
         case runPrestigeMultiplier = "runForkMultiplier"
         case prestigePointsSpent, perks, difficulty
-        case boost, offlineMiningLevel, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun
+        case boost, offlineMiningLevel, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun, tokenSwap
         case achievementTiers, daily
         case incomeHistory, stats, steps, recentWatchBatches, lastUpdate, runStart, created
     }
@@ -166,6 +168,7 @@ public struct GameState: Codable, Equatable, Sendable {
         moonRound = c.value(.moonRound, default: nil)
         pokerRound = c.value(.pokerRound, default: nil)
         unfinishedRun = c.value(.unfinishedRun, default: nil)
+        tokenSwap = c.value(.tokenSwap, default: TokenSwapProgress())
         achievementTiers = c.value(.achievementTiers, default: [:])
         daily = c.value(.daily, default: DailyProgress())
         incomeHistory = c.value(.incomeHistory, default: [])
@@ -198,6 +201,7 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encodeIfPresent(moonRound, forKey: .moonRound)
         try c.encodeIfPresent(pokerRound, forKey: .pokerRound)
         try c.encodeIfPresent(unfinishedRun, forKey: .unfinishedRun)
+        try c.encode(tokenSwap, forKey: .tokenSwap)
         try c.encode(achievementTiers, forKey: .achievementTiers)
         try c.encode(daily, forKey: .daily)
         try c.encode(incomeHistory, forKey: .incomeHistory)

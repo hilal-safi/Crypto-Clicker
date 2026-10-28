@@ -60,3 +60,12 @@ public struct Box: Equatable, Sendable {
         closestPoint(to: center).distance(to: center) < radius
     }
 }
+
+extension Int {
+    /// Adds a count that can't be negative, stopping at `Int.max` instead of trapping (an Int is
+    /// 32 bits on Apple Watch).
+    func addingCount(_ count: Int) -> Int {
+        let (sum, overflow) = addingReportingOverflow(Swift.max(0, count))
+        return overflow ? .max : sum
+    }
+}

@@ -295,7 +295,7 @@ extension GameState {
     public mutating func finishTetris(score: Int, lines: Int, rewardPoints: Int) -> ArcadePayout {
         let isNewBest = score > stats.tetrisBestScore
         stats.tetrisGames += 1
-        stats.tetrisLines += max(0, lines)
+        stats.tetrisLines = stats.tetrisLines.addingCount(lines)
         stats.tetrisBestScore = max(stats.tetrisBestScore, score)
         return payArcade(.tetris, score: score, paidPoints: rewardPoints, isNewBest: isNewBest, challengeValue: score)
     }
@@ -307,7 +307,7 @@ extension GameState {
         let eaten = max(0, score) / SnakeGame.pointsPerCoin
         stats.snakeGames += 1
         stats.snakeBestScore = max(stats.snakeBestScore, score)
-        stats.snakeCoinsEaten += eaten
+        stats.snakeCoinsEaten = stats.snakeCoinsEaten.addingCount(eaten)
         stats.snakeLongest = max(stats.snakeLongest, length)
         return payArcade(.snake, score: score, isNewBest: isNewBest, challengeValue: eaten)
     }
@@ -318,7 +318,7 @@ extension GameState {
         let isNewBest = score > stats.brickBreakerBestScore
         stats.brickBreakerGames += 1
         stats.brickBreakerBestScore = max(stats.brickBreakerBestScore, score)
-        stats.bricksBroken += max(0, bricks)
+        stats.bricksBroken = stats.bricksBroken.addingCount(bricks)
         stats.brickBreakerBestLevel = max(stats.brickBreakerBestLevel, level)
         return payArcade(.brickBreaker, score: score, isNewBest: isNewBest, challengeValue: bricks)
     }
@@ -329,7 +329,7 @@ extension GameState {
         let isNewBest = score > stats.bubbleBestScore
         stats.bubbleGames += 1
         stats.bubbleBestScore = max(stats.bubbleBestScore, score)
-        stats.bubblesPopped += max(0, popped)
+        stats.bubblesPopped = stats.bubblesPopped.addingCount(popped)
         stats.bubbleBestShot = max(stats.bubbleBestShot, bestShot)
         return payArcade(.bubbleBlaster, score: score, isNewBest: isNewBest, challengeValue: popped)
     }
@@ -343,8 +343,7 @@ extension GameState {
         stats.merge2048BestScore = max(stats.merge2048BestScore, score)
         stats.merge2048BestTile = max(stats.merge2048BestTile, bestTile)
         // Stops at Int.max rather than trapping on a 32-bit watch.
-        let (points, overflow) = stats.merge2048Points.addingReportingOverflow(max(0, score))
-        stats.merge2048Points = overflow ? Int.max : points
+        stats.merge2048Points = stats.merge2048Points.addingCount(score)
         let bonus = bestTile >= Merge2048Game.winningValue ? merge2048TileBonus : 0
         credit(bonus, source: .games)
         return payArcade(.merge2048, score: score, isNewBest: isNewBest, challengeValue: bestTile, tileBonus: bonus)
@@ -368,8 +367,8 @@ extension GameState {
         let isNewBest = score > stats.pumpDumpBestScore
         stats.pumpDumpGames += 1
         stats.pumpDumpBestScore = max(stats.pumpDumpBestScore, score)
-        stats.pumpDumpCoinsHit += max(0, coinsHit)
-        stats.pumpDumpScamsHit += max(0, scamsHit)
+        stats.pumpDumpCoinsHit = stats.pumpDumpCoinsHit.addingCount(coinsHit)
+        stats.pumpDumpScamsHit = stats.pumpDumpScamsHit.addingCount(scamsHit)
         stats.pumpDumpBestCombo = max(stats.pumpDumpBestCombo, bestCombo)
         stats.pumpDumpBestRound = max(stats.pumpDumpBestRound, rounds)
         return payArcade(.pumpDump, score: score, isNewBest: isNewBest, challengeValue: score)
@@ -381,10 +380,64 @@ extension GameState {
         let isNewBest = score > stats.tokenSwapBestScore
         stats.tokenSwapGames += 1
         stats.tokenSwapBestScore = max(stats.tokenSwapBestScore, score)
-        stats.tokenSwapTokens += max(0, tokens)
+        stats.tokenSwapTokens = stats.tokenSwapTokens.addingCount(tokens)
         stats.tokenSwapBestChain = max(stats.tokenSwapBestChain, bestChain)
-        stats.tokenSwapBlasts += max(0, blasts)
+        stats.tokenSwapBlasts = stats.tokenSwapBlasts.addingCount(blasts)
         return payArcade(.tokenSwap, score: score, isNewBest: isNewBest, challengeValue: score)
+    }
+
+    // MARK: Token Swap levels
+
+    /// Coins a level's star pays the first time it's earned (`star` is 1, 2 or 3).
+    public func tokenSwapStarReward(_ level: TokenSwapLevel, star: Int) -> Double {
+        guard Tuning.tokenSwapStarSeconds.indices.contains(star - 1) else { return 0 }
+        return Self.wholeCoins(Tuning.tokenSwapStarSeconds[star - 1] * level.difficulty.rewardMultiplier
+                               * rewardIncome * miniGameMultiplier)
+    }
+
+    /// Coins winning today's puzzle pays (once a day).
+    public var tokenSwapDailyReward: Double {
+        Self.wholeCoins(Tuning.tokenSwapDailySeconds * rewardIncome * miniGameMultiplier)
+    }
+
+    /// Records a finished level: the best stars and score, and the tokens and specials toward the
+    /// statistics. Each star pays once, the first time it's earned, so replaying a level can't
+    /// pay twice. A loss pays nothing.
+    @discardableResult
+    public mutating func finishTokenSwapLevel(_ level: TokenSwapLevel, won: Bool, score: Int, tokens: Int,
+                                              bestChain: Int, specials: Int) -> TokenSwapLevelPayout {
+        let before = tokenSwap.stars(for: level.id)
+        let wasBest = tokenSwap.bestScore(for: level.id)
+        let stars = level.stars(won: won, score: score)
+        recordTokenSwapPlay(tokens: tokens, bestChain: bestChain, specials: specials)
+        stats.tokenSwapLevelsPlayed += 1
+        guard won else { return TokenSwapLevelPayout(stars: 0, newStars: 0, coins: 0, isNewBest: false) }
+        tokenSwap.record(level: level.id, stars: stars, score: score)
+        var coins = 0.0
+        if stars > before {
+            for star in (before + 1)...stars { coins += tokenSwapStarReward(level, star: star) }
+        }
+        credit(coins, source: .games)
+        return TokenSwapLevelPayout(stars: stars, newStars: max(0, stars - before), coins: coins,
+                                    isNewBest: wasBest > 0 && score > wasBest)
+    }
+
+    /// Records a finished daily puzzle; a win pays `tokenSwapDailyReward` the first time that day.
+    @discardableResult
+    public mutating func finishTokenSwapDaily(day: String, won: Bool, tokens: Int, bestChain: Int, specials: Int) -> Double {
+        recordTokenSwapPlay(tokens: tokens, bestChain: bestChain, specials: specials)
+        guard won, !tokenSwap.hasWonDaily(day: day) else { return 0 }
+        tokenSwap.dailyWonDay = day
+        tokenSwap.dailyWins += 1
+        let coins = tokenSwapDailyReward
+        credit(coins, source: .games)
+        return coins
+    }
+
+    private mutating func recordTokenSwapPlay(tokens: Int, bestChain: Int, specials: Int) {
+        stats.tokenSwapTokens = stats.tokenSwapTokens.addingCount(tokens)
+        stats.tokenSwapBestChain = max(stats.tokenSwapBestChain, bestChain)
+        stats.tokenSwapBlasts = stats.tokenSwapBlasts.addingCount(specials)
     }
 
     /// Pays a finished game for `paidPoints` (its score, unless the game says otherwise): a new best
@@ -398,6 +451,17 @@ extension GameState {
         let challenge = recordChallenge(game, value: challengeValue, scored: score > 0)
         return ArcadePayout(coins: reward + tileBonus, isNewBest: isNewBest, tileBonus: tileBonus, challenge: challenge)
     }
+}
+
+/// What a finished Token Swap level earned.
+public struct TokenSwapLevelPayout: Equatable, Sendable {
+    /// Stars this game earned (0 for a loss).
+    public let stars: Int
+    /// Stars earned for the first time, which paid.
+    public let newStars: Int
+    public let coins: Double
+    /// Beat the level's best score.
+    public let isNewBest: Bool
 }
 
 /// What a finished arcade game paid.

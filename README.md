@@ -34,8 +34,8 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 - **Daily.** From the second day: a daily reward with a streak that builds to an hour of income on day
   7, and three new quests every day. The first day is for learning to mine, without big handouts.
 - **Daily challenge.** From the second day, each day picks a challenge in one of your games: a score in
-  Tetris (dealt the same pieces for everyone), a tile in 2048, coins in Snake, bricks, bubbles, a round
-  of Pump and Dump or Token Swap, good hands at the casino, or points in three different arcade games.
+  Tetris (dealt the same pieces for everyone), a tile in 2048, coins in Snake, bricks, bubbles, a Pump
+  and Dump run, a Classic score in Token Swap, good hands at the casino, or points in three different arcade games.
   It pays 15 minutes of income, and five in a week pay two hours more.
 - **Coin Exchange.** Its own tab. Token prices drift every five minutes, within about a quarter of
   their usual price, with news that nudges them up or down. Buy tokens to bet or to sell later
@@ -53,12 +53,22 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   coins, and each game after costs several times the one before, up to about a trillion for Bubble
   Blaster: a player who keeps playing gets the first three in minutes and the rest over the first few
   hours, and one who checks in four times a day has them all by the second day.
-- **Arcade.** Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump (whack the coins,
-  dodge the scams and rug pulls) and Token Swap (a minute of match-three with crypto tokens; long
-  matches leave Blasts that clear a row and a column) pay coins for every point, and 50% more for a new
-  best score. Each is tuned so a minute of skilled play pays about two minutes of income. 2048 keeps the classic numbered
-  tiles, and making a 2048 tile pays ten minutes of income on top. Brick Breaker deals a new wall shape
-  every level after the first; Snake and 2048 are played with swipes anywhere on the screen.
+- **Arcade.** Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump and Token Swap pay
+  coins for every point, and 50% more for a new best score. Each is tuned so a minute of skilled play
+  pays about two minutes of income. 2048 keeps the classic numbered tiles, and making a 2048 tile pays
+  ten minutes of income on top. Brick Breaker deals a new wall shape every level after the first; Snake
+  and 2048 are played with swipes anywhere on the screen.
+- **Pump and Dump.** Whack the coins as they pop up, round after round: each 30-second round has a
+  score goal to reach and a bonus objective (a combo, golden coins, or no mistakes), and each is
+  quicker than the last, with more scam tokens and rug pulls (coins with a red rim that shake, then turn).
+- **Token Swap.** Match-three with crypto tokens, with four specials: a 2×2 square makes a Propeller
+  (it flies to what you need), four in a row a Rocket (its row or column), an L or T a Bomb (a 5×5
+  blast) and five in a row a Color Clear (a whole color). Swap two specials together to combine them.
+  Play 18 levels with goals and move limits (ice, chains, crates and gold bars to bring down), each
+  star paying coins the first time; a daily puzzle with the same board for everyone, paid once a day;
+  or Classic, a minute to score as much as you can.
+- **How to Play.** Every game explains its goal, controls, scoring, specials and hazards, how it ends,
+  and a few tips. It opens by itself the first time, from a button in the game, and from the pause card.
 - **Trophies.** 53 achievements with bronze, silver, gold and mythic tiers, each card glinting in the
   metal it has earned. Each star adds 1% production forever, and stars unlock new finishes for the coin.
 - **Prestige.** Once you've mined 15 billion coins in all, start a new run for prestige points. Points

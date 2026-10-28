@@ -133,7 +133,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .brickBreaker: "Break \(amount) bricks in one Brick Breaker game"
         case .bubbleBlaster: "Pop \(amount) bubbles in one Bubble Blaster game"
         case .pumpDump: "Score \(amount) in one Pump and Dump run"
-        case .tokenSwap: "Score \(amount) in one round of Token Swap"
+        case .tokenSwap: "Score \(amount) in one round of Token Swap Classic"
         case .blackjack: "Win \(amount) Blackjack hands today"
         case .slots: "Win \(amount) spins at Crypto Slots today"
         case .moon: "Cash out at 2× or more \(amount) times in To the Moon today"

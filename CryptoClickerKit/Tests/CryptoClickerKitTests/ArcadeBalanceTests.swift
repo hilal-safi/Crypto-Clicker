@@ -443,7 +443,8 @@ enum TokenSwapBot {
         for (a, b) in game.validSwaps {
             var copy = game
             guard copy.swap(a, b), let wave = copy.resolveStep() else { continue }
-            let value = Double(wave.cleared.count) + Double(wave.madeBlasts.count) * 4 + Double(max(a.row, b.row)) * 0.1
+            let made = Double(wave.made.count) * 4
+            let value = Double(wave.cleared.count) + made + Double(max(a.row, b.row)) * 0.1
             if value > best?.value ?? -1 { best = ((a, b), value) }
         }
         return best?.swap

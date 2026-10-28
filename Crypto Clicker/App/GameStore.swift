@@ -560,6 +560,28 @@ final class GameStore {
         return payout
     }
 
+    /// Records a finished Token Swap level; stars earned for the first time pay.
+    @discardableResult
+    func finishTokenSwapLevel(_ level: TokenSwapLevel, game result: TokenSwapGame) -> TokenSwapLevelPayout {
+        let payout = perform { game, _ in
+            game.finishTokenSwapLevel(level, won: result.phase == .won, score: result.score, tokens: result.tokensCleared,
+                                      bestChain: result.bestChain, specials: result.specialsSetOff)
+        }
+        save()
+        return payout
+    }
+
+    /// Records a finished daily puzzle; the first win of the day pays.
+    @discardableResult
+    func finishTokenSwapDaily(day: String, game result: TokenSwapGame) -> Double {
+        let coins = perform { game, _ in
+            game.finishTokenSwapDaily(day: day, won: result.phase == .won, tokens: result.tokensCleared,
+                                      bestChain: result.bestChain, specials: result.specialsSetOff)
+        }
+        save()
+        return coins
+    }
+
     @discardableResult
     func finishTetris(score: Int, lines: Int, rewardPoints: Int) -> ArcadePayout {
         let payout = perform { game, _ in game.finishTetris(score: score, lines: lines, rewardPoints: rewardPoints) }

@@ -181,6 +181,12 @@ public enum Tuning {
     public static let brickBreakerSecondsPerPoint = 0.4
     public static let bubbleSecondsPerPoint = 0.1
     public static let merge2048SecondsPerPoint = 0.055
+    /// Each Token Swap level star pays this many seconds of income, once, the first time it's
+    /// earned (times the level's difficulty multiplier): the first star for winning, then the
+    /// second and third for higher scores.
+    public static let tokenSwapStarSeconds: [Double] = [120, 60, 60]
+    /// Winning the day's Token Swap puzzle pays this many seconds of income, once a day.
+    public static let tokenSwapDailySeconds = 600.0
     /// Pump and Dump runs go on round after round, and later rounds score faster.
     public static let pumpDumpSecondsPerPoint = 0.043
     public static let tokenSwapSecondsPerPoint = 0.023

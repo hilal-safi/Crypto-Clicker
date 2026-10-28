@@ -61,6 +61,12 @@ struct ArcadeView: View {
             .navigationDestination(for: TodaysPieces.self) { pieces in
                 TetrisView(challengeDay: pieces.day)
             }
+            .navigationDestination(for: TokenSwapRoute.self) { route in
+                switch route {
+                case .levels: TokenSwapLevelsView()
+                case .level, .daily, .classic: TokenSwapPlayView(route: route)
+                }
+            }
         }
     }
 
@@ -80,6 +86,8 @@ struct ArcadeView: View {
         guard let game = challenge.kind.game, store.game.isUnlocked(game) else { return }
         if game == .tetris {
             path.append(TodaysPieces(day: challenge.day))
+        } else if game == .tokenSwap {
+            path.append(TokenSwapRoute.classic) // Match Day asks for a Classic score.
         } else {
             path.append(game)
         }
