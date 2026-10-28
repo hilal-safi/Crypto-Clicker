@@ -36,6 +36,14 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var tetrisGames = 0
     public internal(set) var tetrisLines = 0
     public internal(set) var tetrisBestScore = 0
+    public internal(set) var tetrisBestLevel = 0
+    /// The most line clears in a row.
+    public internal(set) var tetrisBestCombo = 0
+    /// Four lines at once.
+    public internal(set) var tetrisTetrises = 0
+    /// Sprints finished, and the fastest, in seconds (0 until one is finished).
+    public internal(set) var tetrisSprints = 0
+    public internal(set) var tetrisBestSprint: Double = 0
     public internal(set) var slotsSpins = 0
     public internal(set) var slotsWins = 0
     public internal(set) var slotsJackpots = 0
@@ -44,19 +52,42 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var slotsPaidOut: Double = 0
     /// The biggest win, as a multiple of the bet.
     public internal(set) var slotsBestMultiple = 0
+    /// The most a spin has won, in coins: profit in tokens at list price plus the coin bonus.
+    public internal(set) var slotsBiggestWin: Double = 0
+    /// Free spins won (triggers), free spins played, and Bitcoins collected on the line.
+    public internal(set) var slotsFreeSpinRounds = 0
+    public internal(set) var slotsFreeSpinsPlayed = 0
+    public internal(set) var slotsBitcoins = 0
     public internal(set) var snakeGames = 0
     public internal(set) var snakeBestScore = 0
     public internal(set) var snakeCoinsEaten = 0
     public internal(set) var snakeLongest = 0
+    /// The most coins eaten in one game, and the longest game, in seconds.
+    public internal(set) var snakeBestCoins = 0
+    public internal(set) var snakeLongestTime: Double = 0
+    public internal(set) var snakePowerUps = 0
+    /// Coin Rush keeps its own best score (Classic's is `snakeBestScore`).
+    public internal(set) var snakeRushBestScore = 0
+    public internal(set) var snakeRushes = 0
     public internal(set) var brickBreakerGames = 0
     public internal(set) var brickBreakerBestScore = 0
     public internal(set) var bricksBroken = 0
     public internal(set) var brickBreakerBestLevel = 0
+    /// Levels cleared over all games, bosses beaten and power-ups caught.
+    public internal(set) var brickBreakerLevelsCleared = 0
+    public internal(set) var brickBreakerBosses = 0
+    public internal(set) var brickBreakerPowerUps = 0
+    /// The most levels cleared in a row without losing a life.
+    public internal(set) var brickBreakerBestStreak = 0
     public internal(set) var bubbleGames = 0
     public internal(set) var bubbleBestScore = 0
     public internal(set) var bubblesPopped = 0
     /// Most bubbles cleared by one shot.
     public internal(set) var bubbleBestShot = 0
+    /// The furthest wave reached, the longest streak of popping shots, and gold bonus bubbles cleared.
+    public internal(set) var bubbleBestWave = 0
+    public internal(set) var bubbleBestStreak = 0
+    public internal(set) var bubbleBonuses = 0
     public internal(set) var merge2048Games = 0
     public internal(set) var merge2048BestScore = 0
     public internal(set) var merge2048BestTile = 0
@@ -129,9 +160,13 @@ public struct Stats: Codable, Equatable, Sendable {
         case lifetimeCoins, runCoins, spent, peakIncome, taps, bestTap, bestCombo, lifetimeSteps, bestDaySteps
         case maxOwned, maxTotalMiners, maxUpgrades, minersBought, minerUpgradesBought
         case blackjackHands, blackjackWins, blackjackNaturals, tetrisGames, tetrisLines, tetrisBestScore
+        case tetrisBestLevel, tetrisBestCombo, tetrisTetrises, tetrisSprints, tetrisBestSprint
         case blackjackStreak, blackjackBestStreak, blackjackBiggestWin, slotsWagered, slotsPaidOut, slotsBestMultiple
-        case snakeLongest, brickBreakerBestLevel, bubbleBestShot
+        case slotsBiggestWin, slotsFreeSpinRounds, slotsFreeSpinsPlayed, slotsBitcoins
+        case snakeLongest, brickBreakerBestLevel, bubbleBestShot, bubbleBestWave, bubbleBestStreak, bubbleBonuses
+        case brickBreakerLevelsCleared, brickBreakerBosses, brickBreakerPowerUps, brickBreakerBestStreak
         case slotsSpins, slotsWins, slotsJackpots, snakeGames, snakeBestScore, snakeCoinsEaten
+        case snakeBestCoins, snakeLongestTime, snakePowerUps, snakeRushBestScore, snakeRushes
         case brickBreakerGames, brickBreakerBestScore, bricksBroken, bubbleGames, bubbleBestScore, bubblesPopped
         case merge2048Games, merge2048BestScore, merge2048BestTile, merge2048Points
         case moonFlights, moonCashOuts, moonBestMultiplier, moonWagered, moonPaidOut, moonBiggestWin
@@ -167,6 +202,12 @@ public struct Stats: Codable, Equatable, Sendable {
         tetrisGames = c.value(.tetrisGames, default: 0)
         tetrisLines = c.value(.tetrisLines, default: 0)
         tetrisBestScore = c.value(.tetrisBestScore, default: 0)
+        tetrisBestLevel = c.value(.tetrisBestLevel, default: 0)
+        tetrisBestCombo = c.value(.tetrisBestCombo, default: 0)
+        tetrisTetrises = c.value(.tetrisTetrises, default: 0)
+        tetrisSprints = c.value(.tetrisSprints, default: 0)
+        let sprint: Double = c.value(.tetrisBestSprint, default: 0)
+        tetrisBestSprint = sprint.isFinite && sprint > 0 ? sprint : 0
         slotsSpins = c.value(.slotsSpins, default: 0)
         slotsWins = c.value(.slotsWins, default: 0)
         slotsJackpots = c.value(.slotsJackpots, default: 0)
@@ -204,9 +245,26 @@ public struct Stats: Codable, Equatable, Sendable {
         slotsWagered = c.value(.slotsWagered, default: 0)
         slotsPaidOut = c.value(.slotsPaidOut, default: 0)
         slotsBestMultiple = c.value(.slotsBestMultiple, default: 0)
+        slotsBiggestWin = c.value(.slotsBiggestWin, default: 0)
+        slotsFreeSpinRounds = c.value(.slotsFreeSpinRounds, default: 0)
+        slotsFreeSpinsPlayed = c.value(.slotsFreeSpinsPlayed, default: 0)
+        slotsBitcoins = c.value(.slotsBitcoins, default: 0)
         snakeLongest = c.value(.snakeLongest, default: 0)
+        snakeBestCoins = c.value(.snakeBestCoins, default: 0)
+        let longest: Double = c.value(.snakeLongestTime, default: 0)
+        snakeLongestTime = longest.isFinite && longest > 0 ? longest : 0
+        snakePowerUps = c.value(.snakePowerUps, default: 0)
+        snakeRushBestScore = c.value(.snakeRushBestScore, default: 0)
+        snakeRushes = c.value(.snakeRushes, default: 0)
         brickBreakerBestLevel = c.value(.brickBreakerBestLevel, default: 0)
+        brickBreakerLevelsCleared = c.value(.brickBreakerLevelsCleared, default: 0)
+        brickBreakerBosses = c.value(.brickBreakerBosses, default: 0)
+        brickBreakerPowerUps = c.value(.brickBreakerPowerUps, default: 0)
+        brickBreakerBestStreak = c.value(.brickBreakerBestStreak, default: 0)
         bubbleBestShot = c.value(.bubbleBestShot, default: 0)
+        bubbleBestWave = c.value(.bubbleBestWave, default: 0)
+        bubbleBestStreak = c.value(.bubbleBestStreak, default: 0)
+        bubbleBonuses = c.value(.bubbleBonuses, default: 0)
         moonFlights = c.value(.moonFlights, default: 0)
         moonCashOuts = c.value(.moonCashOuts, default: 0)
         moonBestMultiplier = c.value(.moonBestMultiplier, default: 0)
@@ -257,6 +315,11 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(tetrisGames, forKey: .tetrisGames)
         try c.encode(tetrisLines, forKey: .tetrisLines)
         try c.encode(tetrisBestScore, forKey: .tetrisBestScore)
+        try c.encode(tetrisBestLevel, forKey: .tetrisBestLevel)
+        try c.encode(tetrisBestCombo, forKey: .tetrisBestCombo)
+        try c.encode(tetrisTetrises, forKey: .tetrisTetrises)
+        try c.encode(tetrisSprints, forKey: .tetrisSprints)
+        try c.encode(tetrisBestSprint, forKey: .tetrisBestSprint)
         try c.encode(slotsSpins, forKey: .slotsSpins)
         try c.encode(slotsWins, forKey: .slotsWins)
         try c.encode(slotsJackpots, forKey: .slotsJackpots)
@@ -294,9 +357,25 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(slotsWagered, forKey: .slotsWagered)
         try c.encode(slotsPaidOut, forKey: .slotsPaidOut)
         try c.encode(slotsBestMultiple, forKey: .slotsBestMultiple)
+        try c.encode(slotsBiggestWin, forKey: .slotsBiggestWin)
+        try c.encode(slotsFreeSpinRounds, forKey: .slotsFreeSpinRounds)
+        try c.encode(slotsFreeSpinsPlayed, forKey: .slotsFreeSpinsPlayed)
+        try c.encode(slotsBitcoins, forKey: .slotsBitcoins)
         try c.encode(snakeLongest, forKey: .snakeLongest)
+        try c.encode(snakeBestCoins, forKey: .snakeBestCoins)
+        try c.encode(snakeLongestTime, forKey: .snakeLongestTime)
+        try c.encode(snakePowerUps, forKey: .snakePowerUps)
+        try c.encode(snakeRushBestScore, forKey: .snakeRushBestScore)
+        try c.encode(snakeRushes, forKey: .snakeRushes)
         try c.encode(brickBreakerBestLevel, forKey: .brickBreakerBestLevel)
+        try c.encode(brickBreakerLevelsCleared, forKey: .brickBreakerLevelsCleared)
+        try c.encode(brickBreakerBosses, forKey: .brickBreakerBosses)
+        try c.encode(brickBreakerPowerUps, forKey: .brickBreakerPowerUps)
+        try c.encode(brickBreakerBestStreak, forKey: .brickBreakerBestStreak)
         try c.encode(bubbleBestShot, forKey: .bubbleBestShot)
+        try c.encode(bubbleBestWave, forKey: .bubbleBestWave)
+        try c.encode(bubbleBestStreak, forKey: .bubbleBestStreak)
+        try c.encode(bubbleBonuses, forKey: .bubbleBonuses)
         try c.encode(moonFlights, forKey: .moonFlights)
         try c.encode(moonCashOuts, forKey: .moonCashOuts)
         try c.encode(moonBestMultiplier, forKey: .moonBestMultiplier)

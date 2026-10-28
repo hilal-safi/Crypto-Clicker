@@ -35,7 +35,8 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   7, and three new quests every day. The first day is for learning to mine, without big handouts.
 - **Daily challenge.** From the second day, each day picks a challenge in one of your games: a score in
   Tetris (dealt the same pieces for everyone), a tile in 2048, coins in Snake, bricks, bubbles, a Pump
-  and Dump run, a Classic score in Token Swap, good hands at the casino, or points in three different arcade games.
+  and Dump run, a Classic score in Token Swap, good hands at the casino (or a natural at Blackjack), or
+  points in three different arcade games.
   It pays 15 minutes of income, and five in a week pay two hours more.
 - **Coin Exchange.** Its own tab. Token prices drift every five minutes, within about a quarter of
   their usual price, with news that nudges them up or down. Buy tokens to bet or to sell later
@@ -43,21 +44,35 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 - **Steps.** After 2,500 taps, connect Apple Health and every step you take, on iPhone or Apple Watch,
   is paid out exactly once. A step is worth at least one coin and grows with your income.
 - **Apple Watch.** Tap to mine from your wrist, watch your balance tick up live, and see today's steps.
-- **Casino.** Bet tokens at Blackjack, Crypto Slots, Video Poker or To the Moon. Video Poker is Jacks or
-  Better on the classic 8/5 table: hold the cards you want and draw once (Hint holds what a strong
-  player would); played well it returns about 97%, and a royal flush pays 800 to 1. In To the Moon the
-  multiplier climbs up a price chart until the market crashes: cash out in time (or set an automatic
-  cash-out), and every target returns 97% on average. Wins pay tokens plus a coin bonus, with confetti
-  and a shower of coins. Split Blackjack hands sit side by side.
+- **Casino.** Bet tokens at Blackjack, Crypto Slots, Video Poker or To the Moon, or switch Blackjack,
+  Video Poker and To the Moon to Practice and play the same game for chips, with nothing at stake.
+  Blackjack has two tables (the Tough dealer hits soft 17, and wins there pay 10% more coins) and an
+  optional coach that outlines the basic-strategy move. Video Poker is Jacks or Better on the classic
+  8/5 table: hold the cards you want and draw once (Hint holds what a strong player would); played
+  well it returns about 97%, and a royal flush pays 800 to 1. Crypto Slots lights up the reels that
+  win and shows the bet, payout and net of every spin; a Cardano, a Solana and an Ethereum win three
+  free spins, and every tenth Bitcoin on the line pays a collection prize (about 95.6% back over time,
+  free spins included). In To the Moon the multiplier climbs up a price chart until the market
+  crashes: cash out in time (or set an automatic cash-out), and every target returns 97% on average.
+  Wins pay tokens plus a coin bonus, with confetti and a shower of coins. Every round is paid once.
 - **Unlocking games.** The eleven games unlock one at a time. Blackjack and Tetris cost a few thousand
   coins, and each game after costs several times the one before, up to about a trillion for Bubble
   Blaster: a player who keeps playing gets the first three in minutes and the rest over the first few
   hours, and one who checks in four times a day has them all by the second day.
 - **Arcade.** Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump and Token Swap pay
   coins for every point, and 50% more for a new best score. Each is tuned so a minute of skilled play
-  pays about two minutes of income. 2048 keeps the classic numbered tiles, and making a 2048 tile pays
-  ten minutes of income on top. Brick Breaker deals a new wall shape every level after the first; Snake
-  and 2048 are played with swipes anywhere on the screen.
+  pays about two minutes of income.
+  - **Tetris:** Endless or a 40-line Sprint against the clock, with hold, a ghost piece and combos.
+  - **2048:** tile goals to climb (128, 256, 512 and on), three undos a game that can't reroll a
+    tile, and a Daily Puzzle with the same start and tiles for everyone, 150 moves and three stars
+    to earn. Making a 2048 tile pays ten minutes of income on top.
+  - **Snake:** Classic in four arenas or a one-minute Coin Rush, with Speed Boost (coins count
+    double), Slow Motion, Shield and Coin Magnet power-ups.
+  - **Brick Breaker:** armored, explosive and bonus bricks, Multi-ball, Wide Paddle, Slow Ball and
+    Laser power-ups, and a boss with a health bar every fifth level.
+  - **Bubble Blaster:** waves that add colors and grow deeper, a streak that adds 10% a pop (up to
+    double) and earns Rainbow and Bomb bubbles, gold bonus bubbles, and a ring where the shot will land.
+  - Snake and 2048 are played with swipes anywhere on the screen.
 - **Pump and Dump.** Whack the coins as they pop up, round after round: each 30-second round has a
   score goal to reach and a bonus objective (a combo, golden coins, or no mistakes), and each is
   quicker than the last, with more scam tokens and rug pulls (coins with a red rim that shake, then turn).

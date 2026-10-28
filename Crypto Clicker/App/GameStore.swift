@@ -487,8 +487,8 @@ final class GameStore {
     }
 
     @discardableResult
-    func settleBlackjack(_ results: [BlackjackResult], token: TokenID) -> Double {
-        let bonus = perform { game, _ in game.settleBlackjack(results, token: token) }
+    func settleBlackjack(_ results: [BlackjackResult], token: TokenID, rules: BlackjackRules) -> Double {
+        let bonus = perform { game, _ in game.settleBlackjack(results, token: token, rules: rules) }
         save()
         return bonus
     }
@@ -583,29 +583,41 @@ final class GameStore {
     }
 
     @discardableResult
-    func finishTetris(score: Int, lines: Int, rewardPoints: Int) -> ArcadePayout {
-        let payout = perform { game, _ in game.finishTetris(score: score, lines: lines, rewardPoints: rewardPoints) }
+    func finishTetris(score: Int, lines: Int, rewardPoints: Int, level: Int, bestCombo: Int, tetrises: Int,
+                      sprintTime: TimeInterval?) -> ArcadePayout {
+        let payout = perform { game, _ in
+            game.finishTetris(score: score, lines: lines, rewardPoints: rewardPoints, level: level, bestCombo: bestCombo,
+                              tetrises: tetrises, sprintTime: sprintTime)
+        }
         save()
         return payout
     }
 
     @discardableResult
-    func finishSnake(score: Int, length: Int) -> ArcadePayout {
-        let payout = perform { game, _ in game.finishSnake(score: score, length: length) }
+    func finishSnake(score: Int, length: Int, coins: Int, time: TimeInterval, powerUps: Int, mode: SnakeGame.Mode) -> ArcadePayout {
+        let payout = perform { game, _ in
+            game.finishSnake(score: score, length: length, coins: coins, time: time, powerUps: powerUps, mode: mode)
+        }
         save()
         return payout
     }
 
     @discardableResult
-    func finishBrickBreaker(score: Int, bricks: Int, level: Int) -> ArcadePayout {
-        let payout = perform { game, _ in game.finishBrickBreaker(score: score, bricks: bricks, level: level) }
+    func finishBrickBreaker(score: Int, bricks: Int, level: Int, bosses: Int, powerUps: Int, bestStreak: Int) -> ArcadePayout {
+        let payout = perform { game, _ in
+            game.finishBrickBreaker(score: score, bricks: bricks, level: level, bosses: bosses, powerUps: powerUps,
+                                    bestStreak: bestStreak)
+        }
         save()
         return payout
     }
 
     @discardableResult
-    func finishBubbleBlaster(score: Int, popped: Int, bestShot: Int) -> ArcadePayout {
-        let payout = perform { game, _ in game.finishBubbleBlaster(score: score, popped: popped, bestShot: bestShot) }
+    func finishBubbleBlaster(score: Int, popped: Int, bestShot: Int, wave: Int, bestStreak: Int, bonuses: Int) -> ArcadePayout {
+        let payout = perform { game, _ in
+            game.finishBubbleBlaster(score: score, popped: popped, bestShot: bestShot, wave: wave, bestStreak: bestStreak,
+                                     bonuses: bonuses)
+        }
         save()
         return payout
     }
@@ -622,6 +634,13 @@ final class GameStore {
     @discardableResult
     func finishMerge2048(score: Int, bestTile: Int) -> ArcadePayout {
         let payout = perform { game, _ in game.finishMerge2048(score: score, bestTile: bestTile) }
+        save()
+        return payout
+    }
+
+    @discardableResult
+    func finishMerge2048Daily(day: String, score: Int, bestTile: Int) -> Merge2048DailyPayout {
+        let payout = perform { game, _ in game.finishMerge2048Daily(day: day, score: score, bestTile: bestTile) }
         save()
         return payout
     }

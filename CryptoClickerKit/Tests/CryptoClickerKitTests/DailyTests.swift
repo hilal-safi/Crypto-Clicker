@@ -224,10 +224,13 @@ struct DailyChallengeTests {
             game.refreshDaily(today: "2026-10-\(day)", canWalk: false, at: t0)
             kinds.append(game.daily.challenge?.kind ?? .arcadeMix)
         }
-        for (yesterday, today) in zip(kinds, kinds.dropFirst()) { #expect(yesterday != today) }
+        for (yesterday, today) in zip(kinds, kinds.dropFirst()) {
+            #expect(yesterday != today)
+            #expect(yesterday.game == nil || yesterday.game != today.game) // Not even Blackjack's other one.
+        }
         #expect(Set(kinds).count >= 3)
         // The arcade mix is possible with three arcade games unlocked.
-        #expect(Set(kinds).isSubset(of: [.tetris, .snake, .merge2048, .blackjack, .arcadeMix]))
+        #expect(Set(kinds).isSubset(of: [.tetris, .snake, .merge2048, .blackjack, .blackjackNatural, .arcadeMix]))
         #expect(!player([.tetris, .snake, .blackjack]).eligibleChallengeKinds().contains(.arcadeMix))
     }
 
@@ -260,13 +263,49 @@ struct DailyChallengeTests {
         #expect(game.daily.challenge?.isComplete == true)
     }
 
+    @Test func theNaturalChallengeCountsNaturalsOnly() {
+        var game = with(.blackjackNatural, target: 1, games: [.blackjack])
+        game.tokens = [.dogecoin: 20]
+        game.placeBlackjackBet(.dogecoin, amount: 2)
+        game.settleBlackjack([BlackjackResult(outcome: .win, bet: 1, payout: 2), BlackjackResult(outcome: .win, bet: 1, payout: 2)],
+                             token: .dogecoin)
+        #expect(game.daily.challenge?.progress == 0)
+        game.placeBlackjackBet(.dogecoin, amount: 1)
+        game.settleBlackjack([BlackjackResult(outcome: .blackjack, bet: 1, payout: 3)], token: .dogecoin)
+        #expect(game.daily.challenge?.isComplete == true)
+        #expect(DailyChallengeKind.blackjackNatural.game == .blackjack)
+        #expect(DailyChallengeKind.blackjackNatural.goal(target: 1) == "Deal yourself a natural blackjack today")
+    }
+
+    @Test func blackjackDaysAskForWinsOrANaturalButNoMoreOftenThanOtherGames() {
+        var kinds: [DailyChallengeKind: Int] = [:]
+        for day in 1...28 {
+            var game = player([.blackjack, .slots])
+            game.refreshDaily(today: String(format: "2026-11-%02d", day), canWalk: false, at: t0)
+            if let kind = game.daily.challenge?.kind { kinds[kind, default: 0] += 1 }
+        }
+        let blackjackDays = kinds[.blackjack, default: 0] + kinds[.blackjackNatural, default: 0]
+        #expect(blackjackDays > 0 && kinds[.slots, default: 0] > 0)
+        #expect(kinds[.blackjackNatural, default: 0] > 0)
+        // Two games, so about half the days each, whichever Blackjack challenge it is.
+        #expect((7...21).contains(blackjackDays))
+        #expect(!game(eligibleFor: [.blackjack]).contains(.blackjackNatural))
+    }
+
+    func game(eligibleFor games: Set<MiniGame>) -> [DailyChallengeKind] {
+        player(games).eligibleChallengeKinds()
+    }
+
     @Test func casinoChallengesAddUpOverTheDay() {
         var blackjack = with(.blackjack, target: 3, games: [.blackjack])
         blackjack.tokens = [.dogecoin: 20]
+        blackjack.placeBlackjackBet(.dogecoin, amount: 2)
         blackjack.settleBlackjack([BlackjackResult(outcome: .win, bet: 1, payout: 2), BlackjackResult(outcome: .lose, bet: 1, payout: 0)],
                                   token: .dogecoin)
+        blackjack.placeBlackjackBet(.dogecoin, amount: 1)
         blackjack.settleBlackjack([BlackjackResult(outcome: .push, bet: 1, payout: 1)], token: .dogecoin)
         #expect(blackjack.daily.challenge?.progress == 1)
+        blackjack.placeBlackjackBet(.dogecoin, amount: 2)
         blackjack.settleBlackjack([BlackjackResult(outcome: .win, bet: 1, payout: 2), BlackjackResult(outcome: .blackjack, bet: 1, payout: 3)],
                                   token: .dogecoin)
         #expect(blackjack.daily.challenge?.isComplete == true)

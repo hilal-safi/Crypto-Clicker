@@ -57,6 +57,13 @@ public enum CoinFormat {
         return whole + "." + cents + "×"
     }
 
+    /// A stopwatch time: `1:05.3` (minutes, seconds and tenths), `0:42.0`.
+    public static func stopwatch(_ seconds: TimeInterval) -> String {
+        guard seconds.isFinite, seconds >= 0 else { return "–" }
+        let tenths = Int((min(seconds, 359_999) * 10).rounded(.down))
+        return "\(tenths / 600):" + String(format: "%02d.%d", (tenths / 10) % 60, tenths % 10)
+    }
+
     /// `45s`, `3m 5s`, `2h 14m`, `3d 4h`.
     public static func duration(_ seconds: TimeInterval) -> String {
         guard seconds.isFinite else { return "∞" }

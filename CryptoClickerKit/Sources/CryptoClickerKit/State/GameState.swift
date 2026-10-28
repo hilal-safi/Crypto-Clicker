@@ -30,8 +30,15 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
     /// A second game-specific number: the level reached (Brick Breaker), the most bubbles cleared
     /// by one shot (Bubble Blaster), the best combo (Pump and Dump) or the longest chain (Token Swap).
     public let extra: Int
-    /// A third number: the round reached (Pump and Dump). 0 for the other games.
+    /// A third number: the round reached (Pump and Dump), the wave (Bubble Blaster), or which
+    /// mode was playing: `dailyStage` for a daily 2048 puzzle, `coinRushStage` for Snake's Coin
+    /// Rush. 0 for the other games and modes.
     public let stage: Int
+
+    /// The `stage` of a daily 2048 puzzle, which pays like one rather than a Classic game.
+    public static let dailyStage = 1
+    /// The `stage` of a Snake Coin Rush, which pays and keeps its record like one.
+    public static let coinRushStage = 1
 
     public init(game: MiniGame, score: Int, detail: Int, extra: Int = 0, stage: Int = 0) {
         self.game = game
@@ -97,9 +104,13 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var moonRound: MoonRound?
     /// A Video Poker hand dealt but not yet drawn.
     public internal(set) var pokerRound: PokerRound?
+    /// Free spins won at Crypto Slots and not yet played.
+    public internal(set) var slotsFreeSpins: SlotsFreeSpins?
     public internal(set) var unfinishedRun: ArcadeRun?
     /// Token Swap levels won, and the daily puzzle. Kept through prestiges.
     public internal(set) var tokenSwap = TokenSwapProgress()
+    /// The day's 2048 puzzle. Kept through prestiges.
+    public internal(set) var merge2048Daily = Merge2048DailyProgress()
     /// Highest tier count earned per achievement id (0 to 4).
     public internal(set) var achievementTiers: [String: Int] = [:]
     public internal(set) var daily = DailyProgress()
@@ -130,6 +141,7 @@ public struct GameState: Codable, Equatable, Sendable {
         case runPrestigeMultiplier = "runForkMultiplier"
         case prestigePointsSpent, perks, difficulty
         case boost, offlineMiningLevel, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun, tokenSwap
+        case merge2048Daily, slotsFreeSpins
         case achievementTiers, daily
         case incomeHistory, stats, steps, recentWatchBatches, lastUpdate, runStart, created
     }
@@ -167,8 +179,10 @@ public struct GameState: Codable, Equatable, Sendable {
         blackjackStake = c.value(.blackjackStake, default: nil)
         moonRound = c.value(.moonRound, default: nil)
         pokerRound = c.value(.pokerRound, default: nil)
+        slotsFreeSpins = c.value(.slotsFreeSpins, default: nil)
         unfinishedRun = c.value(.unfinishedRun, default: nil)
         tokenSwap = c.value(.tokenSwap, default: TokenSwapProgress())
+        merge2048Daily = c.value(.merge2048Daily, default: Merge2048DailyProgress())
         achievementTiers = c.value(.achievementTiers, default: [:])
         daily = c.value(.daily, default: DailyProgress())
         incomeHistory = c.value(.incomeHistory, default: [])
@@ -200,8 +214,10 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encodeIfPresent(blackjackStake, forKey: .blackjackStake)
         try c.encodeIfPresent(moonRound, forKey: .moonRound)
         try c.encodeIfPresent(pokerRound, forKey: .pokerRound)
+        try c.encodeIfPresent(slotsFreeSpins, forKey: .slotsFreeSpins)
         try c.encodeIfPresent(unfinishedRun, forKey: .unfinishedRun)
         try c.encode(tokenSwap, forKey: .tokenSwap)
+        try c.encode(merge2048Daily, forKey: .merge2048Daily)
         try c.encode(achievementTiers, forKey: .achievementTiers)
         try c.encode(daily, forKey: .daily)
         try c.encode(incomeHistory, forKey: .incomeHistory)

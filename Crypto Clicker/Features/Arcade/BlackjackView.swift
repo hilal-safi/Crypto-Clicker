@@ -1,14 +1,22 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Blackjack against the dealer on a felt table, betting crypto tokens. The rules live in
-/// `BlackjackTable`; this view moves tokens in and out of the wallet, paces the dealer's turn,
-/// and celebrates wins with confetti and a shower of coins.
+/// Blackjack against the dealer on a felt table, betting crypto tokens or practice chips. The rules
+/// live in `BlackjackTable`; this view moves tokens in and out of the wallet, paces the dealer's
+/// turn, and celebrates wins with confetti and a shower of coins. Two tables (the dealer stands on
+/// or hits a soft 17) and an optional coach that suggests the basic-strategy move.
 struct BlackjackView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(Preferences.hapticsKey) private var haptics = true
+    @AppStorage("blackjackTable") private var tableRules = BlackjackRules.standsOnSoft17
+    @AppStorage("blackjackCoach") private var showsCoach = false
     @State private var table = BlackjackTable()
+    @State private var isPracticing = false
+    @State private var chips = PracticeChips()
+    @State private var practiceBet = 25
+    /// The round in play bets practice chips.
+    @State private var roundIsPractice = false
     @State private var token = TokenID.shibaInu
     @State private var bet = 1
     /// The token staked on the current round (the picker may change between rounds).
@@ -30,10 +38,10 @@ struct BlackjackView: View {
                 // The result takes the place of the table printing, so nothing below it moves.
                 ZStack {
                     if table.phase == .settled {
-                        ResultBanner(results: table.results, bonus: lastBonus, token: roundToken)
+                        ResultBanner(results: table.results, bonus: lastBonus, unit: unit)
                             .transition(.scale(scale: 0.6).combined(with: .opacity))
                     } else {
-                        TableMarkings()
+                        TableMarkings(rules: table.rules, isPractice: table.phase == .betting ? isPracticing : roundIsPractice)
                             .transition(.opacity)
                     }
                 }
@@ -76,7 +84,22 @@ struct BlackjackView: View {
                 CoinAmount(amount: game.coins, font: .subheadline.weight(.semibold), iconSize: 16)
                     .padding(.horizontal, 6)
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Picker("Table", selection: $tableRules) {
+                        ForEach(BlackjackRules.allCases) { rules in
+                            Text("\(rules.name): \(rules.dealerRule)").tag(rules)
+                        }
+                    }
+                    .disabled(!(table.phase == .betting || table.phase == .settled))
+                    Toggle("Coach", systemImage: "lightbulb", isOn: $showsCoach)
+                } label: {
+                    Label("Table options", systemImage: "slider.horizontal.3")
+                }
+            }
         }
+        .onAppear { table.setRules(tableRules) }
+        .onChange(of: tableRules) { _, rules in table.setRules(rules) }
         .sensoryFeedback(trigger: settledRounds) { _, _ in
             guard haptics, let best = table.results.map(\.net).max() else { return nil }
             return best > 0 ? .success : best == 0 ? .warning : .error
@@ -94,8 +117,11 @@ struct BlackjackView: View {
         HandView(hand: hand,
                  isActive: table.activeHand?.id == hand.id && table.hands.count > 1,
                  result: table.results.indices.contains(hand.id) ? table.results[hand.id] : nil,
-                 token: roundToken, cardSize: cardSize, isCompact: isCompact)
+                 token: roundIsPractice ? nil : roundToken, cardSize: cardSize, isCompact: isCompact)
     }
+
+    /// What the round's bets are counted in.
+    private var unit: String { roundIsPractice ? "chips" : roundToken.ticker }
 
     // MARK: Controls
 
@@ -105,24 +131,35 @@ struct BlackjackView: View {
         case .betting, .settled:
             let owned = game.tokenCount(token)
             VStack(spacing: 10) {
-                if TokenID.allCases.allSatisfy({ game.tokenCount($0) == 0 }) {
-                    Label("Buy tokens on the Coin Exchange to place bets.", systemImage: "info.circle")
-                        .font(.subheadline)
-                        .foregroundStyle(.subtext)
-                }
-                TokenBetControls(token: $token, bet: $bet,
-                                 counts: Dictionary(uniqueKeysWithValues: TokenID.allCases.map { ($0, game.tokenCount($0)) }))
-                let fullBonusBet = game.blackjackBetForFullBonus(token)
-                HStack(alignment: .firstTextBaseline) {
-                    Text("A win also pays \(CoinFormat.short(game.blackjackBonus(bet: bet, token: token))) coins")
-                        .font(.caption)
-                        .foregroundStyle(.subtext)
-                    Spacer()
-                    if bet < fullBonusBet && owned > bet {
-                        Button("Max Bonus") { bet = min(owned, fullBonusBet) }
+                CasinoModePicker(isPracticing: $isPracticing)
+                if isPracticing {
+                    PracticeBetControls(chips: chips, bet: $practiceBet)
+                    if chips.isBroke {
+                        Button("New Stack of \(CoinFormat.grouped(PracticeChips.starting)) Chips") { chips.refill() }
                             .font(.footnote.weight(.semibold))
                             .buttonStyle(.borderless)
                             .tint(Theme.gold)
+                    }
+                } else {
+                    if TokenID.allCases.allSatisfy({ game.tokenCount($0) == 0 }) {
+                        Label("Buy tokens on the Coin Exchange to place bets, or practice with chips.", systemImage: "info.circle")
+                            .font(.subheadline)
+                            .foregroundStyle(.subtext)
+                    }
+                    TokenBetControls(token: $token, bet: $bet,
+                                     counts: Dictionary(uniqueKeysWithValues: TokenID.allCases.map { ($0, game.tokenCount($0)) }))
+                    let fullBonusBet = game.blackjackBetForFullBonus(token)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("A win also pays \(CoinFormat.short(game.blackjackBonus(bet: bet, token: token, rules: tableRules))) coins")
+                            .font(.caption)
+                            .foregroundStyle(.subtext)
+                        Spacer()
+                        if bet < fullBonusBet && owned > bet {
+                            Button("Max Bonus") { bet = min(owned, fullBonusBet) }
+                                .font(.footnote.weight(.semibold))
+                                .buttonStyle(.borderless)
+                                .tint(Theme.gold)
+                        }
                     }
                 }
                 Button(action: deal) {
@@ -133,27 +170,43 @@ struct BlackjackView: View {
                 }
                 .buttonStyle(.glassProminent)
                 .tint(Theme.accent)
-                .disabled(owned < bet)
+                .disabled(isPracticing ? chips.balance < practiceBet : owned < bet)
             }
             .padding(14)
             .glassEffect(.regular, in: .rect(cornerRadius: 26))
         case .playerTurn:
-            let canAffordExtra = game.tokenCount(roundToken) >= table.extraBetNeeded
-            GlassEffectContainer(spacing: 12) {
-                HStack(spacing: 12) {
-                    actionButton("Hit", systemImage: "plus") { play { $0.hit(using: &$1) } }
-                    actionButton("Stand", systemImage: "hand.raised.fill") { play { table, _ in table.stand() } }
-                    if table.canDouble {
-                        actionButton("Double", systemImage: "multiply") {
-                            raise(when: table.canDouble) { $0.doubleDown(using: &$1) }
+            let canAffordExtra = roundIsPractice
+                ? chips.balance >= table.extraBetNeeded
+                : game.tokenCount(roundToken) >= table.extraBetNeeded
+            let advice = showsCoach ? table.suggestedMove : nil
+            VStack(spacing: 8) {
+                if let advice {
+                    Label("Coach: \(advice.name)", systemImage: "lightbulb.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.gold)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(.black.opacity(0.35), in: .capsule)
+                        .accessibilityLabel("Coach suggests \(advice.name)")
+                }
+                GlassEffectContainer(spacing: 12) {
+                    HStack(spacing: 12) {
+                        actionButton("Hit", systemImage: "plus", isAdvised: advice == .hit) { play { $0.hit(using: &$1) } }
+                        actionButton("Stand", systemImage: "hand.raised.fill", isAdvised: advice == .stand) {
+                            play { table, _ in table.stand() }
                         }
-                        .disabled(!canAffordExtra)
-                    }
-                    if table.canSplit {
-                        actionButton("Split", systemImage: "arrow.left.and.right") {
-                            raise(when: table.canSplit) { $0.split(using: &$1) }
+                        if table.canDouble {
+                            actionButton("Double", systemImage: "multiply", isAdvised: advice == .double) {
+                                raise(when: table.canDouble) { $0.doubleDown(using: &$1) }
+                            }
+                            .disabled(!canAffordExtra)
                         }
-                        .disabled(!canAffordExtra)
+                        if table.canSplit {
+                            actionButton("Split", systemImage: "arrow.left.and.right", isAdvised: advice == .split) {
+                                raise(when: table.canSplit) { $0.split(using: &$1) }
+                            }
+                            .disabled(!canAffordExtra)
+                        }
                     }
                 }
             }
@@ -167,7 +220,8 @@ struct BlackjackView: View {
         }
     }
 
-    private func actionButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+    private func actionButton(_ title: String, systemImage: String, isAdvised: Bool = false,
+                              action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(.headline)
@@ -176,6 +230,13 @@ struct BlackjackView: View {
                 .padding(.vertical, 8)
         }
         .buttonStyle(.glass)
+        .overlay {
+            if isAdvised {
+                Capsule()
+                    .strokeBorder(Theme.gold, lineWidth: 2)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 
     // MARK: Round flow
@@ -187,18 +248,31 @@ struct BlackjackView: View {
     }
 
     private func deal() {
-        guard bet > 0, store.placeBet(token, amount: bet) else { return }
-        roundToken = token
+        let stake: Int
+        if isPracticing {
+            guard chips.take(practiceBet) else { return }
+            stake = practiceBet
+        } else {
+            guard bet > 0, store.placeBet(token, amount: bet) else { return }
+            roundToken = token
+            stake = bet
+        }
+        roundIsPractice = isPracticing
         isSettled = false
         lastBonus = 0
-        let stake = bet
         play { $0.deal(bet: stake, using: &$1) }
     }
 
     /// Doubling and splitting stake the same bet again before acting. `allowed` is read at tap time,
-    /// so a stale tap can never take tokens for a move the table then refuses.
+    /// so a stale tap can never take tokens (or chips) for a move the table then refuses.
     private func raise(when allowed: Bool, _ action: (inout BlackjackTable, inout SystemRandomNumberGenerator) -> Void) {
-        guard allowed, store.placeBet(roundToken, amount: table.extraBetNeeded) else { return }
+        guard allowed else { return }
+        let extra = table.extraBetNeeded
+        if roundIsPractice {
+            guard chips.take(extra) else { return }
+        } else {
+            guard store.placeBet(roundToken, amount: extra) else { return }
+        }
         play(action)
     }
 
@@ -219,10 +293,16 @@ struct BlackjackView: View {
         }
     }
 
+    /// Pays the round once: chips back to the practice stack, or tokens and coins through the store.
     private func settleIfFinished() {
         guard table.phase == .settled, !isSettled else { return }
         isSettled = true
-        lastBonus = store.settleBlackjack(table.results, token: roundToken)
+        if roundIsPractice {
+            chips.pay(table.results.reduce(0) { $0 + $1.payout })
+            lastBonus = 0
+        } else {
+            lastBonus = store.settleBlackjack(table.results, token: roundToken, rules: table.rules)
+        }
         settledRounds += 1
         celebrate()
     }
@@ -275,12 +355,15 @@ private struct DealerArea: View {
 
 /// The printing on the felt between the dealer and the player.
 private struct TableMarkings: View {
+    let rules: BlackjackRules
+    var isPractice = false
+
     var body: some View {
         VStack(spacing: 4) {
             Text("BLACKJACK PAYS 3 TO 2")
                 .font(.subheadline.weight(.heavy))
                 .tracking(2)
-            Text("Dealer stands on all 17s")
+            Text(rules.dealerRule + (rules == .hitsSoft17 ? " · wins pay more coins" : "") + (isPractice ? " · practice" : ""))
                 .font(.caption.weight(.semibold))
                 .tracking(1)
         }
@@ -297,7 +380,8 @@ private struct HandView: View {
     let hand: BlackjackHand
     let isActive: Bool
     let result: BlackjackResult?
-    let token: TokenID
+    /// The token bet, or `nil` for practice chips.
+    let token: TokenID?
     let cardSize: CGSize
     /// Half the table's width, beside the other half of a split: everything stacks.
     var isCompact = false
@@ -348,28 +432,30 @@ private struct HandView: View {
     }
 }
 
-/// The bet, shown as a casino chip with the token's artwork.
+/// The bet, shown as a casino chip with the token's artwork (a plain chip in practice).
 private struct ChipStack: View {
-    let token: TokenID
+    let token: TokenID?
     let amount: Int
 
     var body: some View {
         HStack(spacing: 6) {
             ZStack {
                 Circle()
-                    .fill(Theme.bitcoin.gradient)
+                    .fill(token == nil ? Color.indigo.gradient : Theme.bitcoin.gradient)
                 Circle()
                     .strokeBorder(.white.opacity(0.9), style: StrokeStyle(lineWidth: 3, dash: [4, 4]))
                     .padding(2)
-                TokenImage(token: token, size: 18)
+                if let token {
+                    TokenImage(token: token, size: 18)
+                }
             }
             .frame(width: 30, height: 30)
             .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
-            Text("\(CoinFormat.grouped(amount)) \(token.ticker)")
+            Text("\(CoinFormat.grouped(amount)) \(token?.ticker ?? "chips")")
                 .font(.subheadline.weight(.semibold).monospacedDigit())
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Bet \(amount) \(token.name)")
+        .accessibilityLabel("Bet \(amount) \(token?.name ?? "practice chips")")
     }
 }
 
@@ -474,7 +560,8 @@ private struct CardBack: View {
 private struct ResultBanner: View {
     let results: [BlackjackResult]
     let bonus: Double
-    let token: TokenID
+    /// What the bets are counted in: a token's ticker, or "chips".
+    let unit: String
 
     var body: some View {
         let net = results.reduce(0) { $0 + $1.net }
@@ -489,10 +576,10 @@ private struct ResultBanner: View {
             if net != 0 || bonus > 0 {
                 VStack(alignment: .leading, spacing: 1) {
                     if net > 0 {
-                        Text("+\(CoinFormat.grouped(net)) \(token.ticker)")
+                        Text("+\(CoinFormat.grouped(net)) \(unit)")
                             .font(.subheadline.bold())
                     } else if net < 0 {
-                        Text("-\(CoinFormat.grouped(-net)) \(token.ticker)")
+                        Text("-\(CoinFormat.grouped(-net)) \(unit)")
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.7))
                     }

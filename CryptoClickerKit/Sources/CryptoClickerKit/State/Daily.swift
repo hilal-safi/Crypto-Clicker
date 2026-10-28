@@ -89,6 +89,9 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
     case blackjack, slots, moon, videoPoker
     /// Score in three different arcade games.
     case arcadeMix
+    /// Deal yourself a natural at Blackjack: Blackjack's other challenge, picked instead of the
+    /// hands-won one half the time, so Blackjack comes up no more often than any other game.
+    case blackjackNatural
 
     /// The game this challenge is played in; `nil` for the arcade mix.
     public var game: MiniGame? {
@@ -105,6 +108,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .moon: .moon
         case .videoPoker: .videoPoker
         case .arcadeMix: nil
+        case .blackjackNatural: .blackjack
         }
     }
 
@@ -118,7 +122,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .bubbleBlaster: "Pop Day"
         case .pumpDump: "Reflex Day"
         case .tokenSwap: "Match Day"
-        case .blackjack, .slots, .moon, .videoPoker: "Casino Day"
+        case .blackjack, .slots, .moon, .videoPoker, .blackjackNatural: "Casino Day"
         case .arcadeMix: "Arcade Day"
         }
     }
@@ -139,6 +143,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .moon: "Cash out at 2× or more \(amount) times in To the Moon today"
         case .videoPoker: "Make two pair or better \(amount) times in Video Poker today"
         case .arcadeMix: "Score in \(amount) different arcade games today"
+        case .blackjackNatural: target == 1 ? "Deal yourself a natural blackjack today" : "Deal yourself \(amount) natural blackjacks today"
         }
     }
 
@@ -146,7 +151,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
     public var isBestOfOneGame: Bool {
         switch self {
         case .tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap: true
-        case .blackjack, .slots, .moon, .videoPoker, .arcadeMix: false
+        case .blackjack, .slots, .moon, .videoPoker, .arcadeMix, .blackjackNatural: false
         }
     }
 
@@ -165,6 +170,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .moon: [2, 3]
         case .videoPoker: [2, 3]
         case .arcadeMix: [3]
+        case .blackjackNatural: [1]
         }
     }
 }

@@ -36,7 +36,7 @@ struct MiniGameGuideTests {
         #expect(slots.scoring[0].contains("BTC \(SlotMachine.jackpot)×"))
         let poker = MiniGame.videoPoker.guide
         #expect(poker.scoring[0].contains("Royal Flush 800"))
-        #expect(MiniGame.brickBreaker.guide.ending.contains("\(BrickBreakerGame.startingLives) balls"))
+        #expect(MiniGame.brickBreaker.guide.ending.contains("\(BrickBreakerGame.startingLives) lives"))
         #expect(MiniGame.bubbleBlaster.guide.items[0].detail.contains("\(BubbleShooterGame.missesPerRow) shots"))
         #expect(MiniGame.snake.guide.scoring[0].contains("\(SnakeGame.pointsPerCoin) points"))
     }

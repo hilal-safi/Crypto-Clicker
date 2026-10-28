@@ -142,4 +142,44 @@ struct MoonTests {
         #expect(CoinFormat.flight(1.07) == "1.07×")
         #expect(CoinFormat.flight(1_000) == "1,000.00×")
     }
+
+    @Test func aRoundKnowsWhereItStandsOnItsOwn() {
+        // The same rules, without the wallet: what practice flights use.
+        let round = MoonRound(token: .dogecoin, bet: 10, crashPoint: 3.5, autoCashOut: 2)
+        #expect(round.state(after: 0) == .flying(multiplier: 1))
+        #expect(round.state(after: MoonFlight.time(toReach: 2)) == .autoCashedOut(multiplier: 2))
+        let noTarget = MoonRound(token: .dogecoin, bet: 10, crashPoint: 3.5, autoCashOut: nil)
+        #expect(noTarget.state(after: MoonFlight.time(toReach: 3.5)) == .crashed(at: 3.5))
+        #expect(noTarget.tokensWon(at: 2.57) == 25)
+        #expect(noTarget.tokensWon(at: .nan) == 0)
+        let huge = MoonRound(token: .dogecoin, bet: Int(Int32.max), crashPoint: 1_000, autoCashOut: nil)
+        #expect(huge.tokensWon(at: 1_000) == Int(Int32.max))
+    }
 }
+
+@Suite("Practice chips")
+struct PracticeChipsTests {
+    @Test func practiceBetsComeOffTheStackAndWinsGoBack() {
+        var chips = PracticeChips()
+        #expect(chips.balance == PracticeChips.starting)
+        let took = chips.take(100)
+        #expect(took)
+        #expect(chips.balance == 900)
+        let tooMuch = chips.take(1_000) // More than the stack: nothing taken.
+        let nothing = chips.take(0)
+        #expect(!tooMuch && !nothing)
+        #expect(chips.balance == 900)
+        chips.pay(250)
+        #expect(chips.balance == 1_150)
+    }
+
+    @Test func aBrokeStackRefills() {
+        var chips = PracticeChips(balance: 5)
+        #expect(chips.isBroke)
+        chips.refill()
+        #expect(chips.balance == PracticeChips.starting)
+        #expect(!chips.isBroke)
+        #expect(PracticeChips(balance: -20).balance == 0)
+    }
+}
+

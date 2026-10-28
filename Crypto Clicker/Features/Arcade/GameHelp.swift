@@ -155,6 +155,9 @@ struct GuideItemIcon: View {
                     PumpPiece(look: look, size: size * 1.35)
                 } else if let special = TokenSwapSpecialIcon(guideID: item.id) {
                     special
+                } else if let bubble = BubbleSpecialBadge(guideID: item.id) {
+                    bubble
+                        .padding(size * 0.08)
                 } else {
                     Image(systemName: item.symbol)
                         .font(.system(size: size * 0.42, weight: .bold))

@@ -263,4 +263,107 @@ struct BlackjackTests {
             table.newRound()
         }
     }
+
+    @Test func theToughDealerHitsSoftSeventeen() {
+        var rng = SeededGenerator(seed: 7)
+        // Player 10 and 8; dealer ace up and a six in the hole: soft 17. Then a 3 for the dealer.
+        var classic = stacked([10, 1, 8, 6, 3])
+        classic.deal(bet: 10, using: &rng)
+        classic.stand()
+        #expect(!classic.dealerShouldDraw)
+        classic.finishDealer(using: &rng)
+        #expect(classic.dealer.count == 2)
+        #expect(classic.results.first?.outcome == .win) // 18 beats 17.
+
+        var tough = BlackjackTable(rules: .hitsSoft17)
+        tough.stack(ranks: [10, 1, 8, 6, 3])
+        tough.deal(bet: 10, using: &rng)
+        tough.stand()
+        #expect(tough.dealerShouldDraw)
+        tough.finishDealer(using: &rng)
+        #expect(tough.dealer.count == 3)
+        #expect(tough.dealerTotal == 20)
+        #expect(tough.results.first?.outcome == .lose)
+    }
+
+    @Test func theToughDealerStandsOnHardSeventeen() {
+        var rng = SeededGenerator(seed: 7)
+        var tough = BlackjackTable(rules: .hitsSoft17)
+        tough.stack(ranks: [10, 10, 8, 7])
+        tough.deal(bet: 10, using: &rng)
+        tough.stand()
+        #expect(!tough.dealerShouldDraw)
+        tough.finishDealer(using: &rng)
+        #expect(tough.dealer.count == 2)
+    }
+
+    @Test func tablesChangeOnlyBetweenRounds() {
+        var rng = SeededGenerator(seed: 7)
+        var table = stacked([10, 9, 8, 7])
+        table.setRules(.hitsSoft17)
+        #expect(table.rules == .hitsSoft17)
+        table.deal(bet: 5, using: &rng)
+        table.setRules(.standsOnSoft17) // Mid-hand: ignored.
+        #expect(table.rules == .hitsSoft17)
+        table.stand()
+        table.finishDealer(using: &rng)
+        table.setRules(.standsOnSoft17)
+        #expect(table.rules == .standsOnSoft17)
+    }
+
+    @Test func theCoachPlaysBasicStrategy() {
+        func move(_ ranks: [Int], _ up: Int, canDouble: Bool = true, canSplit: Bool = false,
+                  rules: BlackjackRules = .standsOnSoft17) -> BlackjackMove {
+            BlackjackStrategy.move(for: cards(ranks), dealerUp: Card(id: 99, rank: up, suit: .clubs),
+                                   canDouble: canDouble, canSplit: canSplit, rules: rules)
+        }
+        // Hard totals.
+        #expect(move([10, 7], 10) == .stand)
+        #expect(move([10, 6], 10) == .hit)
+        #expect(move([10, 6], 6) == .stand)
+        #expect(move([10, 2], 3) == .hit)
+        #expect(move([10, 2], 4) == .stand)
+        #expect(move([6, 5], 10) == .double)
+        #expect(move([6, 5], 1) == .hit)
+        #expect(move([6, 5], 1, rules: .hitsSoft17) == .double)
+        #expect(move([6, 4], 9) == .double)
+        #expect(move([6, 4], 10) == .hit)
+        #expect(move([5, 4], 2) == .hit)
+        #expect(move([5, 4], 3) == .double)
+        #expect(move([5, 3], 6) == .hit)
+        // Without the double, hit instead.
+        #expect(move([6, 5], 10, canDouble: false) == .hit)
+        // Soft totals.
+        #expect(move([1, 7], 6) == .double)
+        #expect(move([1, 7], 6, canDouble: false) == .stand)
+        #expect(move([1, 7], 2) == .stand)
+        #expect(move([1, 7], 2, rules: .hitsSoft17) == .double)
+        #expect(move([1, 7], 9) == .hit)
+        #expect(move([1, 6], 2) == .hit)
+        #expect(move([1, 2], 5) == .double)
+        #expect(move([1, 8], 6) == .stand)
+        #expect(move([1, 8], 6, rules: .hitsSoft17) == .double)
+        #expect(move([1, 1], 6) == .hit) // Can't split: soft 12.
+        // Pairs.
+        #expect(move([1, 1], 10, canSplit: true) == .split)
+        #expect(move([8, 8], 1, canSplit: true) == .split)
+        #expect(move([10, 13], 6, canSplit: true) == .stand)
+        #expect(move([5, 5], 6, canSplit: true) == .double)
+        #expect(move([9, 9], 7, canSplit: true) == .stand)
+        #expect(move([9, 9], 8, canSplit: true) == .split)
+        #expect(move([7, 7], 8, canSplit: true) == .hit)
+        #expect(move([4, 4], 5, canSplit: true) == .split)
+        #expect(move([4, 4], 4, canSplit: true) == .hit)
+        #expect(move([2, 2], 7, canSplit: true) == .split)
+    }
+
+    @Test func theTableSuggestsOnlyMovesItAllows() {
+        var rng = SeededGenerator(seed: 7)
+        var table = stacked([6, 10, 5, 7]) // 11 against a 10.
+        table.deal(bet: 5, using: &rng)
+        #expect(table.suggestedMove == .double)
+        table.hit(using: &rng) // Takes a 10: 21 stands by itself.
+        #expect(table.suggestedMove == nil)
+    }
 }
+

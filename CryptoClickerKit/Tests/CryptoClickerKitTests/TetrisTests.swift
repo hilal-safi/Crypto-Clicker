@@ -295,7 +295,8 @@ struct TetrisTests {
             case 2: game.rotate()
             case 3: game.rotate(clockwise: false)
             case 4: game.softDrop(using: &rng)
-            case 5: if input.next() % 4 == 0 { game.hardDrop(using: &rng) }
+            case 5:
+                if input.next() % 4 == 0 { game.hardDrop(using: &rng) } else if input.next() % 3 == 0 { game.hold(using: &rng) }
             default: game.tick(using: &rng)
             }
             #expect(game.score >= score)
@@ -312,5 +313,97 @@ struct TetrisTests {
             }
         }
         #expect(games > 1)
+    }
+
+    // MARK: Hold, combos and Sprint
+
+    @Test func holdSetsAPieceAsideOncePerPiece() throws {
+        var (game, rng) = newGame()
+        let first = try #require(game.piece?.kind)
+        let next = try #require(game.nextPiece)
+        #expect(game.held == nil && game.canHold)
+        let held = game.hold(using: &rng)
+        #expect(held)
+        #expect(game.held == first)
+        #expect(game.piece?.kind == next)
+        #expect(!game.canHold)
+        let again = game.hold(using: &rng) // Once per piece.
+        #expect(!again)
+        game.hardDrop(using: &rng)
+        #expect(game.canHold)
+        let dropped = try #require(game.piece?.kind)
+        let swapped = game.hold(using: &rng)
+        #expect(swapped)
+        // The held piece comes back at the top, where pieces spawn.
+        #expect(game.piece == TetrisGame.spawnPosition(for: first))
+        #expect(game.held == dropped)
+    }
+
+    @Test func clearingLinesPieceAfterPieceBuildsACombo() {
+        var (game, rng) = newGame()
+        // An O dropped into the gap at the right of row 19 clears it.
+        let gap = row(19, columns: 0...7)
+        game.load(blocks: gap, piece: piece(.o, x: 8, y: 0))
+        game.hardDrop(using: &rng)
+        #expect(game.lines == 1 && game.combo == 0)
+        #expect(game.score == 2 * 18 + 100) // No bonus for the first clear.
+        game.load(blocks: gap, piece: piece(.o, x: 8, y: 0), keepCombo: true)
+        game.hardDrop(using: &rng)
+        #expect(game.combo == 1)
+        #expect(game.score == 2 * (2 * 18 + 100) + TetrisGame.comboPoints)
+        #expect(game.rewardPoints == game.score) // Still level 1.
+        #expect(game.clearedRows == [19])
+        // A piece that clears nothing ends the combo.
+        game.load(blocks: [], piece: piece(.o, x: 0, y: 0), keepCombo: true)
+        game.hardDrop(using: &rng)
+        #expect(game.combo == -1)
+        #expect(game.bestCombo == 1)
+        #expect(game.clearedRows.isEmpty)
+    }
+
+    @Test func aSprintEndsTheMomentItsLinesAreCleared() {
+        var rng = SeededGenerator(seed: 3)
+        var game = TetrisGame(mode: .sprint(lines: 4), using: &rng)
+        #expect(game.linesLeft == 4)
+        game.load(blocks: (16...19).flatMap { row($0, columns: 0...8) }, piece: piece(.i, rotation: 1, x: 7, y: 0))
+        game.hardDrop(using: &rng)
+        #expect(game.lines == 4)
+        #expect(game.tetrises == 1)
+        #expect(game.isComplete && game.isOver)
+        #expect(game.piece == nil)
+        #expect(game.linesLeft == 0)
+        game.moveLeft()
+        game.tick(using: &rng)
+        #expect(game.piece == nil) // Nothing moves after the end.
+        // Endless never completes.
+        var endless = TetrisGame(using: &rng)
+        #expect(endless.linesLeft == 0)
+        endless.load(blocks: (16...19).flatMap { row($0, columns: 0...8) }, piece: piece(.i, rotation: 1, x: 7, y: 0))
+        endless.hardDrop(using: &rng)
+        #expect(!endless.isComplete && !endless.isOver)
+        #expect(TetrisGame.sprintLines == 40)
+    }
+
+    @Test func sprintsKeepTheirOwnRecord() {
+        var game = GameState.make(miners: [.desktop: 5])
+        let endless = game.finishTetris(score: 5_000, lines: 30, rewardPoints: 3_000, level: 4, bestCombo: 3, tetrises: 2)
+        #expect(endless.isNewBest)
+        let slow = game.finishTetris(score: 9_000, lines: 40, rewardPoints: 4_000, level: 5, sprintTime: 150)
+        #expect(slow.isNewBest) // The first Sprint.
+        #expect(game.stats.tetrisBestScore == 5_000) // A Sprint's score isn't the Endless record.
+        let slower = game.finishTetris(score: 9_500, lines: 40, rewardPoints: 4_200, level: 5, sprintTime: 160)
+        #expect(!slower.isNewBest)
+        #expect(slower.coins == game.arcadeReward(.tetris, score: 4_200))
+        let faster = game.finishTetris(score: 8_000, lines: 40, rewardPoints: 3_900, level: 5, sprintTime: 121.4)
+        #expect(faster.isNewBest)
+        #expect(game.stats.tetrisBestSprint == 121.4)
+        #expect(game.stats.tetrisSprints == 3)
+        #expect(game.stats.tetrisBestLevel == 5)
+        #expect(game.stats.tetrisBestCombo == 3)
+        #expect(game.stats.tetrisTetrises == 2)
+        #expect(game.stats.tetrisGames == 4)
+        #expect(game.record(for: .tetris) == "Best 5,000 · Sprint 2:01.4")
+        #expect(CoinFormat.stopwatch(59.96) == "0:59.9")
+        #expect(CoinFormat.stopwatch(3_725) == "62:05.0")
     }
 }

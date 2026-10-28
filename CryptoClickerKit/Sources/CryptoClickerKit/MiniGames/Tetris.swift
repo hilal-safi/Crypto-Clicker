@@ -70,11 +70,26 @@ public struct TetrisPiece: Equatable, Sendable {
 }
 
 /// Guideline-style Tetris on a 10x20 board: 7-bag randomizer, SRS rotation with wall kicks,
-/// a ghost piece, one tick of lock delay, and 100/300/500/800 x level line scores.
+/// a ghost piece, a hold slot, one tick of lock delay, and 100/300/500/800 x level line scores.
+/// Clearing lines with piece after piece builds a combo worth 50 x combo x level more each time.
+///
+/// Two modes: Endless goes on, faster every 10 lines, until the stack tops out; Sprint ends the
+/// moment 40 lines are cleared, as fast as the player can.
 public struct TetrisGame: Sendable {
+    public enum Mode: Hashable, Sendable {
+        case endless
+        /// Clear this many lines as quickly as possible.
+        case sprint(lines: Int)
+    }
+
     public static let width = 10
     public static let height = 20
+    public static let sprintLines = 40
     static let lineScores = [0, 100, 300, 500, 800]
+    /// Points for each step of a combo, times the level.
+    public static let comboPoints = 50
+
+    public let mode: Mode
 
     /// Row-major cells; 0 is empty, otherwise the `Tetromino` raw value that settled there.
     public private(set) var board: [Int]
@@ -87,12 +102,35 @@ public struct TetrisGame: Sendable {
     public private(set) var rewardPoints = 0
     public private(set) var lines = 0
     public private(set) var isOver = false
+    /// A Sprint's lines are all cleared (the game is over, and won).
+    public private(set) var isComplete = false
+    /// The piece set aside, to swap back in later.
+    public private(set) var held: Tetromino?
+    /// Hold works once per piece: the piece in play hasn't come out of the hold this turn.
+    public private(set) var canHold = true
+    /// Line clears in a row: 0 for a first clear, 1 for the next, and so on; -1 after a piece
+    /// that cleared nothing.
+    public private(set) var combo = -1
+    public private(set) var bestCombo = 0
+    /// Four lines at once.
+    public private(set) var tetrises = 0
+    /// Rows the last lock cleared (as they were numbered before the rows above fell), for effects.
+    public private(set) var clearedRows: [Int] = []
+    /// Counts locked pieces, for effects.
+    public private(set) var pieces = 0
     private var groundedTicks = 0
 
-    public init<R: RandomNumberGenerator>(using rng: inout R) {
+    public init<R: RandomNumberGenerator>(mode: Mode = .endless, using rng: inout R) {
+        self.mode = mode
         board = Array(repeating: 0, count: Self.width * Self.height)
         refillQueue(using: &rng)
         spawn(using: &rng)
+    }
+
+    /// Lines still to clear in a Sprint (0 in Endless).
+    public var linesLeft: Int {
+        guard case .sprint(let target) = mode else { return 0 }
+        return max(0, target - lines)
     }
 
     public var level: Int { lines / 10 + 1 }
@@ -164,6 +202,29 @@ public struct TetrisGame: Sendable {
         lock(using: &rng)
     }
 
+    /// Sets the piece in play aside (or swaps it with the one held), once per piece. The piece from
+    /// the hold starts again at the top.
+    @discardableResult
+    public mutating func hold<R: RandomNumberGenerator>(using rng: inout R) -> Bool {
+        guard !isOver, canHold, let current = piece else { return false }
+        canHold = false
+        groundedTicks = 0
+        let swappedIn = held
+        held = current.kind
+        if let swappedIn {
+            let candidate = Self.spawnPosition(for: swappedIn)
+            if isValid(candidate) {
+                piece = candidate
+            } else {
+                piece = nil
+                isOver = true
+            }
+        } else {
+            spawn(using: &rng)
+        }
+        return true
+    }
+
     /// One gravity step. A resting piece locks on its second grounded tick.
     public mutating func tick<R: RandomNumberGenerator>(using rng: inout R) {
         guard !isOver, let current = piece else { return }
@@ -195,6 +256,8 @@ public struct TetrisGame: Sendable {
         guard let current = piece else { return }
         piece = nil
         groundedTicks = 0
+        canHold = true
+        pieces += 1
         for cell in current.cells {
             guard cell.y >= 0 else {
                 isOver = true // Locked above the visible board.
@@ -203,29 +266,50 @@ public struct TetrisGame: Sendable {
             board[cell.y * Self.width + cell.x] = current.kind.rawValue
         }
         clearLines()
+        if case .sprint(let target) = mode, lines >= target {
+            isComplete = true
+            isOver = true
+            return
+        }
         spawn(using: &rng)
     }
 
     private mutating func clearLines() {
         var kept: [[Int]] = []
+        clearedRows = []
         for row in 0..<Self.height {
             let cells = Array(board[(row * Self.width)..<((row + 1) * Self.width)])
-            if cells.contains(0) { kept.append(cells) }
+            if cells.contains(0) {
+                kept.append(cells)
+            } else {
+                clearedRows.append(row)
+            }
         }
         let cleared = Self.height - kept.count
-        guard cleared > 0 else { return }
+        guard cleared > 0 else {
+            combo = -1
+            return
+        }
+        // The level the clear happens at, before these lines can raise it.
+        let clearLevel = level
         let empty = Array(repeating: Array(repeating: 0, count: Self.width), count: cleared)
         board = (empty + kept).flatMap { $0 }
-        score += Self.lineScores[min(cleared, 4)] * level
-        rewardPoints += Self.lineScores[min(cleared, 4)]
+        combo += 1
+        bestCombo = max(bestCombo, combo)
+        if cleared >= 4 { tetrises += 1 }
+        let comboBonus = Self.comboPoints * combo
+        score += (Self.lineScores[min(cleared, 4)] + comboBonus) * clearLevel
+        rewardPoints += Self.lineScores[min(cleared, 4)] + comboBonus
         lines += cleared
+    }
+
+    static func spawnPosition(for kind: Tetromino) -> TetrisPiece {
+        TetrisPiece(kind: kind, rotation: 0, x: kind == .o ? 4 : 3, y: kind == .i ? -1 : 0)
     }
 
     private mutating func spawn<R: RandomNumberGenerator>(using rng: inout R) {
         if queue.count < 7 { refillQueue(using: &rng) }
-        let kind = queue.removeFirst()
-        let x = kind == .o ? 4 : 3
-        let candidate = TetrisPiece(kind: kind, rotation: 0, x: x, y: kind == .i ? -1 : 0)
+        let candidate = Self.spawnPosition(for: queue.removeFirst())
         if isValid(candidate) {
             piece = candidate
         } else {
@@ -266,13 +350,14 @@ public struct TetrisGame: Sendable {
     }
 
     #if DEBUG
-    /// Test hook: places settled blocks and a specific piece.
-    mutating func load(blocks: [GridPoint], piece: TetrisPiece?) {
+    /// Test hook: places settled blocks and a specific piece. The combo starts over unless kept.
+    mutating func load(blocks: [GridPoint], piece: TetrisPiece?, keepCombo: Bool = false) {
         board = Array(repeating: 0, count: Self.width * Self.height)
         for block in blocks { board[block.y * Self.width + block.x] = Tetromino.o.rawValue }
         self.piece = piece
         isOver = false
         groundedTicks = 0
+        if !keepCombo { combo = -1 }
     }
     #endif
 }

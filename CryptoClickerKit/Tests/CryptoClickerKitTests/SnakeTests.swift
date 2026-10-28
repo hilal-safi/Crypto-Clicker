@@ -135,4 +135,189 @@ struct SnakeTests {
         #expect(game.food == nil)
         #expect(game.isOver)
     }
+
+    // MARK: Arenas, Coin Rush and power-ups
+
+    @Test(arguments: SnakeGame.Arena.allCases)
+    func arenasWallOffCellsAwayFromTheStart(_ arena: SnakeGame.Arena) {
+        var rng = SeededGenerator(seed: 4)
+        let game = SnakeGame(arena: arena, using: &rng)
+        #expect(game.arena == arena)
+        #expect(arena == .open ? game.walls.isEmpty : game.walls.count >= 12)
+        // The starting row ahead of the snake is clear, and no coin starts inside a wall.
+        #expect((0..<SnakeGame.width).allSatisfy { !game.walls.contains(p($0, 10)) })
+        #expect(game.coins.allSatisfy { !game.walls.contains($0) })
+        #expect(game.walls.allSatisfy { (0..<SnakeGame.width).contains($0.x) && (0..<SnakeGame.height).contains($0.y) })
+    }
+
+    @Test func hittingAnObstacleEndsTheGame() {
+        var rng = SeededGenerator(seed: 1)
+        var game = SnakeGame(arena: .pillars, using: &rng)
+        game.load(body: [p(2, 3), p(1, 3), p(0, 3)], heading: .right, food: p(0, 0))
+        game.turn(.down)
+        game.step(using: &rng) // (2, 4)
+        game.turn(.right)
+        game.step(using: &rng) // (3, 4) is a pillar.
+        #expect(game.isOver)
+    }
+
+    @Test func coinRushPutsThreeCoinsOutAndEndsAfterAMinute() {
+        var rng = SeededGenerator(seed: 2)
+        var game = SnakeGame(mode: .coinRush, arena: .rooms, using: &rng)
+        #expect(game.arena == .open) // Coin Rush is always in the open.
+        #expect(game.coins.count == SnakeGame.coinRushCoins)
+        #expect(Set(game.coins).count == 3)
+        #expect(game.timeLeft == SnakeGame.coinRushLength)
+        var steps = 0
+        while !game.isOver && steps < 10_000 {
+            // Circle in a safe loop: right along row 10, then around.
+            if steps % 20 == 9 { game.turn(.down) }
+            if steps % 20 == 10 { game.turn(.left) }
+            if steps % 20 == 19 { game.turn(.up) }
+            if steps % 20 == 0 { game.turn(.right) }
+            game.step(using: &rng)
+            steps += 1
+            if !game.isOver { #expect(game.coins.count == SnakeGame.coinRushCoins) }
+        }
+        #expect(game.isOver)
+        var timed = SnakeGame(mode: .coinRush, using: &rng)
+        timed.load(body: [p(5, 5), p(4, 5), p(3, 5)], heading: .right, food: nil)
+        for index in 0..<2_000 where !timed.isOver {
+            timed.turn([.down, .left, .up, .right][(index / 2) % 4]) // A tight square: never crashes.
+            timed.step(using: &rng)
+        }
+        #expect(timed.isOver)
+        #expect(timed.time >= SnakeGame.coinRushLength)
+        #expect(timed.timeLeft == 0)
+    }
+
+    @Test func aSpeedBoostIsFasterAndDoublesCoinsUntilItRunsOut() {
+        var (game, rng) = game(body: [p(5, 5), p(4, 5), p(3, 5)], heading: .right, food: p(8, 5))
+        let normal = game.tickInterval
+        game.place(.speedBoost, at: p(6, 5))
+        game.step(using: &rng)
+        #expect(game.isActive(.speedBoost))
+        #expect(game.powerUpsCollected == 1)
+        #expect(game.tickInterval < normal)
+        #expect(game.coinValue == 20)
+        game.step(using: &rng)
+        game.step(using: &rng) // Eats the coin at (8, 5).
+        #expect(game.score == 20)
+        // Slow Motion replaces it.
+        game.place(.slowMotion, at: p(9, 5))
+        game.step(using: &rng)
+        #expect(game.isActive(.slowMotion) && !game.isActive(.speedBoost))
+        #expect(game.tickInterval > normal)
+        // Effects run out with time.
+        game.turn(.down)
+        var ticks = 0
+        while game.isActive(.slowMotion) && ticks < 200 {
+            game.step(using: &rng)
+            ticks += 1
+            if game.head.y >= SnakeGame.height - 2 { game.turn(game.heading == .down ? .left : .up) }
+            if game.head.y <= 1 { game.turn(.down) }
+        }
+        #expect(!game.isActive(.slowMotion))
+        #expect(game.tickInterval < normal * 1.1)
+    }
+
+    @Test func aShieldForgivesOneCrashAndWaitsForATurn() {
+        var (game, rng) = game(body: [p(13, 3), p(12, 3), p(11, 3)], heading: .right, food: p(0, 0))
+        game.place(.shield, at: p(14, 3))
+        game.step(using: &rng) // Picks up the shield at the wall.
+        #expect(game.hasShield)
+        game.step(using: &rng) // Would hit the wall: forgiven.
+        #expect(!game.isOver)
+        #expect(!game.hasShield)
+        #expect(game.head == p(14, 3))
+        #expect(game.graceTicks == SnakeGame.shieldGraceTicks)
+        game.turn(.down)
+        game.step(using: &rng)
+        #expect(game.head == p(14, 4))
+        #expect(game.graceTicks == 0)
+        // Without a shield the next crash counts; waiting too long does too.
+        var waiting = game
+        waiting.turn(.right)
+        waiting.step(using: &rng)
+        #expect(waiting.isOver)
+        var stuck = SnakeTests().game(body: [p(13, 3), p(12, 3), p(11, 3)], heading: .right, food: p(0, 0)).0
+        stuck.place(.shield, at: p(14, 3))
+        stuck.step(using: &rng)
+        for _ in 0...SnakeGame.shieldGraceTicks { stuck.step(using: &rng) }
+        #expect(!stuck.isOver) // Forgiven, then waiting four ticks.
+        stuck.step(using: &rng)
+        #expect(stuck.isOver)
+    }
+
+    @Test func theMagnetPullsInNearbyCoins() {
+        var (game, rng) = game(body: [p(5, 5), p(4, 5), p(3, 5)], heading: .right, food: p(7, 7))
+        game.place(.magnet, at: p(6, 5))
+        game.step(using: &rng) // Head at (6, 5): the coin at (7, 7) is three steps away.
+        #expect(game.isActive(.magnet))
+        #expect(game.eaten == 0)
+        game.placeCoins([p(8, 6)])
+        game.step(using: &rng) // Head at (7, 5): (8, 6) is two steps away.
+        #expect(game.eaten == 1)
+        let length = game.body.count
+        game.step(using: &rng)
+        #expect(game.body.count == length + 1) // It still grows.
+    }
+
+    @Test func powerUpsAppearEverySixCoinsAndDontWaitForever() {
+        var rng = SeededGenerator(seed: 8)
+        var game = SnakeGame(using: &rng)
+        var steps = 0
+        while game.eaten < SnakeGame.coinsPerPowerUp && !game.isOver && steps < 5_000 {
+            SnakeTests().steer(&game)
+            game.step(using: &rng)
+            steps += 1
+        }
+        #expect(game.eaten >= SnakeGame.coinsPerPowerUp)
+        let item = game.item
+        #expect(item != nil)
+        if let item {
+            #expect(!game.body.contains(item.position) && !game.coins.contains(item.position))
+        }
+        // Left alone, it disappears after its lifetime.
+        var ignored = game
+        var waited: TimeInterval = 0
+        while ignored.item != nil && !ignored.isOver && waited < 20 {
+            waited += ignored.tickInterval
+            SnakeTests().steer(&ignored)
+            ignored.step(using: &rng)
+        }
+        #expect(ignored.item == nil || ignored.isOver)
+    }
+
+    @Test func coinRushKeepsItsOwnRecord() {
+        var state = GameState.make(miners: [.desktop: 5])
+        let classic = state.finishSnake(score: 300, length: 33, coins: 30, time: 95, powerUps: 2)
+        #expect(classic.isNewBest)
+        let rush = state.finishSnake(score: 250, length: 28, coins: 22, time: 60, powerUps: 3, mode: .coinRush)
+        #expect(rush.isNewBest) // The first Coin Rush, though below Classic's best.
+        #expect(state.stats.snakeBestScore == 300)
+        #expect(state.stats.snakeRushBestScore == 250)
+        #expect(state.stats.snakeRushes == 1)
+        #expect(state.stats.snakeBestCoins == 30)
+        #expect(state.stats.snakeLongestTime == 95)
+        #expect(state.stats.snakePowerUps == 5)
+        #expect(state.stats.snakeCoinsEaten == 52)
+        #expect(state.stats.snakeGames == 2)
+    }
+
+    @Test func coinRushPointsPayLessBecauseTheyComeFaster() {
+        var classic = GameState.make(miners: [.desktop: 5]) // 10 coins per second.
+        var rush = GameState.make(miners: [.desktop: 5])
+        #expect(classic.finishSnake(score: 200, length: 23).coins == 900) // 200 × 0.3 × 10 × 1.5
+        #expect(rush.finishSnake(score: 200, length: 23, mode: .coinRush).coins == 540) // 60% of that.
+    }
+
+    @Test func aCoinRushLeftOpenIsPaidAsOne() {
+        var state = GameState.make(miners: [.desktop: 5])
+        state.holdArcadeRun(ArcadeRun(game: .snake, score: 200, detail: 23, stage: ArcadeRun.coinRushStage))
+        #expect(state.payUnfinishedRun()?.payout.coins == 540)
+        #expect(state.stats.snakeRushes == 1)
+        #expect(state.stats.snakeRushBestScore == 200)
+        #expect(state.stats.snakeBestScore == 0)
+    }
 }

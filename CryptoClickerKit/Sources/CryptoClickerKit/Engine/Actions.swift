@@ -338,8 +338,10 @@ extension GameState {
         stats.spent += amount
     }
 
+    /// Adds tokens to the wallet, stopping at `Int.max` rather than trapping (a 32-bit count on
+    /// Apple Watch).
     mutating func giveTokens(_ token: TokenID, amount: Int) {
         guard amount > 0 else { return }
-        tokens[token, default: 0] += amount
+        tokens[token] = tokenCount(token).addingCount(amount)
     }
 }

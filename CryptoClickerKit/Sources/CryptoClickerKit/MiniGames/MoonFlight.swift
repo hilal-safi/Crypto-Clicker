@@ -60,6 +60,44 @@ public struct MoonRound: Codable, Equatable, Sendable {
     public let crashPoint: Double
     /// Cash out automatically on reaching this multiplier, if it gets there.
     public let autoCashOut: Double?
+
+    public init(token: TokenID, bet: Int, crashPoint: Double, autoCashOut: Double?) {
+        self.token = token
+        self.bet = bet
+        self.crashPoint = crashPoint
+        self.autoCashOut = autoCashOut
+    }
+
+    /// Where the flight stands `seconds` after launch. The automatic cash-out is checked first, so
+    /// a target equal to the crash point still pays.
+    public func state(after seconds: TimeInterval) -> MoonState {
+        let multiplier = MoonFlight.multiplier(after: seconds)
+        if let target = autoCashOut, target <= crashPoint, multiplier >= target {
+            return .autoCashedOut(multiplier: target)
+        }
+        if multiplier >= crashPoint { return .crashed(at: crashPoint) }
+        return .flying(multiplier: multiplier)
+    }
+
+    /// How the flight ends if it's ended `seconds` after launch, without the wallet: a cash-out at
+    /// the moment's multiplier while it's flying, the automatic cash-out, or the crash; no coin
+    /// bonus. Practice flights end this way; `GameState.settleMoon` pays the same ending.
+    public func outcome(after seconds: TimeInterval) -> MoonResult {
+        switch state(after: seconds) {
+        case .flying(let multiplier), .autoCashedOut(let multiplier):
+            MoonResult(token: token, bet: bet, cashedOutAt: multiplier, crashPoint: crashPoint,
+                       tokensWon: tokensWon(at: multiplier), bonus: 0)
+        case .crashed:
+            MoonResult(token: token, bet: bet, cashedOutAt: nil, crashPoint: crashPoint, tokensWon: 0, bonus: 0)
+        }
+    }
+
+    /// Tokens a cash-out at `multiplier` pays: the bet times the multiplier, rounded down to whole
+    /// tokens and kept within a 32-bit count.
+    public func tokensWon(at multiplier: Double) -> Int {
+        guard multiplier.isFinite, multiplier > 0 else { return 0 }
+        return Int(min((Double(bet) * multiplier).rounded(.down), Double(Int32.max)))
+    }
 }
 
 /// Where a flight stands at a moment.
@@ -80,7 +118,7 @@ public struct MoonResult: Equatable, Sendable {
     /// Tokens paid back: the bet times the multiplier, in whole tokens.
     public let tokensWon: Int
     /// Coins paid on top of a win.
-    public let bonus: Double
+    public internal(set) var bonus: Double
 
     public var isWin: Bool { cashedOutAt != nil }
 }

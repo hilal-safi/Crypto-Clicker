@@ -301,6 +301,48 @@ struct VelvetBackground: View {
 
 /// Picks the token to bet and how many. Token counts come from the caller, so a game can hold
 /// them steady while an animation plays out.
+/// Real bets or practice chips, for the casino games. Hidden mid-round.
+struct CasinoModePicker: View {
+    @Binding var isPracticing: Bool
+
+    var body: some View {
+        Picker("Mode", selection: $isPracticing) {
+            Text("Play for Tokens").tag(false)
+            Text("Practice").tag(true)
+        }
+        .pickerStyle(.segmented)
+        .accessibilityHint("Practice plays with chips: no tokens, coins or statistics change")
+    }
+}
+
+/// Practice chips: the stack, and the bet to play.
+struct PracticeBetControls: View {
+    let chips: PracticeChips
+    @Binding var bet: Int
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 1) {
+                Label("\(CoinFormat.grouped(chips.balance)) chips", systemImage: "circle.hexagongrid.circle.fill")
+                    .font(.headline.monospacedDigit())
+                    .contentTransition(.numericText())
+                Text("No tokens, coins or stats change")
+                    .font(.caption)
+                    .foregroundStyle(.subtext)
+            }
+            Spacer(minLength: 0)
+            Picker("Bet", selection: $bet) {
+                ForEach(PracticeChips.bets, id: \.self) { amount in
+                    Text("\(amount)").tag(amount)
+                }
+            }
+            .pickerStyle(.segmented)
+            .fixedSize()
+            .accessibilityLabel("Practice bet")
+        }
+    }
+}
+
 struct TokenBetControls: View {
     @Binding var token: TokenID
     @Binding var bet: Int

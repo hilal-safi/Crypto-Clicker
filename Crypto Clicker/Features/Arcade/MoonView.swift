@@ -4,7 +4,8 @@ import CryptoClickerKit
 /// To the Moon: bet tokens, launch, and watch the multiplier climb up the chart until the market
 /// crashes. Cash out before it does, or set an automatic cash-out. The bet is taken and the flight
 /// saved at launch; leaving the screen or the app mid-flight cashes out at once, so a bet is never
-/// left hanging. Where the flight crashes is decided at launch (see `MoonFlight`).
+/// left hanging. Where the flight crashes is decided at launch (see `MoonFlight`). Practice flies
+/// the same flights for chips, without the wallet.
 struct MoonView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
@@ -20,8 +21,20 @@ struct MoonView: View {
     @State private var flights = 0
     @State private var effects = Effects()
     @State private var showingHelp = false
+    @State private var isPracticing = false
+    @State private var chips = PracticeChips()
+    @State private var practiceBet = 25
+    /// A practice flight in the air (a real one is saved in the game).
+    @State private var practiceRound: MoonRound?
+    @State private var roundIsPractice = false
 
-    private var isFlying: Bool { launchDate != nil && store.game.moonRound != nil }
+    /// The flight in the air: a practice one, or the saved one.
+    private var activeRound: MoonRound? { roundIsPractice ? practiceRound : store.game.moonRound }
+
+    private var isFlying: Bool { launchDate != nil && activeRound != nil }
+
+    /// What the flight's bet is counted in.
+    private func unit(_ token: TokenID) -> String { roundIsPractice ? "chips" : token.ticker }
 
     var body: some View {
         let game = store.game
@@ -83,7 +96,7 @@ struct MoonView: View {
     private var chart: some View {
         TimelineView(.animation(minimumInterval: nil, paused: !isFlying)) { timeline in
             let elapsed = launchDate.map { timeline.date.timeIntervalSince($0) } ?? endedAfter
-            let crash = store.game.moonRound?.crashPoint ?? .infinity
+            let crash = activeRound?.crashPoint ?? .infinity
             // While flying, the line never shows past the crash point, even for a frame.
             let shownTime = isFlying ? min(elapsed, MoonFlight.time(toReach: crash)) : endedAfter
             let multiplier = isFlying ? min(MoonFlight.multiplier(after: shownTime), crash) : endMultiplier
@@ -135,11 +148,11 @@ struct MoonView: View {
 
     @ViewBuilder
     private func status(game: GameState) -> some View {
-        if isFlying, let round = game.moonRound {
+        if isFlying, let round = activeRound {
             TimelineView(.periodic(from: .now, by: 0.1)) { timeline in
                 let elapsed = launchDate.map { timeline.date.timeIntervalSince($0) } ?? 0
                 let multiplier = min(MoonFlight.multiplier(after: elapsed), round.crashPoint)
-                Text("Cash out now for \(CoinFormat.grouped(Int((Double(round.bet) * multiplier).rounded(.down)))) \(round.token.ticker)"
+                Text("Cash out now for \(CoinFormat.grouped(round.tokensWon(at: multiplier))) \(unit(round.token))"
                      + (round.autoCashOut.map { " · auto at \(CoinFormat.flight($0))" } ?? ""))
                     .font(.headline.monospacedDigit())
                     .foregroundStyle(.white.opacity(0.85))
@@ -147,7 +160,7 @@ struct MoonView: View {
         } else if let result {
             VStack(spacing: 4) {
                 if result.isWin {
-                    Text("+\(CoinFormat.grouped(result.tokensWon - result.bet)) \(result.token.ticker) profit")
+                    Text("+\(CoinFormat.grouped(result.tokensWon - result.bet)) \(unit(result.token)) profit")
                         .font(.title3.weight(.bold))
                         .foregroundStyle(Theme.gold)
                     if result.bonus > 0 {
@@ -155,7 +168,7 @@ struct MoonView: View {
                             .foregroundStyle(Theme.gold)
                     }
                 } else {
-                    Text("Lost \(CoinFormat.grouped(result.bet)) \(result.token.ticker)")
+                    Text("Lost \(CoinFormat.grouped(result.bet)) \(unit(result.token))")
                         .font(.title3.weight(.bold))
                         .foregroundStyle(Theme.loss)
                 }
@@ -187,12 +200,23 @@ struct MoonView: View {
         } else {
             let counts = Dictionary(uniqueKeysWithValues: TokenID.allCases.map { ($0, game.tokenCount($0)) })
             VStack(spacing: 12) {
-                if TokenID.allCases.allSatisfy({ counts[$0, default: 0] == 0 }) {
-                    Label("Buy tokens on the Coin Exchange to play.", systemImage: "info.circle")
-                        .font(.subheadline)
-                        .foregroundStyle(.subtext)
+                CasinoModePicker(isPracticing: $isPracticing)
+                if isPracticing {
+                    PracticeBetControls(chips: chips, bet: $practiceBet)
+                    if chips.isBroke {
+                        Button("New Stack of \(CoinFormat.grouped(PracticeChips.starting)) Chips") { chips.refill() }
+                            .font(.footnote.weight(.semibold))
+                            .buttonStyle(.borderless)
+                            .tint(Theme.gold)
+                    }
+                } else {
+                    if TokenID.allCases.allSatisfy({ counts[$0, default: 0] == 0 }) {
+                        Label("Buy tokens on the Coin Exchange to play, or practice with chips.", systemImage: "info.circle")
+                            .font(.subheadline)
+                            .foregroundStyle(.subtext)
+                    }
+                    TokenBetControls(token: $token, bet: $bet, counts: counts)
                 }
-                TokenBetControls(token: $token, bet: $bet, counts: counts)
                 HStack {
                     Menu {
                         Picker("Automatic cash-out", selection: $autoCashOut) {
@@ -207,9 +231,11 @@ struct MoonView: View {
                             .font(.subheadline.weight(.semibold))
                     }
                     Spacer()
-                    Text("2× pays +\(CoinFormat.short(game.moonBonus(bet: bet, token: token, multiplier: 2))) coins")
-                        .font(.footnote)
-                        .foregroundStyle(.subtext)
+                    if !isPracticing {
+                        Text("2× pays +\(CoinFormat.short(game.moonBonus(bet: bet, token: token, multiplier: 2))) coins")
+                            .font(.footnote)
+                            .foregroundStyle(.subtext)
+                    }
                 }
                 Button(action: launch) {
                     Text(result == nil ? "LAUNCH" : "LAUNCH AGAIN")
@@ -220,7 +246,7 @@ struct MoonView: View {
                 }
                 .buttonStyle(.glassProminent)
                 .tint(Theme.accent)
-                .disabled(counts[token, default: 0] < bet)
+                .disabled(isPracticing ? chips.balance < practiceBet : counts[token, default: 0] < bet)
             }
             .padding(16)
             .glassEffect(.regular, in: .rect(cornerRadius: 26))
@@ -238,7 +264,15 @@ struct MoonView: View {
     }
 
     private func launch() {
-        guard !isFlying, store.launchMoon(token, bet: bet, autoCashOut: autoCashOut) else { return }
+        guard !isFlying else { return }
+        if isPracticing {
+            guard chips.take(practiceBet) else { return }
+            practiceRound = MoonRound(token: token, bet: practiceBet,
+                                      crashPoint: MoonFlight.crashPoint(roll: Double.random(in: 0..<1)), autoCashOut: autoCashOut)
+        } else {
+            guard store.launchMoon(token, bet: bet, autoCashOut: autoCashOut) else { return }
+        }
+        roundIsPractice = isPracticing
         withAnimation(.snappy) { result = nil }
         endedAfter = 0
         launchDate = .now
@@ -246,7 +280,7 @@ struct MoonView: View {
 
     /// Sleeps until the flight ends by itself (the automatic cash-out or the crash), then settles it.
     private func waitForTheEnd() async {
-        guard let launchDate, let round = store.game.moonRound else { return }
+        guard let launchDate, let round = activeRound else { return }
         let target = round.autoCashOut.flatMap { $0 <= round.crashPoint ? $0 : nil } ?? round.crashPoint
         let endsAfter = MoonFlight.time(toReach: target)
         do {
@@ -259,12 +293,23 @@ struct MoonView: View {
 
     /// The player's cash-out (or leaving): settles at the moment's multiplier.
     private func cashOut(at date: Date) {
-        guard let launchDate, store.game.moonRound != nil else { return }
+        guard let launchDate, activeRound != nil else { return }
         settle(after: date.timeIntervalSince(launchDate))
     }
 
+    /// Ends the flight once: a practice flight pays its chips here, a real one through the store.
     private func settle(after seconds: TimeInterval) {
-        guard launchDate != nil, let settled = store.settleMoon(after: seconds) else { return }
+        guard launchDate != nil else { return }
+        let settled: MoonResult
+        if roundIsPractice {
+            guard let round = practiceRound else { return }
+            practiceRound = nil
+            settled = round.outcome(after: seconds)
+            chips.pay(settled.tokensWon)
+        } else {
+            guard let paid = store.settleMoon(after: seconds) else { return }
+            settled = paid
+        }
         endedAfter = MoonFlight.time(toReach: settled.cashedOutAt ?? settled.crashPoint)
         launchDate = nil
         withAnimation(.snappy) { result = settled }

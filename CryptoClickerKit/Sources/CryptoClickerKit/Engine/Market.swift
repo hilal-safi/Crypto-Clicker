@@ -192,8 +192,8 @@ extension GameState {
         let cost = price(of: token, quantity: quantity, at: date)
         guard quantity > 0, cost.isFinite, cost <= coins else { return false }
         spend(cost)
-        tokens[token, default: 0] += quantity
-        stats.tokensBought[token, default: 0] += quantity
+        giveTokens(token, amount: quantity)
+        stats.tokensBought[token] = stats.tokensBought[token, default: 0].addingCount(quantity)
         return true
     }
 

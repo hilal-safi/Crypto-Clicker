@@ -141,6 +141,9 @@ struct StatsView: View {
                     row("Slot wins", "\(CoinFormat.grouped(stats.slotsWins))\(winRate(stats.slotsWins, of: stats.slotsSpins))")
                     row("Jackpots", CoinFormat.grouped(stats.slotsJackpots))
                     row("Best spin", stats.slotsBestMultiple >= 2 ? "×\(CoinFormat.grouped(stats.slotsBestMultiple)) the bet" : "No wins yet")
+                    row("Biggest slots win", amount(stats.slotsBiggestWin))
+                    row("Free spins", "\(CoinFormat.grouped(stats.slotsFreeSpinRounds)) won · \(CoinFormat.grouped(stats.slotsFreeSpinsPlayed)) played")
+                    row("Bitcoins collected", "\(CoinFormat.grouped(stats.slotsBitcoins)) · \(CoinFormat.grouped(stats.slotsBitcoins / SlotMachine.bitcoinsPerPrize)) prizes")
                     row("Slots bet · paid", "\(amount(stats.slotsWagered)) · \(amount(stats.slotsPaidOut))\(returnRate(stats.slotsPaidOut, of: stats.slotsWagered))")
                     row("Moon flights", CoinFormat.grouped(stats.moonFlights))
                     row("Cash-outs", "\(CoinFormat.grouped(stats.moonCashOuts))\(winRate(stats.moonCashOuts, of: stats.moonFlights))")
@@ -158,11 +161,11 @@ struct StatsView: View {
                 }
 
                 Section("Arcade") {
-                    row("Tetris", "Best \(CoinFormat.grouped(stats.tetrisBestScore)) · \(CoinFormat.grouped(stats.tetrisLines)) lines · \(CoinFormat.grouped(stats.tetrisGames)) games")
-                    row("2048", "Best \(CoinFormat.grouped(stats.merge2048BestScore)) · top tile \(stats.merge2048BestTile) · \(CoinFormat.grouped(stats.merge2048Games)) games")
-                    row("Snake", "Best \(CoinFormat.grouped(stats.snakeBestScore)) · longest \(CoinFormat.grouped(stats.snakeLongest)) · \(CoinFormat.grouped(stats.snakeCoinsEaten)) coins eaten · \(CoinFormat.grouped(stats.snakeGames)) games")
-                    row("Brick Breaker", "Best \(CoinFormat.grouped(stats.brickBreakerBestScore)) · level \(CoinFormat.grouped(stats.brickBreakerBestLevel)) · \(CoinFormat.grouped(stats.bricksBroken)) bricks · \(CoinFormat.grouped(stats.brickBreakerGames)) games")
-                    row("Bubble Blaster", "Best \(CoinFormat.grouped(stats.bubbleBestScore)) · best shot \(CoinFormat.grouped(stats.bubbleBestShot)) · \(CoinFormat.grouped(stats.bubblesPopped)) popped · \(CoinFormat.grouped(stats.bubbleGames)) games")
+                    row("Tetris", "Best \(CoinFormat.grouped(stats.tetrisBestScore)) · level \(stats.tetrisBestLevel) · combo \(stats.tetrisBestCombo) · \(CoinFormat.grouped(stats.tetrisTetrises)) Tetrises · \(CoinFormat.grouped(stats.tetrisLines)) lines · \(CoinFormat.grouped(stats.tetrisGames)) games" + (stats.tetrisBestSprint > 0 ? " · Sprint \(CoinFormat.stopwatch(stats.tetrisBestSprint))" : ""))
+                    row("2048", "Best \(CoinFormat.grouped(stats.merge2048BestScore)) · top tile \(stats.merge2048BestTile) · \(CoinFormat.grouped(stats.merge2048Games)) games · \(CoinFormat.grouped(game.merge2048Daily.wins)) daily puzzles · \(CoinFormat.grouped(game.merge2048Daily.totalStars)) stars")
+                    row("Snake", "Best \(CoinFormat.grouped(stats.snakeBestScore)) · Coin Rush \(CoinFormat.grouped(stats.snakeRushBestScore)) · longest \(CoinFormat.grouped(stats.snakeLongest)) · most coins \(CoinFormat.grouped(stats.snakeBestCoins)) · longest game \(CoinFormat.stopwatch(stats.snakeLongestTime)) · \(CoinFormat.grouped(stats.snakePowerUps)) power-ups · \(CoinFormat.grouped(stats.snakeGames)) games")
+                    row("Brick Breaker", "Best \(CoinFormat.grouped(stats.brickBreakerBestScore)) · level \(CoinFormat.grouped(stats.brickBreakerBestLevel)) · \(CoinFormat.grouped(stats.brickBreakerLevelsCleared)) levels cleared · best streak \(stats.brickBreakerBestStreak) · \(CoinFormat.grouped(stats.brickBreakerBosses)) bosses · \(CoinFormat.grouped(stats.brickBreakerPowerUps)) power-ups · \(CoinFormat.grouped(stats.bricksBroken)) bricks · \(CoinFormat.grouped(stats.brickBreakerGames)) games")
+                    row("Bubble Blaster", "Best \(CoinFormat.grouped(stats.bubbleBestScore)) · wave \(CoinFormat.grouped(stats.bubbleBestWave)) · best shot \(CoinFormat.grouped(stats.bubbleBestShot)) · streak \(CoinFormat.grouped(stats.bubbleBestStreak)) · \(CoinFormat.grouped(stats.bubblesPopped)) popped · \(CoinFormat.grouped(stats.bubbleBonuses)) gold · \(CoinFormat.grouped(stats.bubbleGames)) games")
                     row("Pump and Dump", "Best \(CoinFormat.grouped(stats.pumpDumpBestScore)) · round \(stats.pumpDumpBestRound) · combo \(CoinFormat.grouped(stats.pumpDumpBestCombo)) · \(CoinFormat.grouped(stats.pumpDumpCoinsHit)) coins hit · \(CoinFormat.grouped(stats.pumpDumpScamsHit)) scams · \(CoinFormat.grouped(stats.pumpDumpGames)) runs")
                     row("Token Swap", "\(game.tokenSwap.levelsWon) levels won · \(game.tokenSwap.totalStars) stars · \(game.tokenSwap.dailyWins) daily puzzles · Classic best \(CoinFormat.grouped(stats.tokenSwapBestScore)) · chain of \(CoinFormat.grouped(stats.tokenSwapBestChain)) · \(CoinFormat.grouped(stats.tokenSwapTokens)) tokens · \(CoinFormat.grouped(stats.tokenSwapBlasts)) specials")
                     row("Games played", CoinFormat.grouped(gamesPlayed))

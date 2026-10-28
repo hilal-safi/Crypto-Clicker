@@ -88,6 +88,46 @@ public enum BlackjackOutcome: Equatable, Sendable {
     case blackjack, win, push, lose
 }
 
+/// How the dealer plays: the one rule that sets the two tables apart.
+public enum BlackjackRules: String, CaseIterable, Codable, Sendable, Identifiable {
+    /// The classic table: the dealer stands on every 17.
+    case standsOnSoft17
+    /// The tough table: the dealer hits a soft 17 (a 17 counting an ace as 11), which suits the
+    /// house a little better, so wins pay a bigger coin bonus.
+    case hitsSoft17
+
+    public var id: String { rawValue }
+
+    public var name: String {
+        switch self {
+        case .standsOnSoft17: "Classic"
+        case .hitsSoft17: "Tough"
+        }
+    }
+
+    /// The rule as the felt prints it.
+    public var dealerRule: String {
+        switch self {
+        case .standsOnSoft17: "Dealer stands on all 17s"
+        case .hitsSoft17: "Dealer hits soft 17"
+        }
+    }
+}
+
+/// A move the coach can suggest.
+public enum BlackjackMove: String, CaseIterable, Sendable {
+    case hit, stand, double, split
+
+    public var name: String {
+        switch self {
+        case .hit: "Hit"
+        case .stand: "Stand"
+        case .double: "Double"
+        case .split: "Split"
+        }
+    }
+}
+
 public struct BlackjackResult: Equatable, Sendable {
     public let outcome: BlackjackOutcome
     /// Tokens that were staked on the hand.
@@ -97,11 +137,13 @@ public struct BlackjackResult: Equatable, Sendable {
     public var net: Int { payout - bet }
 }
 
-/// Casino-standard blackjack: single deck, dealer peeks for blackjack and stands on all 17s,
-/// naturals pay 3:2 (odd bets round up), one split, double on any two cards, split aces get one card.
+/// Casino-standard blackjack: single deck, dealer peeks for blackjack, naturals pay 3:2 (odd bets
+/// round up), one split, double on any two cards (after a split too), split aces get one card. The
+/// dealer stands on all 17s at the classic table and hits a soft 17 at the tough one.
 /// The table never touches the wallet: the caller takes bets and pays out `results`.
 public struct BlackjackTable: Sendable {
     public private(set) var phase: BlackjackPhase = .betting
+    public private(set) var rules: BlackjackRules
     public private(set) var dealer: [Card] = []
     public private(set) var hands: [BlackjackHand] = []
     public private(set) var activeIndex = 0
@@ -109,7 +151,15 @@ public struct BlackjackTable: Sendable {
     private var shoe: [Card] = []
     private var nextCardID = 0
 
-    public init() {}
+    public init(rules: BlackjackRules = .standsOnSoft17) {
+        self.rules = rules
+    }
+
+    /// Changes tables between rounds; never mid-hand.
+    public mutating func setRules(_ rules: BlackjackRules) {
+        guard phase == .betting || phase == .settled else { return }
+        self.rules = rules
+    }
 
     // MARK: Reading the table
 
@@ -142,7 +192,19 @@ public struct BlackjackTable: Sendable {
     /// Extra tokens a double down or split would take from the wallet.
     public var extraBetNeeded: Int { activeHand?.bet ?? 0 }
 
-    public var dealerShouldDraw: Bool { phase == .dealerTurn && dealerTotal < 17 }
+    public var dealerShouldDraw: Bool { phase == .dealerTurn && dealerMustDraw }
+
+    /// The dealer draws under 17, and on a soft 17 at the tough table.
+    private var dealerMustDraw: Bool {
+        let (total, isSoft) = Self.evaluate(dealer)
+        return total < 17 || (rules == .hitsSoft17 && total == 17 && isSoft)
+    }
+
+    /// What basic strategy plays with the active hand, given the moves the table allows now.
+    public var suggestedMove: BlackjackMove? {
+        guard let hand = activeHand, let up = dealer.first else { return nil }
+        return BlackjackStrategy.move(for: hand.cards, dealerUp: up, canDouble: canDouble, canSplit: canSplit, rules: rules)
+    }
 
     // MARK: Playing
 
@@ -202,11 +264,11 @@ public struct BlackjackTable: Sendable {
         advance()
     }
 
-    /// Plays one dealer step: draws a card while under 17, then settles.
+    /// Plays one dealer step: draws a card while the rules say to, then settles.
     public mutating func dealerStep<R: RandomNumberGenerator>(using rng: inout R) {
         guard phase == .dealerTurn else { return }
-        if dealerTotal < 17 { dealer.append(draw(using: &rng)) }
-        if dealerTotal >= 17 { settle() }
+        if dealerMustDraw { dealer.append(draw(using: &rng)) }
+        if !dealerMustDraw { settle() }
     }
 
     /// Finishes the dealer's turn immediately (used when leaving the table mid-round).
@@ -300,4 +362,56 @@ public struct BlackjackTable: Sendable {
         shoe = padded.reversed().map { Card(id: 0, rank: $0, suit: .spades) }
     }
     #endif
+}
+
+/// Basic strategy, the standard chart for these rules (doubling after a split allowed, no
+/// surrender): the move that loses least over time for each hand against each dealer card. It's
+/// the coach's advice, not a promise about the next card.
+public enum BlackjackStrategy {
+    public static func move(for cards: [Card], dealerUp: Card, canDouble: Bool, canSplit: Bool,
+                            rules: BlackjackRules) -> BlackjackMove {
+        let up = dealerUp.isAce ? 11 : dealerUp.points
+        let hitsSoft17 = rules == .hitsSoft17
+        if canSplit, cards.count == 2, let pair = splitAdvice(cards[0].isAce ? 11 : cards[0].points, up: up), pair {
+            return .split
+        }
+        let (total, isSoft) = BlackjackTable.evaluate(cards)
+        func doubleOr(_ fallback: BlackjackMove) -> BlackjackMove { canDouble ? .double : fallback }
+        if isSoft {
+            switch total {
+            case 20...: return .stand
+            case 19: return hitsSoft17 && up == 6 ? doubleOr(.stand) : .stand
+            case 18:
+                if (hitsSoft17 ? 2...6 : 3...6).contains(up) { return doubleOr(.stand) }
+                return up <= 8 ? .stand : .hit
+            case 17: return (3...6).contains(up) ? doubleOr(.hit) : .hit
+            case 15, 16: return (4...6).contains(up) ? doubleOr(.hit) : .hit
+            case 13, 14: return (5...6).contains(up) ? doubleOr(.hit) : .hit
+            default: return .hit // Two aces that can't split.
+            }
+        }
+        switch total {
+        case 17...: return .stand
+        case 13...16: return up <= 6 ? .stand : .hit
+        case 12: return (4...6).contains(up) ? .stand : .hit
+        case 11: return up <= 10 || hitsSoft17 ? doubleOr(.hit) : .hit
+        case 10: return up <= 9 ? doubleOr(.hit) : .hit
+        case 9: return (3...6).contains(up) ? doubleOr(.hit) : .hit
+        default: return .hit
+        }
+    }
+
+    /// Whether to split a pair of `value`s (ace 11) against the dealer's `up` card; `nil` means play
+    /// it as a total (fives, tens).
+    private static func splitAdvice(_ value: Int, up: Int) -> Bool? {
+        switch value {
+        case 11, 8: true
+        case 10, 5: nil
+        case 9: (2...6).contains(up) || up == 8 || up == 9
+        case 7: up <= 7
+        case 6: up <= 6
+        case 4: up == 5 || up == 6
+        default: up <= 7 // Twos and threes.
+        }
+    }
 }

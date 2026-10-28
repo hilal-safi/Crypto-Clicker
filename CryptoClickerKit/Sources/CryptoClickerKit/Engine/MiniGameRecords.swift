@@ -18,7 +18,9 @@ extension GameState {
                 ? "\(CoinFormat.grouped(s.pokerWins)) hands won · best \((PokerHand(rawValue: s.pokerBestHand) ?? .nothing).name.lowercased())"
                 : "No hands yet"
         case .tetris:
-            "Best \(CoinFormat.grouped(s.tetrisBestScore))"
+            s.tetrisBestSprint > 0
+                ? "Best \(CoinFormat.grouped(s.tetrisBestScore)) · Sprint \(CoinFormat.stopwatch(s.tetrisBestSprint))"
+                : "Best \(CoinFormat.grouped(s.tetrisBestScore))"
         case .merge2048:
             s.merge2048BestTile > 0
                 ? "Best \(CoinFormat.grouped(s.merge2048BestScore)) · top tile \(s.merge2048BestTile)"
@@ -32,7 +34,9 @@ extension GameState {
                 ? "Best \(CoinFormat.grouped(s.brickBreakerBestScore)) · level \(CoinFormat.grouped(s.brickBreakerBestLevel))"
                 : "Best \(CoinFormat.grouped(s.brickBreakerBestScore))"
         case .bubbleBlaster:
-            "Best \(CoinFormat.grouped(s.bubbleBestScore))"
+            s.bubbleBestWave > 0
+                ? "Best \(CoinFormat.grouped(s.bubbleBestScore)) · wave \(CoinFormat.grouped(s.bubbleBestWave))"
+                : "Best \(CoinFormat.grouped(s.bubbleBestScore))"
         case .pumpDump:
             s.pumpDumpBestRound > 0
                 ? "Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · round \(s.pumpDumpBestRound) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))"

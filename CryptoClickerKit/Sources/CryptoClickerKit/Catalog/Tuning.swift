@@ -159,10 +159,14 @@ public enum Tuning {
     public static let blackjackWinSeconds = 60.0
     /// A natural pays this much more than an ordinary win.
     public static let blackjackNaturalBonus = 1.5
+    /// The tough table (the dealer hits soft 17) pays this much more coin bonus for a win.
+    public static let blackjackToughTableBonus = 1.1
     /// A winning slots spin pays this share of its stake's coin value for each multiple of the bet...
     public static let slotsStakeShare = 0.05
     /// ...up to this many seconds of idle income for each multiple.
     public static let slotsWinSeconds = 3.0
+    /// Every `SlotMachine.bitcoinsPerPrize` Bitcoins collected on the line pay this many seconds of income.
+    public static let slotsCollectionSeconds = 60.0
     /// A To the Moon cash-out pays this share of its stake's coin value for each multiple above 1×...
     public static let moonStakeShare = 0.05
     /// ...up to this many seconds of idle income for each multiple above 1×.
@@ -177,9 +181,11 @@ public enum Tuning {
     /// in any of them, on top of the mining that carries on meanwhile; an average player about one.
     /// Tetris pays on its points before the level multiplier (`TetrisGame.rewardPoints`)...
     public static let tetrisSecondsPerPoint = 0.025
-    public static let snakeSecondsPerPoint = 0.6
-    public static let brickBreakerSecondsPerPoint = 0.4
-    public static let bubbleSecondsPerPoint = 0.1
+    public static let snakeSecondsPerPoint = 0.3
+    /// Coin Rush scores faster than Classic (three coins out at once), so its points pay this share.
+    public static let snakeCoinRushPay = 0.6
+    public static let brickBreakerSecondsPerPoint = 0.36
+    public static let bubbleSecondsPerPoint = 0.11
     public static let merge2048SecondsPerPoint = 0.055
     /// Each Token Swap level star pays this many seconds of income, once, the first time it's
     /// earned (times the level's difficulty multiplier): the first star for winning, then the
@@ -192,6 +198,8 @@ public enum Tuning {
     public static let tokenSwapSecondsPerPoint = 0.023
     /// Making a 2048 tile also pays this many seconds of income.
     public static let merge2048WinSeconds = 600.0
+    /// Each star of the daily 2048 puzzle pays this many seconds of income, once a day.
+    public static let merge2048DailyStarSeconds = 200.0
     /// ...and this much more for a new best score.
     public static let newBestBonus = 0.5
 

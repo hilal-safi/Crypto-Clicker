@@ -2,8 +2,10 @@ import SwiftUI
 import CryptoClickerKit
 
 /// Crypto Slots: bet tokens and spin three reels. The spin is settled (and saved) the moment the
-/// lever is pulled; the reels then animate to the result, stopping one at a time, and the
-/// balances on screen wait for the last reel so the outcome isn't given away.
+/// lever is pulled; the reels then animate to the result, stopping one at a time on a fixed beat
+/// whatever the result (no slowed-down "almost" reels), and the balances on screen wait for the
+/// last reel so the outcome isn't given away. A Cardano, a Solana and an Ethereum win free spins;
+/// every tenth Bitcoin on the line pays a collection prize.
 struct SlotsView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -85,9 +87,10 @@ struct SlotsView: View {
     // MARK: Pieces
 
     private var machine: some View {
-        HStack(spacing: 10) {
+        let winning = isSpinning ? [] : Set(revealed?.winningReels ?? [])
+        return HStack(spacing: 10) {
             ForEach(0..<SlotMachine.reelCount, id: \.self) { reel in
-                ReelView(stop: stops[reel], isSpinning: spinning.contains(reel))
+                ReelView(stop: stops[reel], isSpinning: spinning.contains(reel), isWinning: winning.contains(reel))
             }
         }
         .padding(12)
@@ -117,17 +120,34 @@ struct SlotsView: View {
     @ViewBuilder
     private var outcome: some View {
         if let revealed, !isSpinning {
+            let lit = revealed.isWin || revealed.freeSpinsWon > 0
             VStack(spacing: 4) {
                 Text(title(for: revealed))
-                    .font(.system(size: revealed.isWin ? 30 : 22, weight: .heavy, design: .rounded))
-                    .foregroundStyle(revealed.isWin ? AnyShapeStyle(Theme.gold.gradient) : AnyShapeStyle(.white.opacity(0.8)))
-                    .shadow(color: revealed.isWin ? Theme.gold.opacity(0.6) : .clear, radius: 10)
-                if revealed.isWin {
-                    HStack(spacing: 10) {
-                        Text("+\(CoinFormat.grouped(revealed.payout - revealed.bet)) \(revealed.token.ticker)")
-                            .font(.headline)
-                        CoinAmount(amount: revealed.bonus, font: .headline, iconSize: 18)
+                    .font(.system(size: lit ? 30 : 22, weight: .heavy, design: .rounded))
+                    .foregroundStyle(lit ? AnyShapeStyle(Theme.gold.gradient) : AnyShapeStyle(.white.opacity(0.8)))
+                    .shadow(color: lit ? Theme.gold.opacity(0.6) : .clear, radius: 10)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                // The whole spin in one line: what it cost, what it paid, and the difference.
+                HStack(spacing: 10) {
+                    Text(revealed.isFree ? "Free spin" : "Bet \(CoinFormat.grouped(revealed.bet))")
+                    Text("Paid \(CoinFormat.grouped(revealed.payout))")
+                    Text("Net \(revealed.net >= 0 ? "+" : "−")\(CoinFormat.grouped(abs(revealed.net))) \(revealed.token.ticker)")
+                        .fontWeight(.bold)
+                        .foregroundStyle(revealed.net > 0 ? Theme.gold : revealed.net < 0 ? .white.opacity(0.7) : .white)
+                }
+                .font(.subheadline.monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                if revealed.bonus + revealed.collectionPrize > 0 {
+                    HStack(spacing: 6) {
+                        CoinAmount(amount: revealed.bonus + revealed.collectionPrize, font: .headline, iconSize: 18)
                             .foregroundStyle(Theme.gold)
+                        if revealed.collectionPrize > 0 {
+                            Text("with the Bitcoin collection prize")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.75))
+                        }
                     }
                 }
             }
@@ -144,6 +164,7 @@ struct SlotsView: View {
 
     private func title(for spin: SlotsSpin) -> String {
         if spin.isJackpot { return "BITCOIN JACKPOT!" }
+        if spin.freeSpinsWon > 0 { return "\(spin.freeSpinsWon) FREE SPINS!" }
         if spin.multiple >= 25 { return "BIG WIN! ×\(spin.multiple)" }
         if spin.isWin { return "WIN ×\(spin.multiple)" }
         if spin.multiple == 1 { return "Bet back" }
@@ -151,28 +172,45 @@ struct SlotsView: View {
     }
 
     private func controls(counts: [TokenID: Int], game: GameState) -> some View {
-        VStack(spacing: 12) {
-            if TokenID.allCases.allSatisfy({ counts[$0, default: 0] == 0 }) {
-                Label("Buy tokens on the Coin Exchange to play.", systemImage: "info.circle")
-                    .font(.subheadline)
-                    .foregroundStyle(.subtext)
+        // Free spins keep the bet that won them; while the reels reveal the spin that won them,
+        // they don't show yet.
+        let free = pending == nil ? game.slotsFreeSpins : nil
+        return VStack(spacing: 12) {
+            if let free {
+                HStack(spacing: 8) {
+                    Image(systemName: "gift.fill")
+                        .foregroundStyle(Theme.gold)
+                    Text("\(free.left) free \(free.left == 1 ? "spin" : "spins") at \(CoinFormat.grouped(free.bet)) \(free.token.ticker)")
+                        .font(.headline.monospacedDigit())
+                    Spacer(minLength: 0)
+                    TokenImage(token: free.token, size: 26)
+                }
+            } else {
+                if TokenID.allCases.allSatisfy({ counts[$0, default: 0] == 0 }) {
+                    Label("Buy tokens on the Coin Exchange to play.", systemImage: "info.circle")
+                        .font(.subheadline)
+                        .foregroundStyle(.subtext)
+                }
+                TokenBetControls(token: $token, bet: $bet, counts: counts)
+                    .disabled(isSpinning)
             }
-            TokenBetControls(token: $token, bet: $bet, counts: counts)
-                .disabled(isSpinning)
-            Text("Wins pay tokens plus up to \(CoinFormat.short(game.slotsBonus(bet: bet, token: token, multiple: SlotMachine.jackpot))) coins")
-                .font(.footnote)
-                .foregroundStyle(.subtext)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(alignment: .firstTextBaseline) {
+                Text("Wins pay tokens plus up to \(CoinFormat.short(game.slotsBonus(bet: free?.bet ?? bet, token: free?.token ?? token, multiple: SlotMachine.jackpot))) coins")
+                Spacer(minLength: 8)
+                BitcoinCollection(count: game.slotsBitcoinsTowardPrize, prize: game.slotsCollectionPrize)
+            }
+            .font(.footnote)
+            .foregroundStyle(.subtext)
             Button(action: spin) {
-                Text(isSpinning ? "Spinning…" : "SPIN")
+                Text(isSpinning ? "Spinning…" : free != nil ? "FREE SPIN" : "SPIN")
                     .font(.title3.weight(.black))
                     .tracking(2)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
             }
             .buttonStyle(.glassProminent)
-            .tint(Theme.accent)
-            .disabled(isSpinning || counts[token, default: 0] < bet)
+            .tint(free != nil ? Theme.gold : Theme.accent)
+            .disabled(isSpinning || (free == nil && counts[token, default: 0] < bet))
         }
         .padding(16)
         .glassEffect(.regular, in: .rect(cornerRadius: 26))
@@ -192,9 +230,9 @@ struct SlotsView: View {
         let counts = Dictionary(uniqueKeysWithValues: TokenID.allCases.map { ($0, game.tokenCount($0)) })
         let coins = game.coins
         guard let result = store.spinSlots(token, bet: bet) else { return }
-        // Show the wallet as it was, minus the bet, until the reels stop.
+        // Show the wallet as it was, minus the bet (none for a free spin), until the reels stop.
         var held = counts
-        held[result.token, default: 0] -= result.bet
+        held[result.token, default: 0] -= result.isFree ? 0 : result.bet
         heldCounts = held
         store.heldCoins = coins
         pending = result
@@ -253,9 +291,16 @@ struct SlotsView: View {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { revealed = result }
         var announcement = title(for: result)
         if result.isWin {
-            announcement += ". \(result.payout - result.bet) \(result.token.name) and \(CoinFormat.short(result.bonus)) coins."
+            announcement += ". Net \(result.net) \(result.token.name) and \(CoinFormat.short(result.bonus)) coins."
         }
+        if result.collectionPrize > 0 { announcement += " Bitcoin collection prize: \(CoinFormat.short(result.collectionPrize)) coins." }
         AccessibilityNotification.Announcement(announcement).post()
+        if result.freeSpinsWon > 0 {
+            effects.confetti(90, from: UnitPoint(x: 0.5, y: 0.4))
+        }
+        if result.collectionPrize > 0 {
+            effects.coinFountain(16, from: UnitPoint(x: 0.8, y: 0.85))
+        }
         guard result.isWin else { return }
         if result.isJackpot {
             effects.confetti(180, from: UnitPoint(x: 0.5, y: 0.4))
@@ -279,10 +324,12 @@ struct SlotsView: View {
     }
 }
 
-/// One reel: the symbol on the pay line, with its neighbours above and below.
+/// One reel: the symbol on the pay line, with its neighbours above and below. A reel that's part of
+/// the win glows.
 private struct ReelView: View {
     let stop: Int
     let isSpinning: Bool
+    var isWinning = false
 
     var body: some View {
         ZStack {
@@ -308,6 +355,15 @@ private struct ReelView: View {
                                      startPoint: .top, endPoint: .bottom))
         }
         .clipShape(.rect(cornerRadius: 16, style: .continuous))
+        .overlay {
+            if isWinning {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Theme.gold, lineWidth: 4)
+                    .shadow(color: Theme.gold, radius: 10)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.25), value: isWinning)
     }
 
     private func symbol(at index: Int) -> some View {
@@ -337,8 +393,18 @@ private struct PaytableView: View {
                     row([.bitcoin], "×\(SlotMachine.oneBitcoin)", note: "Any Bitcoin returns your bet")
                 } header: {
                     Text("More ways to win")
+                }
+                Section {
+                    row([.cardano, .solana, .ethereum], "\(SlotMachine.freeSpinsAwarded) free", note: "Any order")
+                } header: {
+                    Text("Free spins")
                 } footer: {
-                    Text("Payouts include your bet. Each spin pays its best line. Winning spins also pay coins, more for bigger wins. Over time the machine returns about \(CoinFormat.percent(SlotMachine.returnToPlayer)) of the tokens bet.")
+                    Text("A Cardano, a Solana and an Ethereum on the line, in any order, win \(SlotMachine.freeSpinsAwarded) free spins at the same bet, and they can win more. About 1 spin in \(Int((1 / SlotMachine.freeSpinChance).rounded())) wins them.")
+                }
+                Section {
+                    row([.bitcoin], "\(SlotMachine.bitcoinsPerPrize) ₿", note: "Bitcoin collection")
+                } footer: {
+                    Text("Every Bitcoin on the line goes into your collection, and every \(SlotMachine.bitcoinsPerPrize) pay a coin prize. It never changes the odds of a spin.\n\nPayouts include your bet. Each spin pays its best line. Winning spins also pay coins, more for bigger wins. Over time the machine returns about \(CoinFormat.percent(SlotMachine.returnToPlayer)) of the tokens bet, free spins included. Every spin is independent: a near miss doesn't make the next win more likely.")
                 }
             }
             .navigationTitle("Paytable")
@@ -368,5 +434,23 @@ private struct PaytableView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(note ?? tokens.map(\.name).joined(separator: ", ")) pays \(pays)")
+    }
+}
+
+/// Bitcoins collected toward the next prize.
+private struct BitcoinCollection: View {
+    let count: Int
+    let prize: Double
+
+    var body: some View {
+        HStack(spacing: 4) {
+            TokenImage(token: .bitcoin, size: 16)
+            Text("\(count)/\(SlotMachine.bitcoinsPerPrize)")
+                .monospacedDigit()
+                .contentTransition(.numericText())
+        }
+        .fixedSize()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Bitcoin collection: \(count) of \(SlotMachine.bitcoinsPerPrize). The next prize pays \(CoinFormat.short(prize)) coins")
     }
 }

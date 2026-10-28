@@ -186,3 +186,30 @@ struct VideoPokerTests {
         #expect(result5 == nil)
     }
 }
+
+@Suite("Video Poker practice")
+struct VideoPokerPracticeTests {
+    @Test func aPracticeDrawPaysThePayTableWithoutTheWallet() {
+        let cards = [Card(id: 0, rank: 13, suit: .hearts), Card(id: 1, rank: 13, suit: .spades),
+                     Card(id: 2, rank: 2, suit: .clubs), Card(id: 3, rank: 7, suit: .diamonds),
+                     Card(id: 4, rank: 9, suit: .hearts)]
+        let pile = [Card(id: 5, rank: 13, suit: .clubs), Card(id: 6, rank: 4, suit: .clubs),
+                    Card(id: 7, rank: 5, suit: .clubs), Card(id: 8, rank: 6, suit: .clubs), Card(id: 9, rank: 8, suit: .clubs)]
+        let round = PokerRound(token: .shibaInu, bet: 25, cards: cards, drawPile: pile)
+        let kings = round.outcome(holding: [0, 1])
+        #expect(kings.hand == .threeOfAKind)
+        #expect(kings.tokensWon == 75)
+        #expect(kings.bonus == 0)
+        #expect(kings.net == 50)
+        // The same draw through the wallet pays the same tokens, plus the coin bonus.
+        var game = GameState.make(miners: [.desktop: 5])
+        game.tokens = [.shibaInu: 25]
+        game.pokerRound = round
+        let paid = game.drawPoker(holding: [0, 1])
+        #expect(paid?.tokensWon == 75)
+        #expect(paid?.cards == kings.cards)
+        #expect(game.pokerRound == nil)
+        #expect(game.drawPoker(holding: [0, 1]) == nil) // Paid once.
+    }
+}
+

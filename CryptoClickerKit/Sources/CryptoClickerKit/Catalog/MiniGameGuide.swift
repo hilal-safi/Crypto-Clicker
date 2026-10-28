@@ -47,6 +47,8 @@ extension MiniGame {
 
     /// Bets come from tokens bought on the Exchange; wins also pay coins.
     private static let tokenBets = "Bet tokens you bought on the Exchange. Winnings come back as tokens, and wins also pay a coin bonus that grows with the coin value of your bet."
+    /// The practice switch at Blackjack, Video Poker and To the Moon.
+    private static let practice = "Switch to Practice to play for chips instead: the same game, with no tokens, coins or statistics at stake."
 
     // MARK: Casino
 
@@ -54,8 +56,9 @@ extension MiniGame {
         MiniGameGuide(
             objective: "Finish closer to 21 than the dealer without going over.",
             controls: [
-                "Pick a token and a bet, then Deal.",
-                "Hit takes a card, Stand keeps your total, Double doubles the bet for exactly one more card, and Split turns a pair into two hands (once per round).",
+                "Pick a token and a bet, then Deal. " + practice,
+                "Hit takes a card, Stand keeps your total, Double doubles the bet for exactly one more card, and Split turns a pair into two hands (once per round). Only the moves you can make right now are shown.",
+                "Table options choose the table and turn on the coach, which outlines the basic-strategy move.",
             ],
             scoring: [
                 "A win pays your bet back twice; a tie (push) returns it.",
@@ -63,10 +66,14 @@ extension MiniGame {
                 tokenBets,
             ],
             items: [
-                .init(id: "blackjack.dealer", symbol: "person.fill", name: "The dealer",
-                      detail: "Plays from one deck, checks for blackjack first, and stands on every 17."),
+                .init(id: "blackjack.dealer", symbol: "person.fill", name: "The Classic table",
+                      detail: "The dealer plays from one deck, checks for blackjack first, and stands on every 17."),
+                .init(id: "blackjack.tough", symbol: "person.fill.badge.plus", name: "The Tough table",
+                      detail: "The dealer hits a soft 17 (a 17 counting an ace as 11), which suits the house a little better, so wins pay \(Int(((Tuning.blackjackToughTableBonus - 1) * 100).rounded()))% more coin bonus."),
                 .init(id: "blackjack.ace", symbol: "suit.spade.fill", name: "Aces",
                       detail: "Count as 11, or as 1 when 11 would go over 21. Split aces get one card each."),
+                .init(id: "blackjack.coach", symbol: "lightbulb.fill", name: "The coach",
+                      detail: "Suggests the move basic strategy makes with your hand against the dealer's card. It's the best move over time, not a promise about the next card."),
             ],
             ending: "A round ends when every hand stands or busts and the dealer has played.",
             tips: [
@@ -83,7 +90,7 @@ extension MiniGame {
         let rtp = Int((SlotMachine.returnToPlayer * 100).rounded())
         return MiniGameGuide(
             objective: "Spin three reels of crypto tokens and line up matches on the pay line.",
-            controls: ["Pick a token and a bet, then Spin."],
+            controls: ["Pick a token and a bet, then Spin. The reels that make a win light up, and the result shows your bet, the payout and the net."],
             scoring: [
                 "Three of a kind pays: \(threes) your bet.",
                 "Two Bitcoins pay \(SlotMachine.twoBitcoins)×, a pair on the first two reels pays \(SlotMachine.pairOnFirstTwo)×, and a single Bitcoin returns your bet.",
@@ -92,6 +99,10 @@ extension MiniGame {
             items: [
                 .init(id: "slots.bitcoin", symbol: "bitcoinsign.circle.fill", name: "Bitcoin",
                       detail: "The rarest symbol, one stop on each reel. Three of them is the \(SlotMachine.jackpot)× jackpot."),
+                .init(id: "slots.free", symbol: "gift.fill", name: "Free spins",
+                      detail: "A Cardano, a Solana and an Ethereum on the line, in any order, win \(SlotMachine.freeSpinsAwarded) free spins at the same bet. They can win more, and they wait for you if you leave."),
+                .init(id: "slots.collection", symbol: "bitcoinsign.square.fill", name: "Bitcoin collection",
+                      detail: "Every Bitcoin on the line is collected; every \(SlotMachine.bitcoinsPerPrize) pay a coin prize."),
             ],
             ending: "Every spin is settled the moment the reels stop: the bet is taken and the win paid in one step.",
             tips: [
@@ -106,8 +117,8 @@ extension MiniGame {
         return MiniGameGuide(
             objective: "Ride the multiplier up and cash out before the market crashes.",
             controls: [
-                "Pick a token and a bet, and if you like an automatic cash-out, then Launch.",
-                "Tap Cash Out at any time to take your bet times the multiplier.",
+                "Pick a token and a bet, and if you like an automatic cash-out, then Launch. " + practice,
+                "Tap Cash Out at any time to take your bet times the multiplier. The screen shows what cashing out pays right now.",
             ],
             scoring: [
                 "The multiplier starts at 1.00× and doubles every \(Int(MoonFlight.doublingTime)) seconds.",
@@ -133,8 +144,8 @@ extension MiniGame {
         return MiniGameGuide(
             objective: "Make the best five-card poker hand you can, with one chance to swap cards.",
             controls: [
-                "Pick a token and a bet, then Deal.",
-                "Tap cards to hold them, then Draw to replace the rest. Hint holds what a strong player would.",
+                "Pick a token and a bet, then Deal. " + practice,
+                "Tap cards to hold them (they lift, marked HELD), then Draw to replace the rest. Hint holds what a strong player would.",
             ],
             scoring: [
                 "Pays per token bet: \(table).",
@@ -157,109 +168,157 @@ extension MiniGame {
 
     private static var tetrisGuide: MiniGameGuide {
         MiniGameGuide(
-            objective: "Fit the falling pieces together to fill whole rows, which clear for points.",
+            objective: "Fit the falling pieces together to fill whole rows, which clear for points. Play Endless until the stack tops out, or Sprint: \(TetrisGame.sprintLines) lines against the clock.",
             controls: [
-                "Buttons beside the board move, rotate and drop the piece.",
-                "Or on the board: tap to rotate, drag sideways to move, and swipe down to drop at once.",
+                "Buttons beside the board move, rotate, drop and hold the piece.",
+                "Or on the board: tap to rotate, drag sideways to move, swipe down to drop at once, and swipe up to hold.",
             ],
             scoring: [
                 "One to four rows at once score 100, 300, 500 or 800, times the level.",
-                "Every 10 rows is a level: pieces fall faster.",
-                "Dropping a piece yourself adds a point or two per row.",
+                "Clears with piece after piece build a combo: each adds \(TetrisGame.comboPoints) × the combo × the level.",
+                "Every 10 rows is a level: pieces fall faster. Dropping a piece yourself adds a point or two per row.",
             ],
             items: [
                 .init(id: "tetris.ghost", symbol: "square.dashed", name: "Ghost piece",
                       detail: "The outline at the bottom shows where the piece will land."),
+                .init(id: "tetris.hold", symbol: "tray.and.arrow.down", name: "Hold",
+                      detail: "Sets the piece aside to use later, or swaps it with the one held. Once per piece."),
                 .init(id: "tetris.next", symbol: "square.stack", name: "Next piece",
                       detail: "Shows what's coming. Every seven pieces include each shape once."),
             ],
-            ending: "The game ends when a new piece has no room at the top.",
+            ending: "Endless ends when a new piece has no room at the top. Sprint ends when its lines are cleared, and its record is your time.",
             tips: [
                 "Keep the stack flat and leave one column open for a long piece: four rows at once scores the most.",
-                "Use the ghost to line up drops quickly.",
+                "Hold a long piece for the gap it fits.",
+                "Small clears one after another build a combo.",
             ],
-            controlHint: "Tap rotate · Drag move · Swipe down drop")
+            controlHint: "Tap rotate · Drag move · Swipe ↓ drop, ↑ hold")
     }
 
     private static var merge2048Guide: MiniGameGuide {
-        MiniGameGuide(
-            objective: "Slide numbered tiles together to build a \(Merge2048Game.winningValue) tile.",
-            controls: ["Swipe up, down, left or right to slide every tile that way."],
+        typealias Game = Merge2048Game
+        let stars = Game.dailyStarScores.map { CoinFormat.grouped($0) }
+        return MiniGameGuide(
+            objective: "Slide numbered tiles together to build bigger ones, up to \(Game.winningValue) and beyond. Play Classic, or the Daily Puzzle: the same start and tiles for everyone today, in \(Game.dailyMoves) moves.",
+            controls: [
+                "Swipe up, down, left or right to slide every tile that way.",
+                "Undo takes back your last slide and its points, \(Game.undosPerGame) times a game. The same slide then brings the same new tile, so Undo can't reroll your luck.",
+            ],
             scoring: [
-                "Two equal tiles that meet merge into one with their sum, which is added to your score.",
-                "Making a \(Merge2048Game.winningValue) tile pays a bonus of \(Int(Tuning.merge2048WinSeconds / 60)) minutes of income, and you can keep going.",
+                "Two equal tiles that meet merge into one with their sum, which is added to your score. A tile merges once per slide.",
+                "Classic sets tile goals one after another: 128, then 256, 512 and on. Making a \(Game.winningValue) tile pays a bonus of \(Int(Tuning.merge2048WinSeconds / 60)) minutes of income, and you can keep going.",
+                "The Daily Puzzle earns stars at \(stars[0]), \(stars[1]) and \(stars[2]) points. Each star pays \(Int(Tuning.merge2048DailyStarSeconds / 60)) minutes of income the first time you earn it that day.",
             ],
             items: [
                 .init(id: "2048.new", symbol: "plus.square", name: "New tiles",
                       detail: "After every slide a 2 appears in an empty cell, or now and then a 4."),
+                .init(id: "2048.undo", symbol: "arrow.uturn.backward", name: "Undo",
+                      detail: "\(Game.undosPerGame) a game, one slide back at a time. Not once the game is over."),
             ],
-            ending: "The game ends when no slide can change the board, or when you tap End Game to collect.",
+            ending: "The game ends when no slide can change the board, when the Daily Puzzle's moves run out, or when you tap End Game to collect.",
             tips: [
                 "Keep your biggest tile in a corner and build along one edge.",
                 "Avoid the direction that pulls the big tile out of its corner.",
+                "In the Daily Puzzle every move counts: favor slides that merge.",
             ],
             controlHint: "Swipe to slide")
     }
 
     private static var snakeGuide: MiniGameGuide {
         MiniGameGuide(
-            objective: "Steer the snake to eat coins and grow as long as you can.",
-            controls: ["Swipe anywhere to turn up, down, left or right. Quick swipes queue up two turns."],
+            objective: "Steer the snake to eat coins and grow as long as you can. Play Classic in one of four arenas, or Coin Rush: one minute with three coins out at once.",
+            controls: ["Swipe anywhere to turn up, down, left or right. Quick swipes queue up two turns, and turning straight back is ignored."],
             scoring: [
-                "Every coin is worth \(SnakeGame.pointsPerCoin) points and makes the snake one longer.",
-                "The snake speeds up as it eats.",
+                "Every coin is worth \(SnakeGame.pointsPerCoin) points and makes the snake one longer. The snake speeds up as it eats.",
+                "Every \(SnakeGame.coinsPerPowerUp) coins a power-up appears for \(Int(SnakeGame.powerUpLifetime)) seconds: steer onto it to pick it up.",
             ],
             items: [
-                .init(id: "snake.coin", symbol: "bitcoinsign.circle.fill", name: "Coin",
-                      detail: "Appears in a random free spot each time one is eaten."),
+                .init(id: "snake.speedBoost", symbol: "hare.fill", name: "Speed Boost",
+                      detail: "\(Int(SnakeGame.PowerUp.speedBoost.duration ?? 0)) seconds faster, and every coin counts double."),
+                .init(id: "snake.slowMotion", symbol: "tortoise.fill", name: "Slow Motion",
+                      detail: "\(Int(SnakeGame.PowerUp.slowMotion.duration ?? 0)) seconds slower, for tight spots. It replaces a Speed Boost, and the other way round."),
+                .init(id: "snake.shield", symbol: "shield.fill", name: "Shield",
+                      detail: "Forgives one crash: the snake stops for a moment so you can turn away. You can carry one at a time."),
+                .init(id: "snake.magnet", symbol: "dot.radiowaves.left.and.right", name: "Coin Magnet",
+                      detail: "For \(Int(SnakeGame.PowerUp.magnet.duration ?? 0)) seconds, coins within \(SnakeGame.magnetReach) steps of the head are pulled in."),
+                .init(id: "snake.walls", symbol: "square.grid.3x3.middle.filled", name: "Arenas",
+                      detail: "Pillars, Rooms and Crossroads add walls to steer around. Hitting one ends the game."),
             ],
-            ending: "The game ends when the snake hits a wall or its own body.",
+            ending: "The game ends when the snake hits a wall or its own body, or when Coin Rush's minute is up.",
             tips: [
                 "Stay near the middle early and keep the edges for a long snake.",
-                "Plan a loop before going for a coin near your tail.",
+                "Save a Shield for the late game, when the snake is long.",
+                "Grab a Speed Boost when coins are close: they count double.",
             ],
             controlHint: "Swipe to steer")
     }
 
     private static var brickBreakerGuide: MiniGameGuide {
-        MiniGameGuide(
-            objective: "Bounce the ball off your paddle to break every brick and reach the next level.",
+        typealias PowerUp = BrickBreakerGame.PowerUp
+        return MiniGameGuide(
+            objective: "Bounce the ball off your paddle to break every brick and reach the next, faster level. Every \(BrickBreakerGame.bossEvery)th level is a boss.",
             controls: ["Drag anywhere to move the paddle, and lift your finger to launch the ball."],
             scoring: [
-                "Each brick scores 10 points per hit it takes; clearing a wall adds 100 times the level.",
+                "Each brick scores 10 points per hit it takes; clearing a level adds 100 times the level, and beating a boss 500 more.",
                 "Where the ball meets the paddle sets its angle: the edges send it off sideways.",
             ],
             items: [
-                .init(id: "brick.tough", symbol: "square.fill.on.square.fill", name: "Tough bricks",
-                      detail: "Take two hits. They show up from level 2."),
+                .init(id: "brick.armored", symbol: "square.fill.on.square.fill", name: "Armored bricks",
+                      detail: "Steel bands show the hits left: two from level 2, three from level 6."),
+                .init(id: "brick.explosive", symbol: "flame.fill", name: "Explosive bricks",
+                      detail: "Break every brick around them when they go, and can set each other off."),
+                .init(id: "brick.bonus", symbol: "gift.fill", name: "Bonus bricks",
+                      detail: "Drop a power-up: catch it with the paddle."),
+                .init(id: "brick.multiBall", symbol: "circle.grid.2x1.fill", name: PowerUp.multiBall.name,
+                      detail: "Every ball splits into three. You only lose a life when the last one falls."),
+                .init(id: "brick.wide", symbol: "arrow.left.and.right", name: PowerUp.widePaddle.name,
+                      detail: "A paddle half as wide again for \(Int(PowerUp.widePaddle.duration ?? 0)) seconds."),
+                .init(id: "brick.slow", symbol: "tortoise.fill", name: PowerUp.slowBall.name,
+                      detail: "The ball slows down for \(Int(PowerUp.slowBall.duration ?? 0)) seconds."),
+                .init(id: "brick.laser", symbol: "bolt.fill", name: PowerUp.laser.name,
+                      detail: "For \(Int(PowerUp.laser.duration ?? 0)) seconds the paddle fires bolts that break bricks by themselves."),
+                .init(id: "brick.boss", symbol: "exclamationmark.octagon.fill", name: "Bosses",
+                      detail: "A big block sliding along the top, with a health bar. It drops debris: a hit shrinks your paddle for a few seconds."),
             ],
-            ending: "You have \(BrickBreakerGame.startingLives) balls. The game ends when the last one falls past the paddle.",
+            ending: "You have \(BrickBreakerGame.startingLives) lives. You lose one when the last ball falls past the paddle, along with any power-ups running; the game ends with the last life.",
             tips: [
                 "Catch the ball near the paddle's edge to aim it into gaps.",
-                "Each level is faster: keep the paddle under the ball.",
+                "Aim for explosive bricks in the thick of a wall.",
+                "Watch the debris under a boss and slide out of its way.",
             ],
             controlHint: "Drag paddle · Lift to launch")
     }
 
     private static var bubbleBlasterGuide: MiniGameGuide {
-        MiniGameGuide(
-            objective: "Fire bubbles to make groups of three or more of a color, and clear the field.",
+        typealias Game = BubbleShooterGame
+        let every = Game.streakPerSpecial
+        return MiniGameGuide(
+            objective: "Fire bubbles to make groups of three or more of a color, and clear the field to start the next wave.",
             controls: [
-                "Drag to aim (the guide shows the path, bounces included) and lift to fire.",
+                "Drag to aim and lift to fire. The guide shows the path, bounces included, and a ring marks where the bubble will stick.",
                 "Tap the loaded bubble or the next one to swap them.",
             ],
             scoring: [
-                "Popped bubbles score 10 each; bubbles left hanging fall for 20 each.",
-                "Clearing the whole field scores 500 times the level and brings a new one with more colors.",
+                "Popped bubbles score \(Game.pointsPerPop) each; bubbles left hanging fall for \(Game.pointsPerDrop) each.",
+                "Pops in a row build a streak: each popping shot scores 10% more than the last, up to double. A shot that pops nothing ends it.",
+                "Every \(every) pops in a row earn a special bubble, loaded next: first a Rainbow, then a Bomb, and so on.",
+                "Clearing the whole field scores \(Game.wavePoints) times the wave. Each wave brings another color, up to \(Game.maxColors).",
             ],
             items: [
                 .init(id: "bubble.row", symbol: "arrow.down.to.line", name: "New rows",
-                      detail: "Every \(BubbleShooterGame.missesPerRow) shots that pop nothing push a new row down."),
+                      detail: "Every \(Game.missesPerRow) shots that pop nothing push a new row down. From wave 3 the waves start deeper and rows come sooner, down to every \(Game.fewestMissesPerRow) misses."),
+                .init(id: "bubble.rainbow", symbol: "rainbow", name: "Rainbow",
+                      detail: "Matches anything: it takes the color that makes the biggest group among the bubbles it touches."),
+                .init(id: "bubble.bomb", symbol: "flame.fill", name: "Bomb",
+                      detail: "Blows up every bubble within two of where it lands, any color, and anything left hanging falls."),
+                .init(id: "bubble.bonus", symbol: "bitcoinsign", name: "Gold bubble",
+                      detail: "Pays \(Game.bonusPoints) extra however it's cleared: popped, dropped or blown up."),
             ],
             ending: "The game ends when a bubble reaches the line at the bottom.",
             tips: [
-                "Bank shots off the walls to reach bubbles behind others.",
                 "Pop the bubbles holding up big clusters: falling bubbles pay double.",
+                "Keep the streak alive: swap to the bubble that can pop something before you fire.",
+                "Save a Bomb for a big cluster hanging from a few bubbles.",
             ],
             controlHint: "Drag to aim · Lift to fire · Tap to swap")
     }

@@ -11,9 +11,26 @@ public enum SlideDirection: CaseIterable, Sendable {
 /// 4 2). After a slide that changes the board, a new tile appears in a random empty cell: a 2 nine
 /// times in ten, otherwise a 4. Making a 2048 tile wins, and play can carry on; the game ends when
 /// no slide would change the board.
+///
+/// The game draws its new tiles from its own seeded generator, so the same slides always bring the
+/// same tiles. That makes the daily puzzle the same for everyone (the day's start and tiles, in
+/// `dailyMoves` moves), and it keeps Undo honest: taking a slide back restores the board, the score
+/// and the generator, so trying the same slide again brings the same tile. Each game has
+/// `undosPerGame` undos, one slide back at a time, and none once the game is over.
 public struct Merge2048Game: Sendable {
     public static let size = 4
     public static let winningValue = 2048
+    public static let undosPerGame = 3
+    /// Moves in the daily puzzle.
+    public static let dailyMoves = 150
+    /// The tile goals, in order: the first one not yet made is the game's current goal.
+    public static let goalTiles = [128, 256, 512, 1_024, 2_048, 4_096, 8_192, 16_384, 32_768, 65_536, 131_072]
+
+    public enum Mode: Hashable, Sendable {
+        case classic
+        /// The puzzle for a day (a "yyyy-MM-dd" key).
+        case daily(String)
+    }
 
     /// A numbered tile. Its id stays the same as it slides (a merged tile keeps the id of the tile
     /// it merged into), so the board can animate it.
@@ -37,15 +54,47 @@ public struct Merge2048Game: Sendable {
     public private(set) var moves = 0
     public private(set) var merges = 0
     public private(set) var isOver = false
+    public let mode: Mode
+    public private(set) var undosLeft = Merge2048Game.undosPerGame
+    public private(set) var undosUsed = 0
     private var nextID = 0
+    /// Where new tiles come from.
+    private var spawner: SeededGenerator
+    /// The game before the last slide, while it can be taken back.
+    private var previous: Snapshot?
 
+    /// What Undo puts back.
+    private struct Snapshot: Sendable {
+        let tiles: [Tile]
+        let score: Int
+        let moves: Int
+        let merges: Int
+        let nextID: Int
+        let spawner: SeededGenerator
+    }
+
+    /// A Classic game with a random start.
     public init<R: RandomNumberGenerator>(using rng: inout R) {
-        spawn(using: &rng)
-        spawn(using: &rng)
+        self.init(seed: rng.next())
+    }
+
+    /// A game whose start and new tiles all follow from `seed`.
+    public init(seed: UInt64, mode: Mode = .classic) {
+        self.mode = mode
+        spawner = SeededGenerator(seed: seed)
+        spawn()
+        spawn()
+    }
+
+    /// The day's puzzle.
+    public static func daily(day: String) -> Merge2048Game {
+        Merge2048Game(seed: StableHash.of("2048-daily-" + day), mode: .daily(day))
     }
 
     /// A board laid out by hand, for tests: `rows` of values, 0 for an empty cell.
-    init(rows: [[Int]]) {
+    init(rows: [[Int]], seed: UInt64 = 0, mode: Mode = .classic) {
+        self.mode = mode
+        spawner = SeededGenerator(seed: seed)
         for (row, values) in rows.enumerated() {
             for (column, value) in values.enumerated() where value > 0 {
                 tiles.append(Tile(id: nextID, value: value, row: row, column: column, isNew: false))
@@ -54,6 +103,21 @@ public struct Merge2048Game: Sendable {
         }
         isOver = !canSlide
     }
+
+    public var isDaily: Bool {
+        if case .daily = mode { true } else { false }
+    }
+
+    /// The moves a game allows: the daily puzzle's `dailyMoves`, or none for Classic.
+    public var moveLimit: Int? { isDaily ? Self.dailyMoves : nil }
+
+    public var movesLeft: Int? { moveLimit.map { max(0, $0 - moves) } }
+
+    /// Undo can take back the last slide.
+    public var canUndo: Bool { !isOver && undosLeft > 0 && previous != nil }
+
+    /// The next tile goal: the smallest goal tile not made yet.
+    public var nextGoal: Int? { Self.goalTiles.first { $0 > bestTile } }
 
     /// The highest tile on the board.
     public var bestTile: Int { tiles.map(\.value).max() ?? 0 }
@@ -85,10 +149,12 @@ public struct Merge2048Game: Sendable {
     }
 
     /// Slides every tile one way. Returns whether the board changed; a slide that changes nothing
-    /// doesn't count, adds no tile and leaves the game exactly as it was.
+    /// doesn't count, adds no tile and leaves the game exactly as it was. Nothing moves once the
+    /// game is over.
     @discardableResult
-    public mutating func slide<R: RandomNumberGenerator>(_ direction: SlideDirection, using rng: inout R) -> Bool {
+    public mutating func slide(_ direction: SlideDirection) -> Bool {
         guard !isOver else { return false }
+        let before = Snapshot(tiles: tiles, score: score, moves: moves, merges: merges, nextID: nextID, spawner: spawner)
         var moved = false
         var result: [Tile] = []
         var vanished: [Tile] = []
@@ -132,8 +198,32 @@ public struct Merge2048Game: Sendable {
         score += gained
         merges += merged
         moves += 1
-        spawn(using: &rng)
-        isOver = !canSlide
+        previous = before
+        spawn()
+        isOver = !canSlide || movesLeft == 0
+        return true
+    }
+
+    /// Takes back the last slide, its points and the tile it brought, using one of the game's
+    /// undos. Only one slide back: another undo needs another slide first.
+    @discardableResult
+    public mutating func undo() -> Bool {
+        guard canUndo, let snapshot = previous else { return false }
+        tiles = snapshot.tiles.map { tile in
+            var settled = tile
+            settled.isNew = false
+            settled.isMerged = false
+            return settled
+        }
+        mergedAway = []
+        score = snapshot.score
+        moves = snapshot.moves
+        merges = snapshot.merges
+        nextID = snapshot.nextID
+        spawner = snapshot.spawner
+        previous = nil
+        undosLeft -= 1
+        undosUsed += 1
         return true
     }
 
@@ -159,7 +249,7 @@ public struct Merge2048Game: Sendable {
         }
     }
 
-    private mutating func spawn<R: RandomNumberGenerator>(using rng: inout R) {
+    private mutating func spawn() {
         var empty: [(row: Int, column: Int)] = []
         for row in 0..<Self.size {
             for column in 0..<Self.size where tile(row: row, column: column) == nil {
@@ -167,8 +257,8 @@ public struct Merge2048Game: Sendable {
             }
         }
         guard !empty.isEmpty else { return }
-        let cell = empty[Int.random(in: 0..<empty.count, using: &rng)]
-        let value = Double.random(in: 0..<1, using: &rng) < 0.9 ? 2 : 4
+        let cell = empty[Int.random(in: 0..<empty.count, using: &spawner)]
+        let value = Double.random(in: 0..<1, using: &spawner) < 0.9 ? 2 : 4
         tiles.append(Tile(id: nextID, value: value, row: cell.row, column: cell.column, isNew: true))
         nextID += 1
     }

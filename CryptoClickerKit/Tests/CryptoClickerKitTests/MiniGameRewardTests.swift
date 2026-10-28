@@ -67,6 +67,29 @@ struct MiniGameRewardTests {
         #expect(game.stats.earnedFromGames == bonus)
     }
 
+    @Test func aRoundSettlesOnlyOnce() {
+        var game = earner()
+        game.placeBlackjackBet(.dogecoin, amount: 2)
+        let results = [BlackjackResult(outcome: .win, bet: 2, payout: 4)]
+        #expect(game.settleBlackjack(results, token: .dogecoin) == 600)
+        let tokens = game.tokenCount(.dogecoin)
+        // A second settlement of the same round (a double tap, a stale view) pays nothing.
+        #expect(game.settleBlackjack(results, token: .dogecoin) == 0)
+        #expect(game.tokenCount(.dogecoin) == tokens)
+        #expect(game.stats.blackjackHands == 1)
+        #expect(game.coins == 600)
+    }
+
+    @Test func theToughTablePaysABiggerBonus() {
+        let game = earner()
+        #expect(game.blackjackBonus(bet: 2, token: .dogecoin) == 600)
+        #expect(game.blackjackBonus(bet: 2, token: .dogecoin, rules: .hitsSoft17) == 660)
+        #expect(game.blackjackBonus(bet: 2, token: .dogecoin, isNatural: true, rules: .hitsSoft17) == 990)
+        var tough = earner()
+        tough.placeBlackjackBet(.dogecoin, amount: 2)
+        #expect(tough.settleBlackjack([BlackjackResult(outcome: .win, bet: 2, payout: 4)], token: .dogecoin, rules: .hitsSoft17) == 660)
+    }
+
     @Test func lostHandsPayNothing() {
         var game = earner()
         game.placeBlackjackBet(.shibaInu, amount: 4)
@@ -102,23 +125,23 @@ struct MiniGameRewardTests {
 
     @Test func arcadeGamesPayWholeCoinsForTheirScores() {
         var game = earner() // 10 coins per second. Every first score is a new best: +50%.
-        #expect(game.finishSnake(score: 120, length: 15).coins == 1_080) // 120 × 0.6 × 10 × 1.5
+        #expect(game.finishSnake(score: 120, length: 15).coins == 540) // 120 × 0.3 × 10 × 1.5
         #expect(game.stats.snakeGames == 1)
         #expect(game.stats.snakeBestScore == 120)
         #expect(game.stats.snakeCoinsEaten == 12)
-        #expect(game.finishBrickBreaker(score: 400, bricks: 35, level: 2).coins == 2_400) // 400 × 0.4 × 10 × 1.5
+        #expect(game.finishBrickBreaker(score: 400, bricks: 35, level: 2).coins == 2_160) // 400 × 0.36 × 10 × 1.5
         #expect(game.stats.brickBreakerGames == 1)
         #expect(game.stats.brickBreakerBestScore == 400)
         #expect(game.stats.bricksBroken == 35)
-        #expect(game.finishBubbleBlaster(score: 333, popped: 21, bestShot: 7).coins == 500) // 499.5, paid as 500.
+        #expect(game.finishBubbleBlaster(score: 333, popped: 21, bestShot: 7).coins == 549) // 549.45, paid as 549.
         #expect(game.stats.bubbleGames == 1)
         #expect(game.stats.bubbleBestScore == 333)
         #expect(game.stats.bubblesPopped == 21)
         #expect(game.finishSnake(score: 0, length: 3) == ArcadePayout(coins: 0, isNewBest: false))
         #expect(game.stats.snakeGames == 2)
         #expect(game.stats.snakeBestScore == 120)
-        #expect(game.coins == 1_080 + 2_400 + 500)
-        #expect(game.stats.earnedFromGames == 1_080 + 2_400 + 500)
+        #expect(game.coins == 540 + 2_160 + 549)
+        #expect(game.stats.earnedFromGames == 540 + 2_160 + 549)
     }
 
     @Test func aGameLeftOpenIsPaidOnceAfterTheAppCloses() throws {
@@ -130,7 +153,7 @@ struct MiniGameRewardTests {
         #expect(reloaded.unfinishedRun == ArcadeRun(game: .snake, score: 120, detail: 15))
         let payment = reloaded.payUnfinishedRun()
         let paid = try #require(payment)
-        #expect(paid.payout.coins == 1_080)
+        #expect(paid.payout.coins == 540)
         #expect(reloaded.stats.snakeGames == 1)
         #expect(reloaded.unfinishedRun == nil)
         #expect(reloaded.payUnfinishedRun() == nil)

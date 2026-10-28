@@ -256,6 +256,7 @@ extension GameState {
     /// arcade games.
     func eligibleChallengeKinds() -> [DailyChallengeKind] {
         DailyChallengeKind.allCases.filter { kind in
+            if kind == .blackjackNatural { return false } // Picked in place of `.blackjack` (see below).
             if let game = kind.game { return isUnlocked(game) }
             return unlockedGames.filter { !$0.isCasino }.count >= 3
         }
@@ -267,10 +268,18 @@ extension GameState {
         guard daily.challenge?.day != today else { return }
         var kinds = eligibleChallengeKinds()
         guard !kinds.isEmpty else { return }
-        if kinds.count > 1, let last = daily.challenge?.kind { kinds.removeAll { $0 == last } }
+        if kinds.count > 1, let last = daily.challenge?.kind {
+            let lastGame: DailyChallengeKind = last == .blackjackNatural ? .blackjack : last
+            kinds.removeAll { $0 == lastGame }
+        }
         var rng = SeededGenerator(seed: StableHash.mix(StableHash.of("challenge-" + today), StableHash.of(created)))
-        let kind = kinds.randomElement(using: &rng) ?? kinds[0]
-        let target = kind.targets.randomElement(using: &rng) ?? kind.targets[0]
+        var kind = kinds.randomElement(using: &rng) ?? kinds[0]
+        var target = kind.targets.randomElement(using: &rng) ?? kind.targets[0]
+        // Blackjack's day asks for hands won or, half the time, a natural.
+        if kind == .blackjack && Bool.random(using: &rng) {
+            kind = .blackjackNatural
+            target = DailyChallengeKind.blackjackNatural.targets[0]
+        }
         daily.challenge = DailyChallenge(day: today, kind: kind, target: target)
     }
 

@@ -6,12 +6,19 @@ import CryptoClickerKit
 /// saved) the moment the button is pressed; the new cards then turn over, and the balance on
 /// screen waits for them so the result isn't given away. A hand left before the draw waits for the
 /// player to come back; one cut short by the app closing is played out on the next launch.
+/// Practice plays the same hands for chips, through the same rules, without the wallet.
 struct VideoPokerView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var token = TokenID.shibaInu
     @State private var bet = 1
+    @State private var isPracticing = false
+    @State private var chips = PracticeChips()
+    @State private var practiceBet = 25
+    /// A practice hand waiting for the draw (real hands wait in the saved game).
+    @State private var practiceRound: PokerRound?
+    @State private var roundIsPractice = false
     @State private var phase = Phase.betting
     @State private var cards: [Card] = []
     @State private var faceUp: Set<Int> = []
@@ -43,7 +50,7 @@ struct VideoPokerView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     Spacer(minLength: 0)
-                    PayTable(bet: bet, highlighted: phase == .betting ? result?.hand : nil)
+                    PayTable(bet: shownBet, unit: shownUnit, highlighted: phase == .betting ? result?.hand : nil)
                     cardRow(width: min(proxy.size.width, 560))
                     outcome
                         .frame(minHeight: 60)
@@ -82,6 +89,16 @@ struct VideoPokerView: View {
     }
 
     // MARK: Pieces
+
+    /// The bet the pay table shows: the hand in play's, or the next one's.
+    private var shownBet: Int {
+        if phase != .betting { return roundIsPractice ? (practiceRound?.bet ?? practiceBet) : bet }
+        return isPracticing ? practiceBet : bet
+    }
+
+    private var shownUnit: String {
+        (phase == .betting ? isPracticing : roundIsPractice) ? "chips" : token.ticker
+    }
 
     private func cardRow(width: CGFloat) -> some View {
         let cardWidth = min(92, max(44, (width - 32 - 4 * 8) / 5))
@@ -123,7 +140,7 @@ struct VideoPokerView: View {
                     .minimumScaleFactor(0.6)
                 if result.isWin {
                     HStack(spacing: 10) {
-                        Text(result.net > 0 ? "+\(CoinFormat.grouped(result.net)) \(result.token.ticker)" : "Bet back")
+                        Text(result.net > 0 ? "+\(CoinFormat.grouped(result.net)) \(roundIsPractice ? "chips" : result.token.ticker)" : "Bet back")
                             .font(.headline)
                         if result.bonus > 0 {
                             CoinAmount(amount: result.bonus, font: .headline, iconSize: 18)
@@ -148,24 +165,35 @@ struct VideoPokerView: View {
         if phase == .betting {
             let owned = game.tokenCount(token)
             VStack(spacing: 10) {
-                if TokenID.allCases.allSatisfy({ game.tokenCount($0) == 0 }) {
-                    Label("Buy tokens on the Coin Exchange to play.", systemImage: "info.circle")
-                        .font(.subheadline)
-                        .foregroundStyle(.subtext)
-                }
-                TokenBetControls(token: $token, bet: $bet,
-                                 counts: Dictionary(uniqueKeysWithValues: TokenID.allCases.map { ($0, game.tokenCount($0)) }))
-                let fullBonusBet = game.pokerBetForFullBonus(token)
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Two pair or better also pays \(CoinFormat.short(game.pokerBonus(bet: bet, token: token, hand: .twoPair)))–\(CoinFormat.short(game.pokerBonus(bet: bet, token: token, hand: .royalFlush))) coins")
-                        .font(.caption)
-                        .foregroundStyle(.subtext)
-                    Spacer()
-                    if bet < fullBonusBet && owned > bet {
-                        Button("Max Bonus") { bet = min(owned, fullBonusBet) }
+                CasinoModePicker(isPracticing: $isPracticing)
+                if isPracticing {
+                    PracticeBetControls(chips: chips, bet: $practiceBet)
+                    if chips.isBroke {
+                        Button("New Stack of \(CoinFormat.grouped(PracticeChips.starting)) Chips") { chips.refill() }
                             .font(.footnote.weight(.semibold))
                             .buttonStyle(.borderless)
                             .tint(Theme.gold)
+                    }
+                } else {
+                    if TokenID.allCases.allSatisfy({ game.tokenCount($0) == 0 }) {
+                        Label("Buy tokens on the Coin Exchange to play, or practice with chips.", systemImage: "info.circle")
+                            .font(.subheadline)
+                            .foregroundStyle(.subtext)
+                    }
+                    TokenBetControls(token: $token, bet: $bet,
+                                     counts: Dictionary(uniqueKeysWithValues: TokenID.allCases.map { ($0, game.tokenCount($0)) }))
+                    let fullBonusBet = game.pokerBetForFullBonus(token)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Two pair or better also pays \(CoinFormat.short(game.pokerBonus(bet: bet, token: token, hand: .twoPair)))–\(CoinFormat.short(game.pokerBonus(bet: bet, token: token, hand: .royalFlush))) coins")
+                            .font(.caption)
+                            .foregroundStyle(.subtext)
+                        Spacer()
+                        if bet < fullBonusBet && owned > bet {
+                            Button("Max Bonus") { bet = min(owned, fullBonusBet) }
+                                .font(.footnote.weight(.semibold))
+                                .buttonStyle(.borderless)
+                                .tint(Theme.gold)
+                        }
                     }
                 }
                 Button(action: deal) {
@@ -177,7 +205,7 @@ struct VideoPokerView: View {
                 }
                 .buttonStyle(.glassProminent)
                 .tint(Theme.accent)
-                .disabled(owned < bet)
+                .disabled(isPracticing ? chips.balance < practiceBet : owned < bet)
             }
             .padding(14)
             .glassEffect(.regular, in: .rect(cornerRadius: 26))
@@ -222,6 +250,8 @@ struct VideoPokerView: View {
     private func resume() {
         pickOwnedToken()
         guard let round = store.game.pokerRound, cards.isEmpty else { return }
+        roundIsPractice = false
+        isPracticing = false
         token = round.token
         bet = round.bet
         cards = round.cards
@@ -238,7 +268,19 @@ struct VideoPokerView: View {
     }
 
     private func deal() {
-        guard phase == .betting, let round = store.dealPoker(token, bet: bet) else { return }
+        guard phase == .betting else { return }
+        let round: PokerRound
+        if isPracticing {
+            guard chips.take(practiceBet) else { return }
+            var rng = SystemRandomNumberGenerator()
+            let dealt = VideoPoker.deal(using: &rng)
+            round = PokerRound(token: token, bet: practiceBet, cards: dealt.cards, drawPile: dealt.drawPile)
+            practiceRound = round
+        } else {
+            guard let dealt = store.dealPoker(token, bet: bet) else { return }
+            round = dealt
+        }
+        roundIsPractice = isPracticing
         flipTask?.cancel()
         withAnimation(.snappy) {
             result = nil
@@ -257,9 +299,18 @@ struct VideoPokerView: View {
 
     private func draw() {
         guard phase == .holding else { return }
-        let coins = store.game.coins
-        guard let drawn = store.drawPoker(holding: held) else { return }
-        store.heldCoins = coins
+        let drawn: PokerResult
+        if roundIsPractice {
+            guard let round = practiceRound else { return }
+            practiceRound = nil // Played once.
+            drawn = round.outcome(holding: held)
+            chips.pay(drawn.tokensWon)
+        } else {
+            let coins = store.game.coins
+            guard let paid = store.drawPoker(holding: held) else { return }
+            store.heldCoins = coins
+            drawn = paid
+        }
         pending = drawn
         phase = .drawing
         let replaced = cards.indices.filter { !held.contains($0) }
@@ -293,7 +344,7 @@ struct VideoPokerView: View {
             phase = .betting
         }
         var announcement = drawn.isWin ? drawn.hand.name : "No win"
-        if drawn.isWin { announcement += ". \(drawn.tokensWon) \(drawn.token.name) back" }
+        if drawn.isWin { announcement += ". \(drawn.tokensWon) \(roundIsPractice ? "chips" : drawn.token.name) back" }
         if drawn.bonus > 0 { announcement += " and \(CoinFormat.short(drawn.bonus)) coins" }
         AccessibilityNotification.Announcement(announcement).post()
         guard drawn.isWin else { return }
@@ -396,10 +447,11 @@ private struct PokerCardSlot: View {
     }
 }
 
-/// What every hand pays for the current bet, in tokens (the bet included), with the hand just
-/// made lit up.
+/// What every hand pays for the current bet, in tokens or chips (the bet included), with the hand
+/// just made lit up.
 private struct PayTable: View {
     let bet: Int
+    let unit: String
     let highlighted: PokerHand?
 
     var body: some View {
@@ -426,7 +478,7 @@ private struct PayTable: View {
         }
         .animation(.snappy, value: highlighted)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Pay table: " + PokerHand.paying.map { "\($0.name) pays \($0.payout * bet)" }.joined(separator: ", "))
+        .accessibilityLabel("Pay table, \(unit): " + PokerHand.paying.map { "\($0.name) pays \($0.payout * bet)" }.joined(separator: ", "))
     }
 }
 

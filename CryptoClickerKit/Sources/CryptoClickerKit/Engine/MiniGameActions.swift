@@ -35,11 +35,14 @@ extension GameState {
     }
 
     /// Coins a winning hand pays on top of its tokens: half the stake's coin value, up to
-    /// `Tuning.blackjackWinSeconds` of income, times mini-game upgrades. Naturals pay 1.5x.
-    public func blackjackBonus(bet: Int, token: TokenID, isNatural: Bool = false) -> Double {
+    /// `Tuning.blackjackWinSeconds` of income, times mini-game upgrades. Naturals pay 1.5x, and the
+    /// tough table pays `Tuning.blackjackToughTableBonus` more.
+    public func blackjackBonus(bet: Int, token: TokenID, isNatural: Bool = false,
+                               rules: BlackjackRules = .standsOnSoft17) -> Double {
         let stakeValue = Double(max(0, bet)) * token.price
         let bonus = min(stakeValue * Tuning.blackjackStakeShare, Tuning.blackjackWinSeconds * rewardIncome)
-        return Self.wholeCoins(bonus * miniGameMultiplier * (isNatural ? Tuning.blackjackNaturalBonus : 1))
+        let table = rules == .hitsSoft17 ? Tuning.blackjackToughTableBonus : 1
+        return Self.wholeCoins(bonus * miniGameMultiplier * table * (isNatural ? Tuning.blackjackNaturalBonus : 1))
     }
 
     /// The smallest bet in `token` that earns the full coin bonus.
@@ -49,22 +52,27 @@ extension GameState {
     }
 
     /// Pays a finished round: winnings back to the wallet, statistics, and a coin bonus per won hand.
+    /// Pays only while a stake is open, so a round can never be paid twice.
     @discardableResult
-    public mutating func settleBlackjack(_ results: [BlackjackResult], token: TokenID) -> Double {
+    public mutating func settleBlackjack(_ results: [BlackjackResult], token: TokenID,
+                                         rules: BlackjackRules = .standsOnSoft17) -> Double {
+        guard blackjackStake != nil else { return 0 }
         blackjackStake = nil
-        giveTokens(token, amount: results.reduce(0) { $0 + $1.payout })
+        giveTokens(token, amount: results.reduce(0) { $0.addingCount($1.payout) })
         stats.blackjackHands += 1
         var bonus = 0.0
         var wins = 0
+        var naturals = 0
         for result in results {
             switch result.outcome {
             case .blackjack:
                 wins += 1
+                naturals += 1
                 stats.blackjackNaturals += 1
-                bonus += blackjackBonus(bet: result.bet, token: token, isNatural: true)
+                bonus += blackjackBonus(bet: result.bet, token: token, isNatural: true, rules: rules)
             case .win:
                 wins += 1
-                bonus += blackjackBonus(bet: result.bet, token: token)
+                bonus += blackjackBonus(bet: result.bet, token: token, rules: rules)
             case .lose:
                 stats.blackjackStreak = 0
             case .push:
@@ -79,7 +87,9 @@ extension GameState {
         credit(bonus, source: .games)
         let net = Double(results.reduce(0) { $0 + $1.net }) * token.price + bonus
         stats.blackjackBiggestWin = max(stats.blackjackBiggestWin, net)
-        recordChallenge(.blackjack, value: wins, scored: wins > 0)
+        // The natural challenge counts naturals; the usual one counts hands won.
+        let counted = daily.challenge?.kind == .blackjackNatural ? naturals : wins
+        recordChallenge(.blackjack, value: counted, scored: wins > 0)
         return bonus
     }
 
@@ -94,25 +104,67 @@ extension GameState {
         return Self.wholeCoins(perMultiple * Double(multiple) * miniGameMultiplier)
     }
 
+    /// The coin prize for every `SlotMachine.bitcoinsPerPrize` Bitcoins collected.
+    public var slotsCollectionPrize: Double {
+        Self.wholeCoins(Tuning.slotsCollectionSeconds * rewardIncome * miniGameMultiplier)
+    }
+
+    /// Bitcoins collected toward the next prize.
+    public var slotsBitcoinsTowardPrize: Int { stats.slotsBitcoins % SlotMachine.bitcoinsPerPrize }
+
     /// Takes the bet, spins and pays in one step, so closing the app mid-spin can't lose a bet.
-    /// Returns `nil` (and changes nothing) if the player can't cover the bet.
+    /// While free spins are waiting, the spin is one of them instead: at the bet and token that won
+    /// them, taking nothing. Returns `nil` (and changes nothing) if the player can't cover the bet.
     @discardableResult
     public mutating func spinSlots<R: RandomNumberGenerator>(_ token: TokenID, bet: Int, using rng: inout R) -> SlotsSpin? {
-        guard bet > 0, tokenCount(token) >= bet else { return nil }
+        let free = slotsFreeSpins
+        let token = free?.token ?? token
+        let bet = free?.bet ?? bet
+        guard bet > 0, free != nil || tokenCount(token) >= bet else { return nil }
         let stops = SlotMachine.spin(using: &rng)
-        let multiple = SlotMachine.payout(for: SlotMachine.line(stops: stops))
-        tokens[token] = tokenCount(token) - bet
-        giveTokens(token, amount: bet * multiple)
+        let line = SlotMachine.line(stops: stops)
+        let multiple = SlotMachine.payout(for: line)
+        let paid = SlotMachine.tokensPaid(bet: bet, multiple: multiple)
+        if free == nil { tokens[token] = tokenCount(token) - bet }
+        giveTokens(token, amount: paid)
         let bonus = slotsBonus(bet: bet, token: token, multiple: multiple)
         credit(bonus, source: .games)
+
+        // Free spins: this one is used up, and a trio wins more.
+        var freeLeft = max(0, (free?.left ?? 0) - 1)
+        let won = SlotMachine.triggersFreeSpins(line) ? SlotMachine.freeSpinsAwarded : 0
+        if won > 0 { stats.slotsFreeSpinRounds += 1 }
+        freeLeft += won
+        slotsFreeSpins = freeLeft > 0 ? SlotsFreeSpins(token: token, bet: bet, left: freeLeft) : nil
+
+        // The Bitcoin collection pays a prize every `bitcoinsPerPrize`.
+        let bitcoins = line.filter { $0 == .bitcoin }.count
+        let before = stats.slotsBitcoins
+        stats.slotsBitcoins = stats.slotsBitcoins.addingCount(bitcoins)
+        let prizes = stats.slotsBitcoins / SlotMachine.bitcoinsPerPrize - before / SlotMachine.bitcoinsPerPrize
+        let prize = Double(max(0, prizes)) * slotsCollectionPrize
+        credit(prize, source: .games)
+
         stats.slotsSpins += 1
-        stats.slotsWagered += Double(bet) * token.price
-        stats.slotsPaidOut += Double(bet) * Double(multiple) * token.price
+        if free != nil {
+            stats.slotsFreeSpinsPlayed += 1
+        } else {
+            stats.slotsWagered += Double(bet) * token.price
+        }
+        stats.slotsPaidOut += Double(paid) * token.price
         stats.slotsBestMultiple = max(stats.slotsBestMultiple, multiple)
         if multiple >= 2 { stats.slotsWins += 1 }
         if multiple == SlotMachine.jackpot { stats.slotsJackpots += 1 }
+        let net = Double(paid - (free == nil ? bet : 0)) * token.price + bonus
+        stats.slotsBiggestWin = max(stats.slotsBiggestWin, net)
         recordChallenge(.slots, value: multiple >= 2 ? 1 : 0, scored: multiple >= 2)
-        return SlotsSpin(stops: stops, token: token, bet: bet, multiple: multiple, bonus: bonus)
+        var spin = SlotsSpin(stops: stops, token: token, bet: bet, multiple: multiple, bonus: bonus)
+        spin.isFree = free != nil
+        spin.freeSpinsWon = won
+        spin.freeSpinsLeft = freeLeft
+        spin.bitcoins = bitcoins
+        spin.collectionPrize = prize
+        return spin
     }
 
     // MARK: To the Moon
@@ -145,13 +197,7 @@ extension GameState {
     /// Where the flight in the air stands `seconds` after launch. The automatic cash-out is checked
     /// first, so a target equal to the crash point still pays.
     public func moonState(after seconds: TimeInterval) -> MoonState? {
-        guard let round = moonRound else { return nil }
-        let multiplier = MoonFlight.multiplier(after: seconds)
-        if let target = round.autoCashOut, target <= round.crashPoint, multiplier >= target {
-            return .autoCashedOut(multiplier: target)
-        }
-        if multiplier >= round.crashPoint { return .crashed(at: round.crashPoint) }
-        return .flying(multiplier: multiplier)
+        moonRound?.state(after: seconds)
     }
 
     /// Ends the flight `seconds` after launch. While it is still flying, that's a cash-out at the
@@ -159,18 +205,14 @@ extension GameState {
     /// A cash-out pays the bet times the multiplier in whole tokens, plus a coin bonus.
     @discardableResult
     public mutating func settleMoon(after seconds: TimeInterval) -> MoonResult? {
-        guard let round = moonRound, let state = moonState(after: seconds) else { return nil }
-        moonRound = nil
-        let multiplier: Double
-        switch state {
-        case .flying(let current), .autoCashedOut(let current):
-            multiplier = current
-        case .crashed:
+        guard let round = moonRound else { return nil }
+        moonRound = nil // Taken first: the flight can only be paid once.
+        var result = round.outcome(after: seconds)
+        guard let multiplier = result.cashedOutAt else {
             recordChallenge(.moon, value: 0, scored: false)
-            return MoonResult(token: round.token, bet: round.bet, cashedOutAt: nil, crashPoint: round.crashPoint,
-                              tokensWon: 0, bonus: 0)
+            return result
         }
-        let won = Int(min((Double(round.bet) * multiplier).rounded(.down), Double(Int32.max)))
+        let won = result.tokensWon
         giveTokens(round.token, amount: won)
         let bonus = moonBonus(bet: round.bet, token: round.token, multiplier: multiplier)
         credit(bonus, source: .games)
@@ -179,8 +221,8 @@ extension GameState {
         stats.moonPaidOut += Double(won) * round.token.price
         stats.moonBiggestWin = max(stats.moonBiggestWin, Double(won - round.bet) * round.token.price + bonus)
         recordChallenge(.moon, value: multiplier >= 2 ? 1 : 0, scored: true)
-        return MoonResult(token: round.token, bet: round.bet, cashedOutAt: multiplier, crashPoint: round.crashPoint,
-                          tokensWon: won, bonus: bonus)
+        result.bonus = bonus
+        return result
     }
 
     /// Returns the bet of a flight that never finished because the app closed mid-flight. (Leaving
@@ -230,20 +272,21 @@ extension GameState {
     @discardableResult
     public mutating func drawPoker(holding held: Set<Int>) -> PokerResult? {
         guard let round = pokerRound else { return nil }
-        pokerRound = nil
-        let cards = VideoPoker.draw(round.cards, holding: held, from: round.drawPile)
-        let hand = VideoPoker.evaluate(cards)
-        let won = Int(min(Double(round.bet) * Double(hand.payout), Double(Int32.max)))
+        pokerRound = nil // Taken first: the hand can only be paid once.
+        var result = round.outcome(holding: held)
+        let hand = result.hand
+        let won = result.tokensWon
         giveTokens(round.token, amount: won)
         let bonus = pokerBonus(bet: round.bet, token: round.token, hand: hand)
         credit(bonus, source: .games)
+        result.bonus = bonus
         if won > 0 { stats.pokerWins += 1 }
         stats.pokerBestHand = max(stats.pokerBestHand, hand.rawValue)
         if hand == .royalFlush { stats.pokerRoyals += 1 }
         stats.pokerPaidOut += Double(won) * round.token.price
         stats.pokerBiggestWin = max(stats.pokerBiggestWin, Double(won - round.bet) * round.token.price + bonus)
         recordChallenge(.videoPoker, value: hand >= .twoPair ? 1 : 0, scored: hand >= .twoPair)
-        return PokerResult(token: round.token, bet: round.bet, cards: cards, hand: hand, tokensWon: won, bonus: bonus)
+        return result
     }
 
     /// Finishes a hand the app closed in the middle of, holding what the suggested strategy holds.
@@ -272,10 +315,14 @@ extension GameState {
         guard let run = unfinishedRun else { return nil }
         let payout: ArcadePayout = switch run.game {
         case .tetris: finishTetris(score: run.score, lines: run.detail, rewardPoints: run.extra)
-        case .snake: finishSnake(score: run.score, length: run.detail)
+        case .snake: finishSnake(score: run.score, length: run.detail,
+                                 mode: run.stage == ArcadeRun.coinRushStage ? .coinRush : .classic)
         case .brickBreaker: finishBrickBreaker(score: run.score, bricks: run.detail, level: run.extra)
-        case .bubbleBlaster: finishBubbleBlaster(score: run.score, popped: run.detail, bestShot: run.extra)
-        case .merge2048: finishMerge2048(score: run.score, bestTile: run.detail)
+        case .bubbleBlaster: finishBubbleBlaster(score: run.score, popped: run.detail, bestShot: run.extra, wave: run.stage)
+        case .merge2048:
+            run.stage == ArcadeRun.dailyStage
+                ? finishMerge2048Daily(day: nil, score: run.score, bestTile: run.detail).payout
+                : finishMerge2048(score: run.score, bestTile: run.detail)
         case .pumpDump: finishPumpDump(score: run.score, coinsHit: run.detail, bestCombo: run.extra, rounds: max(1, run.stage))
         case .tokenSwap: finishTokenSwap(score: run.score, tokens: run.detail, bestChain: run.extra)
         case .blackjack, .slots, .moon, .videoPoker: ArcadePayout(coins: 0, isNewBest: false)
@@ -291,46 +338,83 @@ extension GameState {
     }
 
     /// Tetris pays on `rewardPoints`, the score without its level multiplier (see `TetrisGame`).
+    /// A finished Sprint passes its time: Sprints keep their own record (the fastest), so the
+    /// new-best bonus goes to a faster Sprint rather than a higher score.
     @discardableResult
-    public mutating func finishTetris(score: Int, lines: Int, rewardPoints: Int) -> ArcadePayout {
-        let isNewBest = score > stats.tetrisBestScore
+    public mutating func finishTetris(score: Int, lines: Int, rewardPoints: Int, level: Int = 1, bestCombo: Int = 0,
+                                      tetrises: Int = 0, sprintTime: TimeInterval? = nil) -> ArcadePayout {
         stats.tetrisGames += 1
         stats.tetrisLines = stats.tetrisLines.addingCount(lines)
-        stats.tetrisBestScore = max(stats.tetrisBestScore, score)
+        stats.tetrisBestLevel = max(stats.tetrisBestLevel, level)
+        stats.tetrisBestCombo = max(stats.tetrisBestCombo, bestCombo)
+        stats.tetrisTetrises = stats.tetrisTetrises.addingCount(tetrises)
+        let isNewBest: Bool
+        if let sprintTime, sprintTime.isFinite, sprintTime > 0 {
+            isNewBest = stats.tetrisBestSprint == 0 || sprintTime < stats.tetrisBestSprint
+            stats.tetrisSprints += 1
+            stats.tetrisBestSprint = isNewBest ? sprintTime : stats.tetrisBestSprint
+        } else {
+            isNewBest = score > stats.tetrisBestScore
+            stats.tetrisBestScore = max(stats.tetrisBestScore, score)
+        }
         return payArcade(.tetris, score: score, paidPoints: rewardPoints, isNewBest: isNewBest, challengeValue: score)
     }
 
-    /// `length` is how long the snake grew.
+    /// `length` is how long the snake grew; `coins` how many it ate (by default the score's worth at
+    /// 10 points a coin). Coin Rush keeps its own best score, so the new-best bonus compares like
+    /// with like.
     @discardableResult
-    public mutating func finishSnake(score: Int, length: Int) -> ArcadePayout {
-        let isNewBest = score > stats.snakeBestScore
-        let eaten = max(0, score) / SnakeGame.pointsPerCoin
+    public mutating func finishSnake(score: Int, length: Int, coins: Int? = nil, time: TimeInterval = 0, powerUps: Int = 0,
+                                     mode: SnakeGame.Mode = .classic) -> ArcadePayout {
+        let eaten = max(0, coins ?? max(0, score) / SnakeGame.pointsPerCoin)
+        let isNewBest: Bool
+        if mode == .coinRush {
+            isNewBest = score > stats.snakeRushBestScore
+            stats.snakeRushBestScore = max(stats.snakeRushBestScore, score)
+            stats.snakeRushes += 1
+        } else {
+            isNewBest = score > stats.snakeBestScore
+            stats.snakeBestScore = max(stats.snakeBestScore, score)
+        }
         stats.snakeGames += 1
-        stats.snakeBestScore = max(stats.snakeBestScore, score)
         stats.snakeCoinsEaten = stats.snakeCoinsEaten.addingCount(eaten)
         stats.snakeLongest = max(stats.snakeLongest, length)
-        return payArcade(.snake, score: score, isNewBest: isNewBest, challengeValue: eaten)
+        stats.snakeBestCoins = max(stats.snakeBestCoins, eaten)
+        if time.isFinite { stats.snakeLongestTime = max(stats.snakeLongestTime, time) }
+        stats.snakePowerUps = stats.snakePowerUps.addingCount(powerUps)
+        let paid = mode == .coinRush ? Int((Double(max(0, score)) * Tuning.snakeCoinRushPay).rounded()) : score
+        return payArcade(.snake, score: score, paidPoints: paid, isNewBest: isNewBest, challengeValue: eaten)
     }
 
-    /// `level` is the level the game reached.
+    /// `level` is the level the game reached (so `level - 1` were cleared).
     @discardableResult
-    public mutating func finishBrickBreaker(score: Int, bricks: Int, level: Int) -> ArcadePayout {
+    public mutating func finishBrickBreaker(score: Int, bricks: Int, level: Int, bosses: Int = 0, powerUps: Int = 0,
+                                            bestStreak: Int = 0) -> ArcadePayout {
         let isNewBest = score > stats.brickBreakerBestScore
         stats.brickBreakerGames += 1
         stats.brickBreakerBestScore = max(stats.brickBreakerBestScore, score)
         stats.bricksBroken = stats.bricksBroken.addingCount(bricks)
         stats.brickBreakerBestLevel = max(stats.brickBreakerBestLevel, level)
+        stats.brickBreakerLevelsCleared = stats.brickBreakerLevelsCleared.addingCount(level - 1)
+        stats.brickBreakerBosses = stats.brickBreakerBosses.addingCount(bosses)
+        stats.brickBreakerPowerUps = stats.brickBreakerPowerUps.addingCount(powerUps)
+        stats.brickBreakerBestStreak = max(stats.brickBreakerBestStreak, bestStreak)
         return payArcade(.brickBreaker, score: score, isNewBest: isNewBest, challengeValue: bricks)
     }
 
-    /// `bestShot` is the most bubbles one shot cleared.
+    /// `bestShot` is the most bubbles one shot cleared, `wave` the wave the game reached, `bestStreak`
+    /// the most popping shots in a row and `bonuses` the gold bonus bubbles cleared.
     @discardableResult
-    public mutating func finishBubbleBlaster(score: Int, popped: Int, bestShot: Int) -> ArcadePayout {
+    public mutating func finishBubbleBlaster(score: Int, popped: Int, bestShot: Int, wave: Int = 0, bestStreak: Int = 0,
+                                             bonuses: Int = 0) -> ArcadePayout {
         let isNewBest = score > stats.bubbleBestScore
         stats.bubbleGames += 1
         stats.bubbleBestScore = max(stats.bubbleBestScore, score)
         stats.bubblesPopped = stats.bubblesPopped.addingCount(popped)
         stats.bubbleBestShot = max(stats.bubbleBestShot, bestShot)
+        stats.bubbleBestWave = max(stats.bubbleBestWave, wave)
+        stats.bubbleBestStreak = max(stats.bubbleBestStreak, bestStreak)
+        stats.bubbleBonuses = stats.bubbleBonuses.addingCount(bonuses)
         return payArcade(.bubbleBlaster, score: score, isNewBest: isNewBest, challengeValue: popped)
     }
 
@@ -347,6 +431,29 @@ extension GameState {
         let bonus = bestTile >= Merge2048Game.winningValue ? merge2048TileBonus : 0
         credit(bonus, source: .games)
         return payArcade(.merge2048, score: score, isNewBest: isNewBest, challengeValue: bestTile, tileBonus: bonus)
+    }
+
+    /// Records a finished daily 2048 puzzle and pays it: its points (it doesn't count toward the
+    /// Classic best score, so there's no new-best bonus), plus `merge2048DailyStarReward` for each
+    /// star earned for the first time that day, so replaying the puzzle can't pay a star twice.
+    /// A puzzle the app closed in the middle of comes back without its day, and pays its points only.
+    @discardableResult
+    public mutating func finishMerge2048Daily(day: String?, score: Int, bestTile: Int) -> Merge2048DailyPayout {
+        stats.merge2048Games += 1
+        stats.merge2048BestTile = max(stats.merge2048BestTile, bestTile)
+        stats.merge2048Points = stats.merge2048Points.addingCount(score)
+        let stars = Merge2048Game.dailyStars(score: score)
+        let newStars = day.map { merge2048Daily.record(day: $0, score: score, stars: stars) } ?? 0
+        let starCoins = Double(newStars) * merge2048DailyStarReward
+        credit(starCoins, source: .games)
+        let paid = payArcade(.merge2048, score: score, isNewBest: false, challengeValue: bestTile)
+        let payout = ArcadePayout(coins: paid.coins + starCoins, isNewBest: false, challenge: paid.challenge)
+        return Merge2048DailyPayout(stars: stars, newStars: newStars, starCoins: starCoins, payout: payout)
+    }
+
+    /// One daily 2048 star: `Tuning.merge2048DailyStarSeconds` of income.
+    public var merge2048DailyStarReward: Double {
+        Self.wholeCoins(Tuning.merge2048DailyStarSeconds * rewardIncome * miniGameMultiplier)
     }
 
     /// The bonus for making a 2048 tile: `Tuning.merge2048WinSeconds` of income.

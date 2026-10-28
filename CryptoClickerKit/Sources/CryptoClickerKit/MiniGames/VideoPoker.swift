@@ -58,6 +58,16 @@ public struct PokerRound: Codable, Equatable, Sendable {
         self.cards = cards
         self.drawPile = drawPile
     }
+
+    /// The draw without the wallet: the final cards, the hand and what the pay table returns for
+    /// the bet (kept within a 32-bit count), with no coin bonus. Practice hands are played this way;
+    /// `GameState.drawPoker` pays the same draw in tokens and coins.
+    public func outcome(holding held: Set<Int>) -> PokerResult {
+        let final = VideoPoker.draw(cards, holding: held, from: drawPile)
+        let hand = VideoPoker.evaluate(final)
+        let won = Int(min(Double(bet) * Double(hand.payout), Double(Int32.max)))
+        return PokerResult(token: token, bet: bet, cards: final, hand: hand, tokensWon: won, bonus: 0)
+    }
 }
 
 /// What a finished hand paid.
@@ -70,7 +80,7 @@ public struct PokerResult: Equatable, Sendable {
     /// Tokens paid back (the bet times the hand's payout).
     public let tokensWon: Int
     /// Coins paid on top for two pair or better.
-    public let bonus: Double
+    public internal(set) var bonus: Double
 
     public var isWin: Bool { tokensWon > 0 }
     /// Tokens won beyond the bet (negative for a loss).

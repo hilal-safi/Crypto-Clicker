@@ -38,6 +38,24 @@ struct ArcadeBalanceTests {
         pointsPerMinute(game) * game.secondsPerPoint
     }
 
+    /// Snake's Coin Rush and its walled arenas pay about what Classic in the open does.
+    @Test func snakeModesPayAboutTheSame() {
+        guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
+        let seeds: [UInt64] = [11, 22, 33, 44]
+        func income(_ mode: SnakeGame.Mode, _ arena: SnakeGame.Arena) -> Double {
+            let points = seeds.map { SnakeBot.pointsPerMinute(seed: $0, mode: mode, arena: arena) }.reduce(0, +) / Double(seeds.count)
+            return points * MiniGame.snake.secondsPerPoint * (mode == .coinRush ? Tuning.snakeCoinRushPay : 1)
+        }
+        for arena in SnakeGame.Arena.allCases {
+            let classic = income(.classic, arena)
+            print("Balance: Snake", arena.name, "| income seconds/min", Int(classic.rounded()))
+            #expect((90...160).contains(classic), "Snake in \(arena.name) pays \(classic)")
+        }
+        let rush = income(.coinRush, .open)
+        print("Balance: Snake Coin Rush | income seconds/min", Int(rush.rounded()))
+        #expect((90...160).contains(rush), "Coin Rush pays \(rush)")
+    }
+
     @Test(arguments: [MiniGame.tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap])
     func everyArcadeGamePaysAboutTheSame(_ game: MiniGame) {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
@@ -128,7 +146,7 @@ enum Merge2048Bot {
         var game = Merge2048Game(using: &rng)
         while !game.isOver && game.moves < maxMoves {
             guard let direction = bestMove(game.rows) else { break }
-            game.slide(direction, using: &rng)
+            game.slide(direction)
         }
         return Double(game.score) / (max(1, Double(game.moves)) / movesPerSecond / 60)
     }
@@ -225,23 +243,35 @@ enum Merge2048Bot {
 /// Heads for the coin along the shortest safe path, or for the most open space when there isn't one,
 /// but like a person it can only turn once every 0.2 seconds, so the fastest snake catches it out.
 /// Each life lasts until a crash or three minutes; a few seconds pass between games.
+/// Heads for the nearest coin by the shortest path that leaves the snake room, steering like a quick
+/// thumb: two swipes in a row at most (the game queues them), then one more every 0.2 s. With no
+/// coin in reach it heads for the most open space.
 enum SnakeBot {
     static let turnGap = 0.2
+    static let swipeBurst = 2.0
 
-    static func pointsPerMinute(seed: UInt64, games: Int = 3) -> Double {
+    static func pointsPerMinute(seed: UInt64, games: Int = 3, mode: SnakeGame.Mode = .classic,
+                                arena: SnakeGame.Arena = .open) -> Double {
         var rng = SeededGenerator(seed: seed)
         var points = 0
         var elapsed = 0.0
         for _ in 0..<games {
-            var game = SnakeGame(using: &rng)
+            var game = SnakeGame(mode: mode, arena: arena, using: &rng)
             var time = 0.0
-            var lastTurn = -1.0
+            var swipes = swipeBurst
             while !game.isOver && time < 180 {
-                if time - lastTurn >= turnGap, let direction = nextMove(in: game), direction != game.heading {
-                    game.turn(direction)
-                    lastTurn = time
+                let path = route(in: game)
+                if swipes >= 1, let first = path.first, first != game.heading {
+                    game.turn(first)
+                    swipes -= 1
+                    if swipes >= 1, path.count > 1, path[1] != first {
+                        game.turn(path[1])
+                        swipes -= 1
+                    }
                 }
-                time += game.tickInterval
+                let tick = game.tickInterval
+                time += tick
+                swipes = min(swipeBurst, swipes + tick / turnGap)
                 game.step(using: &rng)
             }
             points += game.score
@@ -263,30 +293,57 @@ enum SnakeBot {
         (0..<SnakeGame.width).contains(point.x) && (0..<SnakeGame.height).contains(point.y) && !blocked.contains(point)
     }
 
+    /// The first move toward the nearest coin, or toward the most open space.
     static func nextMove(in game: SnakeGame) -> SnakeDirection? {
-        let blocked = Set(game.body.dropLast())
+        route(in: game).first
+    }
+
+    /// The moves along the shortest path to the nearest coin, or one move toward the most open space.
+    static func route(in game: SnakeGame) -> [SnakeDirection] {
+        let blocked = Set(game.body.dropLast()).union(game.walls)
         let moves = SnakeDirection.allCases.filter { $0 != game.heading.opposite }
-        if let food = game.food {
-            // Breadth-first search from each first step.
-            var queue: [(GridPoint, SnakeDirection)] = []
+        let coins = Set(game.coins)
+        if !coins.isEmpty {
+            // Breadth-first search, remembering how each cell was reached.
+            var cameFrom: [GridPoint: (GridPoint, SnakeDirection)] = [:]
+            var queue: [GridPoint] = []
             var seen: Set<GridPoint> = [game.head]
             for move in moves {
                 let next = neighbor(game.head, move)
-                if isOpen(next, blocked: blocked) && seen.insert(next).inserted { queue.append((next, move)) }
+                if isOpen(next, blocked: blocked) && seen.insert(next).inserted {
+                    cameFrom[next] = (game.head, move)
+                    queue.append(next)
+                }
             }
             var index = 0
             while index < queue.count {
-                let (point, first) = queue[index]
+                let point = queue[index]
                 index += 1
-                if point == food { return first }
+                if coins.contains(point) { // The nearest coin: walk back to the head.
+                    var path: [SnakeDirection] = []
+                    var cell = point
+                    while let (previous, move) = cameFrom[cell] {
+                        path.append(move)
+                        cell = previous
+                    }
+                    path.reverse()
+                    // Only if the first step leaves room for the whole snake; otherwise find space.
+                    guard let first = path.first,
+                          space(from: neighbor(game.head, first), blocked: blocked) >= game.body.count else { break }
+                    return path
+                }
                 for direction in SnakeDirection.allCases {
                     let next = neighbor(point, direction)
-                    if isOpen(next, blocked: blocked) && seen.insert(next).inserted { queue.append((next, first)) }
+                    if isOpen(next, blocked: blocked) && seen.insert(next).inserted {
+                        cameFrom[next] = (point, direction)
+                        queue.append(next)
+                    }
                 }
             }
         }
-        return moves.filter { isOpen(neighbor(game.head, $0), blocked: blocked) }
+        let open = moves.filter { isOpen(neighbor(game.head, $0), blocked: blocked) }
             .max { space(from: neighbor(game.head, $0), blocked: blocked) < space(from: neighbor(game.head, $1), blocked: blocked) }
+        return open.map { [$0] } ?? []
     }
 
     static func space(from start: GridPoint, blocked: Set<GridPoint>) -> Int {
