@@ -5,7 +5,7 @@ import Testing
 @Suite("Daily quests")
 struct DailyQuestTests {
     /// 10 coins per second.
-    func player() -> GameState { GameState.make(miners: [.desktop: 10]) }
+    func player() -> GameState { GameState.make(miners: minersEarning(10)) }
 
     @Test func threeDifferentQuestsAreIssuedOncePerDay() {
         var game = player()
@@ -103,7 +103,7 @@ struct DailyQuestTests {
 
 @Suite("Daily reward")
 struct DailyRewardTests {
-    func player() -> GameState { GameState.make(miners: [.desktop: 10]) } // 10 coins per second.
+    func player() -> GameState { GameState.make(miners: minersEarning(10)) } // 10 coins per second.
 
     @Test func dailiesStartOnTheGamesSecondDay() throws {
         var game = GameState(now: t0)
@@ -186,7 +186,7 @@ struct DailyRewardTests {
 @Suite("Daily challenge")
 struct DailyChallengeTests {
     func player(_ games: Set<MiniGame> = []) -> GameState {
-        var game = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
+        var game = GameState.make(miners: minersEarning(10)) // 10 coins per second.
         game.unlockedGames = games
         return game
     }
@@ -377,19 +377,59 @@ struct DailyChallengeTests {
 
 @Suite("Income history")
 struct IncomeHistoryTests {
-    @Test func samplesAreTakenEveryHalfHourForAWeek() {
-        var game = GameState.make(miners: [.desktop: 10])
+    @Test func samplesAreTakenEveryMinuteAndThinnedAsTheyAge() {
+        var game = GameState.make(miners: minersEarning(15)) // 15 coins a second.
         game.recordIncomeSample(at: t0)
+        game.recordIncomeSample(at: at(30))
+        #expect(game.incomeHistory == [IncomeSample(date: t0, income: 15)])
         game.recordIncomeSample(at: at(60))
-        #expect(game.incomeHistory == [IncomeSample(date: t0, income: 10)])
-        game.recordIncomeSample(at: at(1_800))
         #expect(game.incomeHistory.count == 2)
-        for half in 2...400 { game.recordIncomeSample(at: at(Double(half) * 1_800)) }
-        #expect(game.incomeHistory.count == Tuning.maxIncomeSamples)
-        #expect(game.incomeHistory.last?.date == at(400 * 1_800))
+        // The first hour keeps every minute.
+        for minute in 2...59 { game.recordIncomeSample(at: at(Double(minute) * 60)) }
+        #expect(game.incomeHistory.count == 60)
+        // Then forty days: every five minutes, and every minute for the last two days. The last
+        // hour stays in minutes, the rest of the day in five minutes, then half hours for the week,
+        // six hours for the month and days beyond.
+        var income = 15.0
+        let fiveMinuteSteps = 38 * 288
+        for step in 12...fiveMinuteSteps {
+            if step % 50 == 0 { income += 1; game.miners = minersEarning(min(income, 50)) }
+            game.recordIncomeSample(at: at(Double(step) * 300))
+        }
+        let lastFive = Double(fiveMinuteSteps) * 300
+        for minute in 1...(2 * 1_440) { game.recordIncomeSample(at: at(lastFive + Double(minute) * 60)) }
+        let end = at(lastFive + 2 * 86_400)
+        let history = game.incomeHistory
+        #expect(history.last?.date == end)
+        #expect(history.map(\.date) == history.map(\.date).sorted())
+        func count(_ hours: Range<Double>) -> Int {
+            history.filter { hours.contains(end.timeIntervalSince($0.date) / 3_600) }.count
+        }
+        #expect(count(0..<1) == 60) // Minutes.
+        #expect((275...277).contains(count(1..<24))) // 23 hours of five minutes.
+        #expect((286...290).contains(count(24..<168))) // Six days of half hours.
+        #expect((88...93).contains(count(168..<720))) // 23 days of six hours.
+        #expect((9...11).contains(count(720..<961))) // Ten days.
+        #expect(history.count < 760)
+        // Each period keeps its highest income.
+        #expect(history.first.map { $0.income >= 15 } == true)
         // A clock that jumps back drops the samples from the "future".
-        game.recordIncomeSample(at: at(100 * 1_800))
-        #expect(game.incomeHistory.last?.date == at(100 * 1_800))
-        #expect(game.incomeHistory.allSatisfy { $0.date <= at(100 * 1_800) })
+        game.recordIncomeSample(at: at(100 * 300))
+        #expect(game.incomeHistory.last?.date == at(100 * 300))
+        #expect(game.incomeHistory.allSatisfy { $0.date <= at(100 * 300) })
+    }
+
+    @Test func thinningKeepsTheHighestOfEachPeriodAndCapsTheCount() {
+        let now = at(90 * 86_400)
+        // Three samples in one six-hour period, ten days old.
+        let base = 80 * 86_400.0
+        let samples = [IncomeSample(date: at(base), income: 5), IncomeSample(date: at(base + 3_600), income: 9),
+                       IncomeSample(date: at(base + 7_200), income: 7)]
+        #expect(GameState.thinned(samples, at: at(base + 10 * 86_400)) == [samples[1]])
+        // A sample from every day of six years is capped at the newest 2,000.
+        let years = (0..<(6 * 365)).map { IncomeSample(date: at(Double($0) * 86_400 - 6 * 365 * 86_400 + 90 * 86_400), income: 1) }
+        let capped = GameState.thinned(years, at: now)
+        #expect(capped.count == Tuning.maxIncomeSamples)
+        #expect(capped.last == years.last)
     }
 }

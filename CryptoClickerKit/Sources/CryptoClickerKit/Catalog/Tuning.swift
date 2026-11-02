@@ -2,10 +2,10 @@ import Foundation
 
 /// Every balance number in one place. Tuned with simulated players who catch airdrops, claim the
 /// dailies, play some arcade and earn achievements (see `PacingTests`): someone who keeps playing
-/// buys a Data Center after more than an hour; casual play (four ten-minute visits a day) reaches
-/// the Data Center in about a day, the first ten miners and every mini-game in about three days and
-/// the first prestige soon after, and prestiges and perks keep new things arriving for about two
-/// weeks. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here
+/// buys a Data Center after a little over an hour; casual play (four ten-minute visits a day)
+/// reaches the Data Center in about a day, the first prestige point around day two, every
+/// mini-game in about four days and the tenth miner and the first suggested prestige in about
+/// five, and prestiges and perks keep new things arriving for about three weeks. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here
 /// are whole numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
@@ -30,10 +30,35 @@ public enum Tuning {
     public static let autoTapStrength = 0.25
     /// A tap within this long of the previous one keeps a combo going.
     public static let comboWindow: TimeInterval = 0.6
-    /// Quick taps in a row needed to reach the biggest combo multiplier...
-    public static let comboTapsToMax = 40
-    /// ...which is this.
+    /// A combo climbs by this much (+0.1)...
+    public static let comboStep = 0.1
+    /// ...every this many quick taps in a row (on average: 4.4 means 4 or 5), so ×2 takes 44 taps
+    /// after the first. Quick Combos and Combo Master make each step come sooner.
+    public static let comboTapsPerStep = 4.4
+    /// The biggest combo multiplier without power-ups...
     public static let comboMaxMultiplier = 2.0
+    /// ...and with every level of Combo Booster and Combo Overdrive, the most it can be.
+    public static let comboTopMultiplier = 10.0
+    /// Combo Master's combos reach at least this.
+    public static let comboMasterMultiplier = 3.0
+
+    // MARK: Combo power-ups
+    /// Each Combo Booster level raises the biggest combo by this much...
+    public static let comboBoosterStep = 0.5
+    /// ...and each Combo Overdrive level by this much.
+    public static let comboOverdriveStep = 1.0
+    /// Each Quick Combos level makes combos build this much faster (0.5 is 50%).
+    public static let quickComboStep = 0.5
+    /// First-level list prices, and how much dearer each level is than the one before. Someone who
+    /// keeps playing gets the first Combo Booster in under an hour and Quick Combos within the first
+    /// hour and a half; both reach their last levels around the first prestige, and Overdrive over
+    /// the runs after it (power-ups are kept when you prestige).
+    public static let comboBoosterBaseCost = 40_000.0
+    public static let comboBoosterCostGrowth = 8.0
+    public static let comboOverdriveBaseCost = 1e10
+    public static let comboOverdriveCostGrowth = 10.0
+    public static let quickCombosBaseCost = 100_000.0
+    public static let quickCombosCostGrowth = 10.0
 
     // MARK: Time
     /// Gaps shorter than this count as live play and are paid in full (ticks, a quick app switch).
@@ -51,13 +76,15 @@ public enum Tuning {
     public static let offlineMiningLateStep: TimeInterval = 3_600
     /// ...up to three days at this level.
     public static let offlineMiningMaxLevel = 96
-    /// The first level's price; each level costs this many times the one before.
-    public static let offlineMiningBaseCost = 1_500.0
+    /// The first level's price (before the pace), and each level costs this many times the one before.
+    /// Early levels are dear on purpose: time away is paid at the full rate, and a long absence
+    /// with cheap levels would buy enough miners to multiply income in one go.
+    public static let offlineMiningBaseCost = 3_500.0
     public static let offlineMiningCostGrowth = 1.5
 
     // MARK: Steps
     /// Lifetime taps needed before steps can be connected, so early coins come from playing.
-    public static let stepsUnlockTaps = 2_500
+    public static let stepsUnlockTaps = 2_000
     /// One step is worth this many seconds of idle income (before step upgrades).
     public static let stepSeconds = 0.06
     /// A step is never worth less than this many coins (before step upgrades).
@@ -137,9 +164,17 @@ public enum Tuning {
     public static let questsPerDay = 3
     /// The login streak's rewards repeat after this many days.
     public static let streakCycle = 7
-    /// Income history: one sample per interval, for a week.
-    public static let incomeSampleInterval: TimeInterval = 30 * 60
-    public static let maxIncomeSamples = 336
+    /// Income history for the Statistics chart: a sample every minute while the game is open, so
+    /// the chart has a shape from the first minutes of a game...
+    public static let incomeSampleInterval: TimeInterval = 60
+    /// ...thinned as they age to one per five minutes after an hour, one per half hour after a day,
+    /// one per six hours after a week and one a day after a month (keeping each period's highest),
+    /// so the chart covers an hour in minutes and all time in days...
+    public static let incomeHistoryTiers: [(age: TimeInterval, bucket: TimeInterval)] = [
+        (3_600, 5 * 60), (86_400, 30 * 60), (7 * 86_400, 6 * 3_600), (30 * 86_400, 86_400),
+    ]
+    /// ...and at most this many in all: about five years of days.
+    public static let maxIncomeSamples = 2_000
 
     // MARK: Market
     /// Token prices move every five minutes...
@@ -194,6 +229,9 @@ public enum Tuning {
     /// earned (times the level's difficulty multiplier): the first star for winning, then the
     /// second and third for higher scores.
     public static let tokenSwapStarSeconds: [Double] = [120, 60, 60]
+    /// Winning a random Token Swap level pays this many seconds of income on top of its points
+    /// (times the level's difficulty multiplier).
+    public static let tokenSwapRandomWinSeconds = 60.0
     /// Winning the day's Token Swap puzzle pays this many seconds of income, once a day.
     public static let tokenSwapDailySeconds = 600.0
     /// Pump and Dump runs go on round after round, and later rounds score faster.

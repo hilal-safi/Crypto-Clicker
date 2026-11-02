@@ -25,6 +25,8 @@ struct TetrisView: View {
     @State private var isPlaying = false
     @State private var isPaused = false
     @State private var showingHelp = false
+    @State private var showingOptions = false
+    @AppStorage(Preferences.tetrisSpeedKey) private var speed = GameSpeed.normal
     @State private var result: TetrisResult?
     @State private var boardWidth: CGFloat = 1
     @State private var dragColumns = 0
@@ -117,6 +119,7 @@ struct TetrisView: View {
         .gameHelp(.tetris, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
         }
+        .gameOptions(.tetris, isPresented: $showingOptions, isEnabled: !isPlaying, speed: $speed)
         .sensoryFeedback(.impact(weight: .heavy), trigger: game.lines) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.impact(weight: .medium), trigger: hardDrops) { _, _ in haptics }
         .sensoryFeedback(trigger: result) { _, new in
@@ -187,16 +190,21 @@ struct TetrisView: View {
         if !isPlaying {
             if let result {
                 GamePanel(title: resultTitle(result), buttonTitle: "Play Again", action: start) {
-                    GameOverSummary(score: result.base.score, isNewBest: result.base.isNewBest,
-                                    best: store.game.stats.tetrisBestScore, reward: result.base.reward,
-                                    details: resultDetails(result), challenge: result.base.challenge)
+                    VStack(spacing: 14) {
+                        GameOverSummary(score: result.base.score, isNewBest: result.base.isNewBest,
+                                        best: store.game.stats.tetrisBestScore, reward: result.base.reward,
+                                        details: resultDetails(result), challenge: result.base.challenge)
+                        GameOptionsChip(speed: speed) { showingOptions = true }
+                    }
                 }
             } else if let challengeDay {
                 let goal = store.game.dailyChallenge(today: challengeDay).flatMap { $0.kind == .tetris ? $0.goal : nil }
                 GamePanel(title: "Today's Pieces", buttonTitle: "Start", action: start) {
-                    GameIntro(best: store.game.stats.tetrisBestScore,
-                              howTo: "Everyone gets the same pieces today, every game." + (goal.map { " Daily challenge: \($0)." } ?? ""),
-                              showHelp: { showingHelp = true })
+                    VStack(spacing: 14) {
+                        GameIntro(best: store.game.stats.tetrisBestScore,
+                                  detail: "Everyone gets the same pieces today." + (goal.map { " Daily challenge: \($0)." } ?? ""))
+                        GameOptionsChip(speed: speed) { showingOptions = true }
+                    }
                 }
             } else {
                 GamePanel(title: "Tetris", buttonTitle: "Start", action: start) {
@@ -208,13 +216,11 @@ struct TetrisView: View {
                         }
                         .pickerStyle(.segmented)
                         GameIntro(best: mode == .endless ? store.game.stats.tetrisBestScore : 0,
-                                  howTo: playsDaily
-                                    ? "Endless with today's pieces: the same for everyone, every game today. Scores count toward your Endless best."
-                                    : mode == .endless
-                                    ? "Play until the stack reaches the top. Every 10 lines the pieces fall faster, and clears in a row build a combo."
-                                    : "Clear \(TetrisGame.sprintLines) lines as fast as you can. Points pay as usual; the record is your time.",
                                   note: mode == .endless ? nil : sprintNote,
-                                  showHelp: { showingHelp = true })
+                                  detail: playsDaily
+                                    ? "Endless with today's pieces, the same for everyone. Scores count toward your Endless best."
+                                    : mode == .endless ? nil : "Clear \(TetrisGame.sprintLines) lines as fast as you can; the record is your time.")
+                        GameOptionsChip(speed: speed) { showingOptions = true }
                     }
                 }
             }
@@ -309,7 +315,7 @@ struct TetrisView: View {
     private func start() {
         let playMode = piecesDay == nil ? mode : .endless
         rng = SeededGenerator(seed: piecesDay.map(GameState.dailyChallengeSeed(day:)) ?? .random(in: 0...UInt64.max))
-        game = TetrisGame(mode: playMode, using: &rng)
+        game = TetrisGame(mode: playMode, speed: speed, using: &rng)
         result = nil
         banner = nil
         flashRows = []
@@ -471,8 +477,8 @@ struct PieceBox: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(title)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.subtext)
+                .font(.caption.weight(.heavy))
+                .foregroundStyle(Theme.accent)
                 .textCase(.uppercase)
             NextPieceView(kind: kind)
                 .opacity(isDimmed ? 0.4 : 1)

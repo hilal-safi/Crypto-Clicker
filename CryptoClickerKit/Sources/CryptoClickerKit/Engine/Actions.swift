@@ -90,6 +90,7 @@ extension GameState {
         let report = isAway ? offlineReport(elapsed: elapsed, credited: credited, earned: earned) : nil
         credit(earned, source: isAway ? .offline : .idle)
         lastUpdate = now
+        journey.noteCoins(stats.lifetimeCoins, at: now)
         expireBoost(at: now)
         stats.peakIncome = max(stats.peakIncome, idleIncome(at: now))
         return report
@@ -145,14 +146,38 @@ extension GameState {
         boost = Boost(multiplier: Tuning.bullRunMultiplier, endsAt: max(ends, activeBoost(at: now)?.endsAt ?? ends))
     }
 
-    /// Records idle income for the income chart, at most once per `Tuning.incomeSampleInterval`,
-    /// keeping a week of samples.
+    /// Records idle income for the income chart, at most once per `Tuning.incomeSampleInterval`;
+    /// older samples are thinned as they age.
     public mutating func recordIncomeSample(at now: Date) {
         incomeHistory.removeAll { $0.date > now } // The clock moved backwards.
         if let last = incomeHistory.last, now.timeIntervalSince(last.date) < Tuning.incomeSampleInterval { return }
         incomeHistory.append(IncomeSample(date: now, income: baseIdleIncome))
-        let overflow = incomeHistory.count - Tuning.maxIncomeSamples
-        if overflow > 0 { incomeHistory.removeFirst(overflow) }
+        incomeHistory = Self.thinned(incomeHistory, at: now)
+    }
+
+    /// Thins older samples to one per period of their age tier (see `Tuning.incomeHistoryTiers`),
+    /// keeping each period's highest income, then caps the count.
+    static func thinned(_ samples: [IncomeSample], at now: Date) -> [IncomeSample] {
+        var result: [IncomeSample] = []
+        result.reserveCapacity(samples.count)
+        var period: (tier: Int, index: Double)?
+        for sample in samples {
+            let age = now.timeIntervalSince(sample.date)
+            guard let tier = Tuning.incomeHistoryTiers.lastIndex(where: { age >= $0.age }) else {
+                result.append(sample)
+                period = nil
+                continue
+            }
+            let index = (sample.date.timeIntervalSinceReferenceDate / Tuning.incomeHistoryTiers[tier].bucket).rounded(.down)
+            if let period, period.tier == tier, period.index == index, let last = result.last {
+                if sample.income >= last.income { result[result.count - 1] = sample }
+            } else {
+                result.append(sample)
+                period = (tier, index)
+            }
+        }
+        let overflow = result.count - Tuning.maxIncomeSamples
+        return overflow > 0 ? Array(result.dropFirst(overflow)) : result
     }
 
     // MARK: Tapping
@@ -194,6 +219,7 @@ extension GameState {
         spend(cost)
         let count = owned(miner) + quantity
         miners[miner] = count
+        if journey.miners[miner] == nil { journey.miners[miner] = lastUpdate }
         stats.minersBought += quantity
         stats.maxOwned[miner] = max(stats.maxOwned[miner, default: 0], count)
         stats.maxTotalMiners = max(stats.maxTotalMiners, totalMiners)
@@ -227,6 +253,33 @@ extension GameState {
         guard let price = offlineMiningPrice, price <= coins else { return false }
         spend(price)
         offlineMiningLevel += 1
+        if journey.offlineMining == nil { journey.offlineMining = lastUpdate }
+        return true
+    }
+
+    // MARK: Power-ups
+
+    /// The next level's price, or `nil` at the last level.
+    public func powerUpPrice(_ powerUp: PowerUpID) -> Double? {
+        let level = powerUpLevel(powerUp)
+        guard level < powerUp.maxLevel else { return nil }
+        return Tuning.scaledPrice(powerUp.listPrice(afterLevel: level))
+    }
+
+    /// Whether the Shop shows a power-up: once lifetime coins reach a tenth of its first level's
+    /// price, and for Combo Overdrive, once Combo Booster is at its last level.
+    public func isRevealed(_ powerUp: PowerUpID) -> Bool {
+        if let required = powerUp.requires, powerUpLevel(required) < required.maxLevel { return false }
+        return powerUpLevel(powerUp) > 0 || stats.lifetimeCoins >= Tuning.scaledPrice(powerUp.listPrice(afterLevel: 0)) * 0.1
+    }
+
+    /// Buys a power-up's next level.
+    @discardableResult
+    public mutating func buyPowerUp(_ powerUp: PowerUpID) -> Bool {
+        guard isRevealed(powerUp), let price = powerUpPrice(powerUp), price <= coins else { return false }
+        spend(price)
+        powerUps[powerUp] = powerUpLevel(powerUp) + 1
+        stats.powerUpLevelsBought += 1
         return true
     }
 
@@ -298,30 +351,50 @@ extension GameState {
         steps.isConnected = false
     }
 
-    /// Pays for steps not yet rewarded. `days` are HealthKit daily totals for the sync window.
-    /// Safe to call repeatedly: already-paid steps are never paid again.
+    /// Counts new steps and pays for the days that are over: steps are paid the day after they're
+    /// walked. `days` are HealthKit daily totals for the sync window, today included. Safe to call
+    /// repeatedly: no step is counted or paid twice.
     @discardableResult
     public mutating func creditSteps(_ days: [StepDay], today: String, at now: Date) -> StepCredit {
         guard steps.isConnected else { return StepCredit(steps: 0, coins: 0) }
-        var newSteps = 0
+        // Count what's new, today's steps included: quests, achievements and records see them now.
+        var counted = 0
         for day in days {
-            let unpaid = steps.unpaid(day)
-            guard unpaid > 0 else { continue }
-            newSteps += unpaid
-            steps.credited[day.key] = day.steps
+            let new = steps.uncounted(day)
+            guard new > 0 else { continue }
+            counted += new
+            steps.counted[day.key] = day.steps
             stats.bestDaySteps = max(stats.bestDaySteps, day.steps)
         }
+        stats.lifetimeSteps = stats.lifetimeSteps.addingCount(counted)
+        // Pay for the days that are over, at today's step value.
+        var paid = 0
+        var paidDays: [String] = []
+        for key in steps.counted.keys.sorted() where key < today {
+            let unpaid = steps.unpaid(key)
+            guard unpaid > 0 else { continue }
+            paid = paid.addingCount(unpaid)
+            paidDays.append(key)
+            steps.credited[key] = steps.counted[key]
+        }
         steps.todayKey = today
-        steps.todaySteps = days.first { $0.key == today }?.steps ?? 0
+        steps.todaySteps = days.first { $0.key == today }?.steps ?? steps.counted[today, default: 0]
         steps.lastSync = now
         if let oldest = days.map(\.key).min() {
+            steps.counted = steps.counted.filter { $0.key >= oldest }
             steps.credited = steps.credited.filter { $0.key >= oldest }
         }
-        guard newSteps > 0 else { return StepCredit(steps: 0, coins: 0) }
-        stats.lifetimeSteps += newSteps
-        let coins = Double(newSteps) * stepValue
+        guard paid > 0 else { return StepCredit(steps: 0, coins: 0, counted: counted) }
+        stats.stepsPaid = stats.stepsPaid.addingCount(paid)
+        let coins = Double(paid) * stepValue
         credit(coins, source: .steps)
-        return StepCredit(steps: newSteps, coins: coins)
+        return StepCredit(steps: paid, coins: coins, counted: counted, days: paidDays)
+    }
+
+    /// Coins today's steps will pay tomorrow, at today's step value (it grows with income).
+    public func pendingStepCoins(today: String) -> Double {
+        guard steps.isConnected, steps.todayKey == today else { return 0 }
+        return Double(steps.unpaid(today)) * stepValue
     }
 
     // MARK: Ledger

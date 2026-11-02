@@ -1,10 +1,12 @@
 import Foundation
 
 /// The repeatable generators that produce coins every second.
-/// From the Desktop on, each tier costs roughly 15x the previous one and pays back about
-/// 2.8x slower, so new tiers keep arriving without making older ones worthless.
-/// The Chromebook earns a coin every two seconds and every later tier at least a coin a second.
-/// The last three tiers open up only after the first prestige.
+/// The Chromebook earns a coin every four seconds: a cheap start. The Desktop earns eight times as
+/// much for ten times the price, so it's the better buy after two or three Chromebooks, and every
+/// tier after it earns three to six times the one before for 7 to 15 times the price. Each unit
+/// costs 15% more than the last, so the next tier soon becomes the better deal, while older tiers
+/// come back into it as newer ones get dear (the Shop marks the best value). The last three tiers
+/// open up only after the first prestige.
 public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
     case chromebook, desktop, gpuRig, server, dataCenter
     case mineCenter, robotAssistant, aiMiner, quantumComputer, spaceColony
@@ -80,8 +82,8 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
     /// Price of the first unit before the pace adjustment.
     public var listCost: Double {
         switch self {
-        case .chromebook: 50
-        case .desktop: 200
+        case .chromebook: 40
+        case .desktop: 400
         case .gpuRig: 3_000
         case .server: 45_000
         case .dataCenter: 700_000
@@ -97,22 +99,28 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
     }
 
     /// Coins per second from one unit before any multipliers. (Halved in version 31 to slow the
-    /// game down: every tier earned twice this before.)
+    /// game down; then the Chromebook was halved again and the Desktop raised to eight
+    /// Chromebooks' worth, with its price, so moving up a tier is a real step up.) The middle of
+    /// the climb earns less than the tiers either side of it: the Data Center half what it did, the
+    /// Mine Center about a third, the Robot Assistant to the Quantum Computer under a quarter, and
+    /// the Space Mining Colony and beyond 60%. The first hours play as before, but the days from
+    /// the Data Center to the first prestige take about twice as long, and reaching the tenth tier
+    /// is a big step up again.
     public var baseRate: Double {
         switch self {
-        case .chromebook: 0.5
-        case .desktop: 1
+        case .chromebook: 0.25
+        case .desktop: 2
         case .gpuRig: 6
         case .server: 35
-        case .dataCenter: 200
-        case .mineCenter: 1_150
-        case .robotAssistant: 6_500
-        case .aiMiner: 37_500
-        case .quantumComputer: 215_000
-        case .spaceColony: 1_250_000
-        case .lunarBase: 7_250_000
-        case .asteroidHarvester: 42_000_000
-        case .galacticHashnet: 245_000_000
+        case .dataCenter: 100
+        case .mineCenter: 415
+        case .robotAssistant: 1_500
+        case .aiMiner: 8_600
+        case .quantumComputer: 49_500
+        case .spaceColony: 750_000
+        case .lunarBase: 4_350_000
+        case .asteroidHarvester: 25_000_000
+        case .galacticHashnet: 147_000_000
         }
     }
 

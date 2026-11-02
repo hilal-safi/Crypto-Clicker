@@ -11,6 +11,8 @@ struct SnakeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @AppStorage("snakeArena") private var arena = SnakeGame.Arena.open
+    @AppStorage(Preferences.snakeSpeedKey) private var speed = GameSpeed.normal
+    @State private var showingOptions = false
     @State private var mode = SnakeGame.Mode.classic
     @State private var game = SnakeGame.fresh()
     @State private var isPlaying = false
@@ -77,6 +79,7 @@ struct SnakeView: View {
         .gameHelp(.snake, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
         }
+        .gameOptions(.snake, isPresented: $showingOptions, isEnabled: !isPlaying, speed: $speed)
         .sensoryFeedback(.impact(weight: .light), trigger: game.eaten) { (old: Int, new: Int) in haptics && new > old }
         .sensoryFeedback(.success, trigger: pickups) { _, _ in haptics }
         .sensoryFeedback(.warning, trigger: game.graceTicks) { (old: Int, new: Int) in haptics && new > old }
@@ -122,13 +125,16 @@ struct SnakeView: View {
             if let result {
                 GamePanel(title: game.mode == .coinRush && game.timeLeft == 0 ? "Time's Up" : "Game Over",
                           buttonTitle: "Play Again", action: start) {
-                    GameOverSummary(score: result.score, isNewBest: result.isNewBest,
-                                    best: game.mode == .coinRush ? store.game.stats.snakeRushBestScore : store.game.stats.snakeBestScore,
-                                    reward: result.reward,
-                                    details: ["\(game.eaten) coins · \(game.body.count) long · \(CoinFormat.stopwatch(game.time))",
-                                              "\(game.powerUpsCollected) power-up\(game.powerUpsCollected == 1 ? "" : "s")"
-                                                + (game.mode == .classic ? " · \(game.arena.name)" : " · Coin Rush")],
-                                    challenge: result.challenge)
+                    VStack(spacing: 14) {
+                        GameOverSummary(score: result.score, isNewBest: result.isNewBest,
+                                        best: game.mode == .coinRush ? store.game.stats.snakeRushBestScore : store.game.stats.snakeBestScore,
+                                        reward: result.reward,
+                                        details: ["\(game.eaten) coins · \(game.body.count) long · \(CoinFormat.stopwatch(game.time))",
+                                                  "\(game.powerUpsCollected) power-up\(game.powerUpsCollected == 1 ? "" : "s")"
+                                                    + (game.mode == .classic ? " · \(game.arena.name)" : " · Coin Rush")],
+                                        challenge: result.challenge)
+                        GameOptionsChip(speed: speed) { showingOptions = true }
+                    }
                 }
             } else {
                 GamePanel(title: "Snake", buttonTitle: "Start", action: start) {
@@ -147,10 +153,8 @@ struct SnakeView: View {
                             .pickerStyle(.segmented)
                         }
                         GameIntro(best: mode == .classic ? store.game.stats.snakeBestScore : store.game.stats.snakeRushBestScore,
-                                  howTo: mode == .classic
-                                    ? "Swipe anywhere to steer. Every coin is worth 10 points and makes you longer, and you speed up as you eat. Every few coins a power-up appears."
-                                    : "One minute, three coins out at once. Eat as many as you can before time runs out, and don't crash.",
-                                  showHelp: { showingHelp = true })
+                                  detail: mode == .classic ? nil : "One minute, three coins out at once.")
+                        GameOptionsChip(speed: speed) { showingOptions = true }
                     }
                 }
             }
@@ -192,7 +196,7 @@ struct SnakeView: View {
 
     private func start() {
         var rng = SystemRandomNumberGenerator()
-        game = SnakeGame(mode: mode, arena: arena, using: &rng)
+        game = SnakeGame(mode: mode, arena: arena, speed: speed, using: &rng)
         result = nil
         pickedUp = nil
         isPaused = false
@@ -284,7 +288,7 @@ private struct PowerUpStrip: View {
                                 .frame(width: 44)
                         } else {
                             Text("Ready")
-                                .font(.caption.weight(.bold))
+                                .font(.footnote.weight(.heavy))
                         }
                     }
                     .padding(.horizontal, 10)
@@ -297,7 +301,7 @@ private struct PowerUpStrip: View {
             }
             if game.graceTicks > 0 {
                 Label("Turn!", systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption.weight(.bold))
+                    .font(.footnote.weight(.heavy))
                     .foregroundStyle(Theme.loss)
             }
         }

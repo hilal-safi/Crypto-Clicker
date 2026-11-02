@@ -56,6 +56,26 @@ struct ArcadeBalanceTests {
         #expect((90...160).contains(rush), "Coin Rush pays \(rush)")
     }
 
+    /// Brick Breaker's random walls pay about what the classic ones do, and the Speed option moves
+    /// the pay a little either way: Fast scores quicker, Slow slower.
+    @Test func brickBreakerOptionsPayAboutTheSame() {
+        guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
+        let seeds: [UInt64] = [11, 22, 33, 44, 55, 66]
+        func income(_ levels: BrickBreakerGame.LevelStyle, _ speed: GameSpeed) -> Double {
+            let points = seeds.map { BrickBot.pointsPerMinute(seed: $0, levels: levels, speed: speed) }.reduce(0, +) / Double(seeds.count)
+            return points * MiniGame.brickBreaker.secondsPerPoint
+        }
+        let classic = income(.classic, .normal)
+        let random = income(.generated, .normal)
+        let slow = income(.classic, .slow)
+        let fast = income(.classic, .fast)
+        print("Balance: Brick Breaker | classic", Int(classic), "random", Int(random), "slow", Int(slow), "fast", Int(fast))
+        #expect((90...160).contains(random), "Random walls pay \(random)")
+        #expect(abs(random - classic) <= 0.25 * classic)
+        #expect(slow < classic && fast > classic)
+        #expect(fast <= 1.5 * classic)
+    }
+
     @Test(arguments: [MiniGame.tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap])
     func everyArcadeGamePaysAboutTheSame(_ game: MiniGame) {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
@@ -362,9 +382,10 @@ enum SnakeBot {
 /// Keeps the paddle under the ball and meets it off center, sending it at a brick picked from those
 /// left each time the ball comes down.
 enum BrickBot {
-    static func pointsPerMinute(seed: UInt64, minutes: Double = 3) -> Double {
+    static func pointsPerMinute(seed: UInt64, minutes: Double = 3, levels: BrickBreakerGame.LevelStyle = .classic,
+                                speed: GameSpeed = .normal) -> Double {
         var rng = SeededGenerator(seed: seed)
-        var game = BrickBreakerGame(seed: seed)
+        var game = BrickBreakerGame(seed: seed, speed: speed, levels: levels)
         let frame = 1.0 / 60
         var time = 0.0
         var target: Vector2?

@@ -48,7 +48,7 @@ public enum PerkID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .compoundInterest: "Every achievement star adds 2% production instead of 1%"
         case .strongFingers: "Taps earn 50% more"
         case .muscleMemory: "Keep tapping upgrades when you prestige"
-        case .comboMaster: "Combos build twice as fast and reach ×3"
+        case .comboMaster: "Combos build twice as fast and reach at least ×3"
         case .autoClickerPro: "Automatic taps are worth 50% of a tap"
         case .airdropRadar: "Airdrops come every 2–4 minutes and stay for 30 seconds"
         case .bullMarket: "Bull Runs last 2 minutes"
@@ -83,7 +83,7 @@ public enum PerkID: String, CaseIterable, Codable, Sendable, Identifiable {
     }
 
     /// Price in prestige points. The first prestige affords a few cheap perks; the last ones take
-    /// a couple of weeks of prestiging.
+    /// about three weeks of prestiging.
     public var cost: Int {
         switch self {
         case .headStart: 1

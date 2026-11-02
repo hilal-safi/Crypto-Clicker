@@ -1,14 +1,20 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Steps on the home screen. Hidden until the player has tapped the coin 2,500 times; then a
+/// Steps on the home screen. Hidden until the player has tapped the coin 2,000 times; then a
 /// one-line invitation ("Earn coins from steps!" with Learn More and Start), and once steps are
-/// connected, today's count. Kept small so the coin and the inventory strip get the room.
+/// connected, today's count and what it pays tomorrow. Kept small so the coin and the inventory
+/// strip get the room.
 struct StepsCard: View {
     /// Opens the explanation sheet, which the home screen presents.
     let learnMore: () -> Void
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.stepsInviteDismissedKey) private var inviteDismissed = false
+
+    /// Whether the card shows at all.
+    static func isShown(_ game: GameState, canTrackSteps: Bool, inviteDismissed: Bool) -> Bool {
+        canTrackSteps && game.areStepsUnlocked && (game.steps.isConnected || !inviteDismissed)
+    }
 
     var body: some View {
         let game = store.game
@@ -31,9 +37,9 @@ struct StepsCard: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {
                 Text("Earn coins from steps!")
-                    .font(.footnote.weight(.bold))
+                    .font(.subheadline.weight(.bold))
                 Button("Learn More", action: learnMore)
-                    .font(.caption.weight(.semibold))
+                    .font(.subheadline.weight(.semibold))
                     .buttonStyle(.borderless)
                     .tint(Theme.stepsButton)
             }
@@ -42,7 +48,7 @@ struct StepsCard: View {
                 Task { await store.connectSteps() }
             } label: {
                 Text("Start")
-                    .font(.footnote.weight(.bold))
+                    .font(.subheadline.weight(.bold))
                     .padding(.horizontal, 2)
             }
             .buttonStyle(.glassProminent)
@@ -51,7 +57,7 @@ struct StepsCard: View {
                 withAnimation { inviteDismissed = true }
             }
             .labelStyle(.iconOnly)
-            .font(.footnote.weight(.bold))
+            .font(.subheadline.weight(.bold))
             .foregroundStyle(.subtext)
             .buttonStyle(.borderless)
             .accessibilityHint("You can start later in Settings")
@@ -63,13 +69,15 @@ struct StepsCard: View {
     }
 }
 
-/// Today's steps and what each one is worth.
+/// Today's steps and what they pay tomorrow (steps are paid the day after they're walked).
 private struct StepsTodayCard: View {
     @Environment(GameStore.self) private var store
 
     var body: some View {
         let game = store.game
-        let isToday = game.steps.todayKey == StepDay.key(for: .now)
+        let today = StepDay.key(for: .now)
+        let isToday = game.steps.todayKey == today
+        let pending = game.pendingStepCoins(today: today)
         HStack(spacing: 10) {
             Image(systemName: "figure.walk")
                 .font(.headline.weight(.semibold))
@@ -79,9 +87,10 @@ private struct StepsTodayCard: View {
                 Text("\(CoinFormat.grouped(isToday ? game.steps.todaySteps : 0)) steps today")
                     .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
-                Text("Every step earns \(CoinFormat.short(game.stepValue)) coin\(game.stepValue == 1 ? "" : "s")")
-                    .font(.caption)
-                    .foregroundStyle(.subtext)
+                Text(pending > 0 ? "Pays about +\(CoinFormat.short(pending)) tomorrow"
+                                 : "Every step pays \(CoinFormat.short(game.stepValue)) coin\(game.stepValue == 1 ? "" : "s") tomorrow")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Theme.steps)
             }
             Spacer(minLength: 0)
             Button {
@@ -114,8 +123,8 @@ struct StepsIntroView: View {
     private let points: [(icon: String, title: String, text: String)] = [
         ("figure.walk", "Walk with iPhone or Apple Watch",
          "Apple Health counts your steps from both and combines them, so nothing is counted twice."),
-        ("bitcoinsign.circle.fill", "Every step pays coins",
-         "A step is worth at least one coin, and more as your mining income grows."),
+        ("bitcoinsign.circle.fill", "Every step pays coins, the next day",
+         "Each day's steps are paid the next day, at least a coin a step, and more as your mining income grows. Today's steps count toward quests and achievements right away."),
         ("checkmark.seal.fill", "Each step is paid once",
          "Steps are added up by day. Syncing again, or late steps from your watch, never pays the same step twice."),
         ("bolt.fill", "Boost your stride",

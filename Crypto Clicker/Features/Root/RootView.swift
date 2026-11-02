@@ -5,8 +5,12 @@ struct RootView: View {
     @Environment(GameStore.self) private var store
     @State private var tab = AppTab.mine
     @State private var showingIncome = false
-    /// Counts the welcome-back screen's requests to show the Shop's power-ups.
+    /// Counts requests (the welcome-back screen's Offline Mining button) to show the Shop's power-ups.
     @State private var powerUpRequests = 0
+    /// Counts requests (the home screen's crypto card) to show the Shop's tokens.
+    @State private var tokenRequests = 0
+    /// Counts requests (the home screen's tip) to open How to Play in Settings.
+    @State private var howToPlayRequests = 0
     /// Counts requests (from the Daily page) to open today's challenge in the Arcade.
     @State private var challengeRequests = 0
     /// Counts requests (from the Mine tab's tips) to show the Daily page.
@@ -16,19 +20,19 @@ struct RootView: View {
         @Bindable var store = store
         TabView(selection: $tab) {
             Tab("Mine", systemImage: "bitcoinsign.circle.fill", value: AppTab.mine) {
-                MineView(openShop: { tab = .shop }, openPowerUps: openPowerUps, openExchange: { tab = .exchange }, openDaily: {
+                MineView(openShop: { tab = .shop }, openPowerUps: openPowerUps, openTokens: openTokens, openDaily: {
                     dailyRequests += 1
                     tab = .trophies
-                }, openIncome: { showingIncome = true })
+                }, openIncome: { showingIncome = true }, openHowToPlay: {
+                    howToPlayRequests += 1
+                    tab = .settings
+                })
             }
             Tab("Shop", systemImage: "cart.fill", value: AppTab.shop) {
-                ShopView(powerUpRequests: powerUpRequests)
+                ShopView(powerUpRequests: powerUpRequests, tokenRequests: tokenRequests)
             }
             Tab("Arcade", systemImage: "gamecontroller.fill", value: AppTab.arcade) {
                 ArcadeView(challengeRequests: challengeRequests)
-            }
-            Tab("Exchange", systemImage: "chart.line.uptrend.xyaxis", value: AppTab.exchange) {
-                ExchangeView()
             }
             Tab("Trophies", systemImage: "trophy.fill", value: AppTab.trophies) {
                 TrophiesView(dailyRequests: dailyRequests, openChallenge: {
@@ -37,6 +41,9 @@ struct RootView: View {
                 })
             }
             .badge(store.dailyBadgeCount)
+            Tab("Settings", systemImage: "gearshape.fill", value: AppTab.settings) {
+                SettingsView(howToPlayRequests: howToPlayRequests)
+            }
         }
         .tint(Theme.accent)
         .tabBarMinimizeBehavior(.onScrollDown)
@@ -46,6 +53,10 @@ struct RootView: View {
         }
         .sheet(isPresented: $showingIncome) {
             IncomeBreakdownView()
+        }
+        // The screen's edges burn while a Bull Run lasts.
+        .overlay {
+            BullRunFire()
         }
         .overlay(alignment: .top) {
             NotificationStack()
@@ -65,6 +76,11 @@ struct RootView: View {
 
     private func openPowerUps() {
         powerUpRequests += 1
+        tab = .shop
+    }
+
+    private func openTokens() {
+        tokenRequests += 1
         tab = .shop
     }
 }

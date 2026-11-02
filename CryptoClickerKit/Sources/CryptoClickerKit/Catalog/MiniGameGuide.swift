@@ -45,8 +45,8 @@ extension MiniGame {
         }
     }
 
-    /// Bets come from tokens bought on the Exchange; wins also pay coins.
-    private static let tokenBets = "Bet tokens you bought on the Exchange. Winnings come back as tokens, and wins also pay a coin bonus that grows with the coin value of your bet."
+    /// Bets come from tokens bought in the Shop; wins also pay coins.
+    private static let tokenBets = "Bet tokens you bought in the Shop's Tokens page. Winnings come back as tokens, and wins also pay a coin bonus that grows with the coin value of your bet."
     /// The practice switch at Blackjack, Video Poker and To the Moon.
     private static let practice = "Switch to Practice to play for chips instead: the same game, with no tokens, coins or statistics at stake."
 
@@ -172,6 +172,7 @@ extension MiniGame {
             controls: [
                 "Buttons beside the board move, rotate, drop and hold the piece.",
                 "Or on the board: tap to rotate, drag sideways to move, swipe down to drop at once, and swipe up to hold.",
+                "Options (the sliders at the top) set the speed: Slow, Normal or Fast pieces.",
             ],
             scoring: [
                 "One to four rows at once score 100, 300, 500 or 800, times the level.",
@@ -227,7 +228,10 @@ extension MiniGame {
     private static var snakeGuide: MiniGameGuide {
         MiniGameGuide(
             objective: "Steer the snake to eat coins and grow as long as you can. Play Classic in one of four arenas, or Coin Rush: one minute with three coins out at once.",
-            controls: ["Swipe anywhere to turn up, down, left or right. Quick swipes queue up two turns, and turning straight back is ignored."],
+            controls: [
+                "Swipe anywhere to turn up, down, left or right. Quick swipes queue up two turns, and turning straight back is ignored.",
+                "Options (the sliders at the top) set the snake's speed: Slow, Normal or Fast.",
+            ],
             scoring: [
                 "Every coin is worth \(SnakeGame.pointsPerCoin) points and makes the snake one longer. The snake speeds up as it eats.",
                 "Every \(SnakeGame.coinsPerPowerUp) coins a power-up appears for \(Int(SnakeGame.powerUpLifetime)) seconds: steer onto it to pick it up.",
@@ -257,7 +261,10 @@ extension MiniGame {
         typealias PowerUp = BrickBreakerGame.PowerUp
         return MiniGameGuide(
             objective: "Bounce the ball off your paddle to break every brick and reach the next, faster level. Every \(BrickBreakerGame.bossEvery)th level is a boss.",
-            controls: ["Drag anywhere to move the paddle, and lift your finger to launch the ball."],
+            controls: [
+                "Drag anywhere to move the paddle, and lift your finger to launch the ball.",
+                "Options (the sliders at the top) set the ball's speed, and Classic or Random walls: Random makes up a new wall for every level, never the same twice.",
+            ],
             scoring: [
                 "Each brick scores 10 points per hit it takes; clearing a level adds 100 times the level, and beating a boss 500 more.",
                 "Where the ball meets the paddle sets its angle: the edges send it off sideways.",
@@ -351,7 +358,7 @@ extension MiniGame {
 
     private static var tokenSwapGuide: MiniGameGuide {
         MiniGameGuide(
-            objective: "Swap neighboring tokens to line up three or more of a kind. Win levels by reaching their goals in the moves allowed, solve the daily puzzle, or score big in a one-minute Classic round.",
+            objective: "Swap neighboring tokens to line up three or more of a kind. Win levels by reaching their goals in the moves allowed, solve the daily puzzle, play a random level made up for you, or score big in a one-minute Classic round.",
             controls: [
                 "Drag a token onto a neighbor to swap them, or tap one token and then the other.",
                 "A swap that makes no match springs back, unless it moves a special: swapping a special with any neighbor sets it off.",
@@ -360,7 +367,7 @@ extension MiniGame {
             scoring: [
                 "Each token cleared scores \(TokenSwapGame.pointsPerToken). Tokens that fall into new matches score more each wave: double, then triple.",
                 "Levels: winning earns a star, and higher scores earn the second and third. Each move left over adds \(TokenSwapGame.pointsPerMoveLeft) points. Each star pays coins the first time you earn it.",
-                "The daily puzzle pays its reward for the first win each day. Classic pays coins for every point.",
+                "The daily puzzle pays its reward for the first win each day. Classic and random levels pay coins for every point, and winning a random level pays a bonus.",
             ],
             items: [
                 .init(id: "swap.propeller", symbol: "fanblades.fill", name: "Propeller",

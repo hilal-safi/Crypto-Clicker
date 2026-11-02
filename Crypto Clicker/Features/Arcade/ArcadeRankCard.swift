@@ -24,9 +24,9 @@ struct ArcadeRankCard: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Arcade Rank \(rank)")
-                        .font(.caption.weight(.bold))
+                        .font(.footnote.weight(.heavy))
                         .textCase(.uppercase)
-                        .foregroundStyle(.subtext)
+                        .foregroundStyle(Theme.arcade)
                     Text(game.arcadeTitle)
                         .font(.headline)
                     Text("\(CoinFormat.grouped(progress.xp)) of \(CoinFormat.grouped(progress.needed)) XP to rank \(rank + 1)")
@@ -45,13 +45,13 @@ struct ArcadeRankCard: View {
             HStack(alignment: .center, spacing: 8) {
                 Label(isPaid ? "Weekly variety goal met" : "This week: \(min(played.count, Tuning.weeklyVarietyGames)) of \(Tuning.weeklyVarietyGames) games · +\(CoinFormat.short(game.weeklyVarietyReward))",
                       systemImage: isPaid ? "checkmark.seal.fill" : "dice.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(isPaid ? Theme.gain : .secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isPaid ? Theme.gain : Theme.subtext)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.9)
                 Spacer(minLength: 4)
                 Text(MiniGame.allCases.filter(played.contains).map(\.icon).joined())
-                    .font(.caption)
+                    .font(.subheadline)
                     .lineLimit(1)
                     .accessibilityHidden(true)
             }
@@ -112,7 +112,7 @@ struct StyleView: View {
                         .foregroundStyle(.primary)
                     if !isUnlocked {
                         Label(game.unlockText(cosmetic), systemImage: "lock.fill")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.subtext)
                     }
                 }

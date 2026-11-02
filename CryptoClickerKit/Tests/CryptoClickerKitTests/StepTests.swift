@@ -42,10 +42,10 @@ struct StepTests {
     @Test func stepsUnlockAfterEnoughTaps() {
         var game = GameState.make()
         #expect(!game.areStepsUnlocked)
-        #expect(game.tapsUntilSteps == 2_500)
+        #expect(game.tapsUntilSteps == 2_000)
         #expect(game.connectSteps(today: today) == false)
         #expect(!game.steps.isConnected)
-        game.tap(count: 2_000, at: t0)
+        game.tap(count: 1_500, at: t0)
         // Taps on Apple Watch count too.
         game.applyWatchTaps(WatchTapBatch(taps: 499, date: t0), at: t0)
         #expect(game.tapsUntilSteps == 1)
@@ -57,84 +57,136 @@ struct StepTests {
         #expect(game.steps.isConnected)
     }
 
-    @Test func everyStepIsWorthAtLeastOneCoin() {
+    let tomorrow = "2026-10-25"
+
+    @Test func todaysStepsCountNowAndArePaidTomorrow() {
         var game = connected()
-        let credit = game.creditSteps([StepDay(key: today, steps: 5_000)], today: today, at: t0)
-        #expect(credit == StepCredit(steps: 5_000, coins: 5_000))
-        #expect(game.coins == 5_000)
+        let walked = game.creditSteps([StepDay(key: today, steps: 5_000)], today: today, at: t0)
+        // Counted at once (quests, achievements and records see them)...
+        #expect(walked == StepCredit(steps: 0, coins: 0, counted: 5_000))
+        #expect(game.coins == 0)
         #expect(game.stats.lifetimeSteps == 5_000)
         #expect(game.stats.bestDaySteps == 5_000)
-        #expect(game.stats.earnedFromSteps == 5_000)
+        #expect(game.stats.stepsPaid == 0)
         #expect(game.steps.todaySteps == 5_000)
         #expect(game.steps.todayKey == today)
         #expect(game.steps.lastSync == t0)
+        #expect(game.pendingStepCoins(today: today) == 5_000)
+        // ...and paid the next day, a coin each at least.
+        let paid = game.creditSteps([StepDay(key: today, steps: 5_000), StepDay(key: tomorrow, steps: 300)],
+                                    today: tomorrow, at: at(86_400))
+        #expect(paid == StepCredit(steps: 5_000, coins: 5_000, counted: 300, days: [today]))
+        #expect(game.coins == 5_000)
+        #expect(game.stats.earnedFromSteps == 5_000)
+        #expect(game.stats.stepsPaid == 5_000)
+        #expect(game.stats.lifetimeSteps == 5_300)
+        #expect(game.steps.todaySteps == 300)
+        #expect(game.pendingStepCoins(today: tomorrow) == 300)
+        #expect(game.pendingStepCoins(today: today) == 0)
     }
 
-    @Test func syncingTwicePaysOnce() {
+    @Test func syncingTwiceCountsAndPaysOnce() {
         var game = connected()
         game.creditSteps([StepDay(key: today, steps: 5_000)], today: today, at: t0)
         let again = game.creditSteps([StepDay(key: today, steps: 5_000)], today: today, at: at(60))
-        #expect(again.steps == 0)
-        #expect(game.coins == 5_000)
+        #expect(again == StepCredit(steps: 0, coins: 0, counted: 0))
+        #expect(game.stats.lifetimeSteps == 5_000)
         #expect(game.steps.lastSync == at(60))
+        game.creditSteps([StepDay(key: today, steps: 5_000)], today: tomorrow, at: at(86_400))
+        let twice = game.creditSteps([StepDay(key: today, steps: 5_000)], today: tomorrow, at: at(86_460))
+        #expect(twice.steps == 0)
+        #expect(game.coins == 5_000)
     }
 
-    @Test func onlyNewStepsArePaid() {
+    @Test func moreStepsLaterInTheDayAreAllPaidTomorrow() {
         var game = connected()
         game.creditSteps([StepDay(key: today, steps: 5_000)], today: today, at: t0)
         let more = game.creditSteps([StepDay(key: today, steps: 7_250)], today: today, at: at(60))
-        #expect(more == StepCredit(steps: 2_250, coins: 2_250))
+        #expect(more.counted == 2_250 && more.steps == 0)
         #expect(game.stats.lifetimeSteps == 7_250)
         #expect(game.stats.bestDaySteps == 7_250)
+        let paid = game.creditSteps([StepDay(key: today, steps: 7_250)], today: tomorrow, at: at(86_400))
+        #expect(paid.steps == 7_250 && paid.coins == 7_250)
     }
 
-    @Test func aLowerCountNeverTakesCoinsBack() {
+    @Test func aLowerCountNeverTakesStepsBack() {
         var game = connected()
         game.creditSteps([StepDay(key: today, steps: 7_000)], today: today, at: t0)
         let lower = game.creditSteps([StepDay(key: today, steps: 6_000)], today: today, at: at(60))
-        #expect(lower.steps == 0)
-        #expect(game.coins == 7_000)
+        #expect(lower.counted == 0)
+        #expect(game.stats.lifetimeSteps == 7_000)
         #expect(game.steps.todaySteps == 6_000)
         let back = game.creditSteps([StepDay(key: today, steps: 7_100)], today: today, at: at(120))
-        #expect(back.steps == 100)
+        #expect(back.counted == 100)
+        let paid = game.creditSteps([StepDay(key: today, steps: 7_100)], today: tomorrow, at: at(86_400))
+        #expect(paid.steps == 7_100)
     }
 
-    @Test func daysBeforeConnectingAreNeverPaid() {
+    @Test func daysBeforeConnectingAreNeverCounted() {
         var game = connected()
         let credit = game.creditSteps(week([9_000, 9_000, 9_000, 9_000, 9_000, 9_000, 1_000]), today: today, at: t0)
-        #expect(credit.steps == 1_000)
+        #expect(credit.counted == 1_000 && credit.steps == 0)
         #expect(game.stats.bestDaySteps == 1_000)
     }
 
     @Test func lateArrivingStepsForEarlierDaysArePaid() {
         var game = unlocked()
         game.connectSteps(today: "2026-10-20")
-        game.creditSteps(week([0, 0, 4_000, 3_000, 0, 0, 0]), today: today, at: t0)
+        let first = game.creditSteps(week([0, 0, 4_000, 3_000, 0, 0, 0]), today: today, at: t0)
         #expect(game.coins == 7_000)
-        // The watch synced more steps for the 21st later on.
+        #expect(first.days == ["2026-10-20", "2026-10-21"])
+        // The watch synced more steps for the 21st later on, and for the 22nd and today.
         let late = game.creditSteps(week([0, 0, 4_000, 8_000, 2_000, 0, 500]), today: today, at: at(60))
-        #expect(late.steps == 5_000 + 2_000 + 500)
+        #expect(late.steps == 5_000 + 2_000) // Today's 500 wait for tomorrow.
+        #expect(late.counted == 5_000 + 2_000 + 500)
         #expect(game.stats.bestDaySteps == 8_000)
         #expect(game.steps.todaySteps == 500)
     }
 
-    @Test func daysThatLeftTheWindowAreForgotten() {
+    @Test func aWeekAwayIsPaidOnReturn() {
+        var game = unlocked()
+        game.connectSteps(today: "2026-10-18")
+        game.creditSteps([StepDay(key: "2026-10-18", steps: 2_000)], today: "2026-10-18", at: t0)
+        // Back a week later: every day that's over is paid, today's waits.
+        let back = game.creditSteps(week([2_500, 1_000, 1_000, 1_000, 1_000, 1_000, 4_000]), today: today, at: at(6 * 86_400))
+        #expect(back.steps == 2_500 + 5_000)
+        #expect(back.days.count == 6)
+        #expect(game.stats.lifetimeSteps == 2_500 + 5_000 + 4_000)
+    }
+
+    @Test func daysThatLeftTheWindowArePaidThenForgotten() {
         var game = unlocked()
         game.connectSteps(today: "2026-10-01")
         game.creditSteps([StepDay(key: "2026-10-10", steps: 3_000)], today: "2026-10-10", at: t0)
-        #expect(game.steps.credited["2026-10-10"] == 3_000)
-        game.creditSteps(week([1, 1, 1, 1, 1, 1, 1]), today: today, at: at(60))
+        #expect(game.steps.counted["2026-10-10"] == 3_000)
         #expect(game.steps.credited["2026-10-10"] == nil)
-        #expect(game.steps.credited.count == 7)
+        // Two weeks later the 10th has left the window: it's paid before it's dropped.
+        let later = game.creditSteps(week([1, 1, 1, 1, 1, 1, 1]), today: today, at: at(60))
+        #expect(later.steps == 3_000 + 6)
+        #expect(game.steps.counted["2026-10-10"] == nil && game.steps.credited["2026-10-10"] == nil)
+        #expect(game.steps.counted.count == 7 && game.steps.credited.count == 6)
     }
 
-    @Test func disconnectingPausesPayments() {
+    @Test func disconnectingPausesCounting() {
         var game = connected()
         game.disconnectSteps()
-        #expect(game.creditSteps([StepDay(key: today, steps: 5_000)], today: today, at: t0).steps == 0)
+        #expect(game.creditSteps([StepDay(key: today, steps: 5_000)], today: today, at: t0).counted == 0)
         game.connectSteps(today: "2026-10-25")
         #expect(game.steps.startDay == today) // Reconnecting keeps the original start day.
-        #expect(game.creditSteps([StepDay(key: today, steps: 5_000)], today: today, at: t0).steps == 5_000)
+        #expect(game.creditSteps([StepDay(key: today, steps: 5_000)], today: today, at: t0).counted == 5_000)
+    }
+
+    @Test func savesFromBeforeNextDayPayingNeverPayTwice() throws {
+        // An older save paid steps as they came: 4,000 of today's were already paid.
+        let old = Data(#"{"isConnected":true,"startDay":"2026-10-20","credited":{"2026-10-24":4000},"todayKey":"2026-10-24","todaySteps":4000}"#.utf8)
+        var game = connected()
+        game.steps = try GameCoding.decoder().decode(StepLedger.self, from: old)
+        #expect(game.steps.counted == ["2026-10-24": 4_000])
+        game.creditSteps([StepDay(key: today, steps: 6_000)], today: today, at: t0)
+        let paid = game.creditSteps([StepDay(key: today, steps: 6_000)], today: tomorrow, at: at(86_400))
+        #expect(paid.steps == 2_000) // Only the steps walked after the update.
+        let stats = try GameCoding.decoder().decode(Stats.self, from: Data(#"{"lifetimeSteps":9000}"#.utf8))
+        #expect(stats.stepsPaid == 9_000)
     }
 
     @Test func stepValueScalesWithIncomeAndUpgrades() {
@@ -142,15 +194,16 @@ struct StepTests {
         #expect(game.stepValue == 1)
         game.upgrades = [.stepBooster]
         #expect(game.stepValue == 2) // Boosters multiply the one-coin floor too.
-        game.miners = [.desktop: 50] // 200 coins per second.
-        #expect(game.stepValue == 24) // 0.06 × 200 × 2
-        let credit = game.creditSteps([StepDay(key: today, steps: 1_000)], today: today, at: t0)
-        #expect(credit.coins == 24_000)
+        game.miners = [.desktop: 50] // 400 coins per second.
+        #expect(game.stepValue == 48) // 0.06 × 400 × 2
+        game.creditSteps([StepDay(key: today, steps: 1_000)], today: today, at: t0)
+        let credit = game.creditSteps([StepDay(key: today, steps: 1_000)], today: tomorrow, at: at(86_400))
+        #expect(credit.coins == 48_000)
     }
 
     @Test func stepsAreWorthWholeCoins() {
         var game = connected()
-        game.miners = [.desktop: 20] // 20 coins per second: 1.2 coins a step, paid as 1.
+        game.miners = minersEarning(20) // 20 coins per second: 1.2 coins a step, paid as 1.
         #expect(game.stepValue == 1)
         game.miners = [.gpuRig: 5] // 30 coins per second: 1.8 coins a step, paid as 2.
         #expect(game.stepValue == 2)

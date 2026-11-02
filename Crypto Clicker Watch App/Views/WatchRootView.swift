@@ -31,8 +31,8 @@ struct MinePage: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 Text("+\(CoinFormat.rate(store.income(at: context.date)))/s")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color(red: 1.00, green: 0.78, blue: 0.40))
                 Button(action: store.tap) {
                     Image("coin")
                         .resizable()
@@ -47,13 +47,11 @@ struct MinePage: View {
                 .accessibilityHint("Earns \(CoinFormat.short(store.tapValue)) coins per tap")
                 if !store.hasSnapshot {
                     Text("Open Crypto Clicker on your iPhone to sync.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.footnote.weight(.medium))
                         .multilineTextAlignment(.center)
                 } else {
                     Text("+\(CoinFormat.short(store.tapValue)) per tap")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(.footnote.weight(.semibold))
                 }
             }
             .animation(.snappy(duration: 0.3), value: balance)
@@ -72,19 +70,18 @@ struct StepsPage: View {
                     .font(.headline)
                     .foregroundStyle(.green)
                 if let snapshot = store.snapshot, snapshot.stepsConnected {
-                    Text(CoinFormat.grouped(max(store.liveSteps ?? 0, store.collectedStepsToday)))
+                    Text(CoinFormat.grouped(store.stepsToday))
                         .font(.system(.title, design: .rounded).weight(.bold))
                         .monospacedDigit()
                     Text("steps today")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text("Each step earns \(CoinFormat.short(snapshot.stepValue)) coins")
-                        .font(.footnote)
-                    if store.uncollectedSteps > 0 {
-                        Text("≈ +\(CoinFormat.short(Double(store.uncollectedSteps) * snapshot.stepValue)) coins to collect. Open the iPhone app to sync.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        .font(.headline)
+                    if store.stepsToday > 0 {
+                        Text("≈ +\(CoinFormat.short(Double(store.stepsToday) * snapshot.stepValue)) coins tomorrow")
+                            .font(.headline)
+                            .foregroundStyle(.green)
                     }
+                    Text("Each step pays \(CoinFormat.short(snapshot.stepValue)) coins the day after, when you open Crypto Clicker on your iPhone.")
+                        .font(.body)
                     if !store.liveStepsEnabled {
                         Button("Show Live Steps") {
                             Task { await store.enableLiveSteps() }
@@ -93,9 +90,8 @@ struct StepsPage: View {
                         .padding(.top, 4)
                     }
                 } else {
-                    Text("Turn steps into coins in Crypto Clicker on your iPhone. Steps unlock after 2,500 taps.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    Text("Turn steps into coins in Crypto Clicker on your iPhone. Steps unlock after \(CoinFormat.grouped(Tuning.stepsUnlockTaps)) taps.")
+                        .font(.body)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -132,12 +128,10 @@ struct StatsPage: View {
                         Spacer()
                         Text(snapshot.date, style: .relative)
                     }
-                    .font(.footnote)
                 }
                 Label(store.isPhoneReachable ? "iPhone connected" : "iPhone not reachable",
                       systemImage: store.isPhoneReachable ? "iphone" : "exclamationmark.triangle")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(store.isPhoneReachable ? .green : .orange)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -152,7 +146,6 @@ struct StatsPage: View {
             Text(value)
                 .monospacedDigit()
         }
-        .font(.footnote)
     }
 }
 

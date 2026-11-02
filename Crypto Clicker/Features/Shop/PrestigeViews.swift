@@ -35,7 +35,7 @@ struct PrestigeCard: View {
                 ProgressView(value: fraction)
                     .tint(Theme.arcadeButton)
                 Text("\(CoinFormat.percent(fraction)) of the way to the next point")
-                    .font(.caption.weight(.semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.subtext)
             }
             ViewThatFits(in: .horizontal) {
@@ -196,7 +196,7 @@ struct PerkTreeView: View {
                     LabeledContent("Points to spend", value: CoinFormat.grouped(game.availablePrestigePoints))
                     LabeledContent("Earned in all", value: CoinFormat.grouped(game.prestigePoints))
                 } footer: {
-                    Text("Every point ever earned adds \(CoinFormat.percent(Tuning.productionPerPrestigePoint)) production, even after you spend it on perks. Perks last forever.")
+                    SettingsNote("Every point ever earned adds \(CoinFormat.percent(Tuning.productionPerPrestigePoint)) production, even after you spend it on perks. Perks last forever.")
                 }
                 ForEach(PerkBranch.allCases) { branch in
                     Section {
@@ -244,7 +244,7 @@ private struct PerkRow: View {
         HStack(spacing: 12) {
             if perk.requires != nil {
                 Image(systemName: "arrow.turn.down.right")
-                    .font(.caption.weight(.bold))
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(.subtext)
                     .accessibilityHidden(true)
             }
@@ -265,8 +265,8 @@ private struct PerkRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if !isOwned, !isAvailable, let required = perk.requires {
                     Label("Needs \(required.name)", systemImage: "lock.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.subtext)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
                 }
             }
             Spacer(minLength: 8)

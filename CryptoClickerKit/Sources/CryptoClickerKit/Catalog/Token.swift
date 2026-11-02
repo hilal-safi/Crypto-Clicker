@@ -1,6 +1,6 @@
 import Foundation
 
-/// Crypto tokens bought on the Coin Exchange and used as Blackjack chips.
+/// Crypto tokens bought in the Shop's Tokens page and bet at the casino games.
 /// Prices span the whole game (100x per tier), so stakes can keep pace with income.
 public enum TokenID: String, CaseIterable, Codable, Sendable, Identifiable {
     case shibaInu, dogecoin, xrp, cardano, solana, ethereum, bitcoin

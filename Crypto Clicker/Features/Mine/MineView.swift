@@ -3,29 +3,31 @@ import CryptoClickerKit
 
 /// The home screen, in order of importance: the balance with coins per second and per tap, the coin
 /// to tap, a tip for new players, what the player owns (miners and power-ups, and crypto), and steps
-/// once they are unlocked. No title, so the game gets the room.
+/// once they are unlocked. No title and no buttons along the top, so the coin gets the room;
+/// Statistics and How to Play are in the Settings tab.
 struct MineView: View {
     let openShop: () -> Void
     let openPowerUps: () -> Void
-    let openExchange: () -> Void
+    /// Opens the Shop's tokens.
+    let openTokens: () -> Void
     let openDaily: () -> Void
     /// Shows where the coins come from.
     let openIncome: () -> Void
+    /// Opens How to Play in the Settings tab.
+    let openHowToPlay: () -> Void
     @Environment(GameStore.self) private var store
-    @State private var showingStats = false
     @State private var showingStepsIntro = false
-    @State private var showingSettings = false
-    /// Settings opened by the How to Play tip, straight to How to Play.
-    @State private var settingsOpensHowToPlay = false
     @State private var effects = Effects()
     /// Every digit or the short form, for the balance and tap values. Tapping the balance switches.
     @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
     @AppStorage(Preferences.coinFinishKey) private var finish = CoinFinish.gold
+    @AppStorage(Preferences.stepsInviteDismissedKey) private var stepsInviteDismissed = false
 
     var body: some View {
         NavigationStack {
-            // The coin takes the room the other items leave, from 200 to 320 points. When even
-            // 200 doesn't fit (a small iPhone with very large text), the page scrolls instead.
+            // The coin takes the room the other items leave, from 200 points up to 320 (and larger
+            // still on a new game, with nothing under it yet). When even 200 doesn't fit (a small
+            // iPhone with very large text), the page scrolls instead.
             ViewThatFits(in: .vertical) {
                 content
                 ScrollView {
@@ -43,23 +45,7 @@ struct MineView: View {
                 }
             }
             .navigationTitle("Crypto Clicker") // Kept for VoiceOver and the app switcher, but not shown.
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(removing: .title)
-            // Two buttons: Statistics on the left, Settings (with How to Play) on the right.
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Statistics", systemImage: "chart.bar.xaxis") { showingStats = true }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Settings", systemImage: "gearshape") {
-                        settingsOpensHowToPlay = false
-                        showingSettings = true
-                    }
-                    .accessibilityHint("Also has How to Play")
-                }
-            }
-            .sheet(isPresented: $showingSettings) { SettingsView(opensHowToPlay: settingsOpensHowToPlay) }
-            .sheet(isPresented: $showingStats) { StatsView() }
+            .toolbarVisibility(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingStepsIntro) { StepsIntroView() }
         }
     }
@@ -67,30 +53,33 @@ struct MineView: View {
     private var content: some View {
         let game = store.game
         let now = Date.now
+        // A new game has no cards under the coin yet, so the coin grows into the room and sits in
+        // the middle of it.
+        let hasCards = InventoryStrip.hasContent(game)
+            || StepsCard.isShown(game, canTrackSteps: store.canTrackSteps, inviteDismissed: stepsInviteDismissed)
         return VStack(spacing: 10) {
             BalanceHeader(coins: game.coins, boost: game.activeBoost(at: now), showsExact: exactNumbers,
                           income: game.idleIncome(at: now), tapValue: game.tapValue(at: now), openIncome: openIncome) {
                 withAnimation(.snappy) { exactNumbers.toggle() }
             }
             CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers,
-                       finish: finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold) {
+                       finish: finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold,
+                       maxSize: hasCards ? CoinButton.maximumSize : CoinButton.freshMaximumSize) {
                 effects.rainCoins()
                 return store.tap()
             }
             .frame(minHeight: CoinButton.minimumSize, idealHeight: CoinButton.minimumSize, maxHeight: .infinity)
+            .animation(.smooth, value: hasCards)
             .overlay(alignment: .bottom) {
-                // Shown once a combo is clearly under way, so a few casual taps don't flicker it.
-                if store.comboStreak >= 5 {
+                // Shown from the combo's first +0.1, so a few casual taps don't flicker it.
+                if store.comboMultiplier > 1 {
                     ComboPill(multiplier: store.comboMultiplier, isMax: store.comboMultiplier >= game.comboMaxMultiplier)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
-            .animation(.snappy, value: store.comboStreak >= 5)
-            GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openDaily: openDaily) {
-                settingsOpensHowToPlay = true
-                showingSettings = true
-            }
-            InventoryStrip(game: game, market: store.market, openShop: openShop, openExchange: openExchange)
+            .animation(.snappy, value: store.comboMultiplier > 1)
+            GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openDaily: openDaily, openHowToPlay: openHowToPlay)
+            InventoryStrip(game: game, market: store.market, openShop: openShop, openTokens: openTokens)
             StepsCard(learnMore: { showingStepsIntro = true })
         }
         .padding(.horizontal, 20)
@@ -142,17 +131,8 @@ struct BalanceHeader: View {
             .accessibilityAction(.default, toggleExact)
             RatesLine(income: income, tapValue: tapValue, showsExact: showsExact, open: openIncome)
             if let boost {
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    let remaining = CoinFormat.duration(boost.endsAt.timeIntervalSince(context.date))
-                    Label("Bull Run \(CoinFormat.multiplier(boost.multiplier)) · \(remaining)", systemImage: "flame.fill")
-                        .font(.headline.monospacedDigit())
-                        .foregroundStyle(Theme.accent)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                        .padding(.horizontal, 8)
-                        .background(Theme.accent.opacity(0.14), in: .capsule)
-                }
-                .transition(.scale.combined(with: .opacity))
+                BullRunBadge(boost: boost)
+                    .transition(.scale.combined(with: .opacity))
             }
         }
         .animation(.spring, value: boost)
@@ -234,13 +214,18 @@ private struct ExactBalance: View {
 /// it (what that tap earned, combo included), in the same form as the balance: every digit, or the
 /// short form.
 struct CoinButton: View {
-    /// The smallest the home screen lets the coin get; it grows to 320 points where there's room.
+    /// The smallest the home screen lets the coin get...
     static let minimumSize: CGFloat = 200
+    /// ...the largest once there are cards under it...
+    static let maximumSize: CGFloat = 320
+    /// ...and the largest on a new game, with nothing under it yet (width allowing).
+    static let freshMaximumSize: CGFloat = 420
 
     /// Coins one tap earns without a combo: always a whole number.
     let tapValue: Double
     let exactNumbers: Bool
     var finish = CoinFinish.gold
+    var maxSize = CoinButton.maximumSize
     /// Taps the coin and returns what that tap earned.
     let onTap: () -> Double
     @AppStorage(Preferences.hapticsKey) private var haptics = true
@@ -264,7 +249,7 @@ struct CoinButton: View {
             if !reduceMotion { spawnFloater(earned) }
         } label: {
             CoinArt(finish: finish)
-                .frame(maxWidth: 320, maxHeight: 320)
+                .frame(maxWidth: maxSize, maxHeight: maxSize)
                 .shadow(color: finish.glow.opacity(0.45), radius: 28)
                 .shadow(color: .black.opacity(0.3), radius: 14, y: 10)
                 .contentShape(.circle)
@@ -347,5 +332,46 @@ struct ComboPill: View {
             .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
             .allowsHitTesting(false)
             .accessibilityLabel("Combo, taps earn \(CoinFormat.multiplier(multiplier))")
+    }
+}
+
+/// The Bull Run under the rates: a burning badge with the multiplier and the time left, beating
+/// like a heart while it lasts.
+private struct BullRunBadge: View {
+    let boost: Boost
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var beat = false
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let remaining = CoinFormat.duration(max(0, boost.endsAt.timeIntervalSince(context.date)))
+            HStack(spacing: 8) {
+                Image(systemName: "flame.fill")
+                    .symbolEffect(.bounce, options: .repeating, isActive: !reduceMotion)
+                Text("BULL RUN \(CoinFormat.multiplier(boost.multiplier))")
+                    .fontWeight(.black)
+                Text(remaining)
+                    .monospacedDigit()
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 1)
+                    .background(.black.opacity(0.22), in: .capsule)
+            }
+            .font(.headline)
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .background(LinearGradient(colors: [FireEdges.red, FireEdges.orange], startPoint: .leading, endPoint: .trailing),
+                        in: .capsule)
+            .shadow(color: FireEdges.red.opacity(0.6), radius: beat ? 14 : 6)
+            .scaleEffect(beat ? 1.05 : 1)
+        }
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) { beat = true }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Bull Run, production \(CoinFormat.multiplier(boost.multiplier))")
     }
 }

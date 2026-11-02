@@ -2,18 +2,29 @@ import SwiftUI
 import CryptoClickerKit
 
 /// What the player owns, under the coin, in two slim cards with no titles: miners and power-ups
-/// (tapping opens the Shop), and crypto tokens (tapping opens the Exchange). Each card appears
-/// once there is something to show, so a new game's home screen stays simple.
+/// (tapping opens the Shop), and crypto tokens (tapping opens the Shop's tokens). Each card
+/// appears once there is something to show, so a new game's home screen stays simple.
 struct InventoryStrip: View {
     let game: GameState
     let market: MarketBoard
     let openShop: () -> Void
-    let openExchange: () -> Void
+    let openTokens: () -> Void
+
+    /// Whether anything shows: a new game has nothing here yet, and the coin takes the room.
+    static func hasContent(_ game: GameState) -> Bool {
+        game.totalMiners > 0 || hasPowerUps(game) || TokenID.allCases.contains { game.tokenCount($0) > 0 }
+    }
+
+    private static func hasPowerUps(_ game: GameState) -> Bool {
+        game.offlineMiningLevel > 0 || !game.perks.isEmpty || !game.upgrades.isEmpty
+            || PowerUpID.allCases.contains { game.powerUpLevel($0) > 0 }
+    }
 
     var body: some View {
         let miners = MinerID.allCases.filter { game.owned($0) > 0 }
         let tokens = TokenID.allCases.filter { game.tokenCount($0) > 0 }
-        let hasPowerUps = game.offlineMiningLevel > 0 || !game.perks.isEmpty || !game.upgrades.isEmpty
+        let hasPowerUps = Self.hasPowerUps(game)
+        let hasComboPowerUps = PowerUpID.allCases.contains { game.powerUpLevel($0) > 0 }
         VStack(spacing: 10) {
             if !miners.isEmpty || hasPowerUps {
                 HoldingCard(label: minersLabel(miners), hint: "Opens the Shop", action: openShop) {
@@ -34,6 +45,11 @@ struct InventoryStrip: View {
                             symbol("moon.zzz.fill", color: .indigo)
                         }
                     }
+                    if hasComboPowerUps {
+                        InventoryChip(count: CoinFormat.multiplier(game.comboMaxMultiplier)) {
+                            symbol("flame.fill", color: .red)
+                        }
+                    }
                     if !game.upgrades.isEmpty {
                         InventoryChip(count: "\(game.upgrades.count)/\(UpgradeID.allCases.count)") {
                             symbol("sparkles", color: Theme.accent)
@@ -49,7 +65,7 @@ struct InventoryStrip: View {
             }
             if !tokens.isEmpty {
                 let value = tokens.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
-                HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Exchange", action: openExchange) {
+                HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Shop's tokens", action: openTokens) {
                     ForEach(tokens) { token in
                         InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token)))) {
                             TokenImage(token: token, size: 29)
@@ -58,17 +74,17 @@ struct InventoryStrip: View {
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             } else if !miners.isEmpty {
-                Button(action: openExchange) {
+                Button(action: openTokens) {
                     HStack(spacing: 10) {
                         Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.subheadline.weight(.bold))
+                            .font(.headline)
                             .foregroundStyle(Theme.gain)
-                        Text("Buy crypto on the Exchange to bet or trade")
-                            .font(.footnote.weight(.semibold))
+                        Text("Buy crypto tokens in the Shop to bet or trade")
+                            .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Image(systemName: "chevron.right")
-                            .font(.footnote.weight(.bold))
-                            .foregroundStyle(.subtext)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Theme.gain)
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
@@ -76,7 +92,7 @@ struct InventoryStrip: View {
                 }
                 .buttonStyle(.plain)
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18))
-                .accessibilityHint("Opens the Exchange")
+                .accessibilityHint("Opens the Shop's tokens")
             }
         }
     }
@@ -90,6 +106,9 @@ struct InventoryStrip: View {
     private func minersLabel(_ miners: [MinerID]) -> String {
         var parts = miners.map { "\(game.owned($0)) \($0.name)" }
         if game.offlineMiningLevel > 0 { parts.append("Offline Mining \(CoinFormat.duration(game.offlineCap))") }
+        if PowerUpID.allCases.contains(where: { game.powerUpLevel($0) > 0 }) {
+            parts.append("combos up to \(CoinFormat.multiplier(game.comboMaxMultiplier))")
+        }
         if !game.upgrades.isEmpty { parts.append("\(game.upgrades.count) upgrades") }
         if !game.perks.isEmpty { parts.append("\(game.perks.count) perks") }
         return "Miners and power-ups: " + parts.joined(separator: ", ")
@@ -114,7 +133,7 @@ private struct HoldingCard<Chips: View>: View {
                 HStack(spacing: 12) {
                     chips
                 }
-                .padding(.top, 10) // Includes room for Mk badges.
+                .padding(.top, 12) // Includes room for Mk badges.
                 .padding(.bottom, 8)
             }
             // Margins on the scrolled content (not padding inside it), so the last chip stops
@@ -148,13 +167,13 @@ private struct InventoryChip<Icon: View>: View {
                 .overlay(alignment: .topTrailing) {
                     if let badge {
                         Text(badge)
-                            .font(.system(size: 9, weight: .heavy))
+                            .font(.system(size: 11, weight: .heavy))
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
                             .background(Theme.accent, in: .capsule)
                             .fixedSize()
-                            .offset(x: 12, y: -4)
+                            .offset(x: 14, y: -6)
                     }
                 }
             Text(count)

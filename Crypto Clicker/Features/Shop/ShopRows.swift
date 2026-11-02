@@ -2,11 +2,15 @@ import SwiftUI
 import CryptoClickerKit
 
 /// One miner tier, with its next Mk upgrade once enough are owned. Takes plain values, so SwiftUI
-/// skips redrawing rows whose numbers did not change.
+/// skips redrawing rows whose numbers did not change. Shows what one more unit adds, and marks the
+/// miner whose next unit adds the most for its price ("Best value").
 struct MinerRow: View {
     let miner: MinerID
     let owned: Int
     let rate: Double
+    /// Coins per second the next unit adds (a milestone doubles them all).
+    let perUnit: Double
+    let isBestValue: Bool
     let nextMilestone: Int?
     let buyCount: Int
     let price: Double
@@ -46,6 +50,16 @@ struct MinerRow: View {
                     .font(.headline)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
+                if isBestValue {
+                    Label("Best value", systemImage: "star.fill")
+                        .font(.footnote.weight(.heavy))
+                        .textCase(.uppercase)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color(red: 0.06, green: 0.46, blue: 0.22).gradient, in: .capsule)
+                        .accessibilityLabel("Best value: the next one adds the most per coin")
+                }
                 if owned > 0 || mkLevel > 0 {
                     HStack(spacing: 6) {
                         if owned > 0 {
@@ -55,11 +69,11 @@ struct MinerRow: View {
                         }
                         if mkLevel > 0 {
                             Text("Mk \(MinerID.markName(level: mkLevel - 1))")
-                                .font(.caption.weight(.bold))
+                                .font(.subheadline.weight(.bold))
                                 .foregroundStyle(Theme.accent)
-                                .padding(.horizontal, 6)
+                                .padding(.horizontal, 7)
                                 .padding(.vertical, 1)
-                                .background(Theme.accent.opacity(0.14), in: .capsule)
+                                .background(Theme.accent.opacity(0.16), in: .capsule)
                         }
                     }
                     .lineLimit(1)
@@ -68,6 +82,9 @@ struct MinerRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
+                Label("Next one: +\(CoinFormat.rate(perUnit))/s", systemImage: "plus.circle.fill")
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(Theme.accent)
                 if let nextMilestone, owned > 0 {
                     MilestoneProgress(owned: owned, next: nextMilestone)
                 }
@@ -78,7 +95,7 @@ struct MinerRow: View {
             } label: {
                 VStack(spacing: 2) {
                     Text("Buy \(CoinFormat.grouped(buyCount))")
-                        .font(.caption.weight(.semibold))
+                        .font(.footnote.weight(.bold))
                     Text(CoinFormat.cost(price))
                         .font(.subheadline.weight(.bold).monospacedDigit())
                 }
@@ -117,7 +134,7 @@ struct MinerUpgradeOffer: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                 Text("Doubles what your \(miner.pluralName) mine")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -150,7 +167,7 @@ struct MilestoneProgress: View {
             ProgressView(value: fraction)
                 .tint(Theme.bitcoin)
             Text("\(CoinFormat.grouped(next - owned)) more for \(CoinFormat.multiplier(Tuning.milestoneMultiplier)) output")
-                .font(.caption2)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.subtext)
         }
         .frame(maxWidth: 180, alignment: .leading)
@@ -271,8 +288,8 @@ struct OfflineMiningRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if price != nil {
                     Label("Next level: \(CoinFormat.duration(nextCap))", systemImage: "arrow.up.circle.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.subtext)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.indigo)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -296,6 +313,131 @@ struct OfflineMiningRow: View {
             }
         }
         .rowCard()
+    }
+}
+
+/// A combo power-up: its level as a row of pips, what it gives now, what the next level adds, and
+/// the price of the next level. Kept when you prestige.
+struct PowerUpRow: View {
+    let powerUp: PowerUpID
+    let level: Int
+    let price: Double?
+    let canAfford: Bool
+    @Environment(GameStore.self) private var store
+    @AppStorage(Preferences.hapticsKey) private var haptics = true
+    @State private var purchases = 0
+    @State private var refusals = 0
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: powerUp.symbol)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 52, height: 52)
+                .background(powerUp.color.gradient, in: .circle)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(powerUp.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                LevelPips(level: level, maxLevel: powerUp.maxLevel, color: powerUp.color)
+                Text(level == 0 ? powerUp.summary : powerUp.effect(atLevel: level))
+                    .font(.subheadline.weight(level == 0 ? .regular : .semibold))
+                    .foregroundStyle(level == 0 ? Theme.subtext : .primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if price != nil {
+                    Label("Next: \(powerUp.effect(atLevel: level + 1))", systemImage: "arrow.up.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(powerUp.color)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let price {
+                Button {
+                    if store.buyPowerUp(powerUp) { purchases += 1 } else { refusals += 1 }
+                } label: {
+                    Text(CoinFormat.cost(price))
+                        .font(.subheadline.weight(.bold).monospacedDigit())
+                        .frame(minWidth: 72)
+                }
+                .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
+                .fixedSize()
+                .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
+                .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
+                .accessibilityLabel("Buy \(powerUp.name) level \(level + 1) for \(CoinFormat.cost(price)) coins")
+            } else {
+                Label("Max", systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.green)
+            }
+        }
+        .rowCard()
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// A power-up still locked behind another, saying what opens it.
+struct LockedPowerUpRow: View {
+    let powerUp: PowerUpID
+    let required: PowerUpID
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "lock.fill")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(powerUp.color)
+                .frame(width: 52, height: 52)
+                .background(powerUp.color.opacity(0.15), in: .circle)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(powerUp.name)
+                    .font(.headline)
+                Text(powerUp.summary)
+                    .font(.subheadline)
+                    .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+                Label("Opens when \(required.name) reaches level \(required.maxLevel)", systemImage: "lock.open.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(powerUp.color)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .rowCard()
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Filled and empty pips for a level, out of the last level.
+struct LevelPips: View {
+    let level: Int
+    let maxLevel: Int
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<maxLevel, id: \.self) { index in
+                Capsule()
+                    .fill(index < level ? AnyShapeStyle(color.gradient) : AnyShapeStyle(color.opacity(0.18)))
+                    .frame(width: 18, height: 7)
+            }
+            Text("Level \(level) of \(maxLevel)")
+                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .foregroundStyle(.subtext)
+                .padding(.leading, 4)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Level \(level) of \(maxLevel)")
+    }
+}
+
+extension PowerUpID {
+    var color: Color {
+        switch self {
+        case .comboBooster: Color(red: 0.95, green: 0.30, blue: 0.10)
+        case .comboOverdrive: Color(red: 0.62, green: 0.25, blue: 0.95)
+        case .quickCombos: Color(red: 0.05, green: 0.62, blue: 0.62)
+        }
     }
 }
 

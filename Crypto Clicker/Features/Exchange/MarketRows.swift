@@ -23,7 +23,7 @@ struct MarketNewsCard: View {
                             .font(.subheadline.weight(.semibold))
                             .fixedSize(horizontal: false, vertical: true)
                         Text("\(Text(story.date, style: .relative)) ago")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.subtext)
                     }
                 }
@@ -36,7 +36,7 @@ struct MarketNewsCard: View {
 }
 
 /// A token on the market: its price, the day's move, a chart of the last day, what the player
-/// holds, and buying and selling.
+/// holds, and buying and selling in the amount picked above the list (×1, ×10, ×100 or Max).
 struct TokenMarketRow: View {
     let token: TokenID
     let quote: MarketBoard.Quote
@@ -45,6 +45,7 @@ struct TokenMarketRow: View {
     let affordable: Int
     /// Share of a sale's value the player receives.
     let saleRate: Double
+    let quantity: BuyQuantity
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var purchases = 0
@@ -61,19 +62,19 @@ struct TokenMarketRow: View {
                         Text(token.name)
                             .font(.headline)
                         Text(token.ticker)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.subtext)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Theme.accent)
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(CoinFormat.cost(quote.price))
                             .font(.subheadline.weight(.bold).monospacedDigit())
                         Text("\(isUp ? "▲" : "▼") \(CoinFormat.percent(abs(quote.change)))")
-                            .font(.caption.weight(.bold).monospacedDigit())
+                            .font(.subheadline.weight(.bold).monospacedDigit())
                             .foregroundStyle(isUp ? Theme.gain : Theme.loss)
                     }
                     Text(owned > 0 ? "Own \(CoinFormat.grouped(owned)) · worth \(CoinFormat.short(quote.price * Double(owned)))"
                                    : "None owned")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.subtext)
                 }
                 Spacer(minLength: 8)
@@ -83,50 +84,39 @@ struct TokenMarketRow: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("\(token.name), \(CoinFormat.cost(quote.price)) coins, \(isUp ? "up" : "down") \(CoinFormat.percent(abs(quote.change))) today, \(owned) owned")
+            let buyCount = quantity.count(affordable: affordable)
+            let sellCount = quantity.sellCount(owned: owned)
+            let canBuy = affordable > 0 && buyCount <= affordable
             HStack(spacing: 10) {
-                Menu {
-                    ForEach([1, 10, 100], id: \.self) { quantity in
-                        Button("Buy \(quantity) for \(CoinFormat.cost(quote.price * Double(quantity)))") {
-                            buy(quantity)
-                        }
-                        .disabled(quantity > affordable)
-                    }
-                    if affordable > 1 {
-                        Button("Buy \(CoinFormat.grouped(affordable)) (max)") {
-                            buy(affordable)
-                        }
-                    }
+                Button {
+                    buy(buyCount)
                 } label: {
-                    Label("Buy", systemImage: "plus.circle.fill")
-                        .font(.subheadline.weight(.bold))
-                        .frame(maxWidth: .infinity)
-                } primaryAction: {
-                    buy(1)
+                    VStack(spacing: 1) {
+                        Text("Buy \(CoinFormat.grouped(buyCount))")
+                            .font(.subheadline.weight(.bold))
+                        Text(CoinFormat.cost(quote.price * Double(buyCount)))
+                            .font(.footnote.weight(.semibold).monospacedDigit())
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .priceButtonStyle(canAfford: affordable > 0, tint: Theme.arcadeButton)
-                .accessibilityHint(affordable > 0 ? "Tap to buy one, or hold for more amounts" : "Not enough coins yet")
-                Menu {
-                    ForEach([1, 10, 100].filter { $0 < owned }, id: \.self) { quantity in
-                        Button("Sell \(quantity) for \(CoinFormat.short(sale(quantity)))") {
-                            if store.sellTokens(token, quantity: quantity) != nil { sales += 1 }
-                        }
-                    }
-                    if owned > 0 {
-                        Button("Sell all \(CoinFormat.grouped(owned)) for \(CoinFormat.short(sale(owned)))") {
-                            if store.sellTokens(token, quantity: owned) != nil { sales += 1 }
-                        }
-                    }
+                .priceButtonStyle(canAfford: canBuy, tint: Theme.arcadeButton)
+                .accessibilityLabel("Buy \(buyCount) \(token.name) for \(CoinFormat.cost(quote.price * Double(buyCount))) coins")
+                .accessibilityHint(canBuy ? "" : "Not enough coins yet")
+                Button {
+                    if sellCount > 0, store.sellTokens(token, quantity: sellCount) != nil { sales += 1 } else { refusals += 1 }
                 } label: {
-                    Label("Sell", systemImage: "minus.circle.fill")
-                        .font(.subheadline.weight(.bold))
-                        .frame(maxWidth: .infinity)
-                } primaryAction: {
-                    if store.sellTokens(token, quantity: 1) != nil { sales += 1 } else { refusals += 1 }
+                    VStack(spacing: 1) {
+                        Text(sellCount > 0 ? "Sell \(CoinFormat.grouped(sellCount))" : "Sell")
+                            .font(.subheadline.weight(.bold))
+                        Text(sellCount > 0 ? "+\(CoinFormat.short(sale(sellCount)))" : "None owned")
+                            .font(.footnote.weight(.semibold).monospacedDigit())
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
                 .tint(.primary)
-                .disabled(owned == 0)
-                .accessibilityHint("Tap to sell one for \(CoinFormat.short(sale(1))) coins, or hold for more amounts")
+                .disabled(sellCount == 0)
+                .accessibilityLabel(sellCount > 0 ? "Sell \(sellCount) \(token.name) for \(CoinFormat.short(sale(sellCount))) coins" : "Sell")
             }
         }
         .rowCard()

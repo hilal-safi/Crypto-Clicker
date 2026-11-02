@@ -10,9 +10,11 @@ struct HowToPlayView: View {
         ("hand.tap.fill", "Tap to mine",
          "Tap the coin to earn coins. Tapping upgrades make every tap also earn a share of a second's production, up to a whole second's worth, so tapping always pays. Tap the balance to switch between the short form (12.3K) and every digit (12,345); what each tap earns shows the same way. Tap the rates under your balance to see where every coin comes from."),
         ("flame.fill", "Combos",
-         "Keep tapping quickly and a combo builds: after 40 quick taps every tap earns twice as much. Pause for more than about half a second and it starts over."),
+         "Keep tapping quickly and a combo builds: every four or five quick taps add ×0.1, so after about 45 every tap earns twice as much. Pause for more than about half a second and it starts over. The flame under the coin shows your biggest combo."),
+        ("bolt.fill", "Combo power-ups",
+         "In the Shop's Power-ups page, Combo Booster raises the biggest combo by ×0.5 a level, up to ×5, and then Combo Overdrive by ×1 a level, up to ×10. Quick Combos makes each ×0.1 come sooner: 50% faster a level, up to four times as fast. The Combo Master perk doubles that speed again and lifts the biggest combo to at least ×3. Power-ups stay when you prestige."),
         ("cpu", "Buy miners",
-         "Miners earn coins every second while the app is open. Each one costs 15% more than the last. The miners you own show under the coin."),
+         "Miners earn coins every second while the app is open. A Chromebook earns a coin every four seconds; a Desktop costs ten times as much and earns eight times as much, so after two or three Chromebooks it's the better buy. Each tier after earns several times the one before. Each unit costs 15% more than the last, so a few of one tier make the next the better buy: in the Shop, every miner shows what one more adds, and Best value marks the one that adds the most for its price. The miners you own show under the coin."),
         ("arrow.up.right.circle.fill", "Milestones and Mk upgrades",
          "Owning 25, 50, 100, 200 (and every 100 up to 1,000) of a miner doubles its output each time. At 25, 50, 100, 200 and 400 owned, a Mk upgrade (Mk II to Mk VI) appears in the Shop: each doubles that miner again for the rest of the run."),
         ("sparkles", "Upgrades",
@@ -25,18 +27,22 @@ struct HowToPlayView: View {
          "From your second day, claim a reward every day in Trophies › Daily to build a streak: the week builds up to an hour of income on day 7. Three new quests arrive each day too."),
         ("target", "Daily challenge",
          "From your second day, each day brings a challenge in one of your games: a score in Tetris, a tile in 2048, a Pump and Dump run, a Classic score in Token Swap, good hands at the casino, or points in three different arcade games. Complete it for 15 minutes of income, and complete five in a week (Monday to Sunday) for two hours more. On Block Day, Tetris deals everyone the same pieces."),
-        ("chart.line.uptrend.xyaxis", "Coin Exchange",
-         "In the Exchange tab, token prices drift every five minutes, usually by a few percent a day, and news nudges them up or down. Buy tokens to bet at the casino games, or to sell later: selling costs a 10% fee. Tokens reset when you prestige."),
+        ("chart.line.uptrend.xyaxis", "Tokens",
+         "In the Shop's Tokens page, token prices drift every five minutes, usually by a few percent a day, and news nudges them up or down. Buy tokens to bet at the casino games, or to sell later: selling costs a 10% fee. Pick ×1, ×10, ×100 or Max above the list to buy and sell in bulk. Tokens reset when you prestige."),
         ("figure.walk", "Steps",
-         "After 2,500 taps you can turn steps into coins. Every step you take, on iPhone or Apple Watch, is paid once, and steps grow more valuable as your income grows."),
+         "After 2,000 taps you can turn steps into coins. Steps count as you walk, for quests and achievements, and each day's steps are paid the next day, at your step value then. Every step you take, on iPhone or Apple Watch, is paid once, and steps grow more valuable as your income grows."),
         ("applewatch", "Apple Watch",
          "Tap to mine from your wrist and keep an eye on your balance. Taps are delivered to your iPhone and counted exactly once."),
         ("gamecontroller.fill", "Arcade",
-         "Games unlock one at a time: Blackjack and Tetris cost a few thousand coins, and each game after costs several times the one before, up to about a trillion. Blackjack, Crypto Slots, Video Poker and To the Moon pay tokens plus a coin bonus for wins. In Video Poker, hold the cards you want and draw once: Hint holds what a strong player would. In To the Moon the multiplier climbs until the market crashes: cash out in time, or set an automatic cash-out. Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump and Token Swap pay coins for every point, and half as much again for a new best score; a minute of good play pays about two minutes of income. Making a 2048 tile pays ten minutes of income on top. Token Swap also has levels, whose stars each pay once, and a daily puzzle paid once a day. Every game has a How to Play button with its full rules."),
+         "Games unlock one at a time: Blackjack and Tetris cost a few thousand coins, and each game after costs several times the one before, up to about a trillion. Blackjack, Crypto Slots, Video Poker and To the Moon pay tokens plus a coin bonus for wins. In Video Poker, hold the cards you want and draw once: Hint holds what a strong player would. In To the Moon the multiplier climbs until the market crashes: cash out in time, or set an automatic cash-out. Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump and Token Swap pay coins for every point, and half as much again for a new best score; a minute of good play pays about two minutes of income. Making a 2048 tile pays ten minutes of income on top. Token Swap also has levels, whose stars each pay once, a daily puzzle paid once a day, and random levels made up for you, never the same twice. Brick Breaker, Snake and Tetris have Options (the sliders at the top) for their speed, and Brick Breaker can make up random walls. Every game has a How to Play button with its full rules."),
         ("trophy.fill", "Achievements",
          "Every bronze, silver, gold and mythic star permanently adds 1% to production, and stars unlock new finishes for the coin in Settings › Coin Finish."),
+        ("chart.bar.xaxis", "Statistics and your journey",
+         "Settings › Statistics charts your income over the last day, week or month, or all time, and keeps every record. Its Your Journey page lists when each first happened, and how long after you started: every miner tier, Offline Mining, each game, every thousandfold of coins mined and your first prestige."),
+        ("mic.fill", "Siri and Shortcuts",
+         "Ask Siri \u{201C}How many coins do I have in Crypto Clicker?\u{201D}, or add Check My Coins in the Shortcuts app, to hear your balance and income without opening the game."),
         ("rosette", "Prestige and perks",
-         "Once you've mined 15 billion coins in all, you can prestige: start a new run for prestige points. Every point adds 5% production forever, and points also buy permanent perks. The Shop suggests prestiging once it would make you at least half as fast again. Your first prestige reveals three new miners. Harder difficulties earn more points."),
+         "Once you've mined 15 billion coins in all, you can prestige: start a new run for prestige points. Every point adds 5% production forever, and points also buy permanent perks. The Shop suggests prestiging once it would make you at least half as fast again. Your first prestige reveals three new miners. The difficulty in Settings changes the points: Hard earns half as many again, Easy half as many."),
     ]
 
     var body: some View {
@@ -79,7 +85,7 @@ struct HowToPlayView: View {
             } header: {
                 Text("Game Rules")
             } footer: {
-                Text("The full rules for every game, locked or not. Each game also has a How to Play button of its own.")
+                SettingsNote("The full rules for every game, locked or not. Each game also has a How to Play button of its own.")
             }
         }
         .navigationTitle("How to Play")

@@ -218,9 +218,11 @@ struct PerkTests {
         let strength = game.autoTapStrength
         #expect(game.buyPerk(.strongFingers) == true)
         #expect(game.tapValue(at: t0) == (tap * 1.5).rounded())
-        #expect(game.comboTapsToMax == 40 && game.comboMaxMultiplier == 2)
+        #expect(game.comboTapsToMax == 45 && game.comboMaxMultiplier == 2)
         #expect(game.buyPerk(.comboMaster) == true)
-        #expect(game.comboTapsToMax == 20 && game.comboMaxMultiplier == 3)
+        // Twice as fast (2.2 taps a step), and up to ×3: twenty steps of 0.1.
+        #expect(game.comboTapsToMax == 45 && game.comboMaxMultiplier == 3)
+        #expect(game.comboSpeed == 2)
         #expect(game.buyPerk(.muscleMemory) == true)
         #expect(game.buyPerk(.autoClickerPro) == true)
         #expect(game.autoTapStrength == strength * 2)
@@ -287,23 +289,98 @@ struct MinerUpgradeTests {
 
 @Suite("Combos")
 struct ComboTests {
-    @Test func theMultiplierClimbsToItsMaximum() {
+    @Test func theMultiplierClimbsATenthEveryFourAndAHalfTaps() {
         let game = GameState.make()
         #expect(game.comboMultiplier(streak: 0) == 1)
         #expect(game.comboMultiplier(streak: 1) == 1)
-        #expect(game.comboMultiplier(streak: 21) == 1.5)
-        #expect(game.comboMultiplier(streak: 41) == 2)
+        // 4.4 taps for each +0.1, 10% slower than it was: ×1.1 on the 6th tap, ×1.5 on the 23rd.
+        #expect(game.comboMultiplier(streak: 5) == 1)
+        #expect(game.comboMultiplier(streak: 6) == 1.1)
+        #expect(game.comboMultiplier(streak: 22) == 1.4)
+        #expect(game.comboMultiplier(streak: 23) == 1.5)
+        #expect(game.comboMultiplier(streak: 44) == 1.9)
+        #expect(game.comboMultiplier(streak: 45) == 2)
         #expect(game.comboMultiplier(streak: 500) == 2)
+        #expect(game.comboTapsToMax == 45)
+        // Every value is an exact tenth.
+        for streak in 1...60 {
+            let value = game.comboMultiplier(streak: streak)
+            #expect((value * 10).rounded() / 10 == value)
+        }
     }
 
     @Test func combosMultiplyTapsAndAreRecorded() {
         var game = GameState.make(upgrades: [.coinClicker]) // 2 coins per tap.
         #expect(game.tap(at: t0) == 2)
-        #expect(game.tap(at: t0, combo: 41) == 4)
-        #expect(game.tap(at: t0, combo: 11) == 3) // 2 × 1.25 = 2.5, paid as a whole 3.
-        #expect(game.stats.bestCombo == 41)
+        #expect(game.tap(at: t0, combo: 45) == 4)
+        #expect(game.tap(at: t0, combo: 15) == 3) // 2 × 1.3 = 2.6, paid as a whole 3.
+        #expect(game.stats.bestCombo == 45)
         #expect(game.stats.bestTap == 4)
         #expect(game.stats.taps == 3)
+    }
+
+    @Test func comboPowerUpsRaiseTheTopToTenAndBuildUpToFourTimesFaster() {
+        var game = GameState.make()
+        game.powerUps = [.comboBooster: 6]
+        #expect(game.comboMaxMultiplier == 5)
+        game.powerUps[.comboOverdrive] = 5
+        #expect(game.comboMaxMultiplier == 10)
+        #expect(game.comboMultiplier(streak: 397) == 10) // 90 steps × 4.4 taps, plus the first.
+        #expect(game.comboMultiplier(streak: 396) == 9.9)
+        game.powerUps[.quickCombos] = 6
+        #expect(game.comboSpeed == 4)
+        #expect(abs(game.comboTapsPerStep - 1.1) < 1e-12)
+        #expect(game.comboTapsToMax == 100)
+        #expect(game.comboMultiplier(streak: 100) == 10)
+        // Combo Master doubles the speed again, and never lowers the top.
+        game.perks = [.comboMaster]
+        #expect(game.comboSpeed == 8)
+        #expect(game.comboMaxMultiplier == 10)
+        // Levels beyond the last count as the last.
+        game.powerUps = [.comboBooster: 99]
+        game.perks = []
+        #expect(game.comboMaxMultiplier == 5)
+    }
+
+    @Test func powerUpsAreBoughtLevelByLevelAndKeptThroughPrestiges() throws {
+        var game = GameState.make(coins: 1e15)
+        #expect(!game.isRevealed(.comboBooster) && !game.isRevealed(.quickCombos))
+        game.stats.lifetimeCoins = 1e15
+        #expect(game.isRevealed(.comboBooster) && game.isRevealed(.quickCombos))
+        #expect(!game.isRevealed(.comboOverdrive)) // Not until Combo Booster is at its last level.
+        let first = try #require(game.powerUpPrice(.comboBooster))
+        #expect(first == Tuning.scaledPrice(Tuning.comboBoosterBaseCost))
+        let bought = game.buyPowerUp(.comboBooster)
+        #expect(bought)
+        #expect(game.powerUpLevel(.comboBooster) == 1 && game.comboMaxMultiplier == 2.5)
+        #expect(game.coins == 1e15 - first)
+        #expect(game.powerUpPrice(.comboBooster) == Tuning.scaledPrice(Tuning.comboBoosterBaseCost * Tuning.comboBoosterCostGrowth))
+        while game.buyPowerUp(.comboBooster) {}
+        #expect(game.powerUpLevel(.comboBooster) == 6 && game.powerUpPrice(.comboBooster) == nil)
+        #expect(game.isRevealed(.comboOverdrive))
+        while game.buyPowerUp(.comboOverdrive) {}
+        while game.buyPowerUp(.quickCombos) {}
+        #expect(game.comboMaxMultiplier == 10 && game.comboSpeed == 4)
+        #expect(game.stats.powerUpLevelsBought == 17)
+        // Kept through a prestige and saved with the game.
+        game.prestige(at: at(10))
+        #expect(game.comboMaxMultiplier == 10)
+        let loaded = try GameCoding.decoder().decode(GameState.self, from: GameCoding.encoder().encode(game))
+        #expect(loaded.powerUps == game.powerUps)
+        // Not enough coins: nothing changes.
+        var poor = GameState.make(coins: 10)
+        poor.stats.lifetimeCoins = 1e6
+        let tried = poor.buyPowerUp(.comboBooster)
+        #expect(!tried && poor.powerUpLevel(.comboBooster) == 0 && poor.coins == 10)
+    }
+
+    @Test func powerUpTextReadsTheirEffects() {
+        #expect(PowerUpID.comboBooster.effect(atLevel: 3) == "Biggest combo ×3.5")
+        #expect(PowerUpID.comboOverdrive.effect(atLevel: 5) == "Biggest combo ×10")
+        #expect(PowerUpID.quickCombos.effect(atLevel: 2) == "Combos build 2× as fast")
+        #expect(PowerUpID.comboBooster.summary.contains("×5"))
+        #expect(PowerUpID.comboOverdrive.summary.contains("×10"))
+        #expect(PowerUpID.quickCombos.summary.contains("4×"))
     }
 }
 
@@ -362,7 +439,7 @@ struct AirdropTests {
     }
 
     @Test func aBullRunBoostsProduction() {
-        var game = GameState.make(miners: [.desktop: 20]) // 20 coins per second.
+        var game = GameState.make(miners: minersEarning(20)) // 20 coins per second.
         let reward = game.claimAirdrop(.bullRun, at: at(5))
         #expect(reward == .bullRun(multiplier: 7, duration: 60))
         #expect(game.boost == Boost(multiplier: 7, endsAt: at(65)))
@@ -383,20 +460,20 @@ struct AirdropTests {
     }
 
     @Test func coinDropsPayAShareOfTheBankWithinIncomeLimits() {
-        var rich = GameState.make(coins: 1e6, miners: [.desktop: 10]) // 10 coins per second.
+        var rich = GameState.make(coins: 1e6, miners: minersEarning(10)) // 10 coins per second.
         #expect(rich.claimAirdrop(.coins, at: t0) == .coins(9_000)) // Capped at 15 minutes of income.
         #expect(rich.coins == 1e6 + 9_000)
         #expect(rich.stats.earnedFromAirdrops == 9_000)
 
-        var saver = GameState.make(coins: 20_000, miners: [.desktop: 10])
+        var saver = GameState.make(coins: 20_000, miners: minersEarning(10))
         #expect(saver.claimAirdrop(.coins, at: t0) == .coins(3_000)) // 15% of the bank.
 
-        var broke = GameState.make(coins: 100, miners: [.desktop: 10])
+        var broke = GameState.make(coins: 100, miners: minersEarning(10))
         #expect(broke.claimAirdrop(.coins, at: t0) == .coins(300)) // At least 30 seconds of income.
     }
 
     @Test func whalesPayAnHourOfIncome() {
-        var game = GameState.make(coins: 1e12, miners: [.desktop: 10]) // 10 coins per second.
+        var game = GameState.make(coins: 1e12, miners: minersEarning(10)) // 10 coins per second.
         game.stats.runCoins = 1e6
         #expect(game.claimAirdrop(.whale, at: t0) == .whale(36_000))
         #expect(game.stats.whaleAirdrops == 1)
@@ -405,13 +482,13 @@ struct AirdropTests {
     }
 
     @Test func anEarlyWhalePaysNoMoreThanTheRunHasMined() {
-        var early = GameState.make(miners: [.desktop: 10]) // 10 coins per second.
+        var early = GameState.make(miners: minersEarning(10)) // 10 coins per second.
         early.stats.runCoins = 5_000
         // Not an hour (36,000): at most what the run has mined so far, so it can't skip the opening.
         #expect(early.whaleAmount == 5_000)
         #expect(early.claimAirdrop(.whale, at: t0) == .whale(5_000))
         // Never less than an ordinary airdrop's 30 seconds of income.
-        #expect(GameState.make(miners: [.desktop: 10]).whaleAmount == 300)
+        #expect(GameState.make(miners: minersEarning(10)).whaleAmount == 300)
     }
 }
 

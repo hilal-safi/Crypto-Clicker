@@ -150,8 +150,8 @@ struct SlotsView: View {
                             .foregroundStyle(Theme.gold)
                         if revealed.collectionPrize > 0 {
                             Text("with the Bitcoin collection prize")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.75))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.9))
                         }
                     }
                 }
@@ -192,7 +192,7 @@ struct SlotsView: View {
                 }
             } else {
                 if TokenID.allCases.allSatisfy({ counts[$0, default: 0] == 0 }) {
-                    Label("Buy tokens on the Coin Exchange to play.", systemImage: "info.circle")
+                    Label("Buy tokens in the Shop to play.", systemImage: "info.circle")
                         .font(.subheadline)
                         .foregroundStyle(.subtext)
                 }
@@ -204,8 +204,8 @@ struct SlotsView: View {
                 Spacer(minLength: 8)
                 BitcoinCollection(count: heldBitcoins ?? game.slotsBitcoinsTowardPrize, prize: game.slotsCollectionPrize)
             }
-            .font(.footnote)
-            .foregroundStyle(.subtext)
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.white.opacity(0.9))
             Button(action: spin) {
                 Text(isSpinning ? "Spinning…" : free != nil ? "FREE SPIN" : "SPIN")
                     .font(.title3.weight(.black))
@@ -408,12 +408,12 @@ private struct PaytableView: View {
                 } header: {
                     Text("Free spins")
                 } footer: {
-                    Text("A Cardano, a Solana and an Ethereum on the line, in any order, win \(SlotMachine.freeSpinsAwarded) free spins at the same bet, and they can win more. About 1 spin in \(Int((1 / SlotMachine.freeSpinChance).rounded())) wins them.")
+                    SettingsNote("A Cardano, a Solana and an Ethereum on the line, in any order, win \(SlotMachine.freeSpinsAwarded) free spins at the same bet, and they can win more. About 1 spin in \(Int((1 / SlotMachine.freeSpinChance).rounded())) wins them.")
                 }
                 Section {
                     row([.bitcoin], "\(SlotMachine.bitcoinsPerPrize) ₿", note: "Bitcoin collection")
                 } footer: {
-                    Text("Every Bitcoin on the line goes into your collection, and every \(SlotMachine.bitcoinsPerPrize) pay a coin prize. It never changes the odds of a spin.\n\nPayouts include your bet. Each spin pays its best line. Winning spins also pay coins, more for bigger wins. Over time the machine returns about \(CoinFormat.percent(SlotMachine.returnToPlayer)) of the tokens bet, free spins included. Every spin is independent: a near miss doesn't make the next win more likely.")
+                    SettingsNote("Every Bitcoin on the line goes into your collection, and every \(SlotMachine.bitcoinsPerPrize) pay a coin prize. It never changes the odds of a spin.\n\nPayouts include your bet. Each spin pays its best line. Winning spins also pay coins, more for bigger wins. Over time the machine returns about \(CoinFormat.percent(SlotMachine.returnToPlayer)) of the tokens bet, free spins included. Every spin is independent: a near miss doesn't make the next win more likely.")
                 }
             }
             .navigationTitle("Paytable")

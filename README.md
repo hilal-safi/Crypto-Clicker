@@ -7,11 +7,14 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 ## Features
 
 - **Mining.** Tap the coin (coins shower down as you do), then buy miners, from a Chromebook (a coin
-  every two seconds) to a Space Mining Colony, and after your first prestige, three more beyond it.
-  Each unit costs 15% more than the last. Owning 25, 50, 100, 200 and every 100 up to 1,000 of a miner doubles its output. Under the
-  coin, two slim cards show your miners and power-ups and your crypto; tap one to open the Shop or the
-  Exchange. Your coins per second and per tap sit just under the balance on the home screen, and in a
-  bar at the bottom of the other tabs.
+  every four seconds) to a Space Mining Colony, and after your first prestige, three more beyond it. A
+  Desktop costs ten times as much as a Chromebook and mines eight times as much, so after two or three
+  Chromebooks it's the better buy, and the Shop marks whichever miner adds the most for its price as
+  Best value. Each unit costs 15% more than the last. Owning 25, 50, 100, 200 and every 100 up to 1,000
+  of a miner doubles its output. Under the coin, slim cards show your miners and power-ups, your crypto
+  and your steps; tap one to open the Shop or its Tokens page. Until the first of them appears, the
+  coin is bigger. Your coins per second and per tap sit just under the balance on the home screen, and
+  in a bar at the bottom of the other tabs.
 - **Mk upgrades.** At 25, 50, 100, 200 and 400 owned, a miner's next Mk upgrade (Mk II to Mk VI)
   appears in the Shop. Each doubles that miner for the rest of the run.
 - **Whole coins.** Every tap, step and reward pays whole coins. Amounts are written out in full up to
@@ -19,8 +22,14 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   form and every digit (long numbers scroll sideways); the coins each tap earns show the same way, and
   the choice is remembered.
 - **Taps that matter.** Tapping upgrades make every tap also earn a share of a second's production, up to
-  a whole second's worth late in the game. Quick taps build a combo, up to twice the coins per tap.
-  Automatic taps are worth a quarter of a tap, so tapping yourself stays the fastest way to mine.
+  a whole second's worth late in the game. Quick taps build a combo: every 4.4 quick taps add ×0.1, up
+  to twice the coins per tap. Automatic taps are worth a quarter of a tap, so tapping yourself stays the
+  fastest way to mine.
+- **Combo power-ups.** Three power-ups bought in levels in the Shop and kept through prestiges. Combo
+  Booster raises the biggest combo by ×0.5 a level up to ×5 (its first level costs about 74K coins), then
+  Combo Overdrive by ×1 a level up to ×10 (from about 15B). Quick Combos makes each ×0.1 come 50% sooner
+  a level, up to four times as fast (from about 175K). The Combo Master perk doubles that speed again
+  and lifts the biggest combo to at least ×3.
 - **Upgrades.** 22 one-time upgrades. They boost tapping, multiply production (the first two by ×1.75,
   ASIC Chips and the Geothermal Plant by ×1.5, the rest by ×2), add automatic taps, and raise step and
   mini-game rewards. Upgrades are revealed as you progress (mini-game ones once you've unlocked a game).
@@ -30,7 +39,7 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   earned, what that unlocked (achievements, prestige points, finished quests), the best thing to buy
   now with a button to buy it, and a breakdown by miner, time and multiplier.
 - **Airdrops.** Every 3–6 minutes an airdrop falls. Catch it within 20 seconds for a pile of coins, or for
-  a 60-second Bull Run that multiplies production ×7. One in twenty is a whale worth up to an hour of income
+  a 60-second Bull Run that multiplies production ×7 (the screen's edges burn red while it lasts). One in twenty is a whale worth up to an hour of income
   (early in a run, no more than the run has mined so far, so a lucky whale can't skip the opening).
 - **Daily.** From the second day: a daily reward with a streak that builds to an hour of income on day
   7, and three new quests every day. The first day is for learning to mine, without big handouts.
@@ -39,12 +48,15 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   and Dump run, a Classic score in Token Swap, good hands at the casino (or a natural at Blackjack), or
   points in three different arcade games.
   It pays 15 minutes of income, and five in a week pay two hours more.
-- **Coin Exchange.** Its own tab. Token prices drift every five minutes, within about a quarter of
-  their usual price, with news that nudges them up or down. Buy tokens to bet or to sell later
-  (selling costs a 10% fee). Tokens reset when you prestige.
-- **Steps.** After 2,500 taps, connect Apple Health and every step you take, on iPhone or Apple Watch,
-  is paid out exactly once. A step is worth at least one coin and grows with your income.
-- **Apple Watch.** Tap to mine from your wrist, watch your balance tick up live, and see today's steps.
+- **Tokens.** The Shop's second page. Token prices drift every five minutes, within about a quarter of
+  their usual price, with news that nudges them up or down. Buy tokens (×1, ×10, ×100 or as many as you
+  can afford) to bet or to sell later (selling costs a 10% fee). Tokens reset when you prestige.
+- **Steps.** After 2,000 taps, connect Apple Health and every step you take, on iPhone or Apple Watch,
+  is paid out exactly once. Steps count toward quests and achievements as you walk, and each day's
+  steps are paid the next day, at your step value then. A step is worth at least one coin and grows with
+  your income.
+- **Apple Watch.** Tap to mine from your wrist, watch your balance tick up live, and see today's steps
+  and what they'll pay tomorrow.
 - **Casino.** Bet tokens at Blackjack, Crypto Slots, Video Poker or To the Moon, or switch Blackjack,
   Video Poker and To the Moon to Practice and play the same game for chips, with nothing at stake.
   Blackjack has two tables (the Tough dealer hits soft 17, and wins there pay 10% more coins) and an
@@ -59,7 +71,7 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 - **Unlocking games.** The eleven games unlock one at a time. Blackjack and Tetris cost a few thousand
   coins, and each game after costs several times the one before, up to about a trillion for Bubble
   Blaster: a player who keeps playing gets the first two in the first quarter hour and about seven in
-  three hours, and one who checks in four times a day has them all by about the third day.
+  three hours, and one who checks in four times a day has them all by about the fourth day.
 - **Arcade.** Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump and Token Swap pay
   coins for every point, and 50% more for a new best score. Each is tuned so a minute of skilled play
   pays about two minutes of income.
@@ -70,10 +82,13 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   - **Snake:** Classic in four arenas or a one-minute Coin Rush, with Speed Boost (coins count
     double), Slow Motion, Shield and Coin Magnet power-ups.
   - **Brick Breaker:** armored, explosive and bonus bricks, Multi-ball, Wide Paddle, Slow Ball and
-    Laser power-ups, and a boss with a health bar every fifth level.
+    Laser power-ups, and a boss with a health bar every fifth level. Play the classic walls or random
+    ones made up for every game, about as hard and paying about the same.
   - **Bubble Blaster:** waves that add colors and grow deeper, a streak that adds 10% a pop (up to
     double) and earns Rainbow and Bomb bubbles, gold bonus bubbles, and a ring where the shot will land.
   - Snake and 2048 are played with swipes anywhere on the screen.
+  - Tetris, Snake and Brick Breaker have Options for their speed (Slow, Normal or Fast): a point is
+    worth the same at every speed, so Fast scores sooner and Slow is relaxed. Every action game pauses.
 - **Pump and Dump.** Whack the coins as they pop up, round after round: each 30-second round has a
   score goal to reach and a bonus objective (a combo, golden coins, or no mistakes), and each is
   quicker than the last, with more scam tokens and rug pulls (coins with a red rim that shake, then turn).
@@ -82,9 +97,10 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   blast) and five in a row a Color Clear (a whole color). Swap two specials together to combine them.
   Play 18 levels with goals and move limits (ice, chains, crates and gold bars to bring down), each
   star paying coins the first time; a daily puzzle with the same board for everyone, paid once a day;
-  or Classic, a minute to score as much as you can.
-- **How to Play.** In Settings (the gear at the top right of the home screen): a guide to every part of
-  the game, then the full rules of every mini-game. Each game also explains its goal, controls, scoring,
+  random levels made up from a seed in three difficulties, never the same twice, with a bonus for each
+  win; or Classic, a minute to score as much as you can.
+- **How to Play.** In the Settings tab: a guide to every part of the game, then the full rules of every
+  mini-game. Each game also explains its goal, controls, scoring,
   specials and hazards, how it ends, and a few tips, opening by itself the first time, from a button in
   the game, and from the pause card. A tip on the home screen points new players to it.
 - **Arcade Rank.** Finishing games earns XP, with more for a new best, the first game of each kind
@@ -98,14 +114,22 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 - **Prestige.** Once you've mined 15 billion coins in all, start a new run for prestige points. Points
   grow with the cube root of lifetime coins, so each prestige takes longer than the last. Every point
   adds 5% production forever, and points buy permanent perks in three branches (Mining, Tapping and
-  Fortune); the last few take a couple of weeks to afford. The Shop suggests prestiging once it would
-  make you at least half as fast again.
-- **Difficulty.** Easy produces more but earns fewer prestige points; Hard produces less and earns more.
+  Fortune); the last few take about three weeks to afford. The Shop suggests prestiging once it would
+  make you at least half as fast again: for someone who checks in four times a day, around day five.
+- **Difficulty.** In Settings, with what each one does: Easy mines 50% more but prestiges earn half the
+  points; Hard mines 40% less and prestiges earn 50% more. Everything that follows income moves with
+  it; prices don't. A run's prestige points use the easiest difficulty picked since it began.
 - **Notifications.** Optional reminders when Offline Mining runs out and when a daily reward is waiting.
-- **Statistics.** From the chart button at the top left of the home screen: a chart of income over the week, plus everything the game counts (win streaks,
-  biggest wins, what the casino paid back, records for every game), in short form or with every digit.
-  Tapping the rates under the balance (or the bar at the bottom of the other tabs) shows where every
-  coin comes from: each miner's share, automatic taps, multipliers and what makes up a tap.
+- **Statistics.** In Settings: a chart of income over the last day, week or month, or all time (a point
+  a minute, with times in hours and minutes at first, then hours, days and months as the range grows,
+  and a scale in steps of ten once income has grown a hundredfold), plus everything the game counts
+  (win streaks, biggest wins, what the casino paid back, records for every game), in short form or with
+  every digit. Your Journey lists when each first happened: every miner tier, each game, Offline
+  Mining, every thousandfold of coins and the first prestige. Tapping the rates under the balance (or
+  the bar at the bottom of the other tabs) shows where every coin comes from: each miner's share,
+  automatic taps, multipliers and what makes up a tap.
+- **Siri and Shortcuts.** "How many coins do I have in Crypto Clicker?" answers with your balance and
+  income, brought up to now, without opening the game.
 
 ## Requirements
 
@@ -119,8 +143,9 @@ Crypto Clicker/                 iPhone and iPad app
   App/                          Entry point, GameStore (state, clock, saving), preferences
   Services/                     StepTracker (HealthKit), WatchBridge (WatchConnectivity), notifications, tap sound
   Design/                       Theme, backgrounds, coin finishes, Liquid Glass cards, shared components
-  Features/                     Mine (with Statistics and Settings), Shop (with prestige and perks),
-                                Arcade (eleven games), Exchange, Trophies (daily and achievements)
+  Features/                     Mine (with Statistics, the income chart and the journey), Shop (miners,
+                                power-ups, prestige and perks), Exchange (the Shop's Tokens page),
+                                Arcade (eleven games), Trophies (daily and achievements), Settings
 Crypto Clicker Watch App/       Apple Watch app
 CryptoClickerKit/               Swift package with all game rules, shared by both apps
   Sources/CryptoClickerKit/
@@ -179,13 +204,15 @@ swift test
 In Xcode, Product › Test (⌘U) on the Crypto Clicker scheme runs the same suite. It includes simulated
 players that check the economy's pacing. They play the way people do: they tap, catch most airdrops,
 claim quests and daily rewards, play some arcade, earn achievements, unlock games, prestige when the
-Shop suggests it and buy perks. A player who keeps playing buys a Desktop in the first couple of
-minutes, a GPU Rig after about ten, a Data Center after more than an hour and seven miner tiers in
-three hours, without a prestige point yet. A light player, who looks in for four minutes five times in
-twelve hours, has mined a couple of hundred thousand coins by then, mostly while away. A casual player
-who checks in four times a day buys Offline Mining in the first session, reaches the Data Center in
-about a day, has every game and the first ten miners in about three days, and is first advised to
-prestige soon after. With prestiges and perks, new things keep arriving for about two weeks.
+Shop suggests it and buy perks, combo power-ups included. A player who keeps playing buys a Chromebook
+in the first minute, a Desktop after three Chromebooks at about two minutes, a GPU Rig after about a
+quarter of an hour, a Data Center after a little over an hour and six miner tiers in three hours,
+without a prestige point yet. A light player, who looks in for four minutes five times in twelve hours,
+has mined about a hundred thousand coins by then, mostly while away. A casual player who checks in four
+times a day buys Offline Mining in the first session, reaches the Data Center in about a day and the
+first prestige point around day two, has every game in about four days, and gets the tenth miner and
+the first suggestion to prestige around day five. With prestiges and perks, new things keep arriving
+for about three weeks.
 
 Simulated skilled players for every arcade game check that each pays about the same for a minute of
 play (about two minutes of income), Token Swap included. They take a few minutes, so they run only when asked:
@@ -194,19 +221,22 @@ play (about two minutes of income), Token Swap included. They take a few minutes
 RUN_BALANCE_TESTS=1 swift test --filter ArcadeBalanceTests
 ```
 
-The same switch adds a two-week casual run to the pacing tests, checking that perks keep coming
-through the second week:
+The same switch adds a three-week casual run to the pacing tests, checking that perks keep coming
+through the third week:
 
 ```sh
 RUN_BALANCE_TESTS=1 swift test --filter PacingTests
 ```
 
+A GitHub Actions workflow (`.github/workflows/kit-tests.yml`) builds the package and runs the suite on
+pushes to `main` and `refactor/` branches and on pull requests; run it by hand from the Actions tab to
+include the balance tests.
+
 ## Testing tools
 
-Builds run from Xcode (the Debug configuration) include a Testing Tools screen, tucked away in
-Settings › Testing Tools (the gear at the top of the home screen). It adds coins (up to 1 sextillion at
-a time), tokens, miners, upgrades, Offline Mining levels and prestige points, unlocks every mini-game
-and steps, completes the day's quests or starts a new day (which also brings the dailies forward on the
+Builds run from Xcode (the Debug configuration) include a Testing Tools screen, tucked away at the
+bottom of the Settings tab. It adds coins (up to 1 sextillion at a time), tokens, miners, upgrades,
+Offline Mining levels, every combo power-up and prestige points, unlocks every mini-game and steps, completes the day's quests or starts a new day (which also brings the dailies forward on the
 first day), starts a Bull Run, drops an airdrop or a whale, and pretends you were away for an hour or
 eight. The screen and its code are compiled out of Release builds, so they never
 reach the App Store.

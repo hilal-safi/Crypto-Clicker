@@ -91,8 +91,8 @@ private struct DailyPage: View {
                     .font(.headline)
                 Spacer()
                 Text("New in \(Text(midnight, style: .relative))")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.subtext)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
             }
             if game.daily.quests.isEmpty {
                 Text(isFirstDay ? "Your first quests and daily challenge arrive tomorrow." : "New quests are on their way.")
@@ -115,7 +115,7 @@ private struct DailyPage: View {
         Text(game.hasPerk(.luckyStreak)
              ? "Lucky Streak doubles every daily reward. Coin rewards grow with your income."
              : "Coin rewards grow with your income. Quests finished but not claimed are paid at midnight.")
-            .font(.footnote)
+            .font(.subheadline)
             .foregroundStyle(.subtext)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 4)
@@ -202,7 +202,7 @@ private struct DailyRewardCard: View {
                 Text(isFirstDay
                      ? "Daily rewards, quests and challenges start on your second day. Claim a reward every day to keep your streak: day 7 pays an hour of income."
                      : "Claim a reward every day to keep your streak. Day 7 pays an hour of income, then the week starts over.")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -224,8 +224,8 @@ private struct StreakDayChip: View {
                 .font(.title3)
                 .foregroundStyle(isClaimed ? Color.green : (isToday ? Theme.accent : Theme.subtext))
             Text("Day \(day)")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(isToday ? Color.primary : Theme.subtext)
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(isToday ? Theme.accent : Color.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -268,8 +268,9 @@ private struct QuestRow: View {
                         .monospacedDigit()
                     Spacer()
                     Label(reward, systemImage: quest.reward.symbol)
+                        .foregroundStyle(Theme.accent)
                 }
-                .font(.caption.weight(.semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.subtext)
             }
             if quest.isClaimed {
@@ -314,8 +315,8 @@ private struct TrophySummary: View {
                     .tint(Theme.trophies)
                 if let next = CoinFinish.allCases.first(where: { !$0.isUnlocked(stars: earned) }) {
                     Text("\(next.starsNeeded - earned) more for the \(next.name) coin")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.subtext)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
                 }
             }
         }
@@ -354,19 +355,33 @@ private struct AchievementCard: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Text(achievement.detail)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.subtext)
                 .lineLimit(2, reservesSpace: true)
+                .minimumScaleFactor(0.9)
             if let next {
                 ProgressView(value: min(value, next), total: next)
                     .tint(Theme.tierColor(tiers))
                 Text("\(CoinFormat.short(value)) / \(CoinFormat.short(next))")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.subtext)
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             } else {
-                Label("Mythic", systemImage: "sparkles")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Theme.tierColor(3))
+                // Mythic: a full bar, and the amount it took stays on show.
+                let needed = achievement.thresholds.last ?? value
+                ProgressView(value: 1)
+                    .tint(Theme.tierColor(3))
+                Label {
+                    Text("\(CoinFormat.short(value)) / \(CoinFormat.short(needed))")
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                } icon: {
+                    Image(systemName: "sparkles")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Theme.tierColor(3))
+                }
+                .accessibilityLabel("Mythic, \(CoinFormat.short(needed)) needed")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

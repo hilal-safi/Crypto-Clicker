@@ -13,7 +13,8 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     /// The phone's Offline Mining limit (0 until the power-up is bought).
     public var offlineCap: TimeInterval
     public var stepsConnected: Bool
-    /// Steps already paid for on `stepsDay` (a `StepDay` key), as of the phone's last sync.
+    /// Steps counted on `stepsDay` (a `StepDay` key), as of the phone's last sync. They're paid the
+    /// day after.
     public var stepsToday: Int
     public var stepsDay: String?
     public var stepValue: Double

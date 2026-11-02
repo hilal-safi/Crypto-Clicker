@@ -233,9 +233,7 @@ struct BubbleBlasterView: View {
                 }
             } else {
                 GamePanel(title: "Bubble Blaster", buttonTitle: "Start", action: start) {
-                    GameIntro(best: store.game.stats.bubbleBestScore,
-                              howTo: "Match three or more of a color to pop them; anything left hanging falls for double points. Pops in a row build a streak that scores more and earns Rainbow and Bomb bubbles. Clear the field for the next wave, and don't let the bubbles reach the line.",
-                              showHelp: { showingHelp = true })
+                    GameIntro(best: store.game.stats.bubbleBestScore)
                 }
             }
         }

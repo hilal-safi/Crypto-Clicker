@@ -2,8 +2,9 @@ import SwiftUI
 import CryptoClickerKit
 
 /// A game of Token Swap in one of its modes: Classic (a minute on the clock, paid per point), a
-/// level (goals in a limited number of moves, up to three stars) or the daily puzzle. The rules
-/// live in `TokenSwapGame`; this view runs the clock, animates each wave and pays the result.
+/// level (goals in a limited number of moves, up to three stars), the daily puzzle, or a random
+/// level (made up from a seed, paid per point with a bonus for a win). The rules live in
+/// `TokenSwapGame`; this view runs the clock, animates each wave and pays the result.
 struct TokenSwapPlayView: View {
     typealias Position = TokenSwapGame.Position
 
@@ -66,8 +67,17 @@ struct TokenSwapPlayView: View {
         switch route {
         case .level(let id): TokenSwapLevel.number(id)
         case .daily(let day): TokenSwapLevel.daily(day: day)
+        case .random(let seed, let difficulty): TokenSwapLevel.generated(seed: seed, difficulty: difficulty)
         case .classic, .levels: nil
         }
+    }
+
+    private var isRandom: Bool {
+        if case .random = route { true } else { false }
+    }
+
+    private var isDaily: Bool {
+        if case .daily = route { true } else { false }
     }
 
     var body: some View {
@@ -138,6 +148,7 @@ struct TokenSwapPlayView: View {
         switch route {
         case .level(let id): "Level \(id)"
         case .daily: "Daily Puzzle"
+        case .random: "Random Level"
         case .classic, .levels: "Token Swap"
         }
     }
@@ -170,8 +181,8 @@ struct TokenSwapPlayView: View {
                         .contentTransition(.numericText())
                         .foregroundStyle((game.movesLeft ?? 0) <= 3 ? Theme.loss : .primary)
                     Text("moves")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.subtext)
+                        .font(.footnote.weight(.heavy))
+                        .foregroundStyle(Theme.accent)
                         .textCase(.uppercase)
                 }
                 .frame(minWidth: 54)
@@ -229,36 +240,52 @@ struct TokenSwapPlayView: View {
             } else {
                 GamePanel(title: "Classic", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.tokenSwapBestScore,
-                              howTo: "A minute to score as much as you can. Line up three or more to clear them; bigger matches make specials, and waves that fall into new matches score more. Every point pays coins.",
-                              showHelp: { showingHelp = true })
+                              detail: "A minute on the clock. Every point pays coins.")
                 }
             }
         }
     }
 
     private func startPanel(_ level: TokenSwapLevel) -> some View {
-        let isDaily = route != .level(level.id)
-        let best = isDaily ? 0 : store.game.tokenSwap.stars(for: level.id)
-        return GamePanel(title: isDaily ? "Daily Puzzle" : "Level \(level.id)", buttonTitle: "Play", action: start) {
-            VStack(spacing: 12) {
+        let isLevel = !isDaily && !isRandom
+        let best = isLevel ? store.game.tokenSwap.stars(for: level.id) : 0
+        return GamePanel(title: isDaily ? "Daily Puzzle" : isRandom ? "Random Level" : "Level \(level.id)", buttonTitle: "Play", action: start) {
+            VStack(spacing: 14) {
                 Text(level.name)
-                    .font(.title3.weight(.semibold))
-                if !isDaily && best > 0 { StarRow(stars: best, size: 18) }
+                    .font(.title2.bold())
+                if isLevel && best > 0 { StarRow(stars: best, size: 22) }
                 GoalList(goals: level.goals.map { ($0, 0) }, showsProgress: false)
-                Text("\(level.moves) moves · \(level.difficulty.name)")
+                HStack(spacing: 8) {
+                    LevelFact(text: "\(level.moves) moves", systemImage: "hand.draw.fill", color: .blue)
+                    LevelFact(text: level.difficulty.name, systemImage: level.difficulty.symbol, color: level.difficulty.color)
+                }
+                Label {
+                    Text(level.tip)
+                } icon: {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundStyle(Theme.gold)
+                }
+                .font(.body.weight(.medium))
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(MiniGame.tokenSwap.color.opacity(0.18), in: .rect(cornerRadius: 14))
+                Label(rewardLine(for: level, isDaily: isDaily), systemImage: "bitcoinsign.circle.fill")
                     .font(.headline)
-                    .foregroundStyle(.subtext)
-                Text(level.tip)
-                    .font(.subheadline)
-                    .foregroundStyle(.subtext)
-                Text(rewardLine(for: level, isDaily: isDaily))
-                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(Theme.accent)
+                if isRandom {
+                    Button("Another Level", systemImage: "dice.fill", action: newRandomLevel)
+                        .buttonStyle(.glass)
+                        .font(.subheadline.weight(.semibold))
+                }
             }
         }
     }
 
     private func rewardLine(for level: TokenSwapLevel, isDaily: Bool) -> String {
+        if isRandom {
+            return "Every point pays coins, and a win pays \(CoinFormat.short(store.game.tokenSwapRandomWinBonus(level.difficulty))) more."
+        }
         if isDaily, case .daily(let day) = route {
             return store.game.tokenSwap.hasWonDaily(day: day)
                 ? "Solved today: this one's for fun."
@@ -272,8 +299,9 @@ struct TokenSwapPlayView: View {
 
     @ViewBuilder
     private func outcomePanel(_ outcome: Outcome, level: TokenSwapLevel) -> some View {
-        let isDaily = route != .level(level.id)
-        if outcome.won {
+        if isRandom {
+            randomOutcomePanel(outcome)
+        } else if outcome.won {
             let next = TokenSwapLevel.number(level.id + 1)
             GamePanel(title: isDaily ? "Puzzle Solved!" : "Level Complete!",
                       buttonTitle: !isDaily && next != nil ? "Next Level" : "Play Again",
@@ -319,6 +347,34 @@ struct TokenSwapPlayView: View {
                         .font(.headline)
                     secondaryButtons(replay: false)
                 }
+            }
+        }
+    }
+
+    /// A finished random level: what it scored and paid, with a new level one tap away.
+    private func randomOutcomePanel(_ outcome: Outcome) -> some View {
+        GamePanel(title: outcome.won ? "Level Complete!" : "Out of Moves", buttonTitle: "New Level", action: newRandomLevel) {
+            VStack(spacing: 10) {
+                if outcome.won { StarRow(stars: outcome.stars, size: 30, animated: !reduceMotion) }
+                Text(CoinFormat.grouped(outcome.score))
+                    .font(.system(size: 44, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.5)
+                if !outcome.won {
+                    GoalList(goals: outcome.progress, showsProgress: true)
+                }
+                HStack(spacing: 8) {
+                    Text("You earned")
+                        .font(.title3.weight(.semibold))
+                    CoinAmount(amount: outcome.coins, font: .title2.bold(), iconSize: 26)
+                }
+                HStack(spacing: 10) {
+                    Button("Retry", systemImage: "arrow.counterclockwise", action: start)
+                        .buttonStyle(.glass)
+                    Button("Done", systemImage: "checkmark") { dismiss() }
+                        .buttonStyle(.glass)
+                }
+                .font(.subheadline.weight(.semibold))
             }
         }
     }
@@ -425,6 +481,8 @@ struct TokenSwapPlayView: View {
             TokenSwapGame(level: TokenSwapLevel.number(id) ?? TokenSwapLevel.all[0], refillSeed: .random(in: 0...UInt64.max))
         case .daily(let day):
             TokenSwapGame(level: TokenSwapLevel.daily(day: day), mode: .daily(day), refillSeed: TokenSwapLevel.dailyRefillSeed(day: day))
+        case .random(let seed, let difficulty):
+            TokenSwapGame(level: TokenSwapLevel.generated(seed: seed, difficulty: difficulty), refillSeed: .random(in: 0...UInt64.max))
         case .classic, .levels:
             TokenSwapGame(seed: .random(in: 0...UInt64.max))
         }
@@ -445,6 +503,18 @@ struct TokenSwapPlayView: View {
         hintMove = []
         isPaused = false
         isPlaying = true
+    }
+
+    /// A fresh random level at the same difficulty, waiting on its start card.
+    private func newRandomLevel() {
+        guard case .random(_, let difficulty) = route else { return }
+        resolveTask?.cancel()
+        route = .random(seed: .random(in: 0...UInt64.max), difficulty: difficulty)
+        game = Self.newGame(for: route)
+        outcome = nil
+        effects = []
+        popups = []
+        isPlaying = false
     }
 
     private func goToNextLevel() {
@@ -507,6 +577,10 @@ struct TokenSwapPlayView: View {
             let coins = store.finishTokenSwapDaily(day: day, game: game)
             outcome = Outcome(won: won, score: game.score, stars: level.stars(won: won, score: game.score), newStars: 0,
                               coins: coins, isNewBest: false, bonusPoints: game.bonusPoints, progress: progress)
+        case .random:
+            let coins = store.finishTokenSwapRandom(level, game: game)
+            outcome = Outcome(won: won, score: game.score, stars: level.stars(won: won, score: game.score), newStars: 0,
+                              coins: coins, isNewBest: false, bonusPoints: game.bonusPoints, progress: progress)
         default:
             let payout = store.finishTokenSwapLevel(level, game: game)
             outcome = Outcome(won: won, score: game.score, stars: payout.stars, newStars: payout.newStars, coins: payout.coins,
@@ -545,7 +619,7 @@ private struct StarMeter: View {
             HStack(spacing: 1) {
                 ForEach(thresholds.indices, id: \.self) { index in
                     Image(systemName: score >= thresholds[index] ? "star.fill" : "star")
-                        .font(.caption2.weight(.bold))
+                        .font(.footnote.weight(.bold))
                         .foregroundStyle(score >= thresholds[index] ? Theme.gold : .secondary)
                 }
             }
@@ -622,21 +696,80 @@ private struct GoalList: View {
     }
 }
 
-/// What makes each special, in a line under the board.
+/// What makes each special, under the board: one line when it fits, two when it doesn't.
 private struct SpecialsLegend: View {
     var body: some View {
-        HStack(spacing: 12) {
-            Label("Square", systemImage: "fanblades.fill")
-            Label("4 in a row", systemImage: "arrow.left.and.right")
-            Label("L or T", systemImage: "flame.fill")
-            Label("5 in a row", systemImage: "sparkles")
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 14) { items }
+            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 4) {
+                GridRow {
+                    item("Square", "fanblades.fill", .teal)
+                    item("4 in a row", "arrow.left.and.right", .orange)
+                }
+                GridRow {
+                    item("L or T", "flame.fill", .red)
+                    item("5 in a row", "sparkles", .purple)
+                }
+            }
         }
-        .font(.footnote.weight(.semibold))
-        .foregroundStyle(.subtext)
-        .labelStyle(.titleAndIcon)
+        .font(.subheadline.weight(.semibold))
         .lineLimit(1)
-        .minimumScaleFactor(0.6)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("A square makes a Propeller, four in a row a Rocket, an L or T a Bomb, and five in a row a Color Clear.")
+    }
+
+    @ViewBuilder private var items: some View {
+        item("Square", "fanblades.fill", .teal)
+        item("4 in a row", "arrow.left.and.right", .orange)
+        item("L or T", "flame.fill", .red)
+        item("5 in a row", "sparkles", .purple)
+    }
+
+    private func item(_ title: String, _ symbol: String, _ color: Color) -> some View {
+        Label {
+            Text(title)
+        } icon: {
+            Image(systemName: symbol)
+                .foregroundStyle(color)
+        }
+    }
+}
+
+/// A fact about a level on its start card: the moves, or the difficulty.
+private struct LevelFact: View {
+    let text: String
+    let systemImage: String
+    let color: Color
+
+    var body: some View {
+        Label {
+            Text(text)
+        } icon: {
+            Image(systemName: systemImage)
+                .foregroundStyle(color)
+        }
+        .font(.headline)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(color.opacity(0.18), in: .capsule)
+    }
+}
+
+extension TokenSwapLevel.Difficulty {
+    /// A gauge for the difficulty, fuller as it gets harder.
+    var symbol: String {
+        switch self {
+        case .easy: "gauge.with.dots.needle.0percent"
+        case .medium: "gauge.with.dots.needle.50percent"
+        case .hard: "gauge.with.dots.needle.100percent"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .easy: Theme.gain
+        case .medium: .orange
+        case .hard: Theme.loss
+        }
     }
 }

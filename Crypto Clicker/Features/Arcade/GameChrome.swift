@@ -65,8 +65,8 @@ struct GameStat: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(title)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.subtext)
+                .font(.footnote.weight(.heavy))
+                .foregroundStyle(Theme.accent)
                 .textCase(.uppercase)
             Text(value)
                 .font(.headline.monospacedDigit())
@@ -78,12 +78,14 @@ struct GameStat: View {
 }
 
 extension View {
-    /// The compact glass strip that holds a game's score.
+    /// The compact glass strip that holds a game's score, backed so the board behind doesn't
+    /// wash the numbers out.
     func scoreBar() -> some View {
         padding(.horizontal, 14)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
             .glassEffect(.regular, in: .rect(cornerRadius: 18))
+            .background(.background.opacity(0.45), in: .rect(cornerRadius: 18))
     }
 }
 
@@ -157,6 +159,8 @@ struct GamePanel<Content: View>: View {
         .padding(24)
         .frame(maxWidth: 440)
         .glassEffect(.regular, in: .rect(cornerRadius: 30))
+        // A backing behind the glass, so text on the card stays crisp over a busy board.
+        .background(.background.opacity(0.6), in: .rect(cornerRadius: 30))
         .padding(.horizontal, 16)
     }
 }
@@ -223,45 +227,146 @@ struct ChallengeCompleteBadge: View {
             Text(reward.weeklyBonus > 0
                  ? "+\(CoinFormat.short(reward.coins)) coins, and +\(CoinFormat.short(reward.weeklyBonus)) for the week's \(Tuning.weeklyChallengeGoal)th"
                  : "+\(CoinFormat.short(reward.coins)) coins")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.subtext)
+                .font(.body.weight(.semibold))
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 14)
-        .background(Theme.accent.opacity(0.12), in: .rect(cornerRadius: 14))
+        .background(Theme.accent.opacity(0.16), in: .rect(cornerRadius: 14))
         .accessibilityElement(children: .combine)
     }
 }
 
-/// The intro on a game's start card.
+/// The intro on a game's start card: the best score and anything particular to this round. The
+/// rules themselves are a tap away (the ? in the navigation bar, and the pause card), so they
+/// aren't repeated here.
 struct GameIntro: View {
     let best: Int
-    let howTo: String
-    /// Another line under the best score: a record, or today's rule.
+    /// Another line under the best score: a record.
     var note: String? = nil
-    /// Shows a How to Play button.
-    var showHelp: (() -> Void)? = nil
+    /// What's particular to this mode or day (today's pieces, a Sprint's target, a bonus).
+    var detail: String? = nil
 
     var body: some View {
         VStack(spacing: 10) {
             if best > 0 {
-                Text("Best \(CoinFormat.grouped(best))")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.subtext)
+                Label("Best \(CoinFormat.grouped(best))", systemImage: "trophy.fill")
+                    .font(.title3.bold())
+                    .foregroundStyle(Theme.accent)
             }
             if let note {
                 Text(note)
                     .font(.headline)
-                    .foregroundStyle(.subtext)
             }
-            Text(howTo)
-                .font(.body)
-                .foregroundStyle(.subtext)
-            if let showHelp {
-                Button("How to Play", systemImage: "questionmark.circle", action: showHelp)
-                    .buttonStyle(.glass)
-                    .font(.headline)
+            if let detail {
+                Text(detail)
+                    .font(.body.weight(.medium))
             }
+        }
+    }
+}
+
+/// A game's options: its speed, and Brick Breaker's walls. Changed between games.
+struct GameOptionsSheet: View {
+    let game: MiniGame
+    @Binding var speed: GameSpeed
+    var levels: Binding<BrickBreakerGame.LevelStyle>? = nil
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker("Speed", selection: $speed) {
+                        ForEach(GameSpeed.allCases) { speed in
+                            Label(speed.name, systemImage: speed.icon).tag(speed)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                } header: {
+                    Text("Speed")
+                } footer: {
+                    SettingsNote(speedFooter)
+                }
+                if let levels {
+                    Section {
+                        Picker("Walls", selection: levels) {
+                            ForEach(BrickBreakerGame.LevelStyle.allCases) { style in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(style.name)
+                                    Text(style.summary)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.subtext)
+                                }
+                                .tag(style)
+                            }
+                        }
+                        .pickerStyle(.inline)
+                        .labelsHidden()
+                    } header: {
+                        Text("Walls")
+                    } footer: {
+                        SettingsNote("Both kinds take about as many hits and pay about the same; a boss still comes every fifth level.")
+                    }
+                }
+            }
+            .navigationTitle("Options")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var speedFooter: String {
+        let what = switch game {
+        case .snake: "How fast the snake moves."
+        case .tetris: "How fast pieces fall."
+        default: "How fast the ball moves."
+        }
+        return what + " Points are worth the same at every speed: Fast scores quicker but is harder to keep up with, and Slow is relaxed but scores more slowly."
+    }
+}
+
+/// The options on a game's start card, as a button that opens them.
+struct GameOptionsChip: View {
+    let speed: GameSpeed
+    var levels: BrickBreakerGame.LevelStyle? = nil
+    let change: () -> Void
+
+    var body: some View {
+        Button(action: change) {
+            Label(summary, systemImage: speed.icon)
+                .font(.subheadline.weight(.semibold))
+        }
+        .buttonStyle(.glass)
+        .accessibilityLabel("Options: \(summary)")
+        .accessibilityHint("Changes the speed\(levels == nil ? "" : " and the walls")")
+    }
+
+    private var summary: String {
+        var parts = ["\(speed.name) speed"]
+        if let levels { parts.append(levels == .generated ? "random walls" : "classic walls") }
+        return parts.joined(separator: " · ")
+    }
+}
+
+extension View {
+    /// The Options button in a game's navigation bar, and the sheet it opens. The options apply to
+    /// the next game, so the button waits while a game is on.
+    func gameOptions(_ game: MiniGame, isPresented: Binding<Bool>, isEnabled: Bool, speed: Binding<GameSpeed>,
+                     levels: Binding<BrickBreakerGame.LevelStyle>? = nil) -> some View {
+        toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Options", systemImage: "slider.horizontal.3") { isPresented.wrappedValue = true }
+                    .disabled(!isEnabled)
+            }
+        }
+        .sheet(isPresented: isPresented) {
+            GameOptionsSheet(game: game, speed: speed, levels: levels)
         }
     }
 }
@@ -330,7 +435,7 @@ struct PracticeBetControls: View {
                     .font(.headline.monospacedDigit())
                     .contentTransition(.numericText())
                 Text("No tokens, coins or stats change")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.subtext)
             }
             Spacer(minLength: 0)
@@ -369,12 +474,12 @@ struct TokenBetControls: View {
                         Text(token.ticker)
                             .font(.headline)
                         Text("\(CoinFormat.grouped(owned)) owned")
-                            .font(.caption.monospacedDigit())
+                            .font(.subheadline.weight(.medium).monospacedDigit())
                             .foregroundStyle(.subtext)
                     }
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.subtext)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
                 }
                 .contentShape(.rect)
             }

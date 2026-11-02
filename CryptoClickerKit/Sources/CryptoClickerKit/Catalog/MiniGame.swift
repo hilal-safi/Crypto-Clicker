@@ -1,7 +1,7 @@
 import Foundation
 
 /// Mini-games, unlocked with coins in the Arcade. Casino games are played with tokens from the
-/// Coin Exchange; arcade games pay coins for every point scored.
+/// Shop's Tokens page; arcade games pay coins for every point scored.
 ///
 /// Everything about a game except its rules lives in `info`, so adding a game starts there. The
 /// rules live in the game's engine (in MiniGames), what it pays and records in MiniGameActions,

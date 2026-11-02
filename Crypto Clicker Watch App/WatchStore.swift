@@ -57,15 +57,15 @@ final class WatchStore {
 
     func income(at date: Date) -> Double { snapshot?.income(at: date) ?? 0 }
 
-    /// Steps the phone has paid for today.
-    var collectedStepsToday: Int {
+    /// Steps the phone has counted today, as of its last sync. They're paid tomorrow.
+    var phoneStepsToday: Int {
         guard let snapshot, snapshot.stepsDay == StepDay.key(for: .now) else { return 0 }
         return snapshot.stepsToday
     }
 
-    /// Steps this watch has counted today that the phone has not paid for yet.
-    var uncollectedSteps: Int {
-        max(0, (liveSteps ?? 0) - collectedStepsToday)
+    /// Today's steps as best known here: this watch's live count or the phone's, whichever is more.
+    var stepsToday: Int {
+        max(liveSteps ?? 0, phoneStepsToday)
     }
 
     // MARK: Actions

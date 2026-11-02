@@ -40,6 +40,11 @@ extension GameState {
         offlineMiningLevel = min(max(0, offlineMiningLevel + levels), Tuning.offlineMiningMaxLevel)
     }
 
+    /// Puts every combo power-up at its last level.
+    public mutating func debugMaxPowerUps() {
+        for powerUp in PowerUpID.allCases { powerUps[powerUp] = powerUp.maxLevel }
+    }
+
     public mutating func debugUnlockAllGames() {
         unlockedGames = Set(MiniGame.allCases)
     }

@@ -12,7 +12,7 @@ public struct MarketNews: Equatable, Sendable, Identifiable {
     public var id: String { "\(token.rawValue)@\(Int64(date.timeIntervalSince1970))" }
 }
 
-/// Token prices on the Coin Exchange. Each price follows two slow waves, some gentle noise and the
+/// Token prices in the Shop's Tokens page. Each price follows two slow waves, some gentle noise and the
 /// occasional news story, all worked out from the clock: every device sees the same market, nothing
 /// needs saving, and the past can be charted. Prices stay within `Tuning.marketPriceRange` of the
 /// token's list price and move once per `Tuning.marketTick`.

@@ -3,10 +3,12 @@ import Foundation
 /// Brick Breaker: keep the ball in play with the paddle and clear every brick to reach the next,
 /// faster level. Three lives per game. The field is 1 unit wide and 1.5 units tall, y pointing down.
 ///
-/// Level 1 is always a plain wall. From level 2 each wall takes a random shape (a checkerboard, a
-/// pyramid, columns, stripes, a diamond, a frame or scattered bricks), and armored bricks that take
-/// two hits (three from level 6) make up the difference, so every wall takes about as many hits as
-/// a full one. Some bricks are explosive (they break the bricks around them) and some carry a
+/// Classic walls: level 1 is always a plain wall, and from level 2 each wall takes one of eight
+/// shapes (a full wall, a checkerboard, a pyramid, columns, stripes, a diamond, a frame or scattered
+/// bricks). Random walls are made up on the spot for every level (see `generatedCells`), so no two
+/// games look alike. Either way, armored bricks that take two hits (three from level 6) make up the
+/// difference, so every wall takes about as many hits as a full one. The ball's speed is one of the
+/// game's options (`GameSpeed`). Some bricks are explosive (they break the bricks around them) and some carry a
 /// bonus (they drop a power-up to catch with the paddle): Multi-ball, Wide Paddle, Slow Ball or
 /// Laser. Every fifth level is a boss: a big block that slides from side to side, takes many hits,
 /// and drops debris that shrinks the paddle for a while if it lands on it.
@@ -87,6 +89,30 @@ public struct BrickBreakerGame: Sendable {
         public internal(set) var position: Vector2
     }
 
+    /// Which walls a game plays.
+    public enum LevelStyle: String, CaseIterable, Codable, Sendable, Identifiable {
+        /// Level 1's plain wall, then one of eight shapes.
+        case classic
+        /// A wall made up for every level, never the same twice.
+        case generated
+
+        public var id: String { rawValue }
+
+        public var name: String {
+            switch self {
+            case .classic: "Classic"
+            case .generated: "Random"
+            }
+        }
+
+        public var summary: String {
+            switch self {
+            case .classic: "A plain wall first, then eight familiar shapes."
+            case .generated: "A new wall made up for every level: blobs, waves, rings, skylines and more, never the same twice."
+            }
+        }
+    }
+
     public struct Boss: Equatable, Sendable {
         public internal(set) var frame: Box
         public let maxHits: Int
@@ -151,13 +177,19 @@ public struct BrickBreakerGame: Sendable {
     public private(set) var bossHits = 0
     /// Bricks that exploded in the last update, for effects.
     public private(set) var lastExplosions: [Box] = []
+    /// How fast the ball moves (the game's Speed option).
+    public let gameSpeed: GameSpeed
+    /// Classic walls or walls made up for every level.
+    public let levelStyle: LevelStyle
     private var laserClock: TimeInterval = 0
     private var serves = 0
     private var nextID = 0
     /// Shapes the walls and picks the power-ups.
     private var rng: SeededGenerator
 
-    public init(seed: UInt64 = .random(in: 0...UInt64.max)) {
+    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal, levels: LevelStyle = .classic) {
+        gameSpeed = speed
+        levelStyle = levels
         rng = SeededGenerator(seed: seed)
         layOutLevel()
         serve()
@@ -175,9 +207,10 @@ public struct BrickBreakerGame: Sendable {
         powerUp == .multiBall ? balls.count > 1 : (effects[powerUp] ?? 0) > 0
     }
 
-    /// Ball speed in field units per second; each level is faster, and Slow Ball slows it.
+    /// Ball speed in field units per second; each level is faster, the Speed option scales it, and
+    /// Slow Ball slows it.
     public var speed: Double {
-        let base = min(1.5, 0.8 + Double(level - 1) * 0.1)
+        let base = min(1.5, 0.8 + Double(level - 1) * 0.1) * gameSpeed.factor
         return isActive(.slowBall) ? base * Self.slowFactor : base
     }
 
@@ -554,25 +587,39 @@ public struct BrickBreakerGame: Sendable {
         return rows * columns + extra * (level >= 6 ? 2 : 1)
     }
 
-    /// Fills the wall for the current level: level 1's plain wall; then random shapes, with enough
-    /// armored bricks to take about as many hits as a full wall, and a few explosive and bonus
-    /// bricks among the rest. Every fifth level brings a boss behind a low wall.
+    /// Fills the wall for the current level: a classic shape or a made-up wall, with enough armored
+    /// bricks to take about as many hits as a full wall, and a few explosive and bonus bricks among
+    /// the rest. Every fifth level brings a boss behind a low wall.
     private mutating func layOutLevel() {
         boss = nil
         if isBossLevel {
             layOutBossLevel()
             return
         }
-        let rows = Self.rows(for: level)
-        let cells = Self.cells(level: level, rows: rows, using: &rng)
+        let isGenerated = levelStyle == .generated
+        let rows = isGenerated ? Self.generatedRows(level: level, using: &rng) : Self.rows(for: level)
+        // Made-up walls vary their specials too, and have a bonus brick from the very first level.
+        let wobble = isGenerated ? Int.random(in: -1...1, using: &rng) : 0
+        let bonusTarget = level == 1 ? (isGenerated ? 1 : 0) : max(1, 2 + level / 3 + wobble)
+        // Made-up walls are denser, so an explosion reaches more bricks: they get one explosive fewer.
+        let explosiveTarget = level == 1 ? 0 : max(0, (isGenerated ? 0 : 1) + level / 2 - wobble)
         let armorHits = level >= 6 ? 3 : 2
+        // Made-up walls have enough bricks for armor to make up about two thirds of a full wall's
+        // hits (what the classic shapes average), and at least two fifths of their grid. Level 1
+        // has no armor, so its wall is nearly full, like the classic plain wall.
+        let needed = level == 1 ? Self.fullWallHits(level: 1) * 4 / 5
+            : (Self.fullWallHits(level: level) * 13 / 20 + armorHits - 1) / armorHits + bonusTarget + explosiveTarget
+        let cells = isGenerated ? Self.generatedCells(rows: rows, minimum: max(rows * Self.columns * 2 / 5, needed), using: &rng)
+                                : Self.cells(level: level, rows: rows, using: &rng)
         let extraHits = level == 1 ? 0 : max(0, Self.fullWallHits(level: level) - cells.count)
-        let armoredCount = min(cells.count, (extraHits + armorHits - 2) / (armorHits - 1))
+        // Made-up walls keep a few plain bricks for their specials.
+        let armorRoom = isGenerated ? max(0, cells.count - bonusTarget - explosiveTarget) : cells.count
+        let armoredCount = min(armorRoom, (extraHits + armorHits - 2) / (armorHits - 1))
         let order = cells.indices.shuffled(using: &rng)
         let armored = Set(order.prefix(armoredCount))
         let rest = order.dropFirst(armoredCount)
-        let bonusCount = level == 1 ? 0 : min(rest.count, 2 + level / 3)
-        let explosiveCount = level == 1 ? 0 : min(rest.count - bonusCount, 1 + level / 2)
+        let bonusCount = min(rest.count, bonusTarget)
+        let explosiveCount = min(rest.count - bonusCount, explosiveTarget)
         let bonus = Set(rest.prefix(bonusCount))
         let explosive = Set(rest.dropFirst(bonusCount).prefix(explosiveCount))
         let width = Self.brickWidth
@@ -637,6 +684,103 @@ public struct BrickBreakerGame: Sendable {
             }
         }.map(\.element)
         return picked.count >= 2 * columns ? picked : all
+    }
+
+    // MARK: Made-up walls
+
+    /// Rows for a made-up wall: about as many as the classic wall on that level, give or take one.
+    static func generatedRows<R: RandomNumberGenerator>(level: Int, using rng: inout R) -> Int {
+        min(8, max(4, rows(for: level) + Int.random(in: -1...1, using: &rng)))
+    }
+
+    /// A wall made up on the spot, mirrored left to right like the classic ones: scattered bricks,
+    /// smoothed blobs, stacked blocks, a wave, rings, chevrons or a skyline, each with its own
+    /// random sizes, gaps and density. Always at least two rows' worth of bricks, and `minimum`.
+    static func generatedCells<R: RandomNumberGenerator>(rows: Int, minimum: Int = 0, using rng: inout R) -> [(row: Int, column: Int)] {
+        let rows = max(2, rows)
+        let middle = columns / 2
+        var grid = Array(repeating: Array(repeating: false, count: columns), count: rows)
+        func inside(_ row: Int, _ column: Int) -> Bool { (0..<rows).contains(row) && (0..<columns).contains(column) }
+        func mirror() {
+            for row in 0..<rows {
+                for column in (middle + 1)..<columns { grid[row][column] = grid[row][columns - 1 - column] }
+            }
+        }
+        switch Int.random(in: 0..<7, using: &rng) {
+        case 0: // Scattered bricks.
+            let density = Double.random(in: 0.5...0.8, using: &rng)
+            for row in 0..<rows { for column in 0...middle { grid[row][column] = Double.random(in: 0..<1, using: &rng) < density } }
+        case 1: // Blobs: scattered bricks, smoothed twice so they clump together.
+            let density = Double.random(in: 0.45...0.62, using: &rng)
+            for row in 0..<rows { for column in 0..<columns { grid[row][column] = Double.random(in: 0..<1, using: &rng) < density } }
+            for _ in 0..<2 {
+                var next = grid
+                for row in 0..<rows {
+                    for column in 0..<columns {
+                        var count = 0
+                        for dRow in -1...1 { for dColumn in -1...1 where inside(row + dRow, column + dColumn) && grid[row + dRow][column + dColumn] { count += 1 } }
+                        next[row][column] = count >= 5
+                    }
+                }
+                grid = next
+            }
+        case 2: // Stacked blocks.
+            for _ in 0..<Int.random(in: 3...5, using: &rng) {
+                let width = Int.random(in: 1...3, using: &rng), height = Int.random(in: 1...min(3, rows), using: &rng)
+                let left = Int.random(in: 0...max(0, middle + 1 - width), using: &rng)
+                let top = Int.random(in: 0...(rows - height), using: &rng)
+                for row in top..<(top + height) { for column in left..<min(columns, left + width) { grid[row][column] = true } }
+            }
+        case 3: // A wave across the wall.
+            let amplitude = Double.random(in: 1...max(1, Double(rows) / 2), using: &rng)
+            let frequency = Double.random(in: 0.6...1.4, using: &rng)
+            let phase = Double.random(in: 0..<(2 * Double.pi), using: &rng)
+            let thickness = Double.random(in: 0.8...1.8, using: &rng)
+            let center = Double(rows - 1) / 2
+            for row in 0..<rows {
+                for column in 0...middle {
+                    grid[row][column] = abs(Double(row) - (center + amplitude * sin(Double(column) * frequency + phase))) <= thickness
+                }
+            }
+        case 4: // Rings, with a few bricks knocked out.
+            let ring = Int.random(in: 0...1, using: &rng)
+            let holes = Double.random(in: 0.05...0.2, using: &rng)
+            for row in 0..<rows {
+                for column in 0...middle {
+                    let depth = min(row, rows - 1 - row, column, columns - 1 - column)
+                    grid[row][column] = depth % 2 == ring && Double.random(in: 0..<1, using: &rng) >= holes
+                }
+            }
+        case 5: // Chevrons pointing up or down.
+            let slope = Int.random(in: 1...2, using: &rng), period = Int.random(in: 3...4, using: &rng)
+            let thickness = Int.random(in: 1...2, using: &rng), upward = Bool.random(using: &rng)
+            for row in 0..<rows {
+                for column in 0...middle {
+                    let depth = upward ? row : rows - 1 - row
+                    grid[row][column] = (depth + (middle - column) * slope) % period < thickness
+                }
+            }
+        default: // A skyline: columns of random heights, standing up or hanging down.
+            let hanging = Bool.random(using: &rng)
+            for column in 0...middle {
+                let height = Int.random(in: 1...rows, using: &rng)
+                for row in 0..<rows { grid[row][column] = hanging ? row < height : row >= rows - height }
+            }
+        }
+        mirror()
+        // Too sparse to be a wall: add mirrored pairs until there are enough.
+        var count = grid.joined().filter { $0 }.count
+        let target = min(rows * columns, max(2 * columns, minimum))
+        var attempts = 0
+        while count < target && attempts < 2_000 {
+            attempts += 1
+            let row = Int.random(in: 0..<rows, using: &rng), column = Int.random(in: 0...middle, using: &rng)
+            guard !grid[row][column] else { continue }
+            grid[row][column] = true
+            grid[row][columns - 1 - column] = true
+            count += column == middle ? 1 : 2
+        }
+        return (0..<rows).flatMap { row in (0..<columns).filter { grid[row][$0] }.map { (row: row, column: $0) } }
     }
 
     #if DEBUG

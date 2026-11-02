@@ -137,13 +137,13 @@ struct BlackjackView: View {
                     PracticeBetControls(chips: chips, bet: $practiceBet)
                     if chips.isBroke {
                         Button("New Stack of \(CoinFormat.grouped(PracticeChips.starting)) Chips") { chips.refill() }
-                            .font(.footnote.weight(.semibold))
+                            .font(.subheadline.weight(.bold))
                             .buttonStyle(.borderless)
                             .tint(Theme.gold)
                     }
                 } else {
                     if TokenID.allCases.allSatisfy({ game.tokenCount($0) == 0 }) {
-                        Label("Buy tokens on the Coin Exchange to place bets, or practice with chips.", systemImage: "info.circle")
+                        Label("Buy tokens in the Shop to place bets, or practice with chips.", systemImage: "info.circle")
                             .font(.subheadline)
                             .foregroundStyle(.subtext)
                     }
@@ -152,12 +152,12 @@ struct BlackjackView: View {
                     let fullBonusBet = game.blackjackBetForFullBonus(token)
                     HStack(alignment: .firstTextBaseline) {
                         Text("A win also pays \(CoinFormat.short(game.blackjackBonus(bet: bet, token: token, rules: tableRules))) coins")
-                            .font(.caption)
-                            .foregroundStyle(.subtext)
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.9))
                         Spacer()
                         if bet < fullBonusBet && owned > bet {
                             Button("Max Bonus") { bet = min(owned, fullBonusBet) }
-                                .font(.footnote.weight(.semibold))
+                                .font(.subheadline.weight(.bold))
                                 .buttonStyle(.borderless)
                                 .tint(Theme.gold)
                         }
@@ -365,7 +365,7 @@ private struct TableMarkings: View {
                 .font(.subheadline.weight(.heavy))
                 .tracking(2)
             Text(rules.dealerRule + (rules == .hitsSoft17 ? " · wins pay more coins" : "") + (isPractice ? " · practice" : ""))
-                .font(.caption.weight(.semibold))
+                .font(.footnote.weight(.bold))
                 .tracking(1)
         }
         .foregroundStyle(Theme.gold.opacity(0.7))

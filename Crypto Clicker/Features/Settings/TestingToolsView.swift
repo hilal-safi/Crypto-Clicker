@@ -30,7 +30,7 @@ struct TestingToolsView: View {
                 } header: {
                     Text("Right now")
                 } footer: {
-                    Text("These tools are only in builds you run from Xcode. App Store builds don't include them.")
+                    SettingsNote("These tools are only in builds you run from Xcode. App Store builds don't include them.")
                 }
 
                 Section {
@@ -55,18 +55,19 @@ struct TestingToolsView: View {
                 } header: {
                     Text("Coins")
                 } footer: {
-                    Text("Added coins count as mined, so upgrades appear, achievements unlock and prestige points build up just as they would in play.")
+                    SettingsNote("Added coins count as mined, so upgrades appear, achievements unlock and prestige points build up just as they would in play.")
                 }
 
                 Section {
                     Button("Add 10 of Every Miner") { store.debugAddMiners(10) }
                     Button("Add 100 of Every Miner") { store.debugAddMiners(100) }
                     Button("Give Every Upgrade") { store.debugGiveAllUpgrades() }
+                    Button("Max Every Combo Power-up") { store.debugMaxPowerUps() }
                         .disabled(game.upgrades.count == UpgradeID.allCases.count)
                 } header: {
                     Text("Shop")
                 } footer: {
-                    Text("Added miners include the three that normally wait for the first prestige. Mk upgrades appear at 25, 50, 100, 200 and 400 of a miner.")
+                    SettingsNote("Added miners include the three that normally wait for the first prestige. Mk upgrades appear at 25, 50, 100, 200 and 400 of a miner.")
                 }
 
                 Section {
@@ -77,7 +78,7 @@ struct TestingToolsView: View {
                 } header: {
                     Text("Prestige")
                 } footer: {
-                    Text("Points added here raise production and can be spent on perks, without starting over.")
+                    SettingsNote("Points added here raise production and can be spent on perks, without starting over.")
                 }
 
                 Section {
@@ -87,7 +88,7 @@ struct TestingToolsView: View {
                 } header: {
                     Text("Daily")
                 } footer: {
-                    Text("A new day makes the daily reward, fresh quests and a new daily challenge available again, and keeps the streak going.")
+                    SettingsNote("A new day makes the daily reward, fresh quests and a new daily challenge available again, and keeps the streak going.")
                 }
 
                 Section {
@@ -106,7 +107,7 @@ struct TestingToolsView: View {
                 } header: {
                     Text("Offline Mining")
                 } footer: {
-                    Text("Without it, miners stop a minute after the app closes. Use Pretend I Was Away below to see the welcome-back screen.")
+                    SettingsNote("Without it, miners stop a minute after the app closes. Use Pretend I Was Away below to see the welcome-back screen.")
                 }
 
                 Section("Arcade") {
@@ -130,7 +131,7 @@ struct TestingToolsView: View {
                 } header: {
                     Text("Steps")
                 } footer: {
-                    Text("Steps unlock after \(CoinFormat.grouped(Tuning.stepsUnlockTaps)) taps. The Simulator starts with no steps: add some by hand in its Health app (Steps › Add Data), then sync.")
+                    SettingsNote("Steps unlock after \(CoinFormat.grouped(Tuning.stepsUnlockTaps)) taps. The Simulator starts with no steps: add some by hand in its Health app (Steps › Add Data), then sync.")
                 }
 
                 Section {
@@ -150,7 +151,7 @@ struct TestingToolsView: View {
                 } header: {
                     Text("Events")
                 } footer: {
-                    Text("Airdrops and time away close this screen so you can see them. Right now time away pays for up to \(CoinFormat.duration(game.timeAwayLimit)): the first minute, or the Offline Mining limit once it's longer.")
+                    SettingsNote("Airdrops and time away close this screen so you can see them. Right now time away pays for up to \(CoinFormat.duration(game.timeAwayLimit)): the first minute, or the Offline Mining limit once it's longer.")
                 }
             }
             .navigationTitle("Testing Tools")

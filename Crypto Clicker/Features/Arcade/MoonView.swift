@@ -205,13 +205,13 @@ struct MoonView: View {
                     PracticeBetControls(chips: chips, bet: $practiceBet)
                     if chips.isBroke {
                         Button("New Stack of \(CoinFormat.grouped(PracticeChips.starting)) Chips") { chips.refill() }
-                            .font(.footnote.weight(.semibold))
+                            .font(.subheadline.weight(.bold))
                             .buttonStyle(.borderless)
                             .tint(Theme.gold)
                     }
                 } else {
                     if TokenID.allCases.allSatisfy({ counts[$0, default: 0] == 0 }) {
-                        Label("Buy tokens on the Coin Exchange to play, or practice with chips.", systemImage: "info.circle")
+                        Label("Buy tokens in the Shop to play, or practice with chips.", systemImage: "info.circle")
                             .font(.subheadline)
                             .foregroundStyle(.subtext)
                     }
@@ -233,8 +233,8 @@ struct MoonView: View {
                     Spacer()
                     if !isPracticing {
                         Text("2× pays +\(CoinFormat.short(game.moonBonus(bet: bet, token: token, multiplier: 2))) coins")
-                            .font(.footnote)
-                            .foregroundStyle(.subtext)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.gold)
                     }
                 }
                 Button(action: launch) {

@@ -7,12 +7,16 @@ enum TokenSwapRoute: Hashable {
     case level(Int)
     case daily(String)
     case classic
+    /// A level made up from a seed (`TokenSwapLevel.generated`).
+    case random(seed: UInt64, difficulty: TokenSwapLevel.Difficulty)
 }
 
-/// Where Token Swap opens: Levels, the daily puzzle and Classic, with the specials explained.
+/// Where Token Swap opens: Levels, the daily puzzle, random levels and Classic, with the specials
+/// explained.
 struct TokenSwapView: View {
     @Environment(GameStore.self) private var store
     @State private var showingHelp = false
+    @AppStorage(Preferences.tokenSwapRandomDifficultyKey) private var randomDifficulty = 2
 
     var body: some View {
         let progress = store.game.tokenSwap
@@ -48,6 +52,26 @@ struct TokenSwapView: View {
                     }
                     .buttonStyle(.glassProminent)
                 }
+                ModeCard(icon: "dice.fill", title: "Random Level",
+                         status: store.game.stats.tokenSwapRandomWins > 0
+                            ? "\(CoinFormat.grouped(store.game.stats.tokenSwapRandomWins)) won"
+                            : "A new level every time",
+                         detail: "A level made up for you: a random goal, board and obstacles, never the same twice. Every point pays coins, and a win pays \(CoinFormat.short(store.game.tokenSwapRandomWinBonus(difficulty))) more.",
+                         note: nil) {
+                    VStack(spacing: 10) {
+                        Picker("Difficulty", selection: $randomDifficulty) {
+                            ForEach([TokenSwapLevel.Difficulty.easy, .medium, .hard], id: \.rawValue) { difficulty in
+                                Text(difficulty.name).tag(difficulty.rawValue)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        NavigationLink(value: TokenSwapRoute.random(seed: .random(in: 0...UInt64.max), difficulty: difficulty)) {
+                            Label("Play a Random Level", systemImage: "play.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.glassProminent)
+                    }
+                }
                 ModeCard(icon: "timer", title: "Classic",
                          status: store.game.stats.tokenSwapBestScore > 0 ? "Best \(CoinFormat.grouped(store.game.stats.tokenSwapBestScore))" : "A minute on the clock",
                          detail: "Score as much as you can in a minute. Every point pays coins.", note: nil) {
@@ -68,6 +92,11 @@ struct TokenSwapView: View {
         .navigationTitle("Token Swap")
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.tokenSwap, isPresented: $showingHelp)
+    }
+
+    /// The difficulty picked for random levels (saved as its number).
+    private var difficulty: TokenSwapLevel.Difficulty {
+        TokenSwapLevel.Difficulty(rawValue: randomDifficulty) ?? .medium
     }
 }
 
@@ -98,13 +127,13 @@ private struct ModeCard<Buttons: View>: View {
                 }
             }
             Text(detail)
-                .font(.subheadline)
-                .foregroundStyle(.subtext)
+                .font(.body)
                 .fixedSize(horizontal: false, vertical: true)
             if let note {
-                Text(note)
-                    .font(.footnote)
-                    .foregroundStyle(.subtext)
+                Label(note, systemImage: "info.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             ViewThatFits {
                 HStack(spacing: 10) { buttons }
@@ -141,16 +170,16 @@ struct SpecialsGuide: View {
                         Text(row.title)
                             .font(.subheadline.weight(.bold))
                         Text(row.detail)
-                            .font(.footnote)
-                            .foregroundStyle(.subtext)
+                            .font(.subheadline)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .accessibilityElement(children: .combine)
             }
-            Text("A special goes off when it's matched, blasted, or swapped with any neighbor. Swap two specials together for a bigger combination.")
-                .font(.footnote)
-                .foregroundStyle(.subtext)
+            Label("A special goes off when it's matched, blasted, or swapped with any neighbor. Swap two specials together for a bigger combination.",
+                  systemImage: "sparkles")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Theme.accent)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
@@ -167,9 +196,9 @@ struct TokenSwapLevelsView: View {
         let progress = store.game.tokenSwap
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("\(progress.totalStars) of \(TokenSwapLevel.all.count * 3) stars")
+                Label("\(progress.totalStars) of \(TokenSwapLevel.all.count * 3) stars", systemImage: "star.fill")
                     .font(.headline)
-                    .foregroundStyle(.subtext)
+                    .labelStyle(GoldIconLabelStyle())
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 10)], spacing: 10) {
                     ForEach(TokenSwapLevel.all) { level in
                         let isOpen = progress.isUnlocked(level.id)
@@ -207,11 +236,11 @@ private struct LevelTile: View {
                     .frame(height: 34)
             }
             Text(level.name)
-                .font(.caption.weight(.semibold))
+                .font(.footnote.weight(.bold))
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
-                .minimumScaleFactor(0.8)
-                .frame(height: 30)
+                .minimumScaleFactor(0.85)
+                .frame(height: 36)
             StarRow(stars: stars, size: 13)
         }
         .padding(.vertical, 10)
@@ -312,6 +341,17 @@ struct GoalIcon: View {
         case .chains: Color(white: 0.8)
         case .crates: Color(red: 0.75, green: 0.5, blue: 0.25)
         default: Theme.gold
+        }
+    }
+}
+
+/// A label whose icon is gold, for star counts.
+struct GoldIconLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 6) {
+            configuration.icon
+                .foregroundStyle(Theme.gold)
+            configuration.title
         }
     }
 }

@@ -336,6 +336,209 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
     ]
 }
 
+// MARK: - Random levels
+
+extension TokenSwapLevel {
+    /// A level made up from `seed`, so there's always a new one to play: one goal (two on most
+    /// medium and every hard level), a board laid out for it (mirrored left to right, like the
+    /// hand-made levels), and moves and star scores worked out from what each goal takes in the
+    /// hand-made levels of the same difficulty. The same seed always makes the same level.
+    public static func generated(seed: UInt64, difficulty: Difficulty) -> TokenSwapLevel {
+        var rng = SeededGenerator(seed: StableHash.of("token-swap-random-\(seed)-\(difficulty.rawValue)"))
+        let kinds = difficulty == .hard && Double.random(in: 0..<1, using: &rng) < 0.3 ? 6 : 5
+        let goalCount = switch difficulty {
+        case .easy: 1
+        case .medium: Double.random(in: 0..<1, using: &rng) < 0.5 ? 2 : 1
+        case .hard: 2
+        }
+        var plan = RandomPlan(difficulty: difficulty, kinds: kinds)
+        // A score goal stands alone, so it's only for single-goal levels.
+        var pool = RandomPlan.Theme.allCases.filter { goalCount == 1 || $0 != .score }
+        for _ in 0..<goalCount {
+            // Obstacles that share the board (and gold that needs a clear path) don't mix well, so
+            // a second goal is picked from what fits with the first.
+            pool.removeAll { !plan.fits($0) }
+            guard let theme = pool.randomElement(using: &rng) else { break }
+            pool.removeAll { $0 == theme }
+            plan.add(theme, using: &rng)
+        }
+        let moves = plan.moves
+        let perMove = kinds == 6 ? 130.0 : 175.0
+        let second = Int((Double(moves) * perMove / 100).rounded()) * 100
+        let third = Int((Double(moves) * perMove * 1.4 / 100).rounded()) * 100
+        let names = plan.themes.first?.names ?? ["Mystery"]
+        let name = names[Int(seed % UInt64(names.count))] + " #\(seed % 10_000)"
+        return TokenSwapLevel(id: 0, name: name, difficulty: difficulty, seed: seed, kinds: kinds, moves: moves,
+                              goals: plan.goals, layout: plan.layout, goldToDrop: plan.goldToDrop,
+                              starScores: [second, third], tip: plan.themes.first?.tip ?? "")
+    }
+}
+
+/// Builds a random level goal by goal.
+private struct RandomPlan {
+    enum Theme: CaseIterable {
+        case tokens, ice, chains, crates, gold, specials, score
+
+        var names: [String] {
+            switch self {
+            case .tokens: ["Token Hunt", "Collector", "Harvest", "Shopping Spree"]
+            case .ice: ["Cold Snap", "Frozen Vault", "Permafrost", "Ice Floe"]
+            case .chains: ["Locked Ledger", "Chain Reaction", "Shackled", "Key Holder"]
+            case .crates: ["Warehouse", "Cargo Hold", "Stack Attack", "Loading Dock"]
+            case .gold: ["Gold Rush", "Bullion Drop", "Treasure Fall", "Mother Lode"]
+            case .specials: ["Rocket Lab", "Blast Zone", "Fireworks", "Demolition"]
+            case .score: ["High Roller", "Big Score", "Jackpot Run", "Bull Market"]
+            }
+        }
+
+        var tip: String {
+            switch self {
+            case .tokens: "Big matches and specials clear the most tokens of the color you need."
+            case .ice: "A match right beside a frozen token cracks its ice, and so does a blast."
+            case .chains: "Match chained tokens, or blast them, to break their chains."
+            case .crates: "Crates take a hit from every match beside them and every blast that reaches them."
+            case .gold: "Clear the tokens under a gold bar to bring it down: it's collected on the bottom row."
+            case .specials: "Four in a row makes a Rocket, a 2×2 square a Propeller, an L or T a Bomb."
+            case .score: "Waves that fall into new matches score more each time, and specials score big."
+            }
+        }
+
+        /// Board obstacles the theme lays out.
+        var usesBoard: Bool { [.ice, .chains, .crates].contains(self) }
+    }
+
+    let difficulty: TokenSwapLevel.Difficulty
+    let kinds: Int
+    private(set) var themes: [Theme] = []
+    private(set) var goals: [TokenSwapGame.Goal] = []
+    /// Moves each goal takes on its own, in the hand-made levels.
+    private var goalMoves: [Double] = []
+    private var board = Array(repeating: Array(repeating: Character("."), count: 8), count: 8)
+    private(set) var goldToDrop = 0
+    /// Columns gold falls down, kept clear of crates.
+    private var goldColumns: Set<Int> = []
+
+    init(difficulty: TokenSwapLevel.Difficulty, kinds: Int) {
+        self.difficulty = difficulty
+        self.kinds = kinds
+    }
+
+    var layout: [String] {
+        board.contains { $0.contains { $0 != "." } } ? board.map { String($0) } : []
+    }
+
+    /// Moves to allow: the hardest goal, plus half of the rest (goals move along together), with
+    /// room to spare on easier levels, and a little more with six colors.
+    var moves: Int {
+        guard let hardest = goalMoves.max() else { return 15 }
+        let together = hardest + 0.5 * (goalMoves.reduce(0, +) - hardest)
+        let slack = switch difficulty {
+        case .easy: 1.45
+        case .medium: 1.22
+        case .hard: 1.1
+        }
+        return min(36, max(14, Int((together * slack * (kinds == 6 ? 1.15 : 1)).rounded())))
+    }
+
+    func fits(_ theme: Theme) -> Bool {
+        if themes.contains(theme) { return false }
+        // One kind of obstacle per board, and gold only beside obstacles that leave it a path.
+        if theme.usesBoard && themes.contains(where: \.usesBoard) { return false }
+        if theme == .crates && themes.contains(.gold) { return false }
+        if theme == .gold && themes.contains(.crates) { return false }
+        // A score goal with another goal reads oddly; it stands alone.
+        if theme == .score && !themes.isEmpty { return false }
+        if themes.contains(.score) { return false }
+        return true
+    }
+
+    /// How big a goal is: small on easy levels, larger on hard ones.
+    private func size(_ easy: ClosedRange<Int>, _ medium: ClosedRange<Int>, _ hard: ClosedRange<Int>,
+                      using rng: inout SeededGenerator) -> Int {
+        Int.random(in: difficulty == .easy ? easy : difficulty == .medium ? medium : hard, using: &rng)
+    }
+
+    mutating func add(_ theme: Theme, using rng: inout SeededGenerator) {
+        themes.append(theme)
+        switch theme {
+        case .tokens:
+            let count = size(16...22, 22...30, 26...34, using: &rng)
+            goals.append(.tokens(kind: Int.random(in: 0..<kinds, using: &rng), count: count))
+            goalMoves.append(Double(count) / 1.45)
+        case .ice:
+            let thick = difficulty == .hard || (difficulty == .medium && Bool.random(using: &rng))
+            let placed = place(size(6...8, 8...10, 8...12, using: &rng), mark: thick ? "I" : "i", rows: 2...6, using: &rng)
+            goals.append(.ice(placed))
+            goalMoves.append(Double(placed) * (thick ? 1.75 : 1.4))
+        case .chains:
+            let placed = place(size(6...8, 8...10, 8...12, using: &rng), mark: "c", rows: 1...6, using: &rng)
+            goals.append(.chains(placed))
+            goalMoves.append(Double(placed) * 1.6)
+        case .crates:
+            let thick = difficulty == .hard
+            let placed = place(size(6...8, 8...12, 10...14, using: &rng), mark: thick ? "X" : "x", rows: 4...7, using: &rng)
+            goals.append(.crates(placed))
+            goalMoves.append(Double(placed) * (thick ? 1.9 : 1.6))
+        case .gold:
+            // A mirrored pair on the top row, and on bigger goals one more dropping in later.
+            let count = size(2...2, 2...3, 3...3, using: &rng)
+            let column = Int.random(in: 1...3, using: &rng)
+            board[0][column] = "g"
+            board[0][7 - column] = "g"
+            goldColumns.formUnion([column, 7 - column])
+            goldToDrop = count - 2
+            goals.append(.gold(count))
+            goalMoves.append(7 + Double(count) * 5)
+        case .specials:
+            if difficulty == .easy || Bool.random(using: &rng) {
+                let count = size(3...4, 4...6, 6...8, using: &rng)
+                goals.append(.specials(.any, count))
+                goalMoves.append(Double(count) * 2.6)
+            } else {
+                let rockets = Bool.random(using: &rng)
+                let count = rockets ? size(2...3, 3...3, 3...4, using: &rng) : 1
+                goals.append(.specials(rockets ? .rocket : .bomb, count))
+                goalMoves.append(rockets ? Double(count) * 5 : 13)
+            }
+        case .score:
+            let points = size(30...36, 38...46, 46...54, using: &rng) * 100
+            goals.append(.score(points))
+            goalMoves.append(Double(points) / 190)
+        }
+    }
+
+    /// Lays out about `target` obstacles in `rows`, mirrored left to right, and returns how many
+    /// were placed (the goal asks for all of them).
+    private mutating func place(_ target: Int, mark: Character, rows: ClosedRange<Int>, using rng: inout SeededGenerator) -> Int {
+        var placed = 0
+        var attempts = 0
+        // A tidy shape most of the time (rows, a block or a ring), scattered pairs otherwise.
+        let shape = Int.random(in: 0..<4, using: &rng)
+        var candidates: [(Int, Int)] = []
+        for row in rows {
+            for column in 0..<4 {
+                switch shape {
+                case 0: if row % 2 == rows.lowerBound % 2 { candidates.append((row, column)) } // Bands.
+                case 1: if column >= 2 { candidates.append((row, column)) } // A block in the middle.
+                case 2: if column <= 1 { candidates.append((row, column)) } // Pillars at the sides.
+                default: candidates.append((row, column)) // Anywhere.
+                }
+            }
+        }
+        candidates.shuffle(using: &rng)
+        for (row, column) in candidates where placed < target {
+            attempts += 1
+            let mirrored = 7 - column
+            guard board[row][column] == ".", board[row][mirrored] == "." else { continue }
+            if mark == "x" || mark == "X", goldColumns.contains(column) || goldColumns.contains(mirrored) { continue }
+            board[row][column] = mark
+            board[row][mirrored] = mark
+            placed += 2
+        }
+        return placed
+    }
+}
+
 /// Token Swap levels won and the daily puzzle, saved with the game.
 public struct TokenSwapProgress: Codable, Equatable, Sendable {
     /// Best stars for each level, by level number (index 0 is level 1); 0 until it's won.

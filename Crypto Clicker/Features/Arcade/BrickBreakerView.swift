@@ -3,16 +3,20 @@ import CryptoClickerKit
 
 /// Brick Breaker: drag anywhere on the field to move the paddle and lift your finger to launch.
 /// Bonus bricks drop power-ups to catch, explosive bricks break their neighbors, and every fifth
-/// level is a boss. The physics runs on the display's frame clock while the ball is in play.
+/// level is a boss. Options pick the ball's speed and classic or random walls. The physics runs on
+/// the display's frame clock while the ball is in play.
 struct BrickBreakerView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
+    @AppStorage(Preferences.brickBreakerSpeedKey) private var speed = GameSpeed.normal
+    @AppStorage(Preferences.brickBreakerLevelsKey) private var levels = BrickBreakerGame.LevelStyle.classic
     @State private var game = BrickBreakerGame()
     @State private var isPlaying = false
     @State private var isPaused = false
     @State private var showingHelp = false
+    @State private var showingOptions = false
     @State private var result: GameResult?
     @State private var lastFrame: Date?
     /// Where the current drag began, and whether a ball was waiting to be served then. Only a
@@ -51,8 +55,9 @@ struct BrickBreakerView: View {
             BrickPowerUpStrip(game: game)
             field
                 .frame(maxHeight: .infinity)
-            Text(game.phase == .serving ? "Drag to move, lift your finger to launch" : "Drag anywhere to move the paddle")
-                .font(.footnote)
+            Label(game.phase == .serving ? "Drag to move, lift your finger to launch" : "Drag anywhere to move the paddle",
+                  systemImage: "hand.draw.fill")
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.subtext)
         }
         .padding(12)
@@ -71,6 +76,7 @@ struct BrickBreakerView: View {
         .gameHelp(.brickBreaker, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
         }
+        .gameOptions(.brickBreaker, isPresented: $showingOptions, isEnabled: !isPlaying, speed: $speed, levels: $levels)
     }
 
     /// Haptics and confetti for what the game just did.
@@ -162,19 +168,23 @@ struct BrickBreakerView: View {
         if !isPlaying {
             if let result {
                 GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
-                    GameOverSummary(score: result.score, isNewBest: result.isNewBest,
-                                    best: store.game.stats.brickBreakerBestScore, reward: result.reward,
-                                    details: ["\(CoinFormat.grouped(result.detail)) bricks · reached level \(game.level)",
-                                              "\(game.powerUpsCaught) power-up\(game.powerUpsCaught == 1 ? "" : "s")"
-                                                + (game.bossesDefeated > 0 ? " · \(game.bossesDefeated) boss\(game.bossesDefeated == 1 ? "" : "es") beaten" : "")
-                                                + " · best streak \(game.bestLevelStreak)"],
-                                    challenge: result.challenge)
+                    VStack(spacing: 14) {
+                        GameOverSummary(score: result.score, isNewBest: result.isNewBest,
+                                        best: store.game.stats.brickBreakerBestScore, reward: result.reward,
+                                        details: ["\(CoinFormat.grouped(result.detail)) bricks · reached level \(game.level)",
+                                                  "\(game.powerUpsCaught) power-up\(game.powerUpsCaught == 1 ? "" : "s")"
+                                                    + (game.bossesDefeated > 0 ? " · \(game.bossesDefeated) boss\(game.bossesDefeated == 1 ? "" : "es") beaten" : "")
+                                                    + " · best streak \(game.bestLevelStreak)"],
+                                        challenge: result.challenge)
+                        GameOptionsChip(speed: speed, levels: levels) { showingOptions = true }
+                    }
                 }
             } else {
                 GamePanel(title: "Brick Breaker", buttonTitle: "Start", action: start) {
-                    GameIntro(best: store.game.stats.brickBreakerBestScore,
-                              howTo: "Drag to move the paddle and lift your finger to launch. Clear every brick to reach a faster level. Catch the power-ups bonus bricks drop, and watch for a boss every fifth level. You have three balls.",
-                              showHelp: { showingHelp = true })
+                    VStack(spacing: 14) {
+                        GameIntro(best: store.game.stats.brickBreakerBestScore)
+                        GameOptionsChip(speed: speed, levels: levels) { showingOptions = true }
+                    }
                 }
             }
         }
@@ -194,7 +204,7 @@ struct BrickBreakerView: View {
     }
 
     private func start() {
-        game = BrickBreakerGame()
+        game = BrickBreakerGame(speed: speed, levels: levels)
         result = nil
         isPaused = false
         lastFrame = nil
@@ -249,7 +259,7 @@ private struct BrickPowerUpStrip: View {
                                 .frame(width: 40)
                         } else {
                             Text("×\(game.balls.count)")
-                                .font(.caption.weight(.bold).monospacedDigit())
+                                .font(.footnote.weight(.heavy).monospacedDigit())
                         }
                     }
                     .padding(.horizontal, 10)
@@ -262,7 +272,7 @@ private struct BrickPowerUpStrip: View {
             }
             if game.shrunkFor > 0 {
                 Label("\(Int(game.shrunkFor.rounded(.up)))s", systemImage: "arrow.right.and.line.vertical.and.arrow.left")
-                    .font(.caption.weight(.bold))
+                    .font(.footnote.weight(.heavy))
                     .foregroundStyle(Theme.loss)
                     .accessibilityLabel("Paddle shrunk for \(Int(game.shrunkFor.rounded(.up))) seconds")
             }

@@ -151,9 +151,9 @@ struct Merge2048View: View {
             }
             .overlay(alignment: .topTrailing) {
                 Text("\(game.undosLeft)")
-                    .font(.caption2.weight(.heavy).monospacedDigit())
+                    .font(.caption.weight(.heavy).monospacedDigit())
                     .foregroundStyle(.white)
-                    .frame(minWidth: 16, minHeight: 16)
+                    .frame(minWidth: 18, minHeight: 18)
                     .background(Theme.gold.mix(with: .black, by: 0.35), in: .circle)
                     .offset(x: 4, y: -4)
                     .accessibilityHidden(true)
@@ -219,12 +219,10 @@ struct Merge2048View: View {
                             let today = store.today
                             StarRow(stars: store.game.merge2048Daily.stars(on: today), size: 22)
                             GameIntro(best: store.game.merge2048Daily.bestScore(on: today),
-                                      howTo: "Everyone gets the same start and the same new tiles today. Score as much as you can in \(Merge2048Game.dailyMoves) moves: stars at \(starScores). Each star pays \(CoinFormat.short(store.game.merge2048DailyStarReward)) coins the first time you earn it today.",
-                                      showHelp: { showingHelp = true })
+                                      detail: "The same start and tiles for everyone today: \(Merge2048Game.dailyMoves) moves, stars at \(starScores). Each star pays \(CoinFormat.short(store.game.merge2048DailyStarReward)) coins the first time today.")
                         } else {
                             GameIntro(best: store.game.stats.merge2048BestScore,
-                                      howTo: "Swipe to slide every tile. Two tiles with the same number merge into one, and the new number is added to your score. Climb the tile goals; make a 2048 tile for a bonus of \(CoinFormat.short(store.game.merge2048TileBonus)) coins. You have \(Merge2048Game.undosPerGame) undos a game, and you can end whenever you like to collect.",
-                                      showHelp: { showingHelp = true })
+                                      detail: "A 2048 tile pays a bonus of \(CoinFormat.short(store.game.merge2048TileBonus)) coins.")
                         }
                     }
                 }
@@ -271,7 +269,7 @@ struct Merge2048View: View {
             Text("2048!")
                 .font(.title2.weight(.heavy))
             Text("+\(CoinFormat.short(store.game.merge2048TileBonus)) coins when the game ends. Keep going!")
-                .font(.footnote.weight(.semibold))
+                .font(.subheadline.weight(.semibold))
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 18)
@@ -289,7 +287,7 @@ struct Merge2048View: View {
                 .font(.title3.weight(.heavy))
             if let next = Merge2048Game.goalTiles.first(where: { $0 > banner.tile }) {
                 Text("Next goal: \(next)")
-                    .font(.footnote.weight(.semibold))
+                    .font(.subheadline.weight(.semibold))
             }
         }
         .padding(.horizontal, 16)

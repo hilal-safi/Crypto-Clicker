@@ -49,24 +49,28 @@ public struct StepDay: Equatable, Sendable {
     }
 }
 
-/// Remembers how many steps of each day have already been paid out.
-/// Syncing is idempotent: running it twice, or late-arriving watch data,
-/// only ever pays for steps that have not been rewarded yet.
+/// Remembers how many steps of each day have been counted, and how many paid for. Steps count as
+/// soon as a sync sees them (for quests, achievements and records) and are paid the day after
+/// they're walked. Syncing is idempotent: running it twice, or late-arriving watch data, only
+/// ever counts and pays for steps that haven't been yet.
 public struct StepLedger: Codable, Equatable, Sendable {
     /// The player connected Apple Health.
     public internal(set) var isConnected = false
-    /// Days before this one are never rewarded (no surprise backfill of old history).
+    /// Days before this one are never counted (no surprise backfill of old history).
     public internal(set) var startDay: String?
-    /// Steps already rewarded, by day key.
+    /// Steps already paid for, by day key.
     public internal(set) var credited: [String: Int] = [:]
+    /// Steps already counted, by day key: today's grow as you walk, and are paid tomorrow.
+    public internal(set) var counted: [String: Int] = [:]
     public internal(set) var todayKey: String?
+    /// Today's steps as of the last sync (counted, and paid tomorrow).
     public internal(set) var todaySteps = 0
     public internal(set) var lastSync: Date?
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case isConnected, startDay, credited, todayKey, todaySteps, lastSync
+        case isConnected, startDay, credited, counted, todayKey, todaySteps, lastSync
     }
 
     public init(from decoder: Decoder) throws {
@@ -74,6 +78,8 @@ public struct StepLedger: Codable, Equatable, Sendable {
         isConnected = c.value(.isConnected, default: false)
         startDay = c.value(.startDay, default: nil)
         credited = c.value(.credited, default: [:])
+        // Before steps were paid the next day, everything counted was paid at once.
+        counted = c.value(.counted, default: credited)
         todayKey = c.value(.todayKey, default: nil)
         todaySteps = c.value(.todaySteps, default: 0)
         lastSync = c.value(.lastSync, default: nil)
@@ -84,20 +90,31 @@ public struct StepLedger: Codable, Equatable, Sendable {
         try c.encode(isConnected, forKey: .isConnected)
         try c.encodeIfPresent(startDay, forKey: .startDay)
         try c.encode(credited, forKey: .credited)
+        try c.encode(counted, forKey: .counted)
         try c.encodeIfPresent(todayKey, forKey: .todayKey)
         try c.encode(todaySteps, forKey: .todaySteps)
         try c.encodeIfPresent(lastSync, forKey: .lastSync)
     }
 
-    /// Steps in `day` that have not been rewarded yet.
-    func unpaid(_ day: StepDay) -> Int {
+    /// Steps in `day` that haven't been counted yet.
+    func uncounted(_ day: StepDay) -> Int {
         if let startDay, day.key < startDay { return 0 }
-        return max(0, day.steps - credited[day.key, default: 0])
+        return max(0, day.steps - counted[day.key, default: 0])
+    }
+
+    /// Steps counted on `day` that haven't been paid for yet.
+    func unpaid(_ key: String) -> Int {
+        max(0, counted[key, default: 0] - credited[key, default: 0])
     }
 }
 
 /// The result of a step sync.
 public struct StepCredit: Equatable, Sendable {
+    /// Steps paid for: those of days that are over.
     public let steps: Int
     public let coins: Double
+    /// Steps newly counted, today's included.
+    public var counted = 0
+    /// The days paid for, oldest first.
+    public var days: [String] = []
 }

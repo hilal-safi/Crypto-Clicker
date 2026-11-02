@@ -72,4 +72,26 @@ extension GameState {
         }
         return best
     }
+
+    /// Coins per second one more unit of `miner` would add to production, counting the milestone it
+    /// reaches (the 25th unit doubles all 25).
+    public func nextUnitGain(_ miner: MinerID) -> Double {
+        var after = self
+        after.miners[miner, default: 0] += 1
+        return after.rate(of: miner) - rate(of: miner)
+    }
+
+    /// The Shop's "Best value": the revealed miner whose next unit adds the most production for its
+    /// price, affordable or not. Early on that's the Chromebook for its first few units, then the
+    /// Desktop once Chromebooks have grown dearer, and a miner about to reach a milestone.
+    public var bestValueMiner: MinerID? {
+        var best: (miner: MinerID, cost: Double)?
+        for miner in MinerID.allCases where isRevealed(miner) {
+            let gain = nextUnitGain(miner)
+            guard gain > 0, gain.isFinite else { continue }
+            let cost = price(of: miner, quantity: 1) / gain
+            if best.map({ cost < $0.cost }) ?? true { best = (miner, cost) }
+        }
+        return best?.miner
+    }
 }

@@ -63,14 +63,14 @@ struct IncomeBreakdownView: View {
                             VStack(alignment: .trailing, spacing: 2) {
                                 Text("\(rate(autoTaps))/s").monospacedDigit()
                                 Text(CoinFormat.percent(idle > 0 ? autoTaps / idle : 0))
-                                    .font(.caption).foregroundStyle(.subtext)
+                                    .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.accent)
                             }
                         } label: {
                             Label {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Automatic taps")
                                     Text("\(CoinFormat.rate(game.autoTapsPerSecond)) a second, each worth \(CoinFormat.percent(game.autoTapStrength)) of a tap")
-                                        .font(.caption).foregroundStyle(.subtext)
+                                        .font(.subheadline).foregroundStyle(.subtext)
                                 }
                             } icon: {
                                 Image(systemName: "hand.tap.fill").foregroundStyle(Theme.accent)
@@ -80,7 +80,7 @@ struct IncomeBreakdownView: View {
                 } header: {
                     Text("Earned every second")
                 } footer: {
-                    Text("Milestones (25, 50, 100… owned) and Mk upgrades each double a miner. Shares include any Bull Run.")
+                    SettingsNote("Milestones (25, 50, 100… owned) and Mk upgrades each double a miner. Shares include any Bull Run.")
                 }
 
                 Section("Production multipliers") {
@@ -101,14 +101,16 @@ struct IncomeBreakdownView: View {
                         row("Strong Fingers", CoinFormat.multiplier(game.tapPerkMultiplier))
                     }
                     row("Each tap", amount(game.tapValue(at: now)), bold: true)
-                    row("With a full combo", amount((game.tapValue(at: now) * game.comboMaxMultiplier).rounded()))
+                    row("With the biggest combo (\(CoinFormat.multiplier(game.comboMaxMultiplier)))",
+                        amount((game.tapValue(at: now) * game.comboMaxMultiplier).rounded()))
+                    row("Combo pace", "+0.1 every \(CoinFormat.compact(game.comboTapsPerStep)) quick taps")
                     if store.comboStreak > 1 {
                         row("Combo now", "\(CoinFormat.multiplier(store.comboMultiplier)) · \(store.comboStreak) taps")
                     }
                 } header: {
                     Text("What a tap earns")
                 } footer: {
-                    Text("Tapping upgrades add a share of a second's production to every tap. Quick taps in a row build a combo up to \(CoinFormat.multiplier(game.comboMaxMultiplier)).")
+                    SettingsNote("Tapping upgrades add a share of a second's production to every tap. Quick taps in a row build a combo, and the combo power-ups in the Shop raise how big it gets and how fast it builds.")
                 }
 
                 Section("Other ways coins arrive") {
@@ -116,7 +118,7 @@ struct IncomeBreakdownView: View {
                         ? "Up to \(CoinFormat.duration(game.offlineCap)) · \(amount(game.baseIdleIncome * game.offlineCap))"
                         : "First minute only (no Offline Mining)")
                     if game.steps.isConnected {
-                        row("Each step", amount(game.stepValue))
+                        row("Each step", "\(amount(game.stepValue)), paid the next day")
                     }
                     row("Coin airdrop", "Up to \(amount(game.rewardIncome * Tuning.airdropIncomeSeconds))")
                     row("Whale airdrop", amount(game.whaleAmount))
@@ -181,7 +183,7 @@ private struct MinerShareRow: View {
                     Text("\(miner.name) ×\(CoinFormat.grouped(owned))")
                         .font(.subheadline.weight(.semibold))
                     Text(boosts)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.subtext)
                 }
                 Spacer(minLength: 8)
@@ -190,8 +192,8 @@ private struct MinerShareRow: View {
                         .font(.subheadline.weight(.semibold))
                         .multilineTextAlignment(.trailing)
                     Text(CoinFormat.percent(share))
-                        .font(.caption)
-                        .foregroundStyle(.subtext)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
                 }
             }
             ProgressView(value: min(max(share, 0), 1))

@@ -26,7 +26,7 @@ struct ChallengeCard: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("\(challenge.kind.dayName) · Daily Challenge")
-                        .font(.caption.weight(.bold))
+                        .font(.footnote.weight(.heavy))
                         .textCase(.uppercase)
                         .foregroundStyle(game?.textColor(in: colorScheme) ?? Theme.accent)
                     Text(challenge.goal)
@@ -56,12 +56,13 @@ struct ChallengeCard: View {
             HStack(alignment: .firstTextBaseline) {
                 Label(challenge.isComplete ? "Reward collected" : "+\(CoinFormat.short(reward)) coins",
                       systemImage: "gift.fill")
+                    .foregroundStyle(challenge.isComplete ? Theme.gain : Theme.accent)
                 Spacer(minLength: 8)
                 Text(weekText)
                     .multilineTextAlignment(.trailing)
+                    .foregroundStyle(.subtext)
             }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.subtext)
+            .font(.subheadline.weight(.semibold))
         }
         .rowCard()
         .accessibilityElement(children: .combine)

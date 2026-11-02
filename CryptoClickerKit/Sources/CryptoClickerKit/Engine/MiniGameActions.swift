@@ -9,6 +9,7 @@ extension GameState {
         guard !unlockedGames.contains(game), game.unlockCost <= coins else { return false }
         spend(game.unlockCost)
         unlockedGames.insert(game)
+        if journey.games[game] == nil { journey.games[game] = lastUpdate }
         return true
     }
 
@@ -545,6 +546,30 @@ extension GameState {
         tokenSwap.dailyWonDay = day
         tokenSwap.dailyWins += 1
         let coins = tokenSwapDailyReward
+        credit(coins, source: .games)
+        return coins
+    }
+
+    /// What winning a random level adds to its points: more on harder levels.
+    public func tokenSwapRandomWinBonus(_ difficulty: TokenSwapLevel.Difficulty) -> Double {
+        Self.wholeCoins(Tuning.tokenSwapRandomWinSeconds * difficulty.rewardMultiplier * rewardIncome * miniGameMultiplier)
+    }
+
+    /// Records a finished random level (`TokenSwapLevel.generated`). There's always another one,
+    /// so there are no stars to keep: every point pays at Token Swap's rate, and a win adds
+    /// `tokenSwapRandomWinBonus`, which comes to about as much a minute as the other games pay.
+    /// It counts as a level played (and won) everywhere levels are counted.
+    @discardableResult
+    public mutating func finishTokenSwapRandom(_ level: TokenSwapLevel, won: Bool, score: Int, tokens: Int,
+                                               bestChain: Int, specials: Int) -> Double {
+        recordTokenSwapPlay(tokens: tokens, bestChain: bestChain, specials: specials)
+        stats.tokenSwapLevelsPlayed = stats.tokenSwapLevelsPlayed.addingCount(1)
+        stats.tokenSwapRandomPlayed = stats.tokenSwapRandomPlayed.addingCount(1)
+        if won {
+            stats.tokenSwapLevelWins = stats.tokenSwapLevelWins.addingCount(1)
+            stats.tokenSwapRandomWins = stats.tokenSwapRandomWins.addingCount(1)
+        }
+        let coins = arcadeReward(.tokenSwap, score: score) + (won ? tokenSwapRandomWinBonus(level.difficulty) : 0)
         credit(coins, source: .games)
         return coins
     }

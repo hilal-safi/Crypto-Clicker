@@ -176,9 +176,7 @@ struct PumpDumpView: View {
             } else {
                 GamePanel(title: "Pump and Dump", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.pumpDumpBestScore,
-                              howTo: "Tap coins before they drop back down, and reach each round's goal to go on to the next, quicker round. Golden coins are worth five; scam tokens cost points, and coins with a red rim shake before they turn into scams.",
-                              note: store.game.stats.pumpDumpBestRound > 0 ? "Furthest: round \(store.game.stats.pumpDumpBestRound)" : nil,
-                              showHelp: { showingHelp = true })
+                              note: store.game.stats.pumpDumpBestRound > 0 ? "Furthest: round \(store.game.stats.pumpDumpBestRound)" : nil)
                 }
             }
         }
@@ -572,7 +570,7 @@ private struct ObjectiveLine: View {
                 .font(.subheadline.weight(.semibold).monospacedDigit())
                 .foregroundStyle(game.isObjectiveFailed ? Theme.loss : done ? Theme.gain : .subtext)
             Text("+\(PumpDumpGame.objectiveBonus(round: game.round))")
-                .font(.caption.weight(.bold).monospacedDigit())
+                .font(.footnote.weight(.heavy).monospacedDigit())
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(Theme.gold.opacity(0.25), in: .capsule)
@@ -662,15 +660,32 @@ private struct RoundClearedSummary: View {
 /// What each piece is, under the grid.
 private struct Legend: View {
     var body: some View {
-        HStack(spacing: 14) {
-            Label("Tap coins", systemImage: "bitcoinsign.circle.fill")
-            Label("Golden ×5", systemImage: "star.fill")
-            Label("Avoid scams and red rims", systemImage: "xmark.octagon.fill")
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 14) { items }
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 14) {
+                    item("Tap coins", "bitcoinsign.circle.fill", Theme.gold)
+                    item("Golden ×5", "star.fill", .yellow)
+                }
+                item("Avoid scams and red rims", "xmark.octagon.fill", Theme.loss)
+            }
         }
-        .font(.footnote.weight(.semibold))
-        .foregroundStyle(.subtext)
-        .labelStyle(.titleAndIcon)
+        .font(.subheadline.weight(.semibold))
         .lineLimit(1)
-        .minimumScaleFactor(0.7)
+    }
+
+    @ViewBuilder private var items: some View {
+        item("Tap coins", "bitcoinsign.circle.fill", Theme.gold)
+        item("Golden ×5", "star.fill", .yellow)
+        item("Avoid scams and red rims", "xmark.octagon.fill", Theme.loss)
+    }
+
+    private func item(_ title: String, _ symbol: String, _ color: Color) -> some View {
+        Label {
+            Text(title)
+        } icon: {
+            Image(systemName: symbol)
+                .foregroundStyle(color)
+        }
     }
 }

@@ -70,6 +70,7 @@ extension GameState {
         guard gained > 0 else { return 0 }
         prestigePoints = Self.addingPoints(prestigePoints, gained)
         prestigePotentialClaimed = prestigePotential
+        if journey.firstPrestige == nil { journey.firstPrestige = now }
         stats.prestiges += 1
         stats.runCoins = 0
         coins = 0
@@ -102,6 +103,7 @@ extension GameState {
         guard count > 0 else { return }
         let total = owned(miner) + count
         miners[miner] = total
+        if journey.miners[miner] == nil { journey.miners[miner] = lastUpdate }
         stats.maxOwned[miner] = max(stats.maxOwned[miner, default: 0], total)
         stats.maxTotalMiners = max(stats.maxTotalMiners, totalMiners)
     }

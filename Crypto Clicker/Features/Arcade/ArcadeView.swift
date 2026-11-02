@@ -27,7 +27,7 @@ struct ArcadeView: View {
                                       reward: game.challengeReward, weeklyBonus: game.weeklyChallengeBonus,
                                       play: canOpen(challenge) ? { open(challenge) } : nil)
                     }
-                    SectionHeader(title: "Casino", detail: "Bet tokens from the Exchange")
+                    SectionHeader(title: "Casino", detail: "Bet tokens from the Shop")
                     ForEach(MiniGame.byPrice.filter(\.isCasino)) { miniGame in
                         row(miniGame, in: game)
                     }
@@ -67,7 +67,7 @@ struct ArcadeView: View {
             .navigationDestination(for: TokenSwapRoute.self) { route in
                 switch route {
                 case .levels: TokenSwapLevelsView()
-                case .level, .daily, .classic: TokenSwapPlayView(route: route)
+                case .level, .daily, .classic, .random: TokenSwapPlayView(route: route)
                 }
             }
         }
@@ -151,7 +151,7 @@ struct MiniGameRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if isUnlocked {
                     Text(record)
-                        .font(.caption.weight(.semibold).monospacedDigit())
+                        .font(.subheadline.weight(.bold).monospacedDigit())
                         .foregroundStyle(miniGame.textColor(in: colorScheme))
                 }
             }
@@ -171,7 +171,7 @@ struct MiniGameRow: View {
                 } label: {
                     VStack(spacing: 1) {
                         Image(systemName: canAfford ? "lock.open.fill" : "lock.fill")
-                            .font(.caption.weight(.bold))
+                            .font(.footnote.weight(.bold))
                         Text(CoinFormat.cost(miniGame.unlockCost))
                             .font(.subheadline.weight(.bold).monospacedDigit())
                     }

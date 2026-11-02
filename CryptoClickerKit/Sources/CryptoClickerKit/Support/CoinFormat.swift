@@ -31,18 +31,21 @@ public enum CoinFormat {
     /// A price, rounded up so it is never understated.
     public static func cost(_ value: Double) -> String { format(value, .up) }
 
-    /// A rate such as coins per second, rounded to the nearest coin. Rates under 10 keep a tenth when
-    /// they aren't whole (a Chromebook's `0.5`, `2.5`), and under a twentieth of a coin show as `<0.1`.
+    /// A rate such as coins per second, rounded to the nearest coin. Rates under 10 keep up to two
+    /// decimals when they aren't whole (a Chromebook's `0.25`, `2.5`), and under half a hundredth of
+    /// a coin show as `<0.01`.
     public static func rate(_ value: Double) -> String {
         smallRate(value) ?? format(value, .nearest)
     }
 
-    /// A positive rate under 10 to the nearest tenth, without a trailing `.0`; `nil` for anything else.
+    /// A positive rate under 10 to the nearest hundredth, without trailing zeros; `nil` for anything else.
     static func smallRate(_ value: Double) -> String? {
-        guard value.isFinite, value > 0, value < 9.95 else { return nil }
-        if value < 0.05 { return "<0.1" }
-        let tenths = round(value, decimals: 1, .nearest)
-        return String(format: tenths == tenths.rounded(.down) ? "%.0f" : "%.1f", tenths)
+        guard value.isFinite, value > 0, value < 9.995 else { return nil }
+        if value < 0.005 { return "<0.01" }
+        var text = String(format: "%.2f", round(value, decimals: 2, .nearest))
+        while text.hasSuffix("0") { text.removeLast() }
+        if text.hasSuffix(".") { text.removeLast() }
+        return text
     }
 
     /// `0.02` becomes `2%`.
@@ -167,7 +170,7 @@ public enum CoinFormat {
 
     /// Up to three significant digits, trailing zeros removed (`2`, `1.5`, `12.3`), for percentages
     /// and multipliers.
-    static func compact(_ value: Double) -> String {
+    public static func compact(_ value: Double) -> String {
         if value == 0 { return "0" }
         let decimals = value >= 100 ? 0 : (value >= 10 ? 1 : 2)
         var text = String(format: "%.\(decimals)f", value)

@@ -89,7 +89,7 @@ struct CoinFinishPicker: View {
                                 Text(finish.name)
                                     .font(.subheadline.weight(.semibold))
                                 Text(unlocked ? (selected == finish ? "Selected" : "Unlocked") : "\(finish.starsNeeded) stars")
-                                    .font(.caption.weight(.semibold))
+                                    .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(selected == finish ? Theme.accent : Theme.subtext)
                             }
                             .frame(maxWidth: .infinity)

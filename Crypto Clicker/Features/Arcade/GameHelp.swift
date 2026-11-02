@@ -132,6 +132,22 @@ struct GameRulesPage: View {
         .labelStyle(HelpLabelStyle(tint: game.color))
         .navigationTitle("How to Play \(game.name)")
         .navigationBarTitleDisplayMode(.inline)
+        // A long title like "How to Play Bubble Blaster" would be pushed off center by the bar's
+        // buttons, so it's set in two short centered lines instead.
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 0) {
+                    Text("How to Play")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(Theme.accent)
+                    Text(game.name)
+                        .font(.headline)
+                }
+                .multilineTextAlignment(.center)
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
+            }
+        }
     }
 }
 
@@ -142,7 +158,7 @@ private struct HelpLabelStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             configuration.icon
-                .font(.footnote)
+                .font(.subheadline)
                 .foregroundStyle(tint.mix(with: .white, by: 0.2))
                 .frame(width: 20)
                 .accessibilityHidden(true)
@@ -192,11 +208,10 @@ struct PausedCard: View {
             Label("Paused", systemImage: "pause.circle.fill")
                 .font(.title2.bold())
             Text(guide.objective)
-                .font(.subheadline)
-                .foregroundStyle(.subtext)
-            Text(guide.controlHint)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.subtext)
+                .font(.body.weight(.medium))
+            Label(guide.controlHint, systemImage: "hand.point.up.left.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.accent)
             ViewThatFits {
                 HStack(spacing: 10) { buttons }
                 VStack(spacing: 8) { buttons }
@@ -208,6 +223,7 @@ struct PausedCard: View {
         .padding(20)
         .frame(maxWidth: 360)
         .glassEffect(.regular, in: .rect(cornerRadius: 26))
+        .background(.background.opacity(0.6), in: .rect(cornerRadius: 26))
         .padding(16)
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
@@ -227,11 +243,12 @@ struct ControlHint: View {
     let game: MiniGame
 
     var body: some View {
-        Label(game.guide.controlHint, systemImage: "hand.point.up.left")
-            .font(.footnote.weight(.semibold))
+        Label(game.guide.controlHint, systemImage: "hand.point.up.left.fill")
+            .font(.subheadline.weight(.semibold))
             .foregroundStyle(.subtext)
-            .lineLimit(1)
-            .minimumScaleFactor(0.75)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
+            .minimumScaleFactor(0.9)
             .accessibilityLabel("Controls: \(game.guide.controlHint)")
     }
 }

@@ -251,17 +251,43 @@ extension GameState {
 
     // MARK: Combos
 
-    /// Quick taps in a row needed for the biggest combo: Combo Master halves it.
-    public var comboTapsToMax: Int { hasPerk(.comboMaster) ? Tuning.comboTapsToMax / 2 : Tuning.comboTapsToMax }
+    /// A power-up's level, from 0.
+    public func powerUpLevel(_ powerUp: PowerUpID) -> Int {
+        min(max(0, powerUps[powerUp, default: 0]), powerUp.maxLevel)
+    }
 
-    /// The biggest combo multiplier: Combo Master raises it to ×3.
-    public var comboMaxMultiplier: Double { hasPerk(.comboMaster) ? 3 : Tuning.comboMaxMultiplier }
+    /// The biggest combo multiplier: ×2, raised by Combo Booster and Combo Overdrive up to ×10.
+    /// Combo Master's combos reach at least ×3.
+    public var comboMaxMultiplier: Double {
+        let raised = Tuning.comboMaxMultiplier
+            + Double(powerUpLevel(.comboBooster)) * Tuning.comboBoosterStep
+            + Double(powerUpLevel(.comboOverdrive)) * Tuning.comboOverdriveStep
+        let withPerk = hasPerk(.comboMaster) ? max(Tuning.comboMasterMultiplier, raised) : raised
+        return min(Tuning.comboTopMultiplier, withPerk)
+    }
 
-    /// The multiplier for a tap that is the `streak`-th quick tap in a row (the first is 1).
-    /// It climbs evenly from ×1 to the maximum.
+    /// How much faster than at first a combo builds: Quick Combos (up to 4×), and Combo Master
+    /// doubles it.
+    public var comboSpeed: Double {
+        (1 + Double(powerUpLevel(.quickCombos)) * Tuning.quickComboStep) * (hasPerk(.comboMaster) ? 2 : 1)
+    }
+
+    /// Quick taps for each +0.1 of a combo (on average).
+    public var comboTapsPerStep: Double { Tuning.comboTapsPerStep / comboSpeed }
+
+    /// Quick taps in a row, counting the first, that reach the biggest combo.
+    public var comboTapsToMax: Int {
+        let steps = ((comboMaxMultiplier - 1) / Tuning.comboStep).rounded()
+        return Int((steps * comboTapsPerStep - 1e-9).rounded(.up)) + 1
+    }
+
+    /// The multiplier for a tap that is the `streak`-th quick tap in a row (the first is ×1). It
+    /// climbs by 0.1 every `comboTapsPerStep` taps, up to the biggest combo.
     public func comboMultiplier(streak: Int) -> Double {
-        let progress = Double(min(max(0, streak - 1), comboTapsToMax)) / Double(comboTapsToMax)
-        return 1 + (comboMaxMultiplier - 1) * progress
+        guard streak > 1 else { return 1 }
+        let steps = (Double(streak - 1) / comboTapsPerStep + 1e-9).rounded(.down)
+        // Steps over ten, rather than steps times 0.1, keeps the tenths exact (1.3, not 1.3000000000000003).
+        return min(comboMaxMultiplier, 1 + steps / (1 / Tuning.comboStep).rounded())
     }
 
     // MARK: Offline Mining

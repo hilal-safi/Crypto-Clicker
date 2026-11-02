@@ -98,6 +98,8 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var boost: Boost?
     /// Levels of the Offline Mining power-up. Power-ups are permanent: prestiges keep them.
     public internal(set) var offlineMiningLevel = 0
+    /// Levels of each power-up besides Offline Mining. Kept through prestiges.
+    public internal(set) var powerUps: [PowerUpID: Int] = [:]
     public internal(set) var unlockedGames: Set<MiniGame> = []
     public internal(set) var blackjackStake: BlackjackStake?
     /// A To the Moon flight in the air.
@@ -113,6 +115,8 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var merge2048Daily = Merge2048DailyProgress()
     /// Arcade Rank, the week's variety goal and the cosmetics picked. Kept through prestiges.
     public internal(set) var arcade = ArcadeProgress()
+    /// When each first happened, for the Journey timeline. Kept through prestiges.
+    public internal(set) var journey = Journey()
     /// Highest tier count earned per achievement id (0 to 4).
     public internal(set) var achievementTiers: [String: Int] = [:]
     public internal(set) var daily = DailyProgress()
@@ -142,8 +146,8 @@ public struct GameState: Codable, Equatable, Sendable {
         case prestigePotentialClaimed = "forkPointsClaimed"
         case runPrestigeMultiplier = "runForkMultiplier"
         case prestigePointsSpent, perks, difficulty
-        case boost, offlineMiningLevel, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun, tokenSwap
-        case merge2048Daily, slotsFreeSpins, arcade
+        case boost, offlineMiningLevel, powerUps, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun, tokenSwap
+        case merge2048Daily, slotsFreeSpins, arcade, journey
         case achievementTiers, daily
         case incomeHistory, stats, steps, recentWatchBatches, lastUpdate, runStart, created
     }
@@ -177,6 +181,7 @@ public struct GameState: Codable, Equatable, Sendable {
         let legacyLevel = savedUpgrades.compactMap { UpgradeID.legacyOfflineLevels[$0] }.max() ?? 0
         let savedLevel: Int = c.value(.offlineMiningLevel, default: 0)
         offlineMiningLevel = min(max(savedLevel, legacyLevel, 0), Tuning.offlineMiningMaxLevel)
+        powerUps = c.enumKeyed(.powerUps, as: PowerUpID.self).mapValues { max(0, $0) }
         unlockedGames = c.enumSet(.unlockedGames, as: MiniGame.self)
         blackjackStake = c.value(.blackjackStake, default: nil)
         moonRound = c.value(.moonRound, default: nil)
@@ -186,6 +191,8 @@ public struct GameState: Codable, Equatable, Sendable {
         tokenSwap = c.value(.tokenSwap, default: TokenSwapProgress())
         merge2048Daily = c.value(.merge2048Daily, default: Merge2048DailyProgress())
         arcade = c.value(.arcade, default: ArcadeProgress())
+        // A save from before the journey was kept starts recording now.
+        journey = c.value(.journey, default: Journey(since: now))
         achievementTiers = c.value(.achievementTiers, default: [:])
         daily = c.value(.daily, default: DailyProgress())
         incomeHistory = c.value(.incomeHistory, default: [])
@@ -215,6 +222,7 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encode(runPrestigeMultiplier, forKey: .runPrestigeMultiplier)
         try c.encodeIfPresent(boost, forKey: .boost)
         try c.encode(offlineMiningLevel, forKey: .offlineMiningLevel)
+        try c.encode(powerUps.stringKeyed, forKey: .powerUps)
         try c.encode(unlockedGames.sortedRawValues, forKey: .unlockedGames)
         try c.encodeIfPresent(blackjackStake, forKey: .blackjackStake)
         try c.encodeIfPresent(moonRound, forKey: .moonRound)
@@ -224,6 +232,7 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encode(tokenSwap, forKey: .tokenSwap)
         try c.encode(merge2048Daily, forKey: .merge2048Daily)
         try c.encode(arcade, forKey: .arcade)
+        try c.encode(journey, forKey: .journey)
         try c.encode(achievementTiers, forKey: .achievementTiers)
         try c.encode(daily, forKey: .daily)
         try c.encode(incomeHistory, forKey: .incomeHistory)

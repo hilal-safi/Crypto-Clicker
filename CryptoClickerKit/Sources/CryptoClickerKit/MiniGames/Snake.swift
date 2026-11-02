@@ -125,6 +125,8 @@ public struct SnakeGame: Sendable {
 
     public let mode: Mode
     public let arena: Arena
+    /// How fast the snake moves (the game's Speed option).
+    public let speed: GameSpeed
     public let walls: Set<GridPoint>
     /// Board cells from head to tail.
     public private(set) var body: [GridPoint]
@@ -149,9 +151,11 @@ public struct SnakeGame: Sendable {
     private var pendingGrowth = 0
     private var queuedTurns: [SnakeDirection] = []
 
-    public init<R: RandomNumberGenerator>(mode: Mode = .classic, arena: Arena = .open, using rng: inout R) {
+    public init<R: RandomNumberGenerator>(mode: Mode = .classic, arena: Arena = .open, speed: GameSpeed = .normal,
+                                          using rng: inout R) {
         self.mode = mode
         self.arena = mode == .coinRush ? .open : arena
+        self.speed = speed
         walls = self.arena.walls
         let row = Self.height / 2
         body = [GridPoint(x: 4, y: row), GridPoint(x: 3, y: row), GridPoint(x: 2, y: row)]
@@ -172,13 +176,14 @@ public struct SnakeGame: Sendable {
     /// Points a coin is worth now: double during a Speed Boost.
     public var coinValue: Int { Self.pointsPerCoin * (isActive(.speedBoost) ? 2 : 1) }
 
-    /// Seconds per move: 0.18s at the start, speeding up to 0.08s as the snake eats; a Speed
-    /// Boost moves faster and Slow Motion slower, but never faster than a finger can steer.
+    /// Seconds per move: 0.18s at the start, speeding up to 0.08s as the snake eats; the Speed
+    /// option scales it, a Speed Boost moves faster and Slow Motion slower, but never faster than a
+    /// finger can steer.
     public var tickInterval: TimeInterval {
-        let base = max(0.08, 0.18 - Double(eaten) * 0.004)
+        let base = max(0.08, 0.18 - Double(eaten) * 0.004) / speed.factor
         if isActive(.speedBoost) { return max(0.065, base * 0.65) }
         if isActive(.slowMotion) { return base * 1.7 }
-        return base
+        return max(0.065, base)
     }
 
     /// Queues a turn, applied on a coming tick. Repeating the current heading or reversing into

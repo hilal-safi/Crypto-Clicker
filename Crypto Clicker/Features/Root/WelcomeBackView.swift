@@ -3,6 +3,10 @@ import CryptoClickerKit
 
 /// Shown after time away: what the miners earned while the app was closed, what that unlocked,
 /// the best thing to buy now, and on request a breakdown of where every coin came from.
+///
+/// Breakdown and Collect stay pinned at the bottom, and the sheet opens tall enough to show the
+/// summary and the first card above them. Anything further down (more cards, the breakdown) is
+/// pointed out by a "More below" chip that scrolls to it.
 struct WelcomeBackView: View {
     let welcome: WelcomeBack
     /// Opens the Shop at its power-ups. Called after this sheet starts closing.
@@ -11,80 +15,198 @@ struct WelcomeBackView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showsBreakdown = false
     @State private var detent = PresentationDetent.medium
+    /// The summary with the first card, the pinned buttons, and the space below them.
+    @State private var openingHeight: CGFloat = 0
+    @State private var barHeight: CGFloat = 0
+    @State private var bottomInset: CGFloat = 0
+    /// The sheet's opening height, once measured.
+    @State private var fittedHeight: CGFloat?
+    /// Part of the page is out of sight below.
+    @State private var hasMoreBelow = false
+
+    private static let topPadding: CGFloat = 24
+    private static let gap: CGFloat = 16
+    private static let breakdownID = "breakdown"
+
+    private enum Card: Hashable {
+        case highlights, bestBuy, offlineMining
+    }
 
     private var report: OfflineReport { welcome.report }
 
+    private var cards: [Card] {
+        var cards: [Card] = []
+        if !highlights.isEmpty { cards.append(.highlights) }
+        if welcome.suggestion != nil { cards.append(.bestBuy) }
+        if report.wasCapped { cards.append(.offlineMining) }
+        return cards
+    }
+
+    private var detents: Set<PresentationDetent> {
+        if let fittedHeight { [.height(fittedHeight), .large] } else { [.medium, .large] }
+    }
+
     var body: some View {
-        NavigationStack {
+        ScrollViewReader { scroller in
             ScrollView {
-                VStack(spacing: 18) {
-                    summary
-                    if !highlights.isEmpty {
-                        AwayHighlights(lines: highlights)
+                VStack(spacing: Self.gap) {
+                    VStack(spacing: Self.gap) {
+                        summary
+                        if let first = cards.first { card(first).id(first) }
                     }
-                    if let suggestion = welcome.suggestion {
-                        BestBuyCard(suggestion: suggestion)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                        openingHeight = height
+                        fit()
                     }
-                    if report.wasCapped {
-                        offlineMiningNote
-                    }
-                    Button {
-                        withAnimation(.snappy) {
-                            showsBreakdown.toggle()
-                            if showsBreakdown { detent = .large }
-                        }
-                    } label: {
-                        Label(showsBreakdown ? "Hide Breakdown" : "See Breakdown",
-                              systemImage: showsBreakdown ? "chevron.up" : "list.bullet.rectangle.fill")
-                            .font(.subheadline.weight(.semibold))
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.primary)
+                    ForEach(cards.dropFirst(), id: \.self) { card($0).id($0) }
                     if showsBreakdown {
                         OfflineBreakdown(report: report)
+                            .id(Self.breakdownID)
                             .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 28)
-                .padding(.bottom, 12)
+                .padding(.top, Self.topPadding)
+                .padding(.bottom, Self.gap)
                 .frame(maxWidth: 560)
                 .frame(maxWidth: .infinity)
             }
             .scrollBounceBehavior(.basedOnSize)
-            .safeAreaInset(edge: .bottom) {
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Collect")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                // Content below what's visible above the buttons.
+                geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY > 24
+            } action: { _, more in
+                withAnimation(.snappy) { hasMoreBelow = more }
+            }
+            .overlay(alignment: .bottom) {
+                if hasMoreBelow {
+                    moreChip(scroller)
+                        .padding(.bottom, 8)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
-                .buttonStyle(.glassProminent)
-                .tint(Theme.accent)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 12)
+            }
+            .safeAreaInset(edge: .bottom) {
+                buttons(scroller)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                        barHeight = height
+                        fit()
+                    }
             }
         }
-        .presentationDetents([.medium, .large], selection: $detent)
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { inset in
+            bottomInset = inset
+            fit()
+        }
+        .presentationDetents(detents, selection: $detent)
+        .presentationDragIndicator(.visible)
+    }
+
+    /// Sizes the sheet to the summary, the first card and the buttons. It follows the
+    /// measurements as they come in, unless the player has already dragged it to another height.
+    private func fit() {
+        guard openingHeight > 0, barHeight > 0 else { return }
+        let height = (Self.topPadding + openingHeight + Self.gap + barHeight + bottomInset + 8).rounded(.up)
+        guard abs(height - (fittedHeight ?? 0)) > 1 else { return }
+        let wasFitted = fittedHeight.map { detent == .height($0) } ?? (detent == .medium)
+        fittedHeight = height
+        if wasFitted { detent = .height(height) }
+    }
+
+    private func scroll(to id: some Hashable, with scroller: ScrollViewProxy) {
+        Task {
+            // After the sheet has grown and the content is in place.
+            try? await Task.sleep(for: .milliseconds(250))
+            withAnimation(.snappy) { scroller.scrollTo(id, anchor: .top) }
+        }
+    }
+
+    private func buttons(_ scroller: ScrollViewProxy) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) { breakdownButton(scroller); collectButton }
+            VStack(spacing: 10) { collectButton; breakdownButton(scroller) }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
+    }
+
+    private func breakdownButton(_ scroller: ScrollViewProxy) -> some View {
+        Button {
+            withAnimation(.snappy) {
+                showsBreakdown.toggle()
+                if showsBreakdown { detent = .large }
+            }
+            if showsBreakdown { scroll(to: Self.breakdownID, with: scroller) }
+        } label: {
+            Label(showsBreakdown ? "Hide Breakdown" : "See Breakdown",
+                  systemImage: showsBreakdown ? "chevron.up" : "list.bullet.rectangle.fill")
+                .font(.subheadline.weight(.semibold))
+                .padding(.vertical, 6)
+        }
+        .buttonStyle(.glass)
+        .fixedSize()
+    }
+
+    private var collectButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Text("Collect")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+        }
+        .buttonStyle(.glassProminent)
+        .tint(Theme.accent)
+    }
+
+    /// Points out what's below: the other cards, or the breakdown.
+    private func moreChip(_ scroller: ScrollViewProxy) -> some View {
+        Button {
+            withAnimation(.snappy) { detent = .large }
+            if let next = cards.dropFirst().first {
+                scroll(to: next, with: scroller)
+            } else if showsBreakdown {
+                scroll(to: Self.breakdownID, with: scroller)
+            }
+        } label: {
+            Label(cards.count > 2 ? "\(cards.count - 1) more below" : "More below", systemImage: "chevron.down")
+                .font(.subheadline.weight(.bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .capsule)
+        .accessibilityHint("Scrolls to the rest of the summary")
+    }
+
+    @ViewBuilder
+    private func card(_ card: Card) -> some View {
+        switch card {
+        case .highlights:
+            AwayHighlights(lines: highlights)
+        case .bestBuy:
+            if let suggestion = welcome.suggestion { BestBuyCard(suggestion: suggestion) }
+        case .offlineMining:
+            offlineMiningNote
+        }
     }
 
     private var summary: some View {
-        VStack(spacing: 14) {
-            CoinIcon(size: 64)
-            VStack(spacing: 6) {
+        VStack(spacing: 10) {
+            CoinIcon(size: 52)
+            VStack(spacing: 4) {
                 Text("Welcome back!")
-                    .font(.title.bold())
+                    .font(.title2.bold())
                 Text("You were away for \(CoinFormat.duration(report.elapsed)).")
-                    .font(.body)
+                    .font(.subheadline)
                     .foregroundStyle(.subtext)
             }
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Text("Your miners earned")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.subtext)
-                CoinAmount(amount: report.earned, font: .system(size: 40, weight: .bold, design: .rounded), iconSize: 34)
+                CoinAmount(amount: report.earned, font: .system(size: 36, weight: .bold, design: .rounded), iconSize: 30)
             }
         }
         .multilineTextAlignment(.center)
@@ -227,15 +349,15 @@ private struct SourceRow: View {
                     Text(name)
                         .font(.subheadline.weight(.semibold))
                     Text(detail)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.subtext)
                 }
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 1) {
                     CoinAmount(amount: source.coins, font: .subheadline.weight(.semibold))
                     Text(CoinFormat.percent(share))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.subtext)
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(Theme.accent)
                 }
             }
             ProgressView(value: min(max(share, 0), 1))
@@ -325,15 +447,15 @@ private struct BestBuyCard: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text("Best buy now")
-                    .font(.caption.weight(.bold))
+                    .font(.footnote.weight(.heavy))
                     .textCase(.uppercase)
-                    .foregroundStyle(.subtext)
+                    .foregroundStyle(Theme.accent)
                 Text(suggestion.name)
                     .font(.headline)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 Text("+\(CoinFormat.rate(suggestion.incomeGain)) coins per second · pays for itself in \(CoinFormat.duration(suggestion.payback))")
-                    .font(.footnote)
+                    .font(.subheadline)
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
             }

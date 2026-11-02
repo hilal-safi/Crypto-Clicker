@@ -15,6 +15,8 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var bestCombo = 0
 
     public internal(set) var lifetimeSteps = 0
+    /// Steps paid for (the day after they were walked); `lifetimeSteps` counts them as they're walked.
+    public internal(set) var stepsPaid = 0
     public internal(set) var bestDaySteps = 0
 
     public internal(set) var maxOwned: [MinerID: Int] = [:]
@@ -22,6 +24,8 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var maxUpgrades = 0
     /// Miner units bought over all time.
     public internal(set) var minersBought = 0
+    /// Power-up levels bought (Offline Mining aside).
+    public internal(set) var powerUpLevelsBought = 0
     /// Miner Mk upgrades bought over all time.
     public internal(set) var minerUpgradesBought = 0
 
@@ -112,6 +116,9 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var tokenSwapLevelsPlayed = 0
     /// Token Swap levels won, replays included (the quests count these).
     public internal(set) var tokenSwapLevelWins = 0
+    /// Random Token Swap levels finished, and won.
+    public internal(set) var tokenSwapRandomPlayed = 0
+    public internal(set) var tokenSwapRandomWins = 0
     /// The furthest round a Pump and Dump run has reached.
     public internal(set) var pumpDumpBestRound = 0
     /// Pump and Dump rounds cleared over all runs.
@@ -164,7 +171,9 @@ public struct Stats: Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case lifetimeCoins, runCoins, spent, peakIncome, taps, bestTap, bestCombo, lifetimeSteps, bestDaySteps
+        case stepsPaid
         case maxOwned, maxTotalMiners, maxUpgrades, minersBought, minerUpgradesBought
+        case powerUpLevelsBought
         case blackjackHands, blackjackWins, blackjackNaturals, tetrisGames, tetrisLines, tetrisBestScore
         case tetrisBestLevel, tetrisBestCombo, tetrisTetrises, tetrisSprints, tetrisBestSprint
         case blackjackStreak, blackjackBestStreak, blackjackBiggestWin, slotsWagered, slotsPaidOut, slotsBestMultiple
@@ -181,6 +190,7 @@ public struct Stats: Codable, Equatable, Sendable {
         case pumpDumpRoundsCleared
         case tokenSwapLevelsPlayed
         case tokenSwapLevelWins
+        case tokenSwapRandomPlayed, tokenSwapRandomWins
         case pokerHands, pokerWins, pokerWagered, pokerPaidOut, pokerBestHand, pokerRoyals, pokerBiggestWin
         case tokenSwapGames, tokenSwapBestScore, tokenSwapTokens, tokenSwapBestChain, tokenSwapBlasts
         case tokensBought, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
@@ -199,11 +209,14 @@ public struct Stats: Codable, Equatable, Sendable {
         bestTap = c.value(.bestTap, default: 0)
         bestCombo = c.value(.bestCombo, default: 0)
         lifetimeSteps = c.value(.lifetimeSteps, default: 0)
+        // Before steps were paid the next day, every step counted was paid at once.
+        stepsPaid = c.value(.stepsPaid, default: lifetimeSteps)
         bestDaySteps = c.value(.bestDaySteps, default: 0)
         maxOwned = c.enumKeyed(.maxOwned, as: MinerID.self)
         maxTotalMiners = c.value(.maxTotalMiners, default: 0)
         maxUpgrades = c.value(.maxUpgrades, default: 0)
         minersBought = c.value(.minersBought, default: 0)
+        powerUpLevelsBought = c.value(.powerUpLevelsBought, default: 0)
         minerUpgradesBought = c.value(.minerUpgradesBought, default: 0)
         blackjackHands = c.value(.blackjackHands, default: 0)
         blackjackWins = c.value(.blackjackWins, default: 0)
@@ -290,6 +303,8 @@ public struct Stats: Codable, Equatable, Sendable {
         pumpDumpRoundsCleared = c.value(.pumpDumpRoundsCleared, default: 0)
         tokenSwapLevelsPlayed = c.value(.tokenSwapLevelsPlayed, default: 0)
         tokenSwapLevelWins = c.value(.tokenSwapLevelWins, default: 0)
+        tokenSwapRandomPlayed = c.value(.tokenSwapRandomPlayed, default: 0)
+        tokenSwapRandomWins = c.value(.tokenSwapRandomWins, default: 0)
         pokerHands = c.value(.pokerHands, default: 0)
         pokerWins = c.value(.pokerWins, default: 0)
         pokerWagered = c.value(.pokerWagered, default: 0)
@@ -315,11 +330,13 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(bestTap, forKey: .bestTap)
         try c.encode(bestCombo, forKey: .bestCombo)
         try c.encode(lifetimeSteps, forKey: .lifetimeSteps)
+        try c.encode(stepsPaid, forKey: .stepsPaid)
         try c.encode(bestDaySteps, forKey: .bestDaySteps)
         try c.encode(maxOwned.stringKeyed, forKey: .maxOwned)
         try c.encode(maxTotalMiners, forKey: .maxTotalMiners)
         try c.encode(maxUpgrades, forKey: .maxUpgrades)
         try c.encode(minersBought, forKey: .minersBought)
+        try c.encode(powerUpLevelsBought, forKey: .powerUpLevelsBought)
         try c.encode(minerUpgradesBought, forKey: .minerUpgradesBought)
         try c.encode(blackjackHands, forKey: .blackjackHands)
         try c.encode(blackjackWins, forKey: .blackjackWins)
@@ -404,6 +421,8 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(pumpDumpRoundsCleared, forKey: .pumpDumpRoundsCleared)
         try c.encode(tokenSwapLevelsPlayed, forKey: .tokenSwapLevelsPlayed)
         try c.encode(tokenSwapLevelWins, forKey: .tokenSwapLevelWins)
+        try c.encode(tokenSwapRandomPlayed, forKey: .tokenSwapRandomPlayed)
+        try c.encode(tokenSwapRandomWins, forKey: .tokenSwapRandomWins)
         try c.encode(pokerHands, forKey: .pokerHands)
         try c.encode(pokerWins, forKey: .pokerWins)
         try c.encode(pokerWagered, forKey: .pokerWagered)

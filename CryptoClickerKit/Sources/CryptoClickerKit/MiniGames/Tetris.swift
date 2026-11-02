@@ -90,6 +90,8 @@ public struct TetrisGame: Sendable {
     public static let comboPoints = 50
 
     public let mode: Mode
+    /// How fast pieces fall (the game's Speed option).
+    public let speed: GameSpeed
 
     /// Row-major cells; 0 is empty, otherwise the `Tetromino` raw value that settled there.
     public private(set) var board: [Int]
@@ -120,8 +122,9 @@ public struct TetrisGame: Sendable {
     public private(set) var pieces = 0
     private var groundedTicks = 0
 
-    public init<R: RandomNumberGenerator>(mode: Mode = .endless, using rng: inout R) {
+    public init<R: RandomNumberGenerator>(mode: Mode = .endless, speed: GameSpeed = .normal, using rng: inout R) {
         self.mode = mode
+        self.speed = speed
         board = Array(repeating: 0, count: Self.width * Self.height)
         refillQueue(using: &rng)
         spawn(using: &rng)
@@ -138,7 +141,8 @@ public struct TetrisGame: Sendable {
     public var nextPiece: Tetromino? { queue.first }
 
     /// Seconds between gravity steps: 1s at level 1, about 0.23s at level 10, never below 0.1s.
-    public var gravityInterval: TimeInterval { max(0.1, pow(0.85, Double(level - 1))) }
+    /// The Speed option scales it (Fast pieces fall 30% sooner, Slow ones 25% later).
+    public var gravityInterval: TimeInterval { max(0.1, pow(0.85, Double(level - 1)) / speed.factor) }
 
     /// The piece type settled at a cell, if any.
     public func block(x: Int, y: Int) -> Tetromino? {

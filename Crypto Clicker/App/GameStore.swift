@@ -2,7 +2,7 @@ import SwiftUI
 import CryptoClickerKit
 
 enum AppTab: Hashable {
-    case mine, shop, arcade, exchange, trophies
+    case mine, shop, arcade, trophies, settings
 }
 
 /// A short message that slides in at the top of the screen.
@@ -37,7 +37,7 @@ struct Airdrop: Identifiable, Equatable {
     let lifetime: TimeInterval
 }
 
-/// Token prices, day changes, charts and news for the Coin Exchange. Prices only move once per
+/// Token prices, day changes, charts and news for the Shop's Tokens page. Prices only move once per
 /// market tick, so this is worked out then rather than on every redraw.
 struct MarketBoard: Equatable {
     struct Quote: Equatable {
@@ -386,6 +386,14 @@ final class GameStore {
         return bought
     }
 
+    /// Buys a power-up's next level. Saved at once, like Offline Mining.
+    @discardableResult
+    func buyPowerUp(_ powerUp: PowerUpID) -> Bool {
+        let bought = perform { game, _ in game.buyPowerUp(powerUp) }
+        if bought { save() }
+        return bought
+    }
+
     @discardableResult
     func unlock(_ miniGame: MiniGame) -> Bool {
         perform { game, _ in game.unlock(miniGame) }
@@ -576,6 +584,17 @@ final class GameStore {
         return payout
     }
 
+    /// Records a finished random level; every point pays, and a win more.
+    @discardableResult
+    func finishTokenSwapRandom(_ level: TokenSwapLevel, game result: TokenSwapGame) -> Double {
+        let coins = perform { game, _ in
+            game.finishTokenSwapRandom(level, won: result.phase == .won, score: result.score, tokens: result.tokensCleared,
+                                       bestChain: result.bestChain, specials: result.specialsSetOff)
+        }
+        save()
+        return coins
+    }
+
     /// Records a finished daily puzzle; the first win of the day pays.
     @discardableResult
     func finishTokenSwapDaily(day: String, game result: TokenSwapGame) -> Double {
@@ -708,7 +727,7 @@ final class GameStore {
         }
     }
 
-    /// Samples idle income for the Statistics chart every half hour while the app is open.
+    /// Samples idle income for the Statistics chart every minute while the app is open.
     private func recordIncomeIfDue(at now: Date) {
         let last = game.incomeHistory.last?.date ?? .distantPast
         guard now.timeIntervalSince(last) >= Tuning.incomeSampleInterval || last > now else { return }
@@ -803,7 +822,7 @@ final class GameStore {
 
     // MARK: Apple Health
 
-    /// Asks for Health access and starts rewarding steps. Steps unlock after 2,500 taps.
+    /// Asks for Health access and starts rewarding steps. Steps unlock after 2,000 taps.
     func connectSteps() async {
         guard game.areStepsUnlocked, !game.steps.isConnected else { return }
         do {
@@ -821,7 +840,8 @@ final class GameStore {
         pushToWatch(force: true)
     }
 
-    /// Pays for new steps. Safe to call at any time: the ledger never pays a step twice.
+    /// Counts new steps and pays for the days that are over (steps are paid the day after they're
+    /// walked). Safe to call at any time: the ledger never counts or pays a step twice.
     func syncSteps(force: Bool = false) async {
         let now = Date.now
         guard !isSaveLocked, game.steps.isConnected, !isSyncingSteps,
@@ -833,8 +853,9 @@ final class GameStore {
         guard let days = try? await stepTracker.dailySteps(days: Tuning.stepWindowDays) else { return }
         let credit = perform { game, now in game.creditSteps(days, today: StepDay.key(for: now), at: now) }
         if credit.steps > 0 {
-            show(Toast(icon: "👣", title: "\(CoinFormat.grouped(credit.steps)) new steps",
-                       message: "+\(CoinFormat.short(credit.coins)) coins"))
+            let isYesterday = credit.days == [StepDay.previousKey(before: now)]
+            show(Toast(icon: "👣", title: isYesterday ? "Yesterday's steps paid" : "Steps paid",
+                       message: "\(CoinFormat.grouped(credit.steps)) steps · +\(CoinFormat.short(credit.coins)) coins"))
         }
         pushToWatch(force: true)
     }
@@ -921,6 +942,10 @@ extension GameStore {
 
     func debugAddOfflineMining(levels: Int) {
         debugChange { game, _ in game.debugAddOfflineMining(levels: levels) }
+    }
+
+    func debugMaxPowerUps() {
+        debugChange { game, _ in game.debugMaxPowerUps() }
     }
 
     func debugUnlockAllGames() {

@@ -7,13 +7,13 @@ struct SuggestionTests {
     @Test func theQuickestPaybackWins() throws {
         let game = GameState.make(coins: 10_000, miners: [.chromebook: 10, .desktop: 1])
         let best = try #require(game.bestPurchase)
-        // A Desktop (a coin a second for 474) beats a Chromebook (half a coin for 417) and a GPU Rig.
+        // A Desktop (2 coins a second for 947) beats a Chromebook (a quarter coin for 336) and a GPU Rig.
         #expect(best.purchase == .miner(.desktop))
         #expect(best.name == "Desktop")
         #expect(best.price == game.price(of: .miner(.desktop)))
-        #expect(best.price == 474)
-        #expect(best.incomeGain == 1)
-        #expect(abs(best.payback - best.price) < 1e-9)
+        #expect(best.price == 947)
+        #expect(best.incomeGain == 2)
+        #expect(abs(best.payback - best.price / 2) < 1e-9)
     }
 
     @Test func milestonesCount() throws {
@@ -21,12 +21,29 @@ struct SuggestionTests {
         let game = GameState.make(coins: 5_000, miners: [.chromebook: 24, .desktop: 3])
         let best = try #require(game.bestPurchase)
         #expect(best.purchase == .miner(.chromebook))
-        #expect(best.incomeGain == 13) // 25 × 0.5 × 2, up from 24 × 0.5.
+        #expect(best.incomeGain == 6.5) // 25 × 0.25 × 2, up from 24 × 0.25.
     }
 
     @Test func onlyAffordableThingsThatAddIncomeAreSuggested() {
         #expect(GameState.make(coins: 10).bestPurchase == nil)
         #expect(GameState.make(coins: 0, miners: [.chromebook: 3]).bestPurchase == nil)
+    }
+
+    @Test func theBestValueMinerMovesUpTheLadder() {
+        // With one Chromebook, another is the cheapest way to add production.
+        var game = GameState.make(miners: [.chromebook: 1])
+        #expect(game.bestValueMiner == .chromebook)
+        // Two Chromebooks in, a third costs 83 × 1.15² ≈ 110 for a quarter coin a second (439 a
+        // coin), and a Desktop 823 for two (412 a coin): the Desktop is the better buy.
+        game.miners[.chromebook] = 2
+        #expect(game.bestValueMiner == .desktop)
+        #expect(game.nextUnitGain(.desktop) == 2)
+        // The 25th Chromebook doubles all of them, which makes it worth it again.
+        game.miners = [.chromebook: 24, .desktop: 20]
+        #expect(game.nextUnitGain(.chromebook) == 6.5)
+        #expect(game.bestValueMiner == .chromebook)
+        // Nothing revealed adds production: no suggestion.
+        #expect(GameState.make().bestValueMiner == .chromebook)
     }
 
     @Test func aSuggestionCanBeBought() throws {
@@ -52,7 +69,7 @@ struct GameRecordTests {
     }
 
     @Test func recordsReadTheStatistics() {
-        var game = GameState.make(miners: [.desktop: 10])
+        var game = GameState.make(miners: minersEarning(10))
         #expect(game.record(for: .snake) == "Best 0")
         #expect(game.record(for: .moon) == "No cash-outs yet")
         game.finishSnake(score: 250, length: 28)
@@ -67,7 +84,7 @@ struct GameRecordTests {
     }
 
     @Test func casinoStatisticsTrackWinsAndStreaks() {
-        var game = GameState.make(miners: [.desktop: 10])
+        var game = GameState.make(miners: minersEarning(10))
         game.tokens = [.shibaInu: 50]
         let win = BlackjackResult(outcome: .win, bet: 2, payout: 4)
         let loss = BlackjackResult(outcome: .lose, bet: 2, payout: 0)
