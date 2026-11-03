@@ -401,8 +401,9 @@ extension GameState {
         steps.isConnected = false
     }
 
-    /// Counts new steps and pays for the days that are over: steps are paid the day after they're
-    /// walked. `days` are HealthKit daily totals for the sync window, today included. Safe to call
+    /// Counts new steps and pays for them. From the second day of the game, steps are paid as
+    /// they're walked; the first day's wait until the next day, so walking can't skip the opening.
+    /// `days` are HealthKit daily totals for the sync window, today included. Safe to call
     /// repeatedly: no step is counted or paid twice.
     @discardableResult
     public mutating func creditSteps(_ days: [StepDay], today: String, at now: Date) -> StepCredit {
@@ -417,10 +418,12 @@ extension GameState {
             stats.bestDaySteps = max(stats.bestDaySteps, day.steps)
         }
         stats.lifetimeSteps = stats.lifetimeSteps.addingCount(counted)
-        // Pay for the days that are over, at today's step value.
+        // Pay for the days that are over, and today's steps too after the first day, at today's
+        // step value.
+        let paysToday = !stepsPaidNextDay(today: today)
         var paid = 0
         var paidDays: [String] = []
-        for key in steps.counted.keys.sorted() where key < today {
+        for key in steps.counted.keys.sorted() where key < today || (key == today && paysToday) {
             let unpaid = steps.unpaid(key)
             guard unpaid > 0 else { continue }
             paid = paid.addingCount(unpaid)
@@ -441,7 +444,11 @@ extension GameState {
         return StepCredit(steps: paid, coins: coins, counted: counted, days: paidDays)
     }
 
-    /// Coins today's steps will pay tomorrow, at today's step value (it grows with income).
+    /// Whether today's steps wait for tomorrow: only on the game's first day.
+    public func stepsPaidNextDay(today: String) -> Bool { isFirstDay(today) }
+
+    /// Coins today's steps will pay tomorrow, at today's step value (it grows with income). Only
+    /// the first day's steps wait; after that they're paid as they're synced.
     public func pendingStepCoins(today: String) -> Double {
         guard steps.isConnected, steps.todayKey == today else { return 0 }
         return Double(steps.unpaid(today)) * stepValue

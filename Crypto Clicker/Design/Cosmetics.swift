@@ -131,6 +131,14 @@ struct CosmeticPreview: View {
                     }
                 }
                 .frame(width: 48, height: 48)
+            case .ship:
+                Canvas { context, size in
+                    InvadersArt.drawShip(cosmetic, in: CGRect(x: size.width * 0.18, y: size.height * 0.12,
+                                                             width: size.width * 0.64, height: size.height * 0.62),
+                                         context: &context, time: 0)
+                }
+                .frame(width: 48, height: 48)
+                .background(Color(red: 0.05, green: 0.03, blue: 0.14), in: .rect(cornerRadius: 10))
             case .snake:
                 HStack(spacing: 1) {
                     ForEach(0..<5, id: \.self) { index in

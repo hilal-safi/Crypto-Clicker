@@ -57,7 +57,7 @@ final class WatchStore {
 
     func income(at date: Date) -> Double { snapshot?.income(at: date) ?? 0 }
 
-    /// Steps the phone has counted today, as of its last sync. They're paid tomorrow.
+    /// Steps the phone has counted today, as of its last sync.
     var phoneStepsToday: Int {
         guard let snapshot, snapshot.stepsDay == StepDay.key(for: .now) else { return 0 }
         return snapshot.stepsToday

@@ -1,0 +1,905 @@
+import Foundation
+
+/// Scam Invaders: rows of scam tokens march from side to side, stepping down each time they reach
+/// an edge, and fire back. Shoot every one to reach the next, faster wave, which starts a little
+/// lower; let one land and the game is over. Three ships per game. The field is 1 unit wide and
+/// 1.5 tall, y pointing down, like Brick Breaker's.
+///
+/// The ship follows the finger and fires while it's down (`isFiring`), with at most two volleys in
+/// the air at once. Every hit adds 10% to what the next is worth, up to double, and a volley that
+/// hits nothing ends the streak, so aimed fire pays. Four firewalls shield the ship: any shot chips
+/// a block away (an invader's chips two), and invaders marching through them crush what they touch.
+/// A whale crosses the top now and then: shoot it for bonus points and a power-up. From the second
+/// wave one invader in each glows gold and carries a power-up too. Every fifth wave is a boss.
+///
+/// The Speed option scales how fast everything moves and fires, so a point is worth the same at
+/// every speed. Everything moves in sub-steps of at most 1/240 s, so no shot passes through a block
+/// on a slow frame, and the rules never depend on the frame rate.
+public struct InvadersGame: Sendable {
+    public enum Phase: Equatable, Sendable {
+        /// The wave's banner is up and the invaders are about to march.
+        case incoming
+        case playing
+        /// The ship was hit: everything holds still for a moment before the next ship.
+        case shipLost
+        /// The last invader is down: a moment for the bonus before the next wave.
+        case waveCleared
+        case over
+    }
+
+    public enum InvaderKind: String, CaseIterable, Sendable {
+        /// The bottom two rows.
+        case memeCoin
+        /// The middle two rows.
+        case pumpBot
+        /// The top row.
+        case rugPuller
+
+        public var name: String {
+            switch self {
+            case .memeCoin: "Meme Coin"
+            case .pumpBot: "Pump Bot"
+            case .rugPuller: "Rug Puller"
+            }
+        }
+
+        /// Points before the streak bonus (a golden one doubles them).
+        public var points: Int {
+            switch self {
+            case .memeCoin: 10
+            case .pumpBot: 20
+            case .rugPuller: 30
+            }
+        }
+
+        /// The kind in a formation row: rug pullers on top, then pump bots, then meme coins.
+        static func forRow(_ row: Int) -> InvaderKind {
+            row == 0 ? .rugPuller : row <= 2 ? .pumpBot : .memeCoin
+        }
+    }
+
+    public struct Invader: Equatable, Sendable, Identifiable {
+        public let id: Int
+        public let row: Int
+        public let column: Int
+        public let kind: InvaderKind
+        /// Carries a power-up, dropped when it's shot, and is worth double.
+        public let isGolden: Bool
+    }
+
+    public enum PowerUp: String, CaseIterable, Sendable {
+        case rapidFire, spreadShot, laser, shield
+
+        public var name: String {
+            switch self {
+            case .rapidFire: "Rapid Fire"
+            case .spreadShot: "Spread Shot"
+            case .laser: "Laser"
+            case .shield: "Shield"
+            }
+        }
+
+        /// How long it lasts; the shield lasts until it takes a hit.
+        public var duration: TimeInterval? {
+            switch self {
+            case .rapidFire: 9
+            case .spreadShot: 8
+            case .laser: 7
+            case .shield: nil
+            }
+        }
+    }
+
+    /// A falling power-up.
+    public struct Capsule: Equatable, Sendable, Identifiable {
+        public let id: Int
+        public let kind: PowerUp
+        public internal(set) var position: Vector2
+    }
+
+    /// One of the ship's shots. Shots fired together are a volley.
+    public struct Shot: Equatable, Sendable, Identifiable {
+        public let id: Int
+        public internal(set) var position: Vector2
+        /// Field units per second: up the screen, and a little sideways for a spread.
+        public let velocity: Vector2
+        /// Burns through invaders instead of stopping at the first.
+        public let isLaser: Bool
+        let volley: Int
+    }
+
+    /// An invader's (or the boss's) shot.
+    public struct EnemyShot: Equatable, Sendable, Identifiable {
+        public let id: Int
+        public internal(set) var position: Vector2
+        public let velocity: Vector2
+        /// Who fired it, for its look; `nil` for the boss.
+        public let shooter: InvaderKind?
+    }
+
+    /// A wall of blocks between the ship and the invaders.
+    public struct Firewall: Equatable, Sendable, Identifiable {
+        public static let rows = 5
+        public static let columns = 8
+
+        public let id: Int
+        public let frame: Box
+        /// The blocks still standing, row by row from the top (`rows × columns` of them).
+        public internal(set) var blocks: [Bool]
+
+        public var blockWidth: Double { frame.width / Double(Self.columns) }
+        public var blockHeight: Double { frame.height / Double(Self.rows) }
+
+        public func blockFrame(row: Int, column: Int) -> Box {
+            Box(minX: frame.minX + Double(column) * blockWidth, minY: frame.minY + Double(row) * blockHeight,
+                width: blockWidth, height: blockHeight)
+        }
+
+        public func isStanding(row: Int, column: Int) -> Bool {
+            (0..<Self.rows).contains(row) && (0..<Self.columns).contains(column) && blocks[row * Self.columns + column]
+        }
+
+        public var standing: Int { blocks.filter { $0 }.count }
+    }
+
+    /// The bonus whale crossing the top.
+    public struct Whale: Equatable, Sendable {
+        public static let size = (width: 0.14, height: 0.055)
+        public internal(set) var position: Vector2
+        /// Field units per second at Normal speed, sideways: negative is left.
+        public let speedX: Double
+
+        public var frame: Box {
+            Box(minX: position.x - Self.size.width / 2, minY: position.y - Self.size.height / 2,
+                width: Self.size.width, height: Self.size.height)
+        }
+    }
+
+    /// Every fifth wave: a giant bear-market bot sliding along the top.
+    public struct Boss: Equatable, Sendable {
+        public internal(set) var frame: Box
+        public let maxHits: Int
+        public internal(set) var hitsLeft: Int
+        var speedX: Double
+        var fireClock: TimeInterval
+    }
+
+    /// Something that happened in the last update, for effects and sounds.
+    public enum Event: Equatable, Sendable {
+        case invaderDestroyed(at: Vector2, kind: InvaderKind, golden: Bool, points: Int)
+        case whaleHit(at: Vector2, points: Int)
+        case bossHit(at: Vector2)
+        case bossDefeated(at: Vector2, points: Int)
+        case firewallHit(at: Vector2)
+        case shieldHit(at: Vector2)
+        case shipHit(at: Vector2)
+        case caught(PowerUp)
+    }
+
+    // MARK: Field
+
+    public static let width = 1.0
+    public static let height = 1.5
+    public static let rows = 5
+    public static let columns = 8
+    public static let invaderSize = (width: 0.068, height: 0.05)
+    static let columnSpacing = 0.094
+    static let rowSpacing = 0.074
+    static let sideMargin = 0.025
+    /// How far the formation moves in one step, and how far it drops at an edge.
+    static let stepX = 0.014
+    static let dropY = 0.032
+    public static let shipSize = (width: 0.1, height: 0.05)
+    public static let shipTop = 1.37
+    public static let startingLives = 3
+    /// Every this many waves is a boss wave.
+    public static let bossEvery = 5
+    public static let shotSize = (width: 0.008, height: 0.034)
+    public static let enemyShotSize = (width: 0.012, height: 0.03)
+    public static let capsuleSize = (width: 0.085, height: 0.034)
+    static let firewallTop = 1.18
+    static let firewallSize = (width: 0.13, height: 0.075)
+    static let whaleY = 0.085
+    static let shotSpeed = 1.6
+    static let capsuleSpeed = 0.34
+    static let fireCooldown: TimeInterval = 0.38
+    static let rapidCooldown: TimeInterval = 0.16
+    static let maxVolleys = 2
+    static let rapidVolleys = 4
+    static let spreadAngle = 0.2
+    static let streakStep = 0.1
+    static let maxStreakBonus = 1.0
+    static let shipLostHold: TimeInterval = 1.3
+    static let invulnerableTime: TimeInterval = 1.6
+    static let clearedHold: TimeInterval = 1.0
+    static let incomingHold: TimeInterval = 1.2
+    static let maxStep: TimeInterval = 1.0 / 240
+
+    // MARK: State
+
+    public private(set) var invaders: [Invader] = []
+    /// The top-left corner of the formation's grid: invader frames are worked out from it.
+    public private(set) var formationOrigin = Vector2(x: 0, y: 0)
+    public private(set) var shots: [Shot] = []
+    public private(set) var enemyShots: [EnemyShot] = []
+    public private(set) var firewalls: [Firewall] = []
+    public private(set) var capsules: [Capsule] = []
+    public private(set) var whale: Whale?
+    public private(set) var boss: Boss?
+    public private(set) var shipX = width / 2
+    public private(set) var phase = Phase.incoming
+    public private(set) var lives = startingLives
+    public private(set) var wave = 1
+    public private(set) var score = 0
+    /// Hits in a row; a volley that hits nothing ends it.
+    public private(set) var streak = 0
+    public private(set) var bestStreak = 0
+    /// Power-ups running, with the seconds left.
+    public private(set) var effects: [PowerUp: TimeInterval] = [:]
+    public private(set) var hasShield = false
+    /// Seconds left of the blink after a new ship arrives, when shots pass through it.
+    public private(set) var invulnerableFor: TimeInterval = 0
+    /// Seconds left of the current banner (incoming, ship lost or wave cleared).
+    public private(set) var holdFor: TimeInterval = incomingHold
+    /// Which of the invaders' two poses they're in: it flips with every step.
+    public private(set) var marchPose = 0
+    /// Bonus points the last cleared wave paid, for its banner.
+    public private(set) var lastWaveBonus = 0
+    public private(set) var invadersDestroyed = 0
+    public private(set) var whalesHit = 0
+    public private(set) var powerUpsCaught = 0
+    public private(set) var bossesDefeated = 0
+    public private(set) var volleysFired = 0
+    /// Volleys that hit at least one thing.
+    public private(set) var volleysHit = 0
+    /// Counts the ships lost and the shield's saves, for haptics.
+    public private(set) var shipsLost = 0
+    public private(set) var shieldSaves = 0
+    /// What happened in the last update.
+    public private(set) var events: [Event] = []
+    /// The ship fires while this is on (the player's finger is down).
+    public var isFiring = false
+    /// How fast everything moves (the game's Speed option).
+    public let gameSpeed: GameSpeed
+
+    private var direction = 1.0
+    private var marchClock: TimeInterval = 0
+    private var fireClock: TimeInterval = 0
+    private var enemyFireClock: TimeInterval = 1.5
+    private var whaleClock: TimeInterval = 18
+    private var lostShipThisWave = false
+    private var formationSize = 0
+    /// Shots still flying and things hit, by volley: a volley is a miss once its last shot is gone
+    /// without a hit.
+    private var volleys: [Int: (flying: Int, hits: Int)] = [:]
+    private var nextID = 0
+    private var rng: SeededGenerator
+
+    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal) {
+        gameSpeed = speed
+        rng = SeededGenerator(seed: seed)
+        whaleClock = Double.random(in: 16...24, using: &rng)
+        layOutWave()
+    }
+
+    // MARK: Reading the game
+
+    public var isBossWave: Bool { wave % Self.bossEvery == 0 }
+
+    public func isActive(_ powerUp: PowerUp) -> Bool {
+        powerUp == .shield ? hasShield : (effects[powerUp] ?? 0) > 0
+    }
+
+    /// What the next hit's points are multiplied by: 10% more a hit in a row, up to double.
+    public var streakMultiplier: Double {
+        1 + min(Double(streak) * Self.streakStep, Self.maxStreakBonus)
+    }
+
+    /// Share of volleys that hit something.
+    public var accuracy: Double {
+        volleysFired > 0 ? Double(volleysHit) / Double(volleysFired) : 0
+    }
+
+    public var ship: Box {
+        Box(minX: shipX - Self.shipSize.width / 2, minY: Self.shipTop, width: Self.shipSize.width, height: Self.shipSize.height)
+    }
+
+    /// What enemy shots must touch to hit the ship: a little inside its outline.
+    var shipHitbox: Box { ship.insetBy(dx: 0.012, dy: 0.008) }
+
+    public func frame(of invader: Invader) -> Box {
+        Box(minX: formationOrigin.x + Double(invader.column) * Self.columnSpacing,
+            minY: formationOrigin.y + Double(invader.row) * Self.rowSpacing,
+            width: Self.invaderSize.width, height: Self.invaderSize.height)
+    }
+
+    /// Seconds between the formation's steps: quicker each wave, much quicker as it thins out
+    /// (the last invader all but runs), and scaled by the Speed option.
+    var marchInterval: TimeInterval {
+        let base = 0.5 * pow(0.93, Double(min(wave, 12) - 1))
+        let share = formationSize > 0 ? Double(invaders.count) / Double(formationSize) : 1
+        return max(0.03, base * (0.12 + 0.88 * share)) / gameSpeed.factor
+    }
+
+    /// Seconds between invader shots on average: quicker each wave.
+    var enemyFireInterval: TimeInterval {
+        max(0.4, 1.15 * pow(0.92, Double(min(wave, 12) - 1))) / gameSpeed.factor
+    }
+
+    var maxEnemyShots: Int { min(2 + wave / 2, 6) }
+
+    var enemyShotSpeed: Double { (0.5 + 0.025 * Double(min(wave, 16))) * gameSpeed.factor }
+
+    /// Where the formation's top row starts: a little lower each wave, up to six waves' worth.
+    static func formationTop(wave: Int) -> Double {
+        0.17 + 0.03 * Double(min(max(wave, 1) - 1, 6))
+    }
+
+    // MARK: Controls
+
+    /// Centers the ship at `x`, kept inside the field.
+    public mutating func moveShip(to x: Double) {
+        guard phase != .over, x.isFinite else { return }
+        let half = Self.shipSize.width / 2
+        shipX = min(max(x, half + 0.01), Self.width - half - 0.01)
+    }
+
+    /// Advances the game by `seconds` (a long frame counts as at most 1/20 s).
+    public mutating func update(by seconds: Double) {
+        events = []
+        guard phase != .over, seconds > 0, seconds.isFinite else { return }
+        var remaining = min(seconds, 0.05)
+        while remaining > 1e-12 && phase != .over {
+            let step = min(remaining, Self.maxStep)
+            remaining -= step
+            advance(by: step)
+        }
+    }
+
+    // MARK: The clock
+
+    private mutating func advance(by seconds: Double) {
+        switch phase {
+        case .incoming, .shipLost, .waveCleared:
+            holdFor -= seconds
+            guard holdFor <= 0 else { return }
+            if phase == .waveCleared {
+                wave += 1
+                layOutWave()
+            } else {
+                if phase == .shipLost { invulnerableFor = Self.invulnerableTime }
+                phase = .playing
+            }
+        case .playing:
+            let factor = gameSpeed.factor
+            fire(by: seconds)
+            moveShots(by: seconds)
+            if phase != .playing { return }
+            march(by: seconds)
+            if phase != .playing { return }
+            moveBoss(by: seconds * factor)
+            enemyFire(by: seconds)
+            moveEnemyShots(by: seconds)
+            if phase != .playing { return }
+            moveWhale(by: seconds * factor)
+            moveCapsules(by: seconds)
+            passTime(seconds)
+        case .over:
+            break
+        }
+    }
+
+    private mutating func passTime(_ seconds: Double) {
+        for (kind, left) in effects {
+            effects[kind] = left - seconds > 0 ? left - seconds : nil
+        }
+        if invulnerableFor > 0 { invulnerableFor = max(0, invulnerableFor - seconds) }
+    }
+
+    // MARK: The ship's fire
+
+    private mutating func fire(by seconds: Double) {
+        fireClock -= seconds * gameSpeed.factor
+        guard isFiring, fireClock <= 0 else { return }
+        let rapid = isActive(.rapidFire)
+        guard volleys.count < (rapid ? Self.rapidVolleys : Self.maxVolleys) else { return }
+        fireClock = rapid ? Self.rapidCooldown : Self.fireCooldown
+        let volley = newID()
+        let speed = Self.shotSpeed * gameSpeed.factor
+        let angles = isActive(.spreadShot) ? [-Self.spreadAngle, 0, Self.spreadAngle] : [0]
+        let start = Vector2(x: shipX, y: Self.shipTop - Self.shotSize.height / 2)
+        for angle in angles {
+            shots.append(Shot(id: newID(), position: start, velocity: Vector2(x: sin(angle) * speed, y: -cos(angle) * speed),
+                              isLaser: isActive(.laser), volley: volley))
+        }
+        volleys[volley] = (angles.count, 0)
+        volleysFired += 1
+    }
+
+    private mutating func moveShots(by seconds: Double) {
+        guard !shots.isEmpty else { return }
+        var flying: [Shot] = []
+        for var shot in shots {
+            shot.position = shot.position + shot.velocity * seconds
+            let box = Self.box(around: shot.position, size: Self.shotSize)
+            if chipFirewall(touching: box, fromBelow: true) {
+                land(shot, hit: false)
+                continue
+            }
+            // The hit is counted for its volley first: clearing the wave forgets the volleys.
+            if let index = invaders.firstIndex(where: { frame(of: $0).overlaps(box) }) {
+                land(shot, hit: true, removing: !shot.isLaser)
+                destroyInvader(at: index)
+                if phase != .playing { return }
+                if !shot.isLaser { continue }
+            }
+            if let whale, whale.frame.overlaps(box) {
+                land(shot, hit: true)
+                hitWhale(whale)
+                continue
+            }
+            if boss?.frame.overlaps(box) == true {
+                land(shot, hit: true)
+                hitBoss(at: shot.position)
+                if phase != .playing { return }
+                continue
+            }
+            if shot.position.y < -Self.shotSize.height || shot.position.x < 0 || shot.position.x > Self.width {
+                land(shot, hit: false)
+                continue
+            }
+            flying.append(shot)
+        }
+        shots = flying
+    }
+
+    /// Counts what a shot did for its volley. A volley whose last shot is gone without a hit is a
+    /// miss, and ends the streak. `removing` is false for a laser that hit and flies on.
+    private mutating func land(_ shot: Shot, hit: Bool, removing: Bool = true) {
+        guard var volley = volleys[shot.volley] else { return }
+        if hit {
+            if volley.hits == 0 { volleysHit += 1 }
+            volley.hits += 1
+        }
+        if removing {
+            volley.flying -= 1
+            shots.removeAll { $0.id == shot.id }
+        }
+        if volley.flying <= 0 {
+            volleys[shot.volley] = nil
+            if volley.hits == 0 { streak = 0 }
+        } else {
+            volleys[shot.volley] = volley
+        }
+    }
+
+    /// Counts a hit toward the streak and returns `points` with the streak's bonus.
+    private mutating func scoreHit(_ points: Int) -> Int {
+        let earned = Int((Double(points) * streakMultiplier).rounded())
+        streak += 1
+        bestStreak = max(bestStreak, streak)
+        score = score.addingCount(earned)
+        return earned
+    }
+
+    // MARK: Invaders
+
+    private mutating func destroyInvader(at index: Int) {
+        let invader = invaders.remove(at: index)
+        let body = frame(of: invader)
+        let center = Vector2(x: body.midX, y: body.midY)
+        let points = scoreHit(invader.kind.points * (invader.isGolden ? 2 : 1))
+        invadersDestroyed += 1
+        events.append(.invaderDestroyed(at: center, kind: invader.kind, golden: invader.isGolden, points: points))
+        if invader.isGolden { dropCapsule(at: center) }
+        checkCleared()
+    }
+
+    /// One step of the march: sideways, or down and back at an edge. Invaders crush firewall blocks
+    /// they reach, and reaching the ship's line ends the game.
+    private mutating func march(by seconds: Double) {
+        guard !invaders.isEmpty else { return }
+        marchClock -= seconds
+        while marchClock <= 0 && phase == .playing {
+            marchClock += marchInterval
+            step()
+        }
+    }
+
+    private mutating func step() {
+        marchPose = 1 - marchPose
+        let frames = invaders.map { frame(of: $0) }
+        let left = frames.map(\.minX).min() ?? 0
+        let right = frames.map(\.maxX).max() ?? 0
+        let dx = direction * Self.stepX
+        if left + dx < Self.sideMargin || right + dx > Self.width - Self.sideMargin {
+            formationOrigin.y += Self.dropY
+            direction = -direction
+        } else {
+            formationOrigin.x += dx
+        }
+        for invader in invaders { crushFirewalls(under: frame(of: invader)) }
+        if invaders.contains(where: { frame(of: $0).maxY >= Self.shipTop }) {
+            lives = 0
+            endGame()
+        }
+    }
+
+    private mutating func enemyFire(by seconds: Double) {
+        enemyFireClock -= seconds
+        guard enemyFireClock <= 0 else { return }
+        enemyFireClock = enemyFireInterval * Double.random(in: 0.7...1.3, using: &rng)
+        guard enemyShots.count < maxEnemyShots else { return }
+        // The lowest invader in each column can fire; often the one nearest the ship takes aim.
+        let shooters = Dictionary(grouping: invaders, by: \.column).compactMap { $0.value.max { $0.row < $1.row } }
+            .sorted { $0.column < $1.column }
+        guard !shooters.isEmpty else { return }
+        let aimed = Double.random(in: 0..<1, using: &rng) < 0.4
+        let shooter = aimed ? shooters.min { abs(frame(of: $0).midX - shipX) < abs(frame(of: $1).midX - shipX) }
+                            : shooters.randomElement(using: &rng)
+        guard let shooter else { return }
+        let muzzle = frame(of: shooter)
+        enemyShots.append(EnemyShot(id: newID(), position: Vector2(x: muzzle.midX, y: muzzle.maxY + Self.enemyShotSize.height / 2),
+                                    velocity: Vector2(x: 0, y: enemyShotSpeed), shooter: shooter.kind))
+    }
+
+    private mutating func moveEnemyShots(by seconds: Double) {
+        guard !enemyShots.isEmpty else { return }
+        var falling: [EnemyShot] = []
+        for var shot in enemyShots {
+            shot.position = shot.position + shot.velocity * seconds
+            let box = Self.box(around: shot.position, size: Self.enemyShotSize)
+            if chipFirewall(touching: box, fromBelow: false) { continue }
+            if box.overlaps(shipHitbox) && invulnerableFor <= 0 {
+                if hasShield {
+                    hasShield = false
+                    shieldSaves += 1
+                    events.append(.shieldHit(at: shot.position))
+                    continue
+                }
+                loseShip()
+                return
+            }
+            if shot.position.y - Self.enemyShotSize.height > Self.height || shot.position.x < -0.05 || shot.position.x > Self.width + 0.05 {
+                continue
+            }
+            falling.append(shot)
+        }
+        enemyShots = falling
+    }
+
+    // MARK: Firewalls
+
+    /// Knocks out the block a shot meets first, if it touches a standing one: the lowest for the
+    /// ship's shots (fired up from below), the highest for the invaders'. An invader's shot also
+    /// takes a block next to it.
+    private mutating func chipFirewall(touching box: Box, fromBelow: Bool) -> Bool {
+        guard let wall = firewalls.firstIndex(where: { $0.frame.overlaps(box) }) else { return false }
+        let firewall = firewalls[wall]
+        var hit: (row: Int, column: Int)?
+        let rows = fromBelow ? Array((0..<Firewall.rows).reversed()) : Array(0..<Firewall.rows)
+        search: for row in rows {
+            for column in 0..<Firewall.columns where firewall.isStanding(row: row, column: column)
+                && firewall.blockFrame(row: row, column: column).overlaps(box) {
+                hit = (row, column)
+                break search
+            }
+        }
+        guard let hit else { return false }
+        firewalls[wall].blocks[hit.row * Firewall.columns + hit.column] = false
+        if !fromBelow {
+            let neighbors = [(hit.row + 1, hit.column), (hit.row, hit.column - 1), (hit.row, hit.column + 1)]
+                .filter { firewalls[wall].isStanding(row: $0.0, column: $0.1) }
+            if let extra = neighbors.randomElement(using: &rng) {
+                firewalls[wall].blocks[extra.0 * Firewall.columns + extra.1] = false
+            }
+        }
+        let block = firewall.blockFrame(row: hit.row, column: hit.column)
+        events.append(.firewallHit(at: Vector2(x: block.midX, y: block.midY)))
+        return true
+    }
+
+    private mutating func crushFirewalls(under frame: Box) {
+        for wall in firewalls.indices where firewalls[wall].frame.overlaps(frame) {
+            for row in 0..<Firewall.rows {
+                for column in 0..<Firewall.columns where firewalls[wall].blockFrame(row: row, column: column).overlaps(frame) {
+                    firewalls[wall].blocks[row * Firewall.columns + column] = false
+                }
+            }
+        }
+    }
+
+    /// Four walls, each a block of 5 by 8 with its top corners rounded off and an arch underneath.
+    static func freshFirewalls(startingID: Int) -> [Firewall] {
+        let gap = (width - 4 * firewallSize.width) / 5
+        return (0..<4).map { index in
+            let frame = Box(minX: gap + Double(index) * (firewallSize.width + gap), minY: firewallTop,
+                            width: firewallSize.width, height: firewallSize.height)
+            var blocks = Array(repeating: true, count: Firewall.rows * Firewall.columns)
+            for (row, column) in [(0, 0), (0, Firewall.columns - 1)] { blocks[row * Firewall.columns + column] = false }
+            for row in (Firewall.rows - 2)..<Firewall.rows {
+                for column in 3...4 { blocks[row * Firewall.columns + column] = false }
+            }
+            return Firewall(id: startingID + index, frame: frame, blocks: blocks)
+        }
+    }
+
+    // MARK: The whale
+
+    private mutating func moveWhale(by seconds: Double) {
+        if var current = whale {
+            current.position.x += current.speedX * seconds
+            whale = current.frame.maxX < -0.02 || current.frame.minX > Self.width + 0.02 ? nil : current
+            return
+        }
+        whaleClock -= seconds
+        guard whaleClock <= 0 else { return }
+        whaleClock = Double.random(in: 16...26, using: &rng)
+        // Not over a boss, and not for the last few invaders.
+        guard boss == nil, invaders.count >= 8 else { return }
+        let fromLeft = Bool.random(using: &rng)
+        let x = fromLeft ? -Whale.size.width / 2 : Self.width + Whale.size.width / 2
+        whale = Whale(position: Vector2(x: x, y: Self.whaleY), speedX: fromLeft ? 0.2 : -0.2)
+    }
+
+    private mutating func hitWhale(_ current: Whale) {
+        whale = nil
+        whalesHit += 1
+        streak += 1
+        bestStreak = max(bestStreak, streak)
+        let points = [50, 100, 100, 150, 150, 300].randomElement(using: &rng) ?? 100
+        score = score.addingCount(points)
+        events.append(.whaleHit(at: current.position, points: points))
+        dropCapsule(at: current.position)
+    }
+
+    // MARK: The boss
+
+    private mutating func moveBoss(by seconds: Double) {
+        guard var current = boss else { return }
+        current.frame.minX += current.speedX * seconds
+        if current.frame.minX < Self.sideMargin {
+            current.frame.minX = Self.sideMargin
+            current.speedX = abs(current.speedX)
+        } else if current.frame.maxX > Self.width - Self.sideMargin {
+            current.frame.minX = Self.width - Self.sideMargin - current.frame.width
+            current.speedX = -abs(current.speedX)
+        }
+        current.fireClock -= seconds
+        if current.fireClock <= 0 {
+            current.fireClock = Self.bossFireInterval(wave: wave)
+            // Three shots fanning out, aimed at where the ship is.
+            let start = Vector2(x: current.frame.midX, y: current.frame.maxY)
+            let toward = min(max((shipX - start.x) * 0.25, -0.12), 0.12)
+            let speed = enemyShotSpeed
+            for spread in [-0.16, 0, 0.16] {
+                enemyShots.append(EnemyShot(id: newID(), position: start,
+                                            velocity: Vector2(x: (spread + toward) * speed, y: speed), shooter: nil))
+            }
+        }
+        boss = current
+    }
+
+    /// Seconds (at Normal speed) between the boss's volleys: a little quicker each boss.
+    static func bossFireInterval(wave: Int) -> TimeInterval {
+        max(0.9, 1.8 - 0.2 * Double(wave / bossEvery - 1))
+    }
+
+    /// Hits each boss takes: more for every one after the first.
+    static func bossHits(wave: Int) -> Int { 25 + 15 * max(0, wave / bossEvery - 1) }
+
+    private mutating func hitBoss(at point: Vector2) {
+        guard var current = boss else { return }
+        current.hitsLeft -= 1
+        _ = scoreHit(5)
+        if current.hitsLeft > 0 {
+            boss = current
+            events.append(.bossHit(at: point))
+            return
+        }
+        boss = nil
+        bossesDefeated += 1
+        let points = 500 * (wave / Self.bossEvery)
+        score = score.addingCount(points)
+        // Beating a boss gives back a lost ship.
+        lives = min(Self.startingLives, lives + 1)
+        events.append(.bossDefeated(at: Vector2(x: current.frame.midX, y: current.frame.midY), points: points))
+        dropCapsule(at: Vector2(x: current.frame.midX, y: current.frame.maxY))
+        checkCleared()
+    }
+
+    // MARK: Power-ups
+
+    private mutating func dropCapsule(at point: Vector2) {
+        let kind = PowerUp.allCases.randomElement(using: &rng) ?? .rapidFire
+        capsules.append(Capsule(id: newID(), kind: kind, position: point))
+    }
+
+    private mutating func moveCapsules(by seconds: Double) {
+        guard !capsules.isEmpty else { return }
+        let ship = ship
+        var caught: [PowerUp] = []
+        capsules = capsules.compactMap { capsule in
+            var moved = capsule
+            moved.position.y += Self.capsuleSpeed * seconds
+            if Self.box(around: moved.position, size: Self.capsuleSize).overlaps(ship) {
+                caught.append(capsule.kind)
+                return nil
+            }
+            return moved.position.y > Self.height ? nil : moved
+        }
+        for kind in caught { activate(kind) }
+    }
+
+    private mutating func activate(_ kind: PowerUp) {
+        powerUpsCaught += 1
+        events.append(.caught(kind))
+        if kind == .shield {
+            hasShield = true
+        } else {
+            effects[kind] = kind.duration
+        }
+    }
+
+    // MARK: Ships and waves
+
+    private mutating func loseShip() {
+        lives -= 1
+        shipsLost += 1
+        lostShipThisWave = true
+        streak = 0
+        events.append(.shipHit(at: Vector2(x: shipX, y: Self.shipTop + Self.shipSize.height / 2)))
+        enemyShots = []
+        dropVolleys()
+        capsules = []
+        effects = [:]
+        hasShield = false
+        if lives <= 0 {
+            endGame()
+        } else {
+            phase = .shipLost
+            holdFor = Self.shipLostHold
+        }
+    }
+
+    private mutating func endGame() {
+        lives = max(0, lives)
+        phase = .over
+        isFiring = false
+        dropVolleys()
+        enemyShots = []
+        capsules = []
+        whale = nil
+    }
+
+    /// Ends the wave once every invader (and the boss) is down: 100 points a wave, and 50 more a
+    /// wave if no ship was lost on it.
+    private mutating func checkCleared() {
+        guard invaders.isEmpty, boss == nil, phase == .playing else { return }
+        lastWaveBonus = 100 * wave + (lostShipThisWave ? 0 : 50 * wave)
+        score = score.addingCount(lastWaveBonus)
+        phase = .waveCleared
+        holdFor = Self.clearedHold
+        dropVolleys()
+        enemyShots = []
+        whale = nil
+    }
+
+    /// Sets up the current wave: the formation (or a boss with two rows of escorts), fresh
+    /// firewalls, and the incoming banner.
+    private mutating func layOutWave() {
+        phase = .incoming
+        holdFor = Self.incomingHold
+        shots = []
+        enemyShots = []
+        capsules = []
+        volleys = [:]
+        whale = nil
+        lostShipThisWave = false
+        direction = 1
+        enemyFireClock = 1.5
+        let formationWidth = Double(Self.columns - 1) * Self.columnSpacing + Self.invaderSize.width
+        formationOrigin = Vector2(x: (Self.width - formationWidth) / 2, y: Self.formationTop(wave: wave))
+        let rows = isBossWave ? Array(3..<Self.rows) : Array(0..<Self.rows)
+        let cells = rows.flatMap { row in (0..<Self.columns).map { (row: row, column: $0) } }
+        if isBossWave {
+            // The escorts march lower down, under the boss's lane.
+            formationOrigin.y = Self.formationTop(wave: wave) - 0.02
+            let frame = Box(minX: 0.34, minY: 0.13, width: 0.32, height: 0.11)
+            boss = Boss(frame: frame, maxHits: Self.bossHits(wave: wave), hitsLeft: Self.bossHits(wave: wave),
+                        speedX: 0.15 + 0.03 * Double(wave / Self.bossEvery), fireClock: Self.bossFireInterval(wave: wave))
+        } else {
+            boss = nil
+        }
+        let golden = wave >= 2 ? cells.indices.randomElement(using: &rng) : nil
+        invaders = []
+        for (index, cell) in cells.enumerated() {
+            invaders.append(Invader(id: newID(), row: cell.row, column: cell.column, kind: InvaderKind.forRow(cell.row),
+                                    isGolden: index == golden))
+        }
+        formationSize = invaders.count
+        // The first step comes one beat after the march begins.
+        marchClock = marchInterval
+        firewalls = Self.freshFirewalls(startingID: newID())
+        nextID += 4
+    }
+
+    /// Clears the ship's shots when a wave or a ship ends. Volleys cut short before they hit
+    /// anything never had their chance, so they don't count toward accuracy.
+    private mutating func dropVolleys() {
+        volleysFired -= volleys.values.filter { $0.hits == 0 }.count
+        volleys = [:]
+        shots = []
+    }
+
+    private static func box(around center: Vector2, size: (width: Double, height: Double)) -> Box {
+        Box(minX: center.x - size.width / 2, minY: center.y - size.height / 2, width: size.width, height: size.height)
+    }
+
+    private mutating func newID() -> Int {
+        nextID += 1
+        return nextID
+    }
+
+    #if DEBUG
+    /// Test hook: starts the wave now, without the banner.
+    mutating func skipBanner() {
+        guard phase == .incoming else { return }
+        phase = .playing
+        holdFor = 0
+    }
+
+    /// Test hook: keeps only the invaders at these grid cells.
+    mutating func keepInvaders(at cells: [(row: Int, column: Int)]) {
+        invaders = invaders.filter { invader in cells.contains { $0.row == invader.row && $0.column == invader.column } }
+        formationSize = max(formationSize, invaders.count)
+    }
+
+    /// Test hook: moves the formation so its top-left grid corner is at `origin`.
+    mutating func placeFormation(at origin: Vector2) {
+        formationOrigin = origin
+    }
+
+    /// Test hook: fires an invader shot from `position`, straight down.
+    mutating func dropEnemyShot(at position: Vector2) {
+        enemyShots.append(EnemyShot(id: newID(), position: position, velocity: Vector2(x: 0, y: enemyShotSpeed), shooter: .memeCoin))
+    }
+
+    /// Test hook: holds the invaders' fire (and the whale) for a long while.
+    mutating func holdFire() {
+        enemyFireClock = 1e9
+        whaleClock = 1e9
+    }
+
+    /// Test hook: holds the formation still.
+    mutating func holdMarch() {
+        marchClock = 1e9
+    }
+
+    /// Test hook: catches a power-up at once.
+    mutating func give(_ kind: PowerUp) {
+        activate(kind)
+    }
+
+    /// Test hook: drops a power-up at `position`.
+    mutating func dropCapsule(_ kind: PowerUp, at position: Vector2) {
+        capsules.append(Capsule(id: newID(), kind: kind, position: position))
+    }
+
+    /// Test hook: sends the whale across now.
+    mutating func sendWhale(at x: Double, speedX: Double = 0.2) {
+        whale = Whale(position: Vector2(x: x, y: Self.whaleY), speedX: speedX)
+    }
+
+    /// Test hook: jumps to a wave and lays it out.
+    mutating func jump(toWave wave: Int) {
+        self.wave = wave
+        layOutWave()
+    }
+
+    /// Test hook: sets the boss's hits left.
+    mutating func setBossHits(_ hits: Int) {
+        boss?.hitsLeft = hits
+    }
+    #endif
+}

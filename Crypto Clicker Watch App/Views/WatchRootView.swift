@@ -75,12 +75,16 @@ struct StepsPage: View {
                         .monospacedDigit()
                     Text("steps today")
                         .font(.headline)
+                    // Phones from before steps were paid as they're walked leave the flag out.
+                    let nextDay = snapshot.stepsPaidNextDay ?? true
                     if store.stepsToday > 0 {
-                        Text("≈ +\(CoinFormat.short(Double(store.stepsToday) * snapshot.stepValue)) coins tomorrow")
+                        Text("≈ +\(CoinFormat.short(Double(store.stepsToday) * snapshot.stepValue)) coins\(nextDay ? " tomorrow" : " today")")
                             .font(.headline)
                             .foregroundStyle(.green)
                     }
-                    Text("Each step pays \(CoinFormat.short(snapshot.stepValue)) coins the day after, when you open Crypto Clicker on your iPhone.")
+                    Text(nextDay
+                         ? "Each step pays \(CoinFormat.short(snapshot.stepValue)) coins the day after, when you open Crypto Clicker on your iPhone."
+                         : "Each step pays \(CoinFormat.short(snapshot.stepValue)) coins, paid when Crypto Clicker on your iPhone syncs your steps.")
                         .font(.body)
                     if !store.liveStepsEnabled {
                         Button("Show Live Steps") {

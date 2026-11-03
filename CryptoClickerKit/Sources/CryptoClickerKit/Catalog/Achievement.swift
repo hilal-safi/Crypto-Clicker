@@ -12,7 +12,7 @@ public enum AchievementMetric: Hashable, Sendable {
     case questsCompleted, longestStreak
     case airdrops, whaleAirdrops, prestiges, perks
     case arcadeRank, tetrisSprints, brickBreakerBosses, bubbleBestWave, tokenSwapStars, merge2048DailyStars
-    case weeklyVarietyGoals
+    case weeklyVarietyGoals, invadersDestroyed, invadersBestWave
 }
 
 public struct Achievement: Identifiable, Hashable, Sendable {
@@ -95,6 +95,8 @@ public enum AchievementCatalog {
                     imageName: nil, metric: .pokerWins, thresholds: [10, 100, 1_000, 5_000]),
         Achievement(id: "token-swapper", name: "Token Swapper", detail: "Match tokens in Token Swap", emoji: "💎",
                     imageName: nil, metric: .tokenSwapTokens, thresholds: [250, 2_500, 25_000, 250_000]),
+        Achievement(id: "invader-hunter", name: "Invader Hunter", detail: "Shoot down invaders in Scam Invaders", emoji: "🛸",
+                    imageName: nil, metric: .invadersDestroyed, thresholds: [100, 1_000, 10_000, 100_000]),
         Achievement(id: "exchanger", name: "Exchanger", detail: "Buy tokens in the Shop", emoji: "🔁", imageName: nil,
                     metric: .tokensExchanged, thresholds: [10, 100, 1_000, 100_000]),
         Achievement(id: "trader", name: "Trader", detail: "Sell tokens in the Shop", emoji: "📈", imageName: nil,
@@ -109,7 +111,7 @@ public enum AchievementCatalog {
                     imageName: nil, metric: .weeklyVarietyGoals, thresholds: [1, 4, 12, 52]),
         Achievement(id: "sprinter", name: "Sprinter", detail: "Finish Tetris Sprints", emoji: "⏱️",
                     imageName: nil, metric: .tetrisSprints, thresholds: [1, 10, 50, 200]),
-        Achievement(id: "boss-slayer", name: "Boss Slayer", detail: "Beat Brick Breaker bosses", emoji: "👾",
+        Achievement(id: "boss-slayer", name: "Boss Slayer", detail: "Beat Brick Breaker bosses", emoji: "⚔️",
                     imageName: nil, metric: .brickBreakerBosses, thresholds: [1, 5, 25, 100]),
         Achievement(id: "wave-rider", name: "Wave Rider", detail: "Wave reached in Bubble Blaster", emoji: "🌊",
                     imageName: nil, metric: .bubbleBestWave, thresholds: [3, 5, 8, 12]),
@@ -117,6 +119,8 @@ public enum AchievementCatalog {
                     imageName: nil, metric: .tokenSwapStars, thresholds: [10, 25, 40, 54]),
         Achievement(id: "puzzle-solver", name: "Puzzle Solver", detail: "Stars from daily 2048 puzzles", emoji: "🧩",
                     imageName: nil, metric: .merge2048DailyStars, thresholds: [3, 15, 60, 200]),
+        Achievement(id: "last-line", name: "Last Line of Defense", detail: "Wave reached in Scam Invaders", emoji: "🛡️",
+                    imageName: nil, metric: .invadersBestWave, thresholds: [3, 6, 10, 15]),
     ]
 
     private static let tokens: [Achievement] = TokenID.allCases.map { token in

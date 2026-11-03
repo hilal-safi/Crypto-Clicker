@@ -332,6 +332,9 @@ extension GameState {
         case .pumpDump: finishPumpDump(score: run.score, coinsHit: run.detail, bestCombo: run.extra,
                                        scamsHit: records.scamsHit, rounds: max(1, run.stage))
         case .tokenSwap: finishTokenSwap(score: run.score, tokens: run.detail, bestChain: run.extra, blasts: records.specials)
+        case .invaders: finishInvaders(score: run.score, destroyed: run.detail, wave: max(1, run.extra), whales: records.bonuses,
+                                       bosses: records.bosses, powerUps: records.powerUps, bestStreak: records.bestStreak,
+                                       volleys: records.volleys, volleysHit: records.volleysHit)
         case .blackjack, .slots, .moon, .videoPoker: ArcadePayout(coins: 0, isNewBest: false)
         }
         unfinishedRun = nil
@@ -407,6 +410,26 @@ extension GameState {
         stats.brickBreakerPowerUps = stats.brickBreakerPowerUps.addingCount(powerUps)
         stats.brickBreakerBestStreak = max(stats.brickBreakerBestStreak, bestStreak)
         return payArcade(.brickBreaker, score: score, isNewBest: isNewBest, challengeValue: bricks)
+    }
+
+    /// `destroyed` is the invaders shot down and `wave` the wave the game reached; `volleys` and
+    /// `volleysHit` count for accuracy.
+    @discardableResult
+    public mutating func finishInvaders(score: Int, destroyed: Int, wave: Int, whales: Int = 0, bosses: Int = 0,
+                                        powerUps: Int = 0, bestStreak: Int = 0, volleys: Int = 0,
+                                        volleysHit: Int = 0) -> ArcadePayout {
+        let isNewBest = score > stats.invadersBestScore
+        stats.invadersGames += 1
+        stats.invadersBestScore = max(stats.invadersBestScore, score)
+        stats.invadersBestWave = max(stats.invadersBestWave, wave)
+        stats.invadersDestroyed = stats.invadersDestroyed.addingCount(destroyed)
+        stats.invadersWhales = stats.invadersWhales.addingCount(whales)
+        stats.invadersBosses = stats.invadersBosses.addingCount(bosses)
+        stats.invadersPowerUps = stats.invadersPowerUps.addingCount(powerUps)
+        stats.invadersBestStreak = max(stats.invadersBestStreak, bestStreak)
+        stats.invadersVolleys = stats.invadersVolleys.addingCount(volleys)
+        stats.invadersVolleysHit = stats.invadersVolleysHit.addingCount(min(max(0, volleysHit), max(0, volleys)))
+        return payArcade(.invaders, score: score, isNewBest: isNewBest, challengeValue: destroyed)
     }
 
     /// `bestShot` is the most bubbles one shot cleared, `wave` the wave the game reached, `bestStreak`

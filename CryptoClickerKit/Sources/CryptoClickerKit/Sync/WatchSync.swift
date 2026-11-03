@@ -13,11 +13,13 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     /// The phone's Offline Mining limit (0 until the power-up is bought).
     public var offlineCap: TimeInterval
     public var stepsConnected: Bool
-    /// Steps counted on `stepsDay` (a `StepDay` key), as of the phone's last sync. They're paid the
-    /// day after.
+    /// Steps counted on `stepsDay` (a `StepDay` key), as of the phone's last sync.
     public var stepsToday: Int
     public var stepsDay: String?
     public var stepValue: Double
+    /// Today's steps wait for tomorrow (the game's first day). `nil` from phones that paid every
+    /// step the next day.
+    public var stepsPaidNextDay: Bool?
     /// The newest watch tap batches the phone has applied, oldest first (for batches from watch apps
     /// that don't number them).
     public var appliedBatches: [UUID]
@@ -32,7 +34,8 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
 
     public init(coins: Double, income: Double, boostIncome: Double, boostEndsAt: Date?, tapValue: Double,
                 offlineCap: TimeInterval, stepsConnected: Bool, stepsToday: Int, stepsDay: String?, stepValue: Double,
-                appliedBatches: [UUID], appliedSequences: [String: Int]? = nil, date: Date, anchor: Date) {
+                stepsPaidNextDay: Bool? = nil, appliedBatches: [UUID], appliedSequences: [String: Int]? = nil,
+                date: Date, anchor: Date) {
         self.coins = coins
         self.income = income
         self.boostIncome = boostIncome
@@ -43,6 +46,7 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         self.stepsToday = stepsToday
         self.stepsDay = stepsDay
         self.stepValue = stepValue
+        self.stepsPaidNextDay = stepsPaidNextDay
         self.appliedBatches = appliedBatches
         self.appliedSequences = appliedSequences
         self.date = date
@@ -185,6 +189,7 @@ extension GameState {
             stepsToday: steps.todaySteps,
             stepsDay: steps.todayKey,
             stepValue: stepValue,
+            stepsPaidNextDay: stepsPaidNextDay(today: StepDay.key(for: now)),
             appliedBatches: Array(recentWatchBatches.suffix(16)),
             appliedSequences: watchSequences,
             date: now,

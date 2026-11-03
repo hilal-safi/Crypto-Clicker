@@ -3,8 +3,8 @@ import CryptoClickerKit
 
 /// Steps on the home screen. Hidden until the player has tapped the coin 2,000 times; then a
 /// one-line invitation ("Earn coins from steps!" with Learn More and Start), and once steps are
-/// connected, today's count and what it pays tomorrow. Kept small so the coin and the inventory
-/// strip get the room.
+/// connected, today's count and what it pays. Kept small so the coin and the inventory strip get
+/// the room.
 struct StepsCard: View {
     /// Opens the explanation sheet, which the home screen presents.
     let learnMore: () -> Void
@@ -69,7 +69,7 @@ struct StepsCard: View {
     }
 }
 
-/// Today's steps and what they pay tomorrow (steps are paid the day after they're walked).
+/// Today's steps and what they pay: as they're walked, or tomorrow on the game's first day.
 private struct StepsTodayCard: View {
     @Environment(GameStore.self) private var store
 
@@ -78,6 +78,7 @@ private struct StepsTodayCard: View {
         let today = StepDay.key(for: .now)
         let isToday = game.steps.todayKey == today
         let pending = game.pendingStepCoins(today: today)
+        let perStep = "\(CoinFormat.short(game.stepValue)) coin\(game.stepValue == 1 ? "" : "s")"
         HStack(spacing: 10) {
             Image(systemName: "figure.walk")
                 .font(.headline.weight(.semibold))
@@ -88,7 +89,8 @@ private struct StepsTodayCard: View {
                     .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
                 Text(pending > 0 ? "Pays about +\(CoinFormat.short(pending)) tomorrow"
-                                 : "Every step pays \(CoinFormat.short(game.stepValue)) coin\(game.stepValue == 1 ? "" : "s") tomorrow")
+                     : game.stepsPaidNextDay(today: today) ? "Every step pays \(perStep) tomorrow"
+                     : "Every step pays \(perStep) as you walk")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Theme.steps)
             }
@@ -123,8 +125,8 @@ struct StepsIntroView: View {
     private let points: [(icon: String, title: String, text: String)] = [
         ("figure.walk", "Walk with iPhone or Apple Watch",
          "Apple Health counts your steps from both and combines them, so nothing is counted twice."),
-        ("bitcoinsign.circle.fill", "Every step pays coins, the next day",
-         "Each day's steps are paid the next day, at least a coin a step, and more as your mining income grows. Today's steps count toward quests and achievements right away."),
+        ("bitcoinsign.circle.fill", "Every step pays coins",
+         "Steps are paid as you walk, at least a coin a step, and more as your mining income grows. Only your first day's steps wait until the next day. Steps count toward quests and achievements right away."),
         ("checkmark.seal.fill", "Each step is paid once",
          "Steps are added up by day. Syncing again, or late steps from your watch, never pays the same step twice."),
         ("bolt.fill", "Boost your stride",

@@ -137,6 +137,20 @@ public struct Stats: Codable, Equatable, Sendable {
     /// Classic Token Swap rounds, and the best Classic score.
     public internal(set) var tokenSwapGames = 0
     public internal(set) var tokenSwapBestScore = 0
+    public internal(set) var invadersGames = 0
+    public internal(set) var invadersBestScore = 0
+    public internal(set) var invadersBestWave = 0
+    /// Invaders shot down, in every game.
+    public internal(set) var invadersDestroyed = 0
+    public internal(set) var invadersWhales = 0
+    public internal(set) var invadersBosses = 0
+    public internal(set) var invadersPowerUps = 0
+    /// The most hits in a row in one game.
+    public internal(set) var invadersBestStreak = 0
+    /// Volleys fired, and those that hit something, for accuracy.
+    public internal(set) var invadersVolleys = 0
+    public internal(set) var invadersVolleysHit = 0
+
     /// Tokens matched in Token Swap over every mode.
     public internal(set) var tokenSwapTokens = 0
     /// The most waves one swap set off, in any mode.
@@ -200,6 +214,8 @@ public struct Stats: Codable, Equatable, Sendable {
         case tokenSwapGames, tokenSwapBestScore, tokenSwapTokens, tokenSwapBestChain, tokenSwapBlasts
         case tokensBought, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
         case airdropsMissed, bullRuns, bestAirdrop
+        case invadersGames, invadersBestScore, invadersBestWave, invadersDestroyed, invadersWhales, invadersBosses
+        case invadersPowerUps, invadersBestStreak, invadersVolleys, invadersVolleysHit
         case prestiges = "forksPerformed" // Saved under its old Hard Fork name.
         case earnedFromTaps, earnedFromIdle, earnedOffline, earnedFromSteps, earnedFromGames, earnedFromAirdrops
         case earnedFromDaily, challengesCompleted
@@ -259,6 +275,16 @@ public struct Stats: Codable, Equatable, Sendable {
         airdrops = c.value(.airdrops, default: 0)
         whaleAirdrops = c.value(.whaleAirdrops, default: 0)
         airdropsMissed = c.value(.airdropsMissed, default: 0)
+        invadersGames = c.value(.invadersGames, default: 0)
+        invadersBestScore = c.value(.invadersBestScore, default: 0)
+        invadersBestWave = c.value(.invadersBestWave, default: 0)
+        invadersDestroyed = c.value(.invadersDestroyed, default: 0)
+        invadersWhales = c.value(.invadersWhales, default: 0)
+        invadersBosses = c.value(.invadersBosses, default: 0)
+        invadersPowerUps = c.value(.invadersPowerUps, default: 0)
+        invadersBestStreak = c.value(.invadersBestStreak, default: 0)
+        invadersVolleys = c.value(.invadersVolleys, default: 0)
+        invadersVolleysHit = c.value(.invadersVolleysHit, default: 0)
         bullRuns = c.value(.bullRuns, default: 0)
         bestAirdrop = c.value(.bestAirdrop, default: 0)
         prestiges = c.value(.prestiges, default: 0)
@@ -381,6 +407,16 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(airdrops, forKey: .airdrops)
         try c.encode(whaleAirdrops, forKey: .whaleAirdrops)
         try c.encode(airdropsMissed, forKey: .airdropsMissed)
+        try c.encode(invadersGames, forKey: .invadersGames)
+        try c.encode(invadersBestScore, forKey: .invadersBestScore)
+        try c.encode(invadersBestWave, forKey: .invadersBestWave)
+        try c.encode(invadersDestroyed, forKey: .invadersDestroyed)
+        try c.encode(invadersWhales, forKey: .invadersWhales)
+        try c.encode(invadersBosses, forKey: .invadersBosses)
+        try c.encode(invadersPowerUps, forKey: .invadersPowerUps)
+        try c.encode(invadersBestStreak, forKey: .invadersBestStreak)
+        try c.encode(invadersVolleys, forKey: .invadersVolleys)
+        try c.encode(invadersVolleysHit, forKey: .invadersVolleysHit)
         try c.encode(bullRuns, forKey: .bullRuns)
         try c.encode(bestAirdrop, forKey: .bestAirdrop)
         try c.encode(prestiges, forKey: .prestiges)

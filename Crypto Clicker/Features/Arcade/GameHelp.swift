@@ -178,6 +178,8 @@ struct GuideItemIcon: View {
                 } else if let bubble = BubbleSpecialBadge(guideID: item.id) {
                     bubble
                         .padding(size * 0.08)
+                } else if let invader = InvadersGuideIcon(guideID: item.id) {
+                    invader
                 } else {
                     Image(systemName: item.symbol)
                         .font(.system(size: size * 0.42, weight: .bold))

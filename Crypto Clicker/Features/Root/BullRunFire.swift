@@ -46,7 +46,22 @@ enum FireEdges {
         embers(in: &context, width: width, height: height, t: t)
     }
 
-    /// A red-to-orange glow fading in from every edge, deepest at the sides and the bottom.
+    /// How strong the fire is at a height: full down to about two thirds of the way, easing to
+    /// half over the bottom third, where the tab bar and buttons are, so it doesn't cover them.
+    static func strength(atY y: CGFloat, height: CGFloat) -> Double {
+        guard height > 0 else { return 1 }
+        let share = Double(y / height)
+        let start = 0.6, end = 0.72
+        if share <= start { return 1 }
+        if share >= end { return lowerStrength }
+        return 1 - (1 - lowerStrength) * (share - start) / (end - start)
+    }
+
+    /// The fire's strength along the bottom third and the bottom edge.
+    static let lowerStrength = 0.5
+
+    /// A red-to-orange glow fading in from every edge, deepest at the sides and the bottom (and
+    /// half as strong low down).
     private static func glow(in context: inout GraphicsContext, width: CGFloat, height: CGFloat, pulse: Double) {
         let side = min(width * 0.2, 110), top = min(height * 0.1, 90), bottom = min(height * 0.16, 140)
         func edge(_ rect: CGRect, from start: CGPoint, to end: CGPoint, strength: Double) {
@@ -57,16 +72,29 @@ enum FireEdges {
             ])
             context.fill(Path(rect), with: .linearGradient(gradient, startPoint: start, endPoint: end))
         }
-        edge(CGRect(x: 0, y: 0, width: side, height: height), from: .zero, to: CGPoint(x: side, y: 0), strength: 1)
-        edge(CGRect(x: width - side, y: 0, width: side, height: height),
-             from: CGPoint(x: width, y: 0), to: CGPoint(x: width - side, y: 0), strength: 1)
+        // The sides: whole down to where the fire starts to ease, then in thin bands that fade
+        // to half, too fine to see as steps.
+        let easeFrom = (height * 0.6).rounded(.down)
+        let bands = 16
+        let bandHeight = (height - easeFrom) / CGFloat(bands)
+        for (x, inward) in [(CGFloat(0), side), (width, -side)] {
+            edge(CGRect(x: min(x, x + inward), y: 0, width: side, height: easeFrom),
+                 from: CGPoint(x: x, y: 0), to: CGPoint(x: x + inward, y: 0), strength: 1)
+            for band in 0..<bands {
+                let y = easeFrom + CGFloat(band) * bandHeight
+                // A hair of overlap so no hairline shows between bands.
+                edge(CGRect(x: min(x, x + inward), y: y, width: side, height: bandHeight + 0.5),
+                     from: CGPoint(x: x, y: 0), to: CGPoint(x: x + inward, y: 0),
+                     strength: strength(atY: y + bandHeight / 2, height: height))
+            }
+        }
         edge(CGRect(x: 0, y: 0, width: width, height: top), from: .zero, to: CGPoint(x: 0, y: top), strength: 0.7)
         edge(CGRect(x: 0, y: height - bottom, width: width, height: bottom),
-             from: CGPoint(x: 0, y: height), to: CGPoint(x: 0, y: height - bottom), strength: 1)
+             from: CGPoint(x: 0, y: height), to: CGPoint(x: 0, y: height - bottom), strength: lowerStrength)
     }
 
     /// Flame tongues curling in and up from both sides, longest near the bottom, each flickering
-    /// at its own pace.
+    /// at its own pace. Low down they're fainter and shorter, clear of the buttons.
     private static func flames(in context: inout GraphicsContext, width: CGFloat, height: CGFloat, t: Double) {
         var layer = context
         layer.addFilter(.blur(radius: 9))
@@ -78,8 +106,9 @@ enum FireEdges {
                 let seed = Double(index * 7 + side * 13)
                 let along = Double(index) / Double(count - 1)
                 let y = height * (0.3 + 0.72 * along)
+                let heat = strength(atY: y, height: height)
                 let flicker = 0.55 + 0.45 * sin(t * (4.5 + seed.truncatingRemainder(dividingBy: 3.7)) + seed)
-                let length = CGFloat((34 + 58 * flicker) * (0.55 + 0.6 * along))
+                let length = CGFloat((34 + 58 * flicker) * (0.55 + 0.6 * along) * (0.5 + 0.5 * heat))
                 let thickness = CGFloat(28 + 10 * sin(t * 2.1 + seed))
                 let lean = CGFloat(sin(t * 1.7 + seed) * 10)
                 var tongue = Path()
@@ -90,8 +119,8 @@ enum FireEdges {
                                     control: CGPoint(x: edgeX + inward * length * 0.25, y: y - length * 0.55))
                 tongue.closeSubpath()
                 let gradient = Gradient(stops: [
-                    .init(color: yellow.opacity(0.95), location: 0),
-                    .init(color: orange.opacity(0.85), location: 0.4),
+                    .init(color: yellow.opacity(0.95 * heat), location: 0),
+                    .init(color: orange.opacity(0.85 * heat), location: 0.4),
                     .init(color: red.opacity(0), location: 1),
                 ])
                 layer.fill(tongue, with: .radialGradient(gradient, center: CGPoint(x: edgeX, y: y),
@@ -118,7 +147,7 @@ enum FireEdges {
             let radius = CGFloat(1.4 + 2.2 * noise(seed * 3.1))
             let color = index % 3 == 0 ? yellow : orange
             context.fill(Path(ellipseIn: CGRect(x: x - radius, y: y - radius, width: radius * 2, height: radius * 2)),
-                         with: .color(color.opacity(0.9 * (1 - phase))))
+                         with: .color(color.opacity(0.9 * (1 - phase) * strength(atY: y, height: height))))
         }
     }
 }

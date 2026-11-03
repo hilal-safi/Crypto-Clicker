@@ -28,6 +28,7 @@ extension GameState {
         case .winTokenSwapLevels: Double(stats.tokenSwapLevelWins)
         case .clearPumpRounds: Double(stats.pumpDumpRoundsCleared)
         case .reach2048Goals: Double(stats.merge2048Goals)
+        case .shootInvaders: Double(stats.invadersDestroyed)
         }
     }
 
@@ -63,6 +64,7 @@ extension GameState {
             case .matchTokens, .winTokenSwapLevels: isUnlocked(.tokenSwap)
             case .clearPumpRounds: isUnlocked(.pumpDump)
             case .reach2048Goals: isUnlocked(.merge2048)
+            case .shootInvaders: isUnlocked(.invaders)
             }
         }
     }
@@ -131,6 +133,7 @@ extension GameState {
         case .winTokenSwapLevels: [1, 2, 3]
         case .clearPumpRounds: [3, 5, 8]
         case .reach2048Goals: [2, 3, 4]
+        case .shootInvaders: [30, 60, 100]
         }
         return choices.randomElement(using: &rng) ?? choices[0]
     }

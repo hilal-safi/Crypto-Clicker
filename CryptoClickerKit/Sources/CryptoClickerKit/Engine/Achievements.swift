@@ -45,6 +45,8 @@ extension GameState {
         case .tokenSwapStars: Double(tokenSwap.totalStars)
         case .merge2048DailyStars: Double(merge2048Daily.totalStars)
         case .weeklyVarietyGoals: Double(arcade.weeklyGoals)
+        case .invadersDestroyed: Double(stats.invadersDestroyed)
+        case .invadersBestWave: Double(stats.invadersBestWave)
         }
     }
 

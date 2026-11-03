@@ -255,6 +255,21 @@ struct DailyChallengeTests {
         #expect(game.stats.challengesCompleted == 1)
     }
 
+    @Test func defenseDayCountsTheInvadersShotInOneGame() throws {
+        var game = with(.invaders, target: 40, games: [.invaders])
+        #expect(DailyChallengeKind.invaders.dayName == "Defense Day")
+        #expect(game.daily.challenge?.goal == "Shoot 40 invaders in one Scam Invaders game")
+        game.finishInvaders(score: 900, destroyed: 30, wave: 1)
+        game.finishInvaders(score: 400, destroyed: 20, wave: 1)
+        #expect(game.daily.challenge?.progress == 30) // The best game, not the day's total.
+        let paid = game.finishInvaders(score: 1_500, destroyed: 44, wave: 2)
+        #expect(try #require(paid.challenge).coins == 9_000)
+        // Shooting invaders is a quest once the game is unlocked.
+        #expect(player().eligibleQuestKinds(canWalk: false).contains(.shootInvaders) == false)
+        #expect(player([.invaders]).eligibleQuestKinds(canWalk: false).contains(.shootInvaders))
+        #expect(QuestKind.shootInvaders.title(target: 60) == "Shoot 60 invaders in Scam Invaders")
+    }
+
     @Test func otherGamesDontCount() {
         var game = with(.tetris, target: 2_000, games: [.tetris, .snake])
         game.finishSnake(score: 5_000, length: 400)

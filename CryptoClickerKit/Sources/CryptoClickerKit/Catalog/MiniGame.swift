@@ -8,7 +8,7 @@ import Foundation
 /// and its screen in the app.
 public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
     case blackjack, slots, moon, videoPoker
-    case tetris, merge2048, snake, brickBreaker, bubbleBlaster, pumpDump, tokenSwap
+    case tetris, merge2048, snake, brickBreaker, bubbleBlaster, pumpDump, tokenSwap, invaders
 
     public var id: String { rawValue }
 
@@ -19,7 +19,7 @@ public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
                          pitch: "Beat the dealer with tokens. Wins pay a coin bonus that grows with your bet.",
                          color: .init(red: 0.05, green: 0.47, blue: 0.25))
         case .slots:
-            MiniGameInfo(name: "Crypto Slots", icon: "🎰", category: .casino, listCost: 20e6,
+            MiniGameInfo(name: "Crypto Slots", icon: "🎰", category: .casino, listCost: 45e6,
                          pitch: "Spin three reels of crypto. Three Bitcoins pay 500 times your bet.",
                          color: .init(red: 0.60, green: 0.20, blue: 0.75))
         case .moon:
@@ -47,7 +47,7 @@ public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
                          color: .init(red: 0.75, green: 0.33, blue: 0.00),
                          secondsPerPoint: Tuning.brickBreakerSecondsPerPoint)
         case .bubbleBlaster:
-            MiniGameInfo(name: "Bubble Blaster", icon: "🫧", category: .arcade, listCost: 700e9,
+            MiniGameInfo(name: "Bubble Blaster", icon: "🫧", category: .arcade, listCost: 250e9,
                          pitch: "Match three bubbles to pop them. Cut-off clusters fall for double points.",
                          color: .init(red: 0.00, green: 0.40, blue: 0.90),
                          secondsPerPoint: Tuning.bubbleSecondsPerPoint)
@@ -56,10 +56,15 @@ public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
                          pitch: "Jacks or Better: hold the cards you want and draw once. A royal flush pays 800 to 1.",
                          color: .init(red: 0.55, green: 0.38, blue: 0.04))
         case .tokenSwap:
-            MiniGameInfo(name: "Token Swap", icon: "💎", category: .arcade, listCost: 2.5e6,
+            MiniGameInfo(name: "Token Swap", icon: "💎", category: .arcade, listCost: 6e6,
                          pitch: "Swap neighboring tokens to line up three or more. Big matches leave Blasts behind.",
                          color: .init(red: 0.00, green: 0.46, blue: 0.38),
                          secondsPerPoint: Tuning.tokenSwapSecondsPerPoint)
+        case .invaders:
+            MiniGameInfo(name: "Scam Invaders", icon: "👾", category: .arcade, listCost: 1e12,
+                         pitch: "Shoot down the scam tokens before they land. Hide behind the firewalls.",
+                         color: .init(red: 0.32, green: 0.16, blue: 0.92),
+                         secondsPerPoint: Tuning.invadersSecondsPerPoint)
         case .pumpDump:
             MiniGameInfo(name: "Pump and Dump", icon: "🔨", category: .arcade, listCost: 150e6,
                          pitch: "Tap the coins before they vanish. Dodge scam tokens and rug pulls.",
@@ -72,7 +77,8 @@ public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
 
     /// The price to unlock: the list price, raised by the game's pace (see `Tuning.scaledPrice`).
     /// Blackjack and Tetris cost a few thousand coins; each game after costs several times the one
-    /// before, up to Bubble Blaster at about a trillion (see `PacingTests`).
+    /// before, up to Scam Invaders at about one and a half trillion, spread over the first run so a
+    /// new game comes every half day or so until the first prestige (see `PacingTests`).
     public var unlockCost: Double { Tuning.scaledPrice(listCost) }
 
     /// The unlock price before the pace adjustment.

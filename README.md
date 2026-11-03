@@ -39,25 +39,27 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   earned, what that unlocked (achievements, prestige points, finished quests), the best thing to buy
   now with a button to buy it, and a breakdown by miner, time and multiplier.
 - **Airdrops.** Every 3–6 minutes an airdrop falls. Catch it within 20 seconds for a pile of coins, or for
-  a 60-second Bull Run that multiplies production ×7 (the screen's edges burn red while it lasts). One in twenty is a whale worth up to an hour of income
-  (early in a run, no more than the run has mined so far, so a lucky whale can't skip the opening).
+  a 60-second Bull Run that multiplies production ×7 (the screen's edges burn red while it lasts, at
+  half strength along the bottom third so the buttons stay clear). One in twenty is a whale worth up to
+  an hour of income (early in a run, no more than the run has mined so far, so a lucky whale can't skip
+  the opening).
   Statistics counts the ones caught and missed and lists the last ten with what each paid.
 - **Daily.** From the second day: a daily reward with a streak that builds to an hour of income on day
   7, and three new quests every day. The first day is for learning to mine, without big handouts.
 - **Daily challenge.** From the second day, each day picks a challenge in one of your games: a score in
   Tetris (dealt the same pieces for everyone), a tile in 2048, coins in Snake, bricks, bubbles, a Pump
-  and Dump run, a Classic score in Token Swap, good hands at the casino (or a natural at Blackjack), or
-  points in three different arcade games.
+  and Dump run, a Classic score in Token Swap, invaders shot in Scam Invaders, good hands at the casino
+  (or a natural at Blackjack), or points in three different arcade games.
   It pays 15 minutes of income, and five in a week pay two hours more.
 - **Tokens.** The Shop's second page. Token prices drift every five minutes, within about a quarter of
   their usual price, with news that nudges them up or down. Buy tokens (×1, ×10, ×100 or as many as you
   can afford) to bet or to sell later (selling costs a 10% fee). Tokens reset when you prestige.
 - **Steps.** After 2,000 taps, connect Apple Health and every step you take, on iPhone or Apple Watch,
-  is paid out exactly once. Steps count toward quests and achievements as you walk, and each day's
-  steps are paid the next day, at your step value then. A step is worth at least one coin and grows with
-  your income.
+  is paid out exactly once, as you walk, and counts toward quests and achievements. Only the game's
+  first day waits: its steps are paid the next day, at the step value then, so walking can't skip the
+  opening. A step is worth at least one coin and grows with your income.
 - **Apple Watch.** Tap to mine from your wrist, watch your balance tick up live, and see today's steps
-  and what they'll pay tomorrow.
+  and what they're worth.
 - **Casino.** Bet tokens at Blackjack, Crypto Slots, Video Poker or To the Moon, or switch Blackjack,
   Video Poker and To the Moon to Practice and play the same game for chips, with nothing at stake.
   Blackjack has two tables (the Tough dealer hits soft 17, and wins there pay 10% more coins) and an
@@ -69,13 +71,14 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   free spins included). In To the Moon the multiplier climbs up a price chart until the market
   crashes: cash out in time (or set an automatic cash-out), and every target returns 97% on average.
   Wins pay tokens plus a coin bonus, with confetti and a shower of coins. Every round is paid once.
-- **Unlocking games.** The eleven games unlock one at a time. Blackjack and Tetris cost a few thousand
-  coins, and each game after costs several times the one before, up to about a trillion for Bubble
-  Blaster: a player who keeps playing gets the first two in the first quarter hour and about seven in
-  three hours, and one who checks in four times a day has them all by about the fourth day.
-- **Arcade.** Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump and Token Swap pay
-  coins for every point, and 50% more for a new best score. Each is tuned so a minute of skilled play
-  pays about two minutes of income.
+- **Unlocking games.** The twelve games unlock one at a time. Blackjack and Tetris cost a few thousand
+  coins, and each game after costs several times the one before, up to about one and a half trillion
+  for Scam Invaders: a player who keeps playing gets the first two in the first quarter hour and about
+  seven in three hours, and one who checks in four times a day gets a new one every half day or so,
+  the last around day four, before the first prestige.
+- **Arcade.** Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump, Token Swap and Scam
+  Invaders pay coins for every point, and 50% more for a new best score. Each is tuned so a minute of
+  skilled play pays about two minutes of income.
   - **Tetris:** Endless or a 40-line Sprint against the clock, with hold, a ghost piece and combos.
   - **2048:** tile goals to climb (128, 256, 512 and on), three undos a game that can't reroll a
     tile, and a Daily Puzzle with the same start and tiles for everyone, 150 moves and three stars
@@ -88,10 +91,16 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
     as hard and paying about the same) and the ball's speed.
   - **Bubble Blaster:** waves that add colors and grow deeper, a streak that adds 10% a pop (up to
     double) and earns Rainbow and Bomb bubbles, gold bonus bubbles, and a ring where the shot will land.
+  - **Scam Invaders:** rows of meme coins, pump bots and rug pullers march down; drag to move the ship,
+    which fires while your finger is down. Hits in a row add 10% each (up to double), four firewalls
+    crumble block by block, a whale crosses the top with bonus points and a power-up (Rapid Fire,
+    Spread Shot, Laser or Shield), one golden invader a wave pays double, and every fifth wave is the
+    Bear, a boss with a health bar that gives back a lost ship. Each wave starts lower and marches
+    faster.
   - Snake and 2048 are played with swipes anywhere on the screen.
-  - Tetris and Snake have Options for their speed, and Brick Breaker sets it on its start screen
-    (Slow, Normal or Fast): a point is worth the same at every speed, so Fast scores sooner and Slow is
-    relaxed. Every action game pauses, and a swipe in from the left edge leaves it.
+  - Tetris, Snake and Scam Invaders have Options for their speed, and Brick Breaker sets it on its
+    start screen (Slow, Normal or Fast): a point is worth the same at every speed, so Fast scores sooner
+    and Slow is relaxed. Every action game pauses, and a swipe in from the left edge leaves it.
 - **Pump and Dump.** Whack the coins as they pop up, round after round: each 30-second round has a
   score goal to reach and a bonus objective (a combo, golden coins, or no mistakes), and each is
   quicker than the last, with more scam tokens and rug pulls (coins with a red rim that shake, then turn).
@@ -110,10 +119,11 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 - **Arcade Rank.** Finishing games earns XP, with more for a new best, the first game of each kind
   each day, the daily challenge, stars and game achievements (casino rounds earn a little, up to a
   daily cap). Ranks carry titles and, with achievements, unlock looks in Style: card backs, the
-  Blackjack felt, slot reels, Tetris blocks and snake skins. XP never pays coins. Playing six
-  different games in a week pays 30 minutes of income once a week, and quests now include winning
-  Token Swap levels, clearing Pump and Dump rounds and reaching 2048 tile goals.
-- **Trophies.** 60 achievements with bronze, silver, gold and mythic tiers, each card glinting in the
+  Blackjack felt, slot reels, Tetris blocks, snake skins and the Scam Invaders ship. XP never pays
+  coins. Playing six different games in a week pays 30 minutes of income once a week, and quests
+  include winning Token Swap levels, clearing Pump and Dump rounds, reaching 2048 tile goals and
+  shooting invaders.
+- **Trophies.** 62 achievements with bronze, silver, gold and mythic tiers, each card glinting in the
   metal it has earned. Each star adds 1% production forever, and stars unlock new finishes for the coin.
   The Goals page lists what to aim for next, each with how close it is: the next miner, the nearest
   milestone, the cheapest upgrade and game, the star closest to done, the next Arcade Rank and Token
@@ -156,7 +166,7 @@ Crypto Clicker/                 iPhone and iPad app
   Design/                       Theme, backgrounds, coin finishes, Liquid Glass cards, shared components
   Features/                     Mine (with Statistics, the income chart and the journey), Shop (miners,
                                 power-ups, prestige and perks), Exchange (the Shop's Tokens page),
-                                Arcade (eleven games), Trophies (goals, daily and achievements), Settings
+                                Arcade (twelve games), Trophies (goals, daily and achievements), Settings
 Crypto Clicker Watch App/       Apple Watch app
 CryptoClickerKit/               Swift package with all game rules, shared by both apps
   Sources/CryptoClickerKit/
@@ -165,7 +175,7 @@ CryptoClickerKit/               Swift package with all game rules, shared by bot
     State/                      GameState, statistics, daily progress and the step ledger (one Codable value)
     Engine/                     Economy, prestige, market, dailies, player actions and achievements
     MiniGames/                  Blackjack, Slots, Video Poker, To the Moon, Tetris, 2048, Snake, Brick
-                                Breaker, Bubble Blaster, Pump and Dump and Token Swap engines
+                                Breaker, Bubble Blaster, Pump and Dump, Token Swap and Scam Invaders engines
     Sync/                       Watch snapshot, tap batches and payload coding
     Support/                    Number formatting, geometry, forgiving decoding, seedable RNG, stable hashing
   Tests/                        Swift Testing suite (rules, edge cases, simulated-player pacing)

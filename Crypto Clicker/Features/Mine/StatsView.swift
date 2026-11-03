@@ -150,7 +150,7 @@ struct StatsPage: View {
 
         Section("Steps") {
             row("Status", game.steps.isConnected ? "Connected" : (game.areStepsUnlocked ? "Not connected" : "Unlocks after \(CoinFormat.grouped(Tuning.stepsUnlockTaps)) taps"))
-            row("Each step pays", "\(amount(game.stepValue)) the next day")
+            row("Each step pays", game.stepsPaidNextDay(today: today) ? "\(amount(game.stepValue)) tomorrow" : amount(game.stepValue))
             row("Steps walked", CoinFormat.grouped(stats.lifetimeSteps))
             row("Steps paid for", CoinFormat.grouped(stats.stepsPaid))
             row("Best day", "\(CoinFormat.grouped(stats.bestDaySteps)) steps")
@@ -335,6 +335,14 @@ struct StatsPage: View {
                                          StatItem("Best combo", CoinFormat.grouped(s.pumpDumpBestCombo)),
                                          StatItem("Coins hit", CoinFormat.grouped(s.pumpDumpCoinsHit)),
                                          StatItem("Scams hit", CoinFormat.grouped(s.pumpDumpScamsHit))])
+        case .invaders:
+            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
+                                 items: [StatItem("Best wave", CoinFormat.grouped(s.invadersBestWave)),
+                                         StatItem("Invaders shot", CoinFormat.grouped(s.invadersDestroyed)),
+                                         StatItem("Best streak", CoinFormat.grouped(s.invadersBestStreak)),
+                                         StatItem("Accuracy", percentage(s.invadersVolleysHit, of: s.invadersVolleys)),
+                                         StatItem("Whales", CoinFormat.grouped(s.invadersWhales)),
+                                         StatItem("Bosses", CoinFormat.grouped(s.invadersBosses))])
         case .tokenSwap:
             let swap = game.tokenSwap
             return GameStatsCard(game: miniGame, plays: counted(plays, "game"),

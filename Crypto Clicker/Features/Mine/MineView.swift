@@ -27,10 +27,10 @@ struct MineView: View {
         NavigationStack {
             // The coin takes the room the other items leave, from 200 points up to 320 (and larger
             // still on a new game, with nothing under it yet). When even 200 doesn't fit (a small
-            // iPhone with very large text), the page scrolls instead. The balance sits a twentieth
-            // of the screen below the top, clear of the status bar.
+            // iPhone with very large text), the page scrolls instead. The balance sits 2% of the
+            // screen's height below the top.
             GeometryReader { proxy in
-                let topPadding = (proxy.size.height * 0.05).rounded()
+                let topPadding = (proxy.size.height * 0.02).rounded()
                 ViewThatFits(in: .vertical) {
                     content(topPadding: topPadding)
                     ScrollView {

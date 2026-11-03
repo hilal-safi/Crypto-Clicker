@@ -24,11 +24,12 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
     public let game: MiniGame
     public let score: Int
     /// What else the game reports when it ends, depending on the game: lines (Tetris), length
-    /// (Snake), bricks, bubbles, the best tile (2048), coins hit (Pump and Dump) or tokens matched
-    /// (Token Swap).
+    /// (Snake), bricks, bubbles, the best tile (2048), coins hit (Pump and Dump), tokens matched
+    /// (Token Swap) or invaders shot (Scam Invaders).
     public let detail: Int
     /// A second game-specific number: the level reached (Brick Breaker), the most bubbles cleared
-    /// by one shot (Bubble Blaster), the best combo (Pump and Dump) or the longest chain (Token Swap).
+    /// by one shot (Bubble Blaster), the best combo (Pump and Dump), the longest chain (Token Swap)
+    /// or the wave reached (Scam Invaders).
     public let extra: Int
     /// A third number: the round reached (Pump and Dump), the wave (Bubble Blaster), or which
     /// mode was playing: `dailyStage` for a daily 2048 puzzle, `coinRushStage` for Snake's Coin
@@ -53,22 +54,25 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
         /// Snake: coins eaten and seconds played.
         public var coins: Int
         public var seconds: Double
-        /// Snake and Brick Breaker: power-ups collected.
+        /// Snake, Brick Breaker and Scam Invaders: power-ups collected.
         public var powerUps: Int
-        /// Brick Breaker: bosses beaten.
+        /// Brick Breaker and Scam Invaders: bosses beaten.
         public var bosses: Int
-        /// Brick Breaker and Bubble Blaster: the best streak.
+        /// Brick Breaker, Bubble Blaster and Scam Invaders: the best streak.
         public var bestStreak: Int
-        /// Bubble Blaster: gold bonus bubbles.
+        /// Bubble Blaster: gold bonus bubbles. Scam Invaders: whales shot.
         public var bonuses: Int
         /// Pump and Dump: scam tokens hit.
         public var scamsHit: Int
         /// Token Swap: specials set off.
         public var specials: Int
+        /// Scam Invaders: volleys fired, and those that hit something.
+        public var volleys: Int
+        public var volleysHit: Int
 
         public init(level: Int = 0, bestCombo: Int = 0, tetrises: Int = 0, coins: Int = 0, seconds: Double = 0,
                     powerUps: Int = 0, bosses: Int = 0, bestStreak: Int = 0, bonuses: Int = 0, scamsHit: Int = 0,
-                    specials: Int = 0) {
+                    specials: Int = 0, volleys: Int = 0, volleysHit: Int = 0) {
             self.level = level
             self.bestCombo = bestCombo
             self.tetrises = tetrises
@@ -80,10 +84,13 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
             self.bonuses = bonuses
             self.scamsHit = scamsHit
             self.specials = specials
+            self.volleys = volleys
+            self.volleysHit = volleysHit
         }
 
         private enum CodingKeys: String, CodingKey {
             case level, bestCombo, tetrises, coins, seconds, powerUps, bosses, bestStreak, bonuses, scamsHit, specials
+            case volleys, volleysHit
         }
 
         public init(from decoder: Decoder) throws {
@@ -99,6 +106,8 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
             bonuses = c.value(.bonuses, default: 0)
             scamsHit = c.value(.scamsHit, default: 0)
             specials = c.value(.specials, default: 0)
+            volleys = c.value(.volleys, default: 0)
+            volleysHit = c.value(.volleysHit, default: 0)
         }
 
         public func encode(to encoder: Encoder) throws {
@@ -114,6 +123,8 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
             if bonuses != 0 { try c.encode(bonuses, forKey: .bonuses) }
             if scamsHit != 0 { try c.encode(scamsHit, forKey: .scamsHit) }
             if specials != 0 { try c.encode(specials, forKey: .specials) }
+            if volleys != 0 { try c.encode(volleys, forKey: .volleys) }
+            if volleysHit != 0 { try c.encode(volleysHit, forKey: .volleysHit) }
         }
     }
 

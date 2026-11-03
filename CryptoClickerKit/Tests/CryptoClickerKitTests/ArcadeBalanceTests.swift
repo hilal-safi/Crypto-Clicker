@@ -27,6 +27,7 @@ struct ArcadeBalanceTests {
             case .bubbleBlaster: BubbleBot.pointsPerMinute(seed: seed)
             case .pumpDump: PumpDumpBot.pointsPerMinute(seed: seed)
             case .tokenSwap: TokenSwapBot.pointsPerMinute(seed: seed)
+            case .invaders: InvadersBot.pointsPerMinute(seed: seed)
             case .blackjack, .slots, .moon, .videoPoker: 0
             }
         }
@@ -76,7 +77,21 @@ struct ArcadeBalanceTests {
         #expect(fast <= 1.5 * classic)
     }
 
-    @Test(arguments: [MiniGame.tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap])
+    /// Scam Invaders' Speed option moves the pay a little either way, like Brick Breaker's.
+    @Test func invadersSpeedsPayAboutTheSame() {
+        guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
+        let seeds: [UInt64] = [11, 22, 33, 44]
+        func income(_ speed: GameSpeed) -> Double {
+            let points = seeds.map { InvadersBot.pointsPerMinute(seed: $0, speed: speed) }.reduce(0, +) / Double(seeds.count)
+            return points * MiniGame.invaders.secondsPerPoint
+        }
+        let normal = income(.normal), slow = income(.slow), fast = income(.fast)
+        print("Balance: Scam Invaders | normal", Int(normal), "slow", Int(slow), "fast", Int(fast))
+        #expect(slow < normal && fast > normal * 0.9)
+        #expect(fast <= 1.6 * normal)
+    }
+
+    @Test(arguments: [MiniGame.tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap, .invaders])
     func everyArcadeGamePaysAboutTheSame(_ game: MiniGame) {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
         let points = Self.pointsPerMinute(game)
@@ -526,5 +541,113 @@ enum TokenSwapBot {
             if value > best?.value ?? -1 { best = ((a, b), value) }
         }
         return best?.swap
+    }
+}
+
+/// Moves under the column whose lowest invader is nearest to landing (or leads the whale when one
+/// is crossing), fires while something is overhead with no firewall in the way, and sidesteps shots
+/// about to land on it, holding the dodge until they've passed. It picks a new target five times a
+/// second and drags the ship at a finger's pace.
+enum InvadersBot {
+    static let shipSpeed = 1.4
+    static let thinkEvery = 0.2
+    static let dodgeTime = 0.45
+
+    static func pointsPerMinute(seed: UInt64, minutes: Double = 3, speed: GameSpeed = .normal) -> Double {
+        var game = InvadersGame(seed: seed, speed: speed)
+        let time = play(&game, seconds: minutes * 60)
+        return Double(game.score) / (time / 60)
+    }
+
+    /// Plays until the game ends or `seconds` have passed, and returns the seconds played.
+    @discardableResult
+    static func play(_ game: inout InvadersGame, seconds: Double) -> Double {
+        let frame = 1.0 / 60
+        var time = 0.0
+        var target = 0.5
+        var think = 0.0
+        var dodge: (x: Double, until: Double)?
+        while game.phase != .over && time < seconds {
+            think -= frame
+            if think <= 0 {
+                think = thinkEvery
+                target = aim(in: game)
+            }
+            if let current = dodge, current.until <= time { dodge = nil }
+            if dodge == nil, let escape = escape(in: game) { dodge = (escape, time + dodgeTime) }
+            let goal = dodge?.x ?? target
+            let dx = goal - game.shipX
+            game.moveShip(to: game.shipX + (dx < 0 ? -1 : 1) * min(abs(dx), shipSpeed * frame))
+            game.isFiring = hasTarget(above: game.shipX, in: game) && !isBlocked(game.shipX, in: game)
+            game.update(by: frame)
+            time += frame
+        }
+        return time
+    }
+
+    /// Where to line up: ahead of a crossing whale, or under the lowest invader, at a spot where no
+    /// firewall block is in the way (if there is one).
+    static func aim(in game: InvadersGame) -> Double {
+        if let whale = game.whale {
+            let lead = whale.position.x + whale.speedX * game.gameSpeed.factor * flightTime(to: whale.position.y, in: game)
+            if (0.08...0.92).contains(lead) { return lead }
+        }
+        let lowest = Dictionary(grouping: game.invaders, by: \.column).compactMap { $0.value.max { $0.row < $1.row } }
+            .sorted { $0.column < $1.column }
+        let pick = lowest.max { a, b in
+            let fa = game.frame(of: a), fb = game.frame(of: b)
+            return fa.maxY == fb.maxY ? abs(fa.midX - game.shipX) > abs(fb.midX - game.shipX) : fa.maxY < fb.maxY
+        }
+        if let pick {
+            let frame = game.frame(of: pick)
+            for offset in [0, -0.018, 0.018, -0.009, 0.009] where !isBlocked(frame.midX + offset, in: game) {
+                return frame.midX + offset
+            }
+            return frame.midX
+        }
+        if let boss = game.boss { return boss.frame.midX }
+        return 0.5
+    }
+
+    static func flightTime(to y: Double, in game: InvadersGame) -> Double {
+        (InvadersGame.shipTop - y) / (InvadersGame.shotSpeed * game.gameSpeed.factor)
+    }
+
+    /// Something a shot fired from `x` now would hit: an invader overhead, the boss, or the whale
+    /// where it will be when the shot gets there.
+    static func hasTarget(above x: Double, in game: InvadersGame) -> Bool {
+        if game.invaders.contains(where: { let f = game.frame(of: $0); return x > f.minX + 0.008 && x < f.maxX - 0.008 }) {
+            return true
+        }
+        if let boss = game.boss, x > boss.frame.minX, x < boss.frame.maxX { return true }
+        if let whale = game.whale {
+            let there = whale.position.x + whale.speedX * game.gameSpeed.factor * flightTime(to: whale.position.y, in: game)
+            if abs(there - x) < InvadersGame.Whale.size.width / 2 - 0.01 { return true }
+        }
+        return false
+    }
+
+    static func isBlocked(_ x: Double, in game: InvadersGame) -> Bool {
+        game.firewalls.contains { wall in
+            (0..<InvadersGame.Firewall.rows).contains { row in
+                (0..<InvadersGame.Firewall.columns).contains { column in
+                    let block = wall.blockFrame(row: row, column: column)
+                    return wall.isStanding(row: row, column: column) && x + 0.005 > block.minX && x - 0.005 < block.maxX
+                }
+            }
+        }
+    }
+
+    /// A spot to the side when an invader's shot is about to land on the ship, away from the shot
+    /// and clear of any other.
+    static func escape(in game: InvadersGame) -> Double? {
+        let incoming = game.enemyShots.filter { $0.position.y > 0.95 && $0.position.y < InvadersGame.shipTop + 0.02 }
+        func landing(_ shot: InvadersGame.EnemyShot) -> Double {
+            shot.position.x + shot.velocity.x * max(0, InvadersGame.shipTop - shot.position.y) / max(shot.velocity.y, 0.01)
+        }
+        func isSafe(_ x: Double) -> Bool { incoming.allSatisfy { abs(landing($0) - x) > 0.08 } }
+        guard !isSafe(game.shipX) else { return nil }
+        let options = [0.13, -0.13, 0.22, -0.22, 0.3, -0.3].map { game.shipX + $0 }.filter { (0.06...0.94).contains($0) }
+        return options.first(where: isSafe) ?? options.first
     }
 }

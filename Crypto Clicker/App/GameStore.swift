@@ -643,6 +643,16 @@ final class GameStore {
     }
 
     @discardableResult
+    func finishInvaders(score: Int, destroyed: Int, wave: Int, whales: Int, bosses: Int, powerUps: Int, bestStreak: Int,
+                        volleys: Int, volleysHit: Int) -> ArcadePayout {
+        let payout = perform { game, _ in
+            game.finishInvaders(score: score, destroyed: destroyed, wave: wave, whales: whales, bosses: bosses,
+                                powerUps: powerUps, bestStreak: bestStreak, volleys: volleys, volleysHit: volleysHit)
+        }
+        save()
+        return payout
+    }
+
     func finishBrickBreaker(score: Int, bricks: Int, level: Int, bosses: Int, powerUps: Int, bestStreak: Int) -> ArcadePayout {
         let payout = perform { game, _ in
             game.finishBrickBreaker(score: score, bricks: bricks, level: level, bosses: bosses, powerUps: powerUps,
@@ -879,8 +889,8 @@ final class GameStore {
         pushToWatch(force: true)
     }
 
-    /// Counts new steps and pays for the days that are over (steps are paid the day after they're
-    /// walked). Safe to call at any time: the ledger never counts or pays a step twice.
+    /// Counts new steps and pays for them (as they're walked, or the next day for the game's first
+    /// day). Safe to call at any time: the ledger never counts or pays a step twice.
     func syncSteps(force: Bool = false) async {
         let now = Date.now
         guard !isSaveLocked, game.steps.isConnected, !isSyncingSteps,
@@ -891,8 +901,10 @@ final class GameStore {
         // Health data can't be read while the iPhone is locked; the next sync catches up.
         guard let days = try? await stepTracker.dailySteps(days: Tuning.stepWindowDays) else { return }
         let credit = perform { game, now in game.creditSteps(days, today: StepDay.key(for: now), at: now) }
-        if credit.steps > 0 {
-            let isYesterday = credit.days == [StepDay.previousKey(before: now)]
+        // Steps are paid on every sync now, so a handful walked since the last one goes by quietly.
+        let onlyToday = credit.days == [StepDay.key(for: now)]
+        if credit.steps > 0 && (!onlyToday || credit.steps >= Tuning.stepsToastMinimum) {
+            let isYesterday = credit.days.first == StepDay.previousKey(before: now)
             show(Toast(icon: "👣", title: isYesterday ? "Yesterday's steps paid" : "Steps paid",
                        message: "\(CoinFormat.grouped(credit.steps)) steps · +\(CoinFormat.short(credit.coins)) coins"))
         }

@@ -93,6 +93,8 @@ public enum Tuning {
     public static let minimumRewardIncome = 1.0
     /// Days of HealthKit history checked on each sync, including today.
     public static let stepWindowDays = 7
+    /// Steps walked since the last sync are paid quietly; a toast says so from this many.
+    public static let stepsToastMinimum = 100
 
     // MARK: Pace
     /// Every price is its list price times this: about double for everything under 5,000 coins,
@@ -223,6 +225,7 @@ public enum Tuning {
     /// Coin Rush scores faster than Classic (three coins out at once), so its points pay this share.
     public static let snakeCoinRushPay = 0.6
     public static let brickBreakerSecondsPerPoint = 0.36
+    public static let invadersSecondsPerPoint = 0.09
     public static let bubbleSecondsPerPoint = 0.11
     public static let merge2048SecondsPerPoint = 0.055
     /// Each Token Swap level star pays this many seconds of income, once, the first time it's

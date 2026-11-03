@@ -43,6 +43,10 @@ extension GameState {
                 : s.pumpDumpBestCombo > 0
                     ? "Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))"
                     : "Best \(CoinFormat.grouped(s.pumpDumpBestScore))"
+        case .invaders:
+            s.invadersBestWave > 0
+                ? "Best \(CoinFormat.grouped(s.invadersBestScore)) · wave \(CoinFormat.grouped(s.invadersBestWave))"
+                : "Best \(CoinFormat.grouped(s.invadersBestScore))"
         case .tokenSwap:
             (tokenSwap.totalStars > 0 ? "\(tokenSwap.totalStars) stars · " : "")
                 + (s.tokenSwapBestChain > 1
@@ -66,6 +70,7 @@ extension GameState {
         case .bubbleBlaster: s.bubbleGames
         case .pumpDump: s.pumpDumpGames
         case .tokenSwap: s.tokenSwapGames + s.tokenSwapLevelsPlayed
+        case .invaders: s.invadersGames
         }
     }
 
@@ -80,6 +85,7 @@ extension GameState {
         case .bubbleBlaster: s.bubbleBestScore
         case .pumpDump: s.pumpDumpBestScore
         case .tokenSwap: s.tokenSwapBestScore
+        case .invaders: s.invadersBestScore
         case .blackjack, .slots, .moon, .videoPoker: 0
         }
     }

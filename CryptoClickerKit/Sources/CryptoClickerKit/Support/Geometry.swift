@@ -59,6 +59,21 @@ public struct Box: Equatable, Sendable {
     public func intersects(circle center: Vector2, radius: Double) -> Bool {
         closestPoint(to: center).distance(to: center) < radius
     }
+
+    /// The boxes overlap (boxes that only touch don't).
+    public func overlaps(_ other: Box) -> Bool {
+        minX < other.maxX && other.minX < maxX && minY < other.maxY && other.minY < maxY
+    }
+
+    /// The point is inside the box or on its edge.
+    public func contains(_ point: Vector2) -> Bool {
+        point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY
+    }
+
+    /// The box shrunk by `dx` on the left and right and `dy` on the top and bottom (grown when negative).
+    public func insetBy(dx: Double, dy: Double) -> Box {
+        Box(minX: minX + dx, minY: minY + dy, width: max(0, width - 2 * dx), height: max(0, height - 2 * dy))
+    }
 }
 
 extension Int {

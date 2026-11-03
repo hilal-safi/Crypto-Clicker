@@ -120,13 +120,13 @@ private struct HowToChapter: Identifiable {
             "Three new quests arrive each day.",
         ]),
         HowToTopic("target", "Daily challenge", "From your second day, a challenge a day in one of your games.", [
-            "A Tetris score, a 2048 tile, a Pump and Dump run, a Token Swap score, good casino hands, or points in three arcade games.",
+            "A Tetris score, a 2048 tile, a Pump and Dump run, a Token Swap score, invaders shot, good casino hands, or points in three arcade games.",
             "Each pays 15 minutes of income, and five in a week (Monday to Sunday) pay two hours more.",
             "On Block Day, Tetris deals everyone the same pieces.",
         ]),
         HowToTopic("figure.walk", "Steps", "After \(CoinFormat.grouped(Tuning.stepsUnlockTaps)) taps, your steps turn into coins.", [
-            "Steps count toward quests and achievements as you walk.",
-            "Each day's steps are paid the next day, at your step value then.",
+            "Steps are paid as you walk, and count toward quests and achievements.",
+            "Your first day's steps are paid the next day, so walking can't skip the opening.",
             "Every step, on iPhone or Apple Watch, is paid once, and steps grow more valuable as your income grows.",
         ]),
         HowToTopic("trophy.fill", "Achievements", "Bronze, silver, gold and mythic stars, in Trophies.", [
@@ -142,7 +142,7 @@ private struct HowToChapter: Identifiable {
             "Pick ×1, ×10, ×100 or Max to buy and sell in bulk.",
             "Tokens reset when you prestige.",
         ]),
-        HowToTopic("gamecontroller.fill", "Arcade", "Games unlock one at a time, from a few thousand coins up to about a trillion.", [
+        HowToTopic("gamecontroller.fill", "Arcade", "Games unlock one at a time, from a few thousand coins up to about one and a half trillion.", [
             "Arcade games pay coins for every point, and half as much again for a new best.",
             "A minute of good play pays about two minutes of income.",
             "Playing earns XP for your Arcade Rank, and six different games in a week pay half an hour of income.",
@@ -157,7 +157,7 @@ private struct HowToChapter: Identifiable {
             "Making the 2048 tile pays ten minutes of income on top.",
             "Token Swap has levels whose stars each pay once, a daily puzzle and random levels.",
             "Brick Breaker's start screen has its levels, random walls and speed.",
-            "Snake and Tetris have Options for their speed.",
+            "Snake, Tetris and Scam Invaders have Options for their speed.",
             "Swipe in from the left edge to leave a game.",
         ]),
     ])

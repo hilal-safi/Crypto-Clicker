@@ -176,7 +176,9 @@ struct SettingsView: View {
                 LabeledContent("Each step pays", value: Self.coins(game.stepValue))
                 if game.steps.todayKey == today {
                     LabeledContent("Today", value: "\(CoinFormat.grouped(game.steps.todaySteps)) steps")
-                    LabeledContent("Pays tomorrow", value: "≈ \(Self.coins(game.pendingStepCoins(today: today)))")
+                    if game.stepsPaidNextDay(today: today) {
+                        LabeledContent("Pays tomorrow", value: "≈ \(Self.coins(game.pendingStepCoins(today: today)))")
+                    }
                 }
                 LabeledContent("Steps walked", value: CoinFormat.grouped(game.stats.lifetimeSteps))
                 if let lastSync = game.steps.lastSync {
@@ -201,9 +203,11 @@ struct SettingsView: View {
                 }
             }
         } header: {
-            SettingsHeader("Apple Health", info: "Each day's steps are paid the next day, at your step value then, and count toward quests and achievements right away. Steps from your iPhone and Apple Watch are combined by Apple Health, and each one is paid once.\n\nIf no steps appear, allow access in the Health app under Sharing › Apps › Crypto Clicker.")
+            SettingsHeader("Apple Health", info: "Steps are paid as you walk, each time the game syncs with Apple Health, and count toward quests and achievements right away. Your first day's steps are the exception: they're paid the next day, at your step value then, so walking can't skip the opening. Steps from your iPhone and Apple Watch are combined by Apple Health, and each one is paid once.\n\nIf no steps appear, allow access in the Health app under Sharing › Apps › Crypto Clicker.")
         } footer: {
-            SettingsNote("Steps are paid the day after you walk them.")
+            SettingsNote(game.stepsPaidNextDay(today: store.today)
+                         ? "Today's steps are paid tomorrow; after that, as you walk."
+                         : "Steps are paid as you walk.")
         }
     }
 

@@ -97,7 +97,7 @@ public enum ArcadeRank {
 
 /// Where a cosmetic goes.
 public enum CosmeticSlot: String, CaseIterable, Codable, Sendable, Identifiable {
-    case cardBack, felt, reels, tetris, snake
+    case cardBack, felt, reels, tetris, snake, ship
 
     public var id: String { rawValue }
 
@@ -108,6 +108,7 @@ public enum CosmeticSlot: String, CaseIterable, Codable, Sendable, Identifiable 
         case .reels: "Slot Reels"
         case .tetris: "Tetris Blocks"
         case .snake: "Snake Skin"
+        case .ship: "Invaders Ship"
         }
     }
 
@@ -119,6 +120,7 @@ public enum CosmeticSlot: String, CaseIterable, Codable, Sendable, Identifiable 
         case .reels: .reelsClassic
         case .tetris: .tetrisClassic
         case .snake: .snakeGreen
+        case .ship: .shipClassic
         }
     }
 }
@@ -133,13 +135,15 @@ public enum CosmeticUnlock: Equatable, Sendable {
     case achievement(id: String, tier: Int)
 }
 
-/// A look for a game: card backs, the Blackjack felt, slot reels, Tetris blocks and the snake.
+/// A look for a game: card backs, the Blackjack felt, slot reels, Tetris blocks, the snake and the
+/// Scam Invaders ship.
 public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
     case cardBackClassic, cardBackMidnight, cardBackEmerald, cardBackGold
     case feltGreen, feltCrimson, feltBlue
     case reelsClassic, reelsNeon, reelsGold
     case tetrisClassic, tetrisPixel, tetrisGlass
     case snakeGreen, snakeRainbow, snakeGold
+    case shipClassic, shipNeon, shipGold
 
     public var id: String { rawValue }
 
@@ -150,6 +154,7 @@ public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
         case .reelsClassic, .reelsNeon, .reelsGold: .reels
         case .tetrisClassic, .tetrisPixel, .tetrisGlass: .tetris
         case .snakeGreen, .snakeRainbow, .snakeGold: .snake
+        case .shipClassic, .shipNeon, .shipGold: .ship
         }
     }
 
@@ -171,12 +176,15 @@ public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
         case .snakeGreen: "Green"
         case .snakeRainbow: "Rainbow"
         case .snakeGold: "Gold"
+        case .shipClassic: "Classic"
+        case .shipNeon: "Neon"
+        case .shipGold: "Gold"
         }
     }
 
     public var unlock: CosmeticUnlock {
         switch self {
-        case .cardBackClassic, .feltGreen, .reelsClassic, .tetrisClassic, .snakeGreen: .free
+        case .cardBackClassic, .feltGreen, .reelsClassic, .tetrisClassic, .snakeGreen, .shipClassic: .free
         case .cardBackMidnight: .rank(3)
         case .cardBackEmerald: .achievement(id: "poker-face", tier: 0)
         case .cardBackGold: .achievement(id: "card-shark", tier: 1)
@@ -188,6 +196,8 @@ public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
         case .tetrisGlass: .achievement(id: "line-clearer", tier: 1)
         case .snakeRainbow: .rank(8)
         case .snakeGold: .achievement(id: "snake-charmer", tier: 1)
+        case .shipNeon: .rank(7)
+        case .shipGold: .achievement(id: "invader-hunter", tier: 1)
         }
     }
 

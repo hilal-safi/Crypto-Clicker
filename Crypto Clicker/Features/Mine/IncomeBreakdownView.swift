@@ -118,7 +118,8 @@ struct IncomeBreakdownView: View {
                         ? "Up to \(CoinFormat.duration(game.offlineCap)) · \(amount(game.baseIdleIncome * game.offlineCap))"
                         : "First minute only (no Offline Mining)")
                     if game.steps.isConnected {
-                        row("Each step", "\(amount(game.stepValue)), paid the next day")
+                        row("Each step", game.stepsPaidNextDay(today: StepDay.key(for: now))
+                            ? "\(amount(game.stepValue)), paid tomorrow" : "\(amount(game.stepValue)), paid as you walk")
                     }
                     row("Coin airdrop", "Up to \(amount(game.rewardIncome * Tuning.airdropIncomeSeconds))")
                     row("Whale airdrop", amount(game.whaleAmount))

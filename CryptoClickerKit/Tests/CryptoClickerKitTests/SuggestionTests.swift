@@ -61,7 +61,7 @@ struct SuggestionTests {
 struct GameRecordTests {
     @Test func theArcadeListsCasinoThenArcadeGamesCheapestFirst() {
         #expect(MiniGame.byPrice == [.blackjack, .videoPoker, .slots, .moon, .tetris, .snake, .tokenSwap, .pumpDump, .merge2048,
-                                     .brickBreaker, .bubbleBlaster])
+                                     .brickBreaker, .bubbleBlaster, .invaders])
         for game in MiniGame.allCases {
             #expect(game.isCasino == (game.secondsPerPoint == 0))
             #expect(!game.info.pitch.isEmpty)

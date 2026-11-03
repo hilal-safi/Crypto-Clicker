@@ -50,9 +50,9 @@ public struct StepDay: Equatable, Sendable {
 }
 
 /// Remembers how many steps of each day have been counted, and how many paid for. Steps count as
-/// soon as a sync sees them (for quests, achievements and records) and are paid the day after
-/// they're walked. Syncing is idempotent: running it twice, or late-arriving watch data, only
-/// ever counts and pays for steps that haven't been yet.
+/// soon as a sync sees them (for quests, achievements and records) and are paid then too, except on
+/// the game's first day, whose steps are paid the next day. Syncing is idempotent: running it twice,
+/// or late-arriving watch data, only ever counts and pays for steps that haven't been yet.
 public struct StepLedger: Codable, Equatable, Sendable {
     /// The player connected Apple Health.
     public internal(set) var isConnected = false
@@ -60,10 +60,10 @@ public struct StepLedger: Codable, Equatable, Sendable {
     public internal(set) var startDay: String?
     /// Steps already paid for, by day key.
     public internal(set) var credited: [String: Int] = [:]
-    /// Steps already counted, by day key: today's grow as you walk, and are paid tomorrow.
+    /// Steps already counted, by day key: today's grow as you walk.
     public internal(set) var counted: [String: Int] = [:]
     public internal(set) var todayKey: String?
-    /// Today's steps as of the last sync (counted, and paid tomorrow).
+    /// Today's steps as of the last sync.
     public internal(set) var todaySteps = 0
     public internal(set) var lastSync: Date?
 

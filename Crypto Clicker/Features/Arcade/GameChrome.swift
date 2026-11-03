@@ -355,6 +355,7 @@ struct GameOptionsSheet: View {
         let what = switch game {
         case .snake: "How fast the snake moves."
         case .tetris: "How fast pieces fall."
+        case .invaders: "How fast the invaders march, and everyone fires."
         default: "How fast the ball moves."
         }
         return what + " Points are worth the same at every speed: Fast scores quicker but is harder to keep up with, and Slow is relaxed but scores more slowly."

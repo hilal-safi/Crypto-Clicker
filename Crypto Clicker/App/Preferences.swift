@@ -26,6 +26,7 @@ enum Preferences {
     static let brickBreakerSpeedKey = "speed.brickBreaker"
     static let snakeSpeedKey = "speed.snake"
     static let tetrisSpeedKey = "speed.tetris"
+    static let invadersSpeedKey = "speed.invaders"
     /// The difficulty last picked for a random Token Swap level.
     static let tokenSwapRandomDifficultyKey = "tokenSwapRandomDifficulty"
     /// The player has opened How to Play (in Settings), so the tip pointing there is done.

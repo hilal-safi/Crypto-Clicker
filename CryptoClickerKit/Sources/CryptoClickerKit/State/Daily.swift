@@ -6,6 +6,7 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
     case winBlackjack, spinSlots, clearLines, eatSnakeCoins, breakBricks, popBubbles, sellTokens, score2048
     case cashOutMoon, hitPumpCoins, winPoker, matchTokens
     case winTokenSwapLevels, clearPumpRounds, reach2048Goals
+    case shootInvaders
 
     /// The instruction, with the target filled in: "Tap the coin 500 times".
     public func title(target: Double) -> String {
@@ -31,6 +32,7 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .winTokenSwapLevels: target == 1 ? "Win a Token Swap level" : "Win \(amount) Token Swap levels"
         case .clearPumpRounds: "Clear \(amount) rounds in Pump and Dump"
         case .reach2048Goals: "Reach \(amount) tile goals in 2048"
+        case .shootInvaders: "Shoot \(amount) invaders in Scam Invaders"
         }
     }
 
@@ -57,6 +59,7 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .winTokenSwapLevels: "star.circle.fill"
         case .clearPumpRounds: "flag.checkered"
         case .reach2048Goals: "target"
+        case .shootInvaders: "scope"
         }
     }
 }
@@ -92,7 +95,7 @@ public struct Quest: Codable, Equatable, Sendable, Identifiable {
 /// What a daily challenge asks for. Each kind belongs to one game (or, for the arcade mix, to
 /// three of them), and is only picked once that game is unlocked.
 public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
-    case tetris, merge2048, snake, brickBreaker, bubbleBlaster, pumpDump, tokenSwap
+    case tetris, merge2048, snake, brickBreaker, bubbleBlaster, pumpDump, tokenSwap, invaders
     case blackjack, slots, moon, videoPoker
     /// Score in three different arcade games.
     case arcadeMix
@@ -110,6 +113,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .bubbleBlaster: .bubbleBlaster
         case .pumpDump: .pumpDump
         case .tokenSwap: .tokenSwap
+        case .invaders: .invaders
         case .blackjack: .blackjack
         case .slots: .slots
         case .moon: .moon
@@ -129,6 +133,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .bubbleBlaster: "Pop Day"
         case .pumpDump: "Reflex Day"
         case .tokenSwap: "Match Day"
+        case .invaders: "Defense Day"
         case .blackjack, .slots, .moon, .videoPoker, .blackjackNatural: "Casino Day"
         case .arcadeMix: "Arcade Day"
         }
@@ -145,6 +150,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .bubbleBlaster: "Pop \(amount) bubbles in one Bubble Blaster game"
         case .pumpDump: "Score \(amount) in one Pump and Dump run"
         case .tokenSwap: "Score \(amount) in one round of Token Swap Classic"
+        case .invaders: "Shoot \(amount) invaders in one Scam Invaders game"
         case .blackjack: "Win \(amount) Blackjack hands today"
         case .slots: "Win \(amount) spins at Crypto Slots today"
         case .moon: "Cash out at 2× or more \(amount) times in To the Moon today"
@@ -157,7 +163,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
     /// Counts the best single game rather than a running total for the day.
     public var isBestOfOneGame: Bool {
         switch self {
-        case .tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap: true
+        case .tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap, .invaders: true
         case .blackjack, .slots, .moon, .videoPoker, .arcadeMix, .blackjackNatural: false
         }
     }
@@ -172,6 +178,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .bubbleBlaster: [30, 45, 60]
         case .pumpDump: [2_000, 3_000, 4_500]
         case .tokenSwap: [2_000, 3_000, 4_000]
+        case .invaders: [40, 60, 80]
         case .blackjack: [2, 3, 4]
         case .slots: [3, 5]
         case .moon: [2, 3]

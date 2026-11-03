@@ -159,6 +159,35 @@ struct MiniGameRewardTests {
         #expect(reloaded.payUnfinishedRun() == nil)
     }
 
+    @Test func scamInvadersPaysForItsPointsAndKeepsItsRecords() {
+        var game = earner()
+        game.unlockedGames.insert(.invaders)
+        let first = game.finishInvaders(score: 1_000, destroyed: 60, wave: 3, whales: 2, bosses: 0, powerUps: 3,
+                                        bestStreak: 14, volleys: 80, volleysHit: 50)
+        // Every point pays its share of income, and a new best half as much again.
+        #expect(first.isNewBest)
+        #expect(first.coins == game.arcadeReward(.invaders, score: 1_000, multiplier: 1 + Tuning.newBestBonus))
+        #expect(first.coins == (1_000 * Tuning.invadersSecondsPerPoint * 10 * 1.5).rounded(.down))
+        let second = game.finishInvaders(score: 500, destroyed: 25, wave: 2, volleys: 30, volleysHit: 40)
+        #expect(!second.isNewBest && second.coins == game.arcadeReward(.invaders, score: 500))
+        let s = game.stats
+        #expect(s.invadersGames == 2 && s.invadersBestScore == 1_000 && s.invadersBestWave == 3)
+        #expect(s.invadersDestroyed == 85 && s.invadersWhales == 2 && s.invadersPowerUps == 3 && s.invadersBestStreak == 14)
+        // Hits can't outnumber volleys.
+        #expect(s.invadersVolleys == 110 && s.invadersVolleysHit == 80)
+        #expect(game.record(for: .invaders) == "Best 1,000 · wave 3")
+        #expect(game.timesPlayed(.invaders) == 2 && game.bestScore(.invaders) == 1_000)
+        // A held run comes back with every record.
+        game.holdArcadeRun(ArcadeRun(game: .invaders, score: 2_000, detail: 70, extra: 6,
+                                     records: .init(powerUps: 2, bosses: 1, bestStreak: 30, bonuses: 1, volleys: 90, volleysHit: 70)))
+        game.payUnfinishedRun()
+        #expect(game.stats.invadersBestWave == 6 && game.stats.invadersBosses == 1 && game.stats.invadersBestStreak == 30)
+        #expect(game.stats.invadersWhales == 3 && game.stats.invadersVolleys == 200 && game.stats.invadersVolleysHit == 150)
+        // And everything survives a save.
+        let saved = try? GameCoding.decoder().decode(GameState.self, from: GameCoding.encoder().encode(game))
+        #expect(saved?.stats == game.stats)
+    }
+
     @Test func aHeldRunKeepsEveryRecordAndEarnsItsArcadeXP() throws {
         var game = earner()
         let records = ArcadeRun.Records(powerUps: 5, bosses: 2, bestStreak: 3)

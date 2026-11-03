@@ -131,6 +131,7 @@ struct SimulatedPlayer {
         case .merge2048: game.finishMerge2048(score: points, bestTile: 256)
         case .pumpDump: game.finishPumpDump(score: points, coinsHit: points / 12, bestCombo: 10)
         case .tokenSwap: game.finishTokenSwap(score: points, tokens: points / 14, bestChain: 3)
+        case .invaders: game.finishInvaders(score: points, destroyed: points / 16, wave: 2)
         case .blackjack, .slots, .moon, .videoPoker: break
         }
     }

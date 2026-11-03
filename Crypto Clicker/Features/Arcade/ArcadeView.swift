@@ -59,6 +59,7 @@ struct ArcadeView: View {
                 case .bubbleBlaster: BubbleBlasterView()
                 case .pumpDump: PumpDumpView()
                 case .tokenSwap: TokenSwapView()
+                case .invaders: InvadersView()
                 }
             }
             .navigationDestination(for: TodaysPieces.self) { pieces in

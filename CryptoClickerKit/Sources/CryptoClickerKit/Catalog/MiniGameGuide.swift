@@ -42,6 +42,7 @@ extension MiniGame {
         case .bubbleBlaster: Self.bubbleBlasterGuide
         case .pumpDump: Self.pumpDumpGuide
         case .tokenSwap: Self.tokenSwapGuide
+        case .invaders: Self.invadersGuide
         }
     }
 
@@ -328,6 +329,55 @@ extension MiniGame {
                 "Save a Bomb for a big cluster hanging from a few bubbles.",
             ],
             controlHint: "Drag to aim · Lift to fire · Tap to swap")
+    }
+
+    private static var invadersGuide: MiniGameGuide {
+        typealias Game = InvadersGame
+        typealias PowerUp = Game.PowerUp
+        let kinds = Game.InvaderKind.self
+        return MiniGameGuide(
+            objective: "Shoot down every scam token before the formation lands, and survive wave after wave. Every \(Game.bossEvery)th wave is a boss.",
+            controls: [
+                "Drag anywhere to move your ship. It fires while your finger is down: lift it to hold fire.",
+                "Only two volleys can be in the air at once: shots that hit come back sooner than ones that fly off the top.",
+                "Options (the sliders at the top) set the speed: everything moves and fires faster or slower.",
+            ],
+            scoring: [
+                "Meme coins score \(kinds.memeCoin.points), pump bots \(kinds.pumpBot.points) and rug pullers \(kinds.rugPuller.points).",
+                "Hits in a row build a streak: each hit scores 10% more than the last, up to double. A volley that hits nothing, or only a firewall, ends it.",
+                "Clearing a wave scores 100 times the wave, and 50 times more if you didn't lose a ship on it.",
+            ],
+            items: [
+                .init(id: "invaders.memeCoin", symbol: "bitcoinsign.circle.fill", name: "Meme coins",
+                      detail: "The bottom two rows: \(kinds.memeCoin.points) points each."),
+                .init(id: "invaders.pumpBot", symbol: "arrow.up.circle.fill", name: "Pump bots",
+                      detail: "The middle rows: \(kinds.pumpBot.points) points each."),
+                .init(id: "invaders.rugPuller", symbol: "exclamationmark.triangle.fill", name: "Rug pullers",
+                      detail: "The top row: \(kinds.rugPuller.points) points each."),
+                .init(id: "invaders.golden", symbol: "star.circle.fill", name: "Golden tokens",
+                      detail: "From wave 2, one invader a wave glows gold: it's worth double and drops a power-up."),
+                .init(id: "invaders.whale", symbol: "fish.fill", name: "Whale",
+                      detail: "Swims across the top now and then: shoot it for 50 to 300 points and a power-up."),
+                .init(id: "invaders.firewall", symbol: "square.grid.3x3.fill", name: "Firewalls",
+                      detail: "Four walls that stop shots, yours and theirs: every hit chips a block away, and invaders crush what they touch."),
+                .init(id: "invaders.rapidFire", symbol: "bolt.fill", name: PowerUp.rapidFire.name,
+                      detail: "Fires twice as fast, with up to four volleys at once, for \(Int(PowerUp.rapidFire.duration ?? 0)) seconds."),
+                .init(id: "invaders.spreadShot", symbol: "arrow.up.left.and.arrow.down.right", name: PowerUp.spreadShot.name,
+                      detail: "Three shots fan out from every volley for \(Int(PowerUp.spreadShot.duration ?? 0)) seconds."),
+                .init(id: "invaders.laser", symbol: "line.diagonal", name: PowerUp.laser.name,
+                      detail: "For \(Int(PowerUp.laser.duration ?? 0)) seconds each shot burns through every invader in its path."),
+                .init(id: "invaders.shield", symbol: "shield.fill", name: PowerUp.shield.name,
+                      detail: "Takes one hit for your ship."),
+                .init(id: "invaders.boss", symbol: "exclamationmark.octagon.fill", name: "The Bear",
+                      detail: "Every \(Game.bossEvery)th wave a giant bear-market bot slides along the top with a health bar, firing three shots at a time. Beating it gives back a lost ship."),
+            ],
+            ending: "You have \(Game.startingLives) ships. An invader's shot costs one, along with any power-ups running; the game ends with the last ship, or the moment an invader reaches your ship's line.",
+            tips: [
+                "Thin out the edge columns: the formation turns at the edges, so a narrow one takes longer to come down.",
+                "Lift your finger under a firewall: your own shots wear it down too.",
+                "The formation speeds up as it shrinks. Leave the last few until you're lined up.",
+            ],
+            controlHint: "Drag to move · Hold to fire")
     }
 
     private static var pumpDumpGuide: MiniGameGuide {
