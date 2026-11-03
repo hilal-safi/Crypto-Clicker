@@ -157,7 +157,8 @@ private struct HowToChapter: Identifiable {
             "Making the 2048 tile pays ten minutes of income on top.",
             "Token Swap has levels whose stars each pay once, a daily puzzle and random levels.",
             "Brick Breaker's start screen has its levels, random walls and speed.",
-            "Snake, Tetris and Scam Invaders have Options for their speed.",
+            "Scam Invaders' start screen has its waves, random formations and speed.",
+            "Snake and Tetris have Options for their speed.",
             "Swipe in from the left edge to leave a game.",
         ]),
     ])
@@ -182,6 +183,11 @@ private struct HowToChapter: Identifiable {
     private static let beyondTheApp = HowToChapter(title: "Beyond the App", topics: [
         HowToTopic("applewatch", "Apple Watch", "Tap to mine from your wrist and keep an eye on your balance.", [
             "Taps reach your iPhone and count exactly once.",
+        ]),
+        HowToTopic("rectangle.stack.fill", "Widgets and the Lock Screen", "Watch your balance grow without opening the game.", [
+            "Add the Balance widget to your Home Screen or Lock Screen: its number grows as your miners earn.",
+            "A Live Activity shows your coin and balance on the Lock Screen and in the Dynamic Island, and how long your miners keep going.",
+            "Turn the Live Activity off in Settings › Lock Screen and Widgets.",
         ]),
         HowToTopic("mic.fill", "Siri and Shortcuts", "Hear your balance without opening the game.", [
             "Ask Siri \u{201C}How many coins do I have in Crypto Clicker?\u{201D}",

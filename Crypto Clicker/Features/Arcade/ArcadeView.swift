@@ -46,6 +46,55 @@ struct ArcadeView: View {
             .background { AppBackground(tint: Theme.arcade) }
             .navigationTitle("Arcade")
             .balanceToolbar()
+            .modifier(ArcadeDestinations())
+        }
+    }
+
+    private func row(_ miniGame: MiniGame, in game: GameState) -> some View {
+        MiniGameRow(miniGame: miniGame, isUnlocked: game.isUnlocked(miniGame),
+                    canAfford: miniGame.unlockCost <= game.coins, record: game.record(for: miniGame))
+    }
+
+    /// The challenge's game is unlocked (the arcade mix has no single game to open).
+    private func canOpen(_ challenge: DailyChallenge) -> Bool {
+        guard let game = challenge.kind.game else { return false }
+        return store.game.isUnlocked(game) && !challenge.isComplete
+    }
+
+    /// Opens the challenge's game; on Block Day, Tetris deals today's pieces.
+    private func open(_ challenge: DailyChallenge) {
+        guard let game = challenge.kind.game, store.game.isUnlocked(game) else { return }
+        if game == .tetris {
+            path.append(TodaysPieces(day: challenge.day))
+        } else if game == .tokenSwap {
+            path.append(TokenSwapRoute.classic) // Match Day asks for a Classic score.
+        } else if game == .brickBreaker {
+            path.append(BrickBreakerRoute.play(.classic)) // Straight into a game, from level 1.
+        } else if game == .invaders {
+            path.append(InvadersRoute.play(.classic)) // Straight into a game, from wave 1.
+        } else {
+            path.append(game)
+        }
+    }
+
+    /// Opens today's challenge once for each request, closing an open game screen first.
+    private func showChallengeIfAsked() {
+        guard handledChallengeRequests != challengeRequests else { return }
+        handledChallengeRequests = challengeRequests
+        let wasInGame = !path.isEmpty
+        path = NavigationPath()
+        guard let challenge = store.game.dailyChallenge(today: store.today), canOpen(challenge) else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(wasInGame ? 450 : 50))
+            open(challenge)
+        }
+    }
+}
+
+/// Every screen the Arcade opens: the games, and the screens inside them.
+private struct ArcadeDestinations: ViewModifier {
+    func body(content: Content) -> some View {
+        content
             .navigationDestination(for: MiniGame.self) { miniGame in
                 switch miniGame {
                 case .blackjack: BlackjackView()
@@ -76,45 +125,11 @@ struct ArcadeView: View {
                 case .play(let levels): BrickBreakerPlayView(levels: levels)
                 }
             }
-        }
-    }
-
-    private func row(_ miniGame: MiniGame, in game: GameState) -> some View {
-        MiniGameRow(miniGame: miniGame, isUnlocked: game.isUnlocked(miniGame),
-                    canAfford: miniGame.unlockCost <= game.coins, record: game.record(for: miniGame))
-    }
-
-    /// The challenge's game is unlocked (the arcade mix has no single game to open).
-    private func canOpen(_ challenge: DailyChallenge) -> Bool {
-        guard let game = challenge.kind.game else { return false }
-        return store.game.isUnlocked(game) && !challenge.isComplete
-    }
-
-    /// Opens the challenge's game; on Block Day, Tetris deals today's pieces.
-    private func open(_ challenge: DailyChallenge) {
-        guard let game = challenge.kind.game, store.game.isUnlocked(game) else { return }
-        if game == .tetris {
-            path.append(TodaysPieces(day: challenge.day))
-        } else if game == .tokenSwap {
-            path.append(TokenSwapRoute.classic) // Match Day asks for a Classic score.
-        } else if game == .brickBreaker {
-            path.append(BrickBreakerRoute.play(.classic)) // Straight into a game, from level 1.
-        } else {
-            path.append(game)
-        }
-    }
-
-    /// Opens today's challenge once for each request, closing an open game screen first.
-    private func showChallengeIfAsked() {
-        guard handledChallengeRequests != challengeRequests else { return }
-        handledChallengeRequests = challengeRequests
-        let wasInGame = !path.isEmpty
-        path = NavigationPath()
-        guard let challenge = store.game.dailyChallenge(today: store.today), canOpen(challenge) else { return }
-        Task {
-            try? await Task.sleep(for: .milliseconds(wasInGame ? 450 : 50))
-            open(challenge)
-        }
+            .navigationDestination(for: InvadersRoute.self) { route in
+                switch route {
+                case .play(let waves): InvadersPlayView(waves: waves)
+                }
+            }
     }
 }
 

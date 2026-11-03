@@ -323,9 +323,10 @@ struct InvadersTests {
         #expect(abs(game.holdFor - (Game.incomingHold - 0.05)) < 1e-9)
     }
 
-    @Test func theSameSeedAndMovesPlayTheSameGame() {
+    @Test(arguments: Game.WaveStyle.allCases)
+    func theSameSeedAndMovesPlayTheSameGame(_ waves: Game.WaveStyle) {
         func play(seed: UInt64) -> (Int, Int, Int, Int) {
-            var game = Game(seed: seed)
+            var game = Game(seed: seed, waves: waves)
             for frame in 0..<(60 * 40) {
                 game.moveShip(to: 0.5 + 0.4 * sin(Double(frame) / 50))
                 game.isFiring = frame % 90 < 70
@@ -338,8 +339,9 @@ struct InvadersTests {
 
     @Test func aLongRandomGameKeepsItsRules() {
         var rng = SeededGenerator(seed: 4)
-        for speed in GameSpeed.allCases {
-            var game = Game(seed: 12, speed: speed)
+        let games: [(GameSpeed, Game.WaveStyle)] = GameSpeed.allCases.map { ($0, .classic) } + [(.normal, .generated), (.fast, .generated)]
+        for (speed, waves) in games {
+            var game = Game(seed: 12, speed: speed, waves: waves)
             var frames = 0
             while game.phase != .over && frames < 60 * 240 {
                 frames += 1
@@ -358,3 +360,94 @@ struct InvadersTests {
         }
     }
 }
+
+@Suite("Scam Invaders: random waves")
+struct InvadersRandomWaveTests {
+    typealias Game = InvadersGame
+
+    static func layout(_ game: Game) -> String {
+        game.invaders.map { "\($0.row),\($0.column),\($0.kind)" }.sorted().joined(separator: " ")
+    }
+
+    @Test func randomWavesAreMirroredFormationsOfAFairSize() {
+        var points = 0, count = 0, classicPoints = 0
+        for seed in UInt64(1)...40 {
+            var game = Game(seed: seed, waves: .generated)
+            var classic = Game(seed: seed)
+            for wave in 1...12 where wave % Game.bossEvery != 0 {
+                game.jump(toWave: wave)
+                classic.jump(toWave: wave)
+                let invaders = game.invaders
+                let label = "seed \(seed) wave \(wave)"
+                #expect((Game.generatedMinimum...Game.rows * Game.columns).contains(invaders.count), "\(label): \(invaders.count)")
+                #expect(invaders.allSatisfy { (0..<Game.rows).contains($0.row) && (0..<Game.columns).contains($0.column) }, "\(label)")
+                #expect(Set(invaders.map { "\($0.row),\($0.column)" }).count == invaders.count, "\(label) has two in one place")
+                // Mirrored left to right, kinds and all.
+                let kinds = Dictionary(uniqueKeysWithValues: invaders.map { ("\($0.row),\($0.column)", $0.kind) })
+                #expect(invaders.allSatisfy { kinds["\($0.row),\(Game.columns - 1 - $0.column)"] == $0.kind }, "\(label) isn't mirrored")
+                // On the classic formation's bottom row, so it comes down no later.
+                #expect(invaders.map(\.row).max() == Game.rows - 1, "\(label)")
+                // Every kind, and a golden invader from the very first wave.
+                #expect(Set(invaders.map(\.kind)).count == Game.InvaderKind.allCases.count, "\(label)")
+                #expect(invaders.filter(\.isGolden).count == 1, "\(label)")
+                points += invaders.reduce(0) { $0 + $1.kind.points }
+                count += invaders.count
+                classicPoints += classic.invaders.reduce(0) { $0 + $1.kind.points }
+            }
+        }
+        // Each invader is worth about what the classic's are (18 points on average), and a made-up
+        // wave holds about three quarters as many.
+        let perInvader = Double(points) / Double(count)
+        print("Random waves: \(Double(count) / 400) invaders a wave, \(perInvader) points each")
+        #expect(abs(perInvader - 18) < 1)
+        #expect(Double(points) >= 0.7 * Double(classicPoints) && Double(points) <= 0.9 * Double(classicPoints))
+    }
+
+    @Test func randomWavesAreRarelyTheSameAndBossesStayBosses() {
+        var layouts = Set<String>()
+        for seed in UInt64(1)...30 {
+            var game = Game(seed: seed, waves: .generated)
+            game.jump(toWave: 3)
+            layouts.insert(Self.layout(game))
+        }
+        #expect(layouts.count >= 25)
+        // Classic waves are the same every time.
+        var classic = Set<String>()
+        for seed in UInt64(1)...10 {
+            var game = Game(seed: seed)
+            game.jump(toWave: 3)
+            classic.insert(Self.layout(game))
+        }
+        #expect(classic.count == 1)
+        // A boss wave is the same in both.
+        var boss = Game(seed: 5, waves: .generated)
+        boss.jump(toWave: 5)
+        var classicBoss = Game(seed: 5)
+        classicBoss.jump(toWave: 5)
+        #expect(boss.boss != nil && Self.layout(boss) == Self.layout(classicBoss))
+    }
+
+    @Test func aRandomWaveSetsOffEitherWayAndAWholeGameRunsOnThem() {
+        var directions = Set<Bool>()
+        for seed in UInt64(1)...16 {
+            var game = Game(seed: seed, waves: .generated)
+            game.skipBanner()
+            game.holdFire()
+            let start = game.formationOrigin.x
+            var time = 0.0
+            while game.formationOrigin.x == start && time < 2 {
+                game.update(by: 1.0 / 60)
+                time += 1.0 / 60
+            }
+            #expect(game.formationOrigin.x != start)
+            directions.insert(game.formationOrigin.x > start)
+        }
+        #expect(directions.count == 2)
+        // The next wave is made up too.
+        var game = Game(seed: 3, waves: .generated)
+        let first = Self.layout(game)
+        game.jump(toWave: 2)
+        #expect(game.waveStyle == .generated && Self.layout(game) != first)
+    }
+}
+

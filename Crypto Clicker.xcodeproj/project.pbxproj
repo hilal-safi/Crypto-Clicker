@@ -10,6 +10,8 @@
 		2C0FFEE0000000000000A008 /* CryptoClickerKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2C0FFEE0000000000000A006 /* CryptoClickerKit */; };
 		2C0FFEE0000000000000A009 /* CryptoClickerKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2C0FFEE0000000000000A007 /* CryptoClickerKit */; };
 		9EEE79B92D29A75800FBC049 /* Crypto Clicker Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 9EEE79962D29A75500FBC049 /* Crypto Clicker Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2C0FFEE0000000000000A018 /* CryptoClickerKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2C0FFEE0000000000000A017 /* CryptoClickerKit */; };
+		2C0FFEE0000000000000A019 /* Crypto Clicker Widgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2C0FFEE0000000000000A00E /* Crypto Clicker Widgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -19,6 +21,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 9EEE79952D29A75500FBC049;
 			remoteInfo = "Crypto Clicker Watch App";
+		};
+		2C0FFEE0000000000000A01B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9EC1AC2E2C8FA0850055A38D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2C0FFEE0000000000000A010;
+			remoteInfo = "Crypto Clicker Widgets";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -34,15 +43,38 @@
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		2C0FFEE0000000000000A01A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				2C0FFEE0000000000000A019 /* Crypto Clicker Widgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2C0FFEE0000000000000A003 /* CryptoClicker.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CryptoClicker.entitlements; sourceTree = "<group>"; };
 		2C0FFEE0000000000000A004 /* CryptoClickerWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CryptoClickerWatch.entitlements; sourceTree = "<group>"; };
 		2C0FFEE0000000000000A00A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		2C0FFEE0000000000000A00E /* Crypto Clicker Widgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Crypto Clicker Widgets.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2C0FFEE0000000000000A00F /* CryptoClickerWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CryptoClickerWidgets.entitlements; sourceTree = "<group>"; };
 		9EC1AC362C8FA0850055A38D /* Crypto Clicker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Crypto Clicker.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		9EEE79962D29A75500FBC049 /* Crypto Clicker Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Crypto Clicker Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		2C0FFEE0000000000000A00D /* Exceptions for "Crypto Clicker Widgets" folder in "Crypto Clicker Widgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 2C0FFEE0000000000000A010 /* Crypto Clicker Widgets */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2C0FFEE0000000000000A001 /* Crypto Clicker */ = {
@@ -53,6 +85,19 @@
 		9EEE79972D29A75500FBC049 /* Crypto Clicker Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Crypto Clicker Watch App";
+			sourceTree = "<group>";
+		};
+		2C0FFEE0000000000000A00B /* Crypto Clicker Widgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				2C0FFEE0000000000000A00D /* Exceptions for "Crypto Clicker Widgets" folder in "Crypto Clicker Widgets" target */,
+			);
+			path = "Crypto Clicker Widgets";
+			sourceTree = "<group>";
+		};
+		2C0FFEE0000000000000A00C /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -74,6 +119,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		2C0FFEE0000000000000A012 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2C0FFEE0000000000000A018 /* CryptoClickerKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -82,6 +135,7 @@
 			children = (
 				2C0FFEE0000000000000A003 /* CryptoClicker.entitlements */,
 				2C0FFEE0000000000000A004 /* CryptoClickerWatch.entitlements */,
+				2C0FFEE0000000000000A00F /* CryptoClickerWidgets.entitlements */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -92,6 +146,8 @@
 				2C0FFEE0000000000000A00A /* README.md */,
 				2C0FFEE0000000000000A001 /* Crypto Clicker */,
 				9EEE79972D29A75500FBC049 /* Crypto Clicker Watch App */,
+				2C0FFEE0000000000000A00B /* Crypto Clicker Widgets */,
+				2C0FFEE0000000000000A00C /* Shared */,
 				2C0FFEE0000000000000A002 /* Config */,
 				9EC1AC372C8FA0850055A38D /* Products */,
 			);
@@ -102,6 +158,7 @@
 			children = (
 				9EC1AC362C8FA0850055A38D /* Crypto Clicker.app */,
 				9EEE79962D29A75500FBC049 /* Crypto Clicker Watch App.app */,
+				2C0FFEE0000000000000A00E /* Crypto Clicker Widgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -117,14 +174,17 @@
 				9EC1AC332C8FA0850055A38D /* Frameworks */,
 				9EC1AC342C8FA0850055A38D /* Resources */,
 				9EEE79BD2D29A75800FBC049 /* Embed Watch Content */,
+				2C0FFEE0000000000000A01A /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				9EEE79B82D29A75800FBC049 /* PBXTargetDependency */,
+				2C0FFEE0000000000000A01C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				2C0FFEE0000000000000A001 /* Crypto Clicker */,
+				2C0FFEE0000000000000A00C /* Shared */,
 			);
 			name = "Crypto Clicker";
 			packageProductDependencies = (
@@ -157,6 +217,30 @@
 			productReference = 9EEE79962D29A75500FBC049 /* Crypto Clicker Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
+		2C0FFEE0000000000000A010 /* Crypto Clicker Widgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2C0FFEE0000000000000A014 /* Build configuration list for PBXNativeTarget "Crypto Clicker Widgets" */;
+			buildPhases = (
+				2C0FFEE0000000000000A011 /* Sources */,
+				2C0FFEE0000000000000A012 /* Frameworks */,
+				2C0FFEE0000000000000A013 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				2C0FFEE0000000000000A00B /* Crypto Clicker Widgets */,
+				2C0FFEE0000000000000A00C /* Shared */,
+			);
+			name = "Crypto Clicker Widgets";
+			packageProductDependencies = (
+				2C0FFEE0000000000000A017 /* CryptoClickerKit */,
+			);
+			productName = "Crypto Clicker Widgets";
+			productReference = 2C0FFEE0000000000000A00E /* Crypto Clicker Widgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -172,6 +256,9 @@
 					};
 					9EEE79952D29A75500FBC049 = {
 						CreatedOnToolsVersion = 16.2;
+					};
+					2C0FFEE0000000000000A010 = {
+						CreatedOnToolsVersion = 26.0;
 					};
 				};
 			};
@@ -194,6 +281,7 @@
 			targets = (
 				9EC1AC352C8FA0850055A38D /* Crypto Clicker */,
 				9EEE79952D29A75500FBC049 /* Crypto Clicker Watch App */,
+				2C0FFEE0000000000000A010 /* Crypto Clicker Widgets */,
 			);
 		};
 /* End PBXProject section */
@@ -207,6 +295,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9EEE79942D29A75500FBC049 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2C0FFEE0000000000000A013 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -230,6 +325,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		2C0FFEE0000000000000A011 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -237,6 +339,11 @@
 			isa = PBXTargetDependency;
 			target = 9EEE79952D29A75500FBC049 /* Crypto Clicker Watch App */;
 			targetProxy = 9EEE79B72D29A75800FBC049 /* PBXContainerItemProxy */;
+		};
+		2C0FFEE0000000000000A01C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2C0FFEE0000000000000A010 /* Crypto Clicker Widgets */;
+			targetProxy = 2C0FFEE0000000000000A01B /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -382,6 +489,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Crypto Clicker";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.casual-games";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Crypto Clicker reads your step count to pay you coins for walking.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -415,6 +523,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Crypto Clicker";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.casual-games";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Crypto Clicker reads your step count to pay you coins for walking.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -492,6 +601,64 @@
 			};
 			name = Release;
 		};
+		2C0FFEE0000000000000A015 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/CryptoClickerWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Crypto Clicker Widgets/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Crypto Clicker";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-Clicker.Widgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		2C0FFEE0000000000000A016 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/CryptoClickerWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = YVXA294VWX;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Crypto Clicker Widgets/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Crypto Clicker";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hilal-Safi.Crypto-Clicker.Widgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -522,6 +689,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		2C0FFEE0000000000000A014 /* Build configuration list for PBXNativeTarget "Crypto Clicker Widgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2C0FFEE0000000000000A015 /* Debug */,
+				2C0FFEE0000000000000A016 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -538,6 +714,11 @@
 			productName = CryptoClickerKit;
 		};
 		2C0FFEE0000000000000A007 /* CryptoClickerKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2C0FFEE0000000000000A005 /* XCLocalSwiftPackageReference "CryptoClickerKit" */;
+			productName = CryptoClickerKit;
+		};
+		2C0FFEE0000000000000A017 /* CryptoClickerKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 2C0FFEE0000000000000A005 /* XCLocalSwiftPackageReference "CryptoClickerKit" */;
 			productName = CryptoClickerKit;

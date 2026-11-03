@@ -167,8 +167,8 @@ struct GamePanel<Content: View>: View {
     }
 }
 
-/// One way to play on a game's start screen (Token Swap's and Brick Breaker's): an icon, a title
-/// with a status line, what it is, an optional note, and its buttons.
+/// One way to play on a game's start screen (Token Swap's, Brick Breaker's and Scam Invaders'): an
+/// icon, a title with a status line, what it is, an optional note, and its buttons.
 struct ModeCard<Buttons: View>: View {
     let tint: Color
     let icon: String
@@ -214,6 +214,47 @@ struct ModeCard<Buttons: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(cornerRadius: 22)
         .accessibilityElement(children: .contain)
+    }
+}
+
+/// Ten levels (or waves) at a time on a game's start screen: the ones reached so far lit in the
+/// game's color, and every boss marked with its symbol.
+struct LevelTrack: View {
+    let best: Int
+    let bossEvery: Int
+    let tint: Color
+    let bossSymbol: String
+    /// "level" or "wave", for VoiceOver.
+    let noun: String
+    /// When the bosses come, for VoiceOver: "A boss every fifth level."
+    let bossNote: String
+
+    var body: some View {
+        let first = max(0, best - 1) / 10 * 10 + 1
+        HStack(spacing: 4) {
+            ForEach(first..<(first + 10), id: \.self) { number in
+                let reached = number <= best
+                ZStack {
+                    Circle()
+                        .fill(reached ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(Color.primary.opacity(0.08)))
+                    if number % bossEvery == 0 {
+                        Image(systemName: bossSymbol)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(reached ? .white : Theme.gold)
+                    } else {
+                        Text("\(number)")
+                            .font(.footnote.weight(.bold).monospacedDigit())
+                            .foregroundStyle(reached ? .white : .primary)
+                            .minimumScaleFactor(0.6)
+                    }
+                }
+                .frame(maxWidth: 34)
+                .aspectRatio(1, contentMode: .fit)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(best > 0 ? "Best \(noun) reached: \(best). \(bossNote)" : "No \(noun)s reached yet. \(bossNote)")
     }
 }
 
@@ -317,7 +358,7 @@ struct GameIntro: View {
     }
 }
 
-/// A game's options: its speed, and Brick Breaker's walls. Changed between games.
+/// A game's options (Snake's and Tetris's): its speed. Changed between games.
 struct GameOptionsSheet: View {
     let game: MiniGame
     @Binding var speed: GameSpeed
@@ -355,8 +396,7 @@ struct GameOptionsSheet: View {
         let what = switch game {
         case .snake: "How fast the snake moves."
         case .tetris: "How fast pieces fall."
-        case .invaders: "How fast the invaders march, and everyone fires."
-        default: "How fast the ball moves."
+        default: "How fast the game moves."
         }
         return what + " Points are worth the same at every speed: Fast scores quicker but is harder to keep up with, and Slow is relaxed but scores more slowly."
     }

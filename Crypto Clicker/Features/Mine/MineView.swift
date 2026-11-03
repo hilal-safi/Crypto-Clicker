@@ -27,10 +27,10 @@ struct MineView: View {
         NavigationStack {
             // The coin takes the room the other items leave, from 200 points up to 320 (and larger
             // still on a new game, with nothing under it yet). When even 200 doesn't fit (a small
-            // iPhone with very large text), the page scrolls instead. The balance sits 2% of the
+            // iPhone with very large text), the page scrolls instead. The balance sits 1% of the
             // screen's height below the top.
             GeometryReader { proxy in
-                let topPadding = (proxy.size.height * 0.02).rounded()
+                let topPadding = (proxy.size.height * 0.01).rounded()
                 ViewThatFits(in: .vertical) {
                     content(topPadding: topPadding)
                     ScrollView {
@@ -63,30 +63,33 @@ struct MineView: View {
         let hasCards = InventoryStrip.hasContent(game)
             || StepsCard.isShown(game, canTrackSteps: store.canTrackSteps, inviteDismissed: stepsInviteDismissed)
         return VStack(spacing: 10) {
-            BalanceHeader(coins: game.coins, boost: game.activeBoost(at: now), showsExact: exactNumbers,
-                          income: game.idleIncome(at: now), tapValue: game.tapValue(at: now), openIncome: openIncome) {
-                withAnimation(.snappy) { exactNumbers.toggle() }
-            }
-            GeometryReader { proxy in
-                let cap = hasCards ? CoinButton.maximumSize : CoinButton.freshMaximumSize
-                CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers,
-                           finish: finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold,
-                           maxSize: CoinButton.size(in: proxy.size, cap: cap)) {
-                    effects.rainCoins()
-                    return store.tap()
+            // The rates under the balance get 10% less room around them than the other items have.
+            VStack(spacing: 9) {
+                BalanceHeader(coins: game.coins, boost: game.activeBoost(at: now), showsExact: exactNumbers,
+                              income: game.idleIncome(at: now), tapValue: game.tapValue(at: now), openIncome: openIncome) {
+                    withAnimation(.snappy) { exactNumbers.toggle() }
                 }
-                .frame(width: proxy.size.width, height: proxy.size.height)
-            }
-            .frame(minHeight: CoinButton.minimumSize, idealHeight: CoinButton.minimumSize, maxHeight: .infinity)
-            .animation(.smooth, value: hasCards)
-            .overlay(alignment: .bottom) {
-                // Shown from the combo's first +0.1, so a few casual taps don't flicker it.
-                if store.comboMultiplier > 1 {
-                    ComboPill(multiplier: store.comboMultiplier, isMax: store.comboMultiplier >= game.comboMaxMultiplier)
-                        .transition(.scale.combined(with: .opacity))
+                GeometryReader { proxy in
+                    let cap = hasCards ? CoinButton.maximumSize : CoinButton.freshMaximumSize
+                    CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers,
+                               finish: finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold,
+                               maxSize: CoinButton.size(in: proxy.size, cap: cap)) {
+                        effects.rainCoins()
+                        return store.tap()
+                    }
+                    .frame(width: proxy.size.width, height: proxy.size.height)
                 }
+                .frame(minHeight: CoinButton.minimumSize, idealHeight: CoinButton.minimumSize, maxHeight: .infinity)
+                .animation(.smooth, value: hasCards)
+                .overlay(alignment: .bottom) {
+                    // Shown from the combo's first +0.1, so a few casual taps don't flicker it.
+                    if store.comboMultiplier > 1 {
+                        ComboPill(multiplier: store.comboMultiplier, isMax: store.comboMultiplier >= game.comboMaxMultiplier)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(.snappy, value: store.comboMultiplier > 1)
             }
-            .animation(.snappy, value: store.comboMultiplier > 1)
             GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openDaily: openDaily, openHowToPlay: openHowToPlay)
             InventoryStrip(game: game, market: store.market, openShop: openShop, openTokens: openTokens)
             StepsCard(learnMore: { showingStepsIntro = true })
@@ -117,7 +120,7 @@ struct BalanceHeader: View {
     var body: some View {
         let short = CoinFormat.short(coins)
         let exact = showsExact ? CoinFormat.exact(coins) : short
-        VStack(spacing: 4) {
+        VStack(spacing: 3.6) {
             Group {
                 // Below 10,000 both forms are the same, so there is nothing to switch.
                 if exact != short {
@@ -231,11 +234,11 @@ struct CoinButton: View {
     /// ...and the largest on a new game, with nothing under it yet (width allowing).
     static let freshMaximumSize: CGFloat = 420
     /// Share of the room above and below the coin that the coin grows into, so it isn't lost in
-    /// space: 15% less padding around it.
-    static let spareRoomTaken: CGFloat = 0.15
+    /// space: 15% less padding around it, then 10% less again (23.5% of the room in all).
+    static let spareRoomTaken: CGFloat = 1 - 0.85 * 0.9
 
-    /// The coin's size in an area: as big as `cap` allows, then grown into 15% of the room left
-    /// above and below it, never wider than the area.
+    /// The coin's size in an area: as big as `cap` allows, then grown into a share of the room
+    /// left above and below it (`spareRoomTaken`), never wider than the area.
     static func size(in area: CGSize, cap: CGFloat) -> CGFloat {
         let fitted = min(cap, area.width, area.height)
         let spare = max(0, area.height - fitted)

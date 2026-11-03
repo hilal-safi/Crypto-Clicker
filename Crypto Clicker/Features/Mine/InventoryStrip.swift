@@ -10,6 +10,10 @@ struct InventoryStrip: View {
     let openShop: () -> Void
     let openTokens: () -> Void
 
+    /// The cards' size, and the gap between them, against their original design: 5% smaller.
+    /// Every measurement in this file is multiplied by it.
+    static let scale: CGFloat = 0.95
+
     /// Whether anything shows: a new game has nothing here yet, and the coin takes the room.
     static func hasContent(_ game: GameState) -> Bool {
         game.totalMiners > 0 || hasPowerUps(game) || TokenID.allCases.contains { game.tokenCount($0) > 0 }
@@ -25,7 +29,8 @@ struct InventoryStrip: View {
         let tokens = TokenID.allCases.filter { game.tokenCount($0) > 0 }
         let hasPowerUps = Self.hasPowerUps(game)
         let hasComboPowerUps = PowerUpID.allCases.contains { game.powerUpLevel($0) > 0 }
-        VStack(spacing: 10) {
+        let scale = Self.scale
+        VStack(spacing: 10 * scale) {
             if !miners.isEmpty || hasPowerUps {
                 HoldingCard(label: minersLabel(miners), hint: "Opens the Shop", action: openShop) {
                     ForEach(miners) { miner in
@@ -33,12 +38,12 @@ struct InventoryStrip: View {
                                       badge: game.minerUpgradeLevel(miner) > 0
                                         ? "Mk \(MinerID.markName(level: game.minerUpgradeLevel(miner) - 1))" : nil) {
                             Text(miner.emoji)
-                                .font(.system(size: 27))
+                                .font(.system(size: 27 * scale))
                         }
                     }
                     if !miners.isEmpty && hasPowerUps {
                         Divider()
-                            .frame(height: 40)
+                            .frame(height: 40 * scale)
                     }
                     if game.offlineMiningLevel > 0 {
                         InventoryChip(count: CoinFormat.duration(game.offlineCap)) {
@@ -68,14 +73,14 @@ struct InventoryStrip: View {
                 HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Shop's tokens", action: openTokens) {
                     ForEach(tokens) { token in
                         InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token)))) {
-                            TokenImage(token: token, size: 29)
+                            TokenImage(token: token, size: 29 * scale)
                         }
                     }
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             } else if !miners.isEmpty {
                 Button(action: openTokens) {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 10 * scale) {
                         Image(systemName: "chart.line.uptrend.xyaxis")
                             .font(.headline)
                             .foregroundStyle(Theme.gain)
@@ -86,12 +91,12 @@ struct InventoryStrip: View {
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(Theme.gain)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
+                    .padding(.horizontal, 14 * scale)
+                    .padding(.vertical, 9 * scale)
                     .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18))
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18 * scale))
                 .accessibilityHint("Opens the Shop's tokens")
             }
         }
@@ -99,7 +104,7 @@ struct InventoryStrip: View {
 
     private func symbol(_ name: String, color: Color) -> some View {
         Image(systemName: name)
-            .font(.system(size: 22, weight: .semibold))
+            .font(.system(size: 22 * Self.scale, weight: .semibold))
             .foregroundStyle(color)
     }
 
@@ -128,24 +133,25 @@ private struct HoldingCard<Chips: View>: View {
     @ViewBuilder let chips: Chips
 
     var body: some View {
+        let scale = InventoryStrip.scale
         Button(action: action) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(spacing: 12 * scale) {
                     chips
                 }
-                .padding(.top, 12) // Includes room for Mk badges.
-                .padding(.bottom, 8)
+                .padding(.top, 12 * scale) // Includes room for Mk badges.
+                .padding(.bottom, 8 * scale)
             }
             // Margins on the scrolled content (not padding inside it), so the last chip stops
             // clear of the card's rounded edge, and no edge fade over the chips at either end.
-            .contentMargins(.horizontal, 16, for: .scrollContent)
+            .contentMargins(.horizontal, 16 * scale, for: .scrollContent)
             .scrollEdgeEffectHidden(true, for: .horizontal)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 24))
-        .clipShape(.rect(cornerRadius: 24))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 24 * scale))
+        .clipShape(.rect(cornerRadius: 24 * scale))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
         .accessibilityHint(hint)
@@ -159,28 +165,32 @@ private struct InventoryChip<Icon: View>: View {
     let count: String
     var badge: String? = nil
     @ViewBuilder let icon: Icon
+    /// The subheadline's size, scaled down with the cards, and still following the text size.
+    @ScaledMetric(relativeTo: .subheadline) private var countSize: CGFloat = 15 * InventoryStrip.scale
 
     var body: some View {
-        VStack(spacing: 3) {
+        let scale = InventoryStrip.scale
+        VStack(spacing: 3 * scale) {
             icon
-                .frame(height: 32)
+                .frame(height: 32 * scale)
                 .overlay(alignment: .topTrailing) {
                     if let badge {
                         Text(badge)
-                            .font(.system(size: 11, weight: .heavy))
+                            .font(.system(size: 11 * scale, weight: .heavy))
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1.5)
+                            .padding(.horizontal, 5 * scale)
+                            .padding(.vertical, 1.5 * scale)
                             .background(Theme.accent, in: .capsule)
                             .fixedSize()
-                            .offset(x: 14, y: -6)
+                            .offset(x: 14 * scale, y: -6 * scale)
                     }
                 }
             Text(count)
-                .font(.subheadline.weight(.bold).monospacedDigit())
+                .font(.system(size: countSize, weight: .bold))
+                .monospacedDigit()
                 .lineLimit(1)
                 .fixedSize()
         }
-        .frame(minWidth: 44)
+        .frame(minWidth: 44 * scale)
     }
 }

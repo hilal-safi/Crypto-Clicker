@@ -33,6 +33,13 @@ enum Preferences {
     static let howToPlaySeenKey = "howToPlaySeen"
     /// The income chart's range in Statistics (an `IncomeRange` raw value).
     static let incomeChartRangeKey = "incomeChartRange"
+    /// The balance shows as a Live Activity on the Lock Screen and in the Dynamic Island.
+    static let liveActivityKey = "showsLiveActivity"
+
+    /// Whether the Live Activity is on (it is unless the player turned it off).
+    static var showsLiveActivity: Bool {
+        UserDefaults.standard.object(forKey: liveActivityKey) as? Bool ?? true
+    }
 
     /// The player has seen a mini-game's How to Play (it opens by itself the first time).
     static func helpSeenKey(_ game: MiniGame) -> String { "helpSeen.\(game.rawValue)" }

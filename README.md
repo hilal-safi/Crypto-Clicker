@@ -96,11 +96,13 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
     crumble block by block, a whale crosses the top with bonus points and a power-up (Rapid Fire,
     Spread Shot, Laser or Shield), one golden invader a wave pays double, and every fifth wave is the
     Bear, a boss with a health bar that gives back a lost ship. Each wave starts lower and marches
-    faster.
+    faster. Its start screen, like Brick Breaker's, shows the wave track (play starts at wave 1),
+    Random Waves with a formation made up for every wave (diamonds, arrows, frames, skylines, even
+    one giant invader, with the kinds mixed up, paying about the same) and the speed.
   - Snake and 2048 are played with swipes anywhere on the screen.
-  - Tetris, Snake and Scam Invaders have Options for their speed, and Brick Breaker sets it on its
-    start screen (Slow, Normal or Fast): a point is worth the same at every speed, so Fast scores sooner
-    and Slow is relaxed. Every action game pauses, and a swipe in from the left edge leaves it.
+  - Tetris and Snake have Options for their speed, and Brick Breaker and Scam Invaders set it on their
+    start screens (Slow, Normal or Fast): a point is worth the same at every speed, so Fast scores
+    sooner and Slow is relaxed. Every action game pauses, and a swipe in from the left edge leaves it.
 - **Pump and Dump.** Whack the coins as they pop up, round after round: each 30-second round has a
   score goal to reach and a bonus objective (a combo, golden coins, or no mistakes), and each is
   quicker than the last, with more scam tokens and rug pulls (coins with a red rim that shake, then turn).
@@ -151,11 +153,20 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   automatic taps, multipliers and what makes up a tap.
 - **Siri and Shortcuts.** "How many coins do I have in Crypto Clicker?" answers with your balance and
   income, brought up to now, without opening the game.
+- **Widgets and the Live Activity.** The Balance widget shows the coin (in your finish) and your balance on
+  the Home Screen (small and medium) or the Lock Screen (rectangular, circular or inline), the number
+  growing as your miners earn, until they stop. A Live Activity shows the same on the Lock Screen and in
+  the Dynamic Island while the game is closed: the balance, coins a second, a countdown and a bar for how
+  long the miners keep going, and the balance they'll reach; once they stop it shows what's waiting to be
+  collected. It can be turned off in Settings › Lock Screen and Widgets.
 
 ## Requirements
 
 - Xcode 26 or later
 - iOS 26 / iPadOS 26 and watchOS 26
+- Automatic signing. The app and its widgets share the app group `group.Hilal-Safi.Crypto-Clicker`, which
+  Xcode registers when it signs them; if it reports the group isn't set up, tick it under App Groups in
+  each of the two targets' Signing & Capabilities.
 
 ## Project layout
 
@@ -168,7 +179,10 @@ Crypto Clicker/                 iPhone and iPad app
                                 power-ups, prestige and perks), Exchange (the Shop's Tokens page),
                                 Arcade (twelve games), Trophies (goals, daily and achievements), Settings
 Crypto Clicker Watch App/       Apple Watch app
-CryptoClickerKit/               Swift package with all game rules, shared by both apps
+Crypto Clicker Widgets/         Widget extension: the Balance widget and the Live Activity
+Shared/                         Compiled into the app and the widgets: the Live Activity's attributes,
+                                the app group hand-off and the coin's look
+CryptoClickerKit/               Swift package with all game rules, shared by the apps and widgets
   Sources/CryptoClickerKit/
     Catalog/                    Miners, upgrades, perks, tokens, achievements, coin finishes, and every
                                 balance number (Tuning)
@@ -176,10 +190,10 @@ CryptoClickerKit/               Swift package with all game rules, shared by bot
     Engine/                     Economy, prestige, market, dailies, player actions and achievements
     MiniGames/                  Blackjack, Slots, Video Poker, To the Moon, Tetris, 2048, Snake, Brick
                                 Breaker, Bubble Blaster, Pump and Dump, Token Swap and Scam Invaders engines
-    Sync/                       Watch snapshot, tap batches and payload coding
+    Sync/                       Watch snapshot, tap batches, the widgets' balance snapshot, payload coding
     Support/                    Number formatting, geometry, forgiving decoding, seedable RNG, stable hashing
   Tests/                        Swift Testing suite (rules, edge cases, simulated-player pacing)
-Config/                         Entitlements
+Config/                         Entitlements (the app and the widgets share an app group)
 ```
 
 ## Architecture
@@ -217,6 +231,14 @@ Config/                         Entitlements
   batches, and the phone applies each number once and sends back the last number it applied, so the
   watch clears exactly what's been paid, however many batches arrive together. (Batches from older
   versions are still matched by ID.)
+- **Widgets and the Live Activity.** The same idea as the watch: the app leaves a `BalanceSnapshot`
+  (balance, income, any boost, the Offline Mining limit and the coin's finish, anchored at the game clock)
+  in the app group `group.Hilal-Safi.Crypto-Clicker` when it opens, about once a minute while it's open, and
+  as it goes to the background, and reloads the widgets. A widget's timeline then projects the balance
+  every five minutes or so until the miners stop, by the same rule the game credits time away with, so
+  it never needs to wake the app. The Live Activity gets the snapshot as its state, with a stale date at
+  the moment the miners stop; its countdown and bar run on the system's timers. It starts while the app
+  is open (iOS only allows that) and updates as the app goes to the background.
 
 ## Tests
 

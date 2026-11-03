@@ -77,16 +77,19 @@ struct ArcadeBalanceTests {
         #expect(fast <= 1.5 * classic)
     }
 
-    /// Scam Invaders' Speed option moves the pay a little either way, like Brick Breaker's.
-    @Test func invadersSpeedsPayAboutTheSame() {
+    /// Scam Invaders' random waves pay about what the classic ones do, and the Speed option moves
+    /// the pay a little either way, like Brick Breaker's.
+    @Test func invadersOptionsPayAboutTheSame() {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
-        let seeds: [UInt64] = [11, 22, 33, 44]
-        func income(_ speed: GameSpeed) -> Double {
-            let points = seeds.map { InvadersBot.pointsPerMinute(seed: $0, speed: speed) }.reduce(0, +) / Double(seeds.count)
+        let seeds: [UInt64] = [11, 22, 33, 44, 55, 66]
+        func income(_ speed: GameSpeed, _ waves: InvadersGame.WaveStyle = .classic) -> Double {
+            let points = seeds.map { InvadersBot.pointsPerMinute(seed: $0, speed: speed, waves: waves) }.reduce(0, +) / Double(seeds.count)
             return points * MiniGame.invaders.secondsPerPoint
         }
-        let normal = income(.normal), slow = income(.slow), fast = income(.fast)
-        print("Balance: Scam Invaders | normal", Int(normal), "slow", Int(slow), "fast", Int(fast))
+        let normal = income(.normal), random = income(.normal, .generated), slow = income(.slow), fast = income(.fast)
+        print("Balance: Scam Invaders | classic", Int(normal), "random", Int(random), "slow", Int(slow), "fast", Int(fast))
+        #expect((90...160).contains(random), "Random waves pay \(random)")
+        #expect(abs(random - normal) <= 0.15 * normal)
         #expect(slow < normal && fast > normal * 0.9)
         #expect(fast <= 1.6 * normal)
     }
@@ -553,8 +556,9 @@ enum InvadersBot {
     static let thinkEvery = 0.2
     static let dodgeTime = 0.45
 
-    static func pointsPerMinute(seed: UInt64, minutes: Double = 3, speed: GameSpeed = .normal) -> Double {
-        var game = InvadersGame(seed: seed, speed: speed)
+    static func pointsPerMinute(seed: UInt64, minutes: Double = 3, speed: GameSpeed = .normal,
+                                waves: InvadersGame.WaveStyle = .classic) -> Double {
+        var game = InvadersGame(seed: seed, speed: speed, waves: waves)
         let time = play(&game, seconds: minutes * 60)
         return Double(game.score) / (time / 60)
     }

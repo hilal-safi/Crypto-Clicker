@@ -12,10 +12,24 @@ import Foundation
 /// A whale crosses the top now and then: shoot it for bonus points and a power-up. From the second
 /// wave one invader in each glows gold and carries a power-up too. Every fifth wave is a boss.
 ///
+/// Classic waves are the same formation every time: rug pullers on top, then pump bots, then meme
+/// coins. Random waves make up a new formation for every wave (see `generatedFormation`), with the
+/// kinds mixed up, and a golden invader from the very first wave. Boss waves are the same in both.
+///
 /// The Speed option scales how fast everything moves and fires, so a point is worth the same at
 /// every speed. Everything moves in sub-steps of at most 1/240 s, so no shot passes through a block
 /// on a slow frame, and the rules never depend on the frame rate.
 public struct InvadersGame: Sendable {
+    /// Which formations a game plays.
+    public enum WaveStyle: String, CaseIterable, Codable, Sendable, Identifiable {
+        /// The classic formation every wave.
+        case classic
+        /// A formation made up for every wave, never the same twice.
+        case generated
+
+        public var id: String { rawValue }
+    }
+
     public enum Phase: Equatable, Sendable {
         /// The wave's banner is up and the invaders are about to march.
         case incoming
@@ -28,11 +42,11 @@ public struct InvadersGame: Sendable {
     }
 
     public enum InvaderKind: String, CaseIterable, Sendable {
-        /// The bottom two rows.
+        /// The classic formation's bottom two rows.
         case memeCoin
-        /// The middle two rows.
+        /// The classic formation's middle two rows.
         case pumpBot
-        /// The top row.
+        /// The classic formation's top row.
         case rugPuller
 
         public var name: String {
@@ -261,6 +275,8 @@ public struct InvadersGame: Sendable {
     public var isFiring = false
     /// How fast everything moves (the game's Speed option).
     public let gameSpeed: GameSpeed
+    /// Classic formations or ones made up for every wave.
+    public let waveStyle: WaveStyle
 
     private var direction = 1.0
     private var marchClock: TimeInterval = 0
@@ -275,8 +291,9 @@ public struct InvadersGame: Sendable {
     private var nextID = 0
     private var rng: SeededGenerator
 
-    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal) {
+    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal, waves: WaveStyle = .classic) {
         gameSpeed = speed
+        waveStyle = waves
         rng = SeededGenerator(seed: seed)
         whaleClock = Double.random(in: 16...24, using: &rng)
         layOutWave()
@@ -785,8 +802,8 @@ public struct InvadersGame: Sendable {
         whale = nil
     }
 
-    /// Sets up the current wave: the formation (or a boss with two rows of escorts), fresh
-    /// firewalls, and the incoming banner.
+    /// Sets up the current wave: the formation (classic or made up, or a boss with two rows of
+    /// escorts), fresh firewalls, and the incoming banner.
     private mutating func layOutWave() {
         phase = .incoming
         holdFor = Self.incomingHold
@@ -800,22 +817,31 @@ public struct InvadersGame: Sendable {
         enemyFireClock = 1.5
         let formationWidth = Double(Self.columns - 1) * Self.columnSpacing + Self.invaderSize.width
         formationOrigin = Vector2(x: (Self.width - formationWidth) / 2, y: Self.formationTop(wave: wave))
-        let rows = isBossWave ? Array(3..<Self.rows) : Array(0..<Self.rows)
-        let cells = rows.flatMap { row in (0..<Self.columns).map { (row: row, column: $0) } }
+        func classic(rows: Range<Int>) -> [Cell] {
+            rows.flatMap { row in (0..<Self.columns).map { Cell(row: row, column: $0, kind: InvaderKind.forRow(row)) } }
+        }
+        let cells: [Cell]
         if isBossWave {
             // The escorts march lower down, under the boss's lane.
             formationOrigin.y = Self.formationTop(wave: wave) - 0.02
             let frame = Box(minX: 0.34, minY: 0.13, width: 0.32, height: 0.11)
             boss = Boss(frame: frame, maxHits: Self.bossHits(wave: wave), hitsLeft: Self.bossHits(wave: wave),
                         speedX: 0.15 + 0.03 * Double(wave / Self.bossEvery), fireClock: Self.bossFireInterval(wave: wave))
+            cells = classic(rows: 3..<Self.rows)
+        } else if waveStyle == .generated {
+            boss = nil
+            cells = Self.generatedFormation(using: &rng)
+            // Made-up formations set off either way.
+            if Bool.random(using: &rng) { direction = -1 }
         } else {
             boss = nil
+            cells = classic(rows: 0..<Self.rows)
         }
-        let golden = wave >= 2 ? cells.indices.randomElement(using: &rng) : nil
+        // One invader glows gold from the second wave, or from the first in random waves.
+        let golden = wave >= 2 || waveStyle == .generated ? cells.indices.randomElement(using: &rng) : nil
         invaders = []
         for (index, cell) in cells.enumerated() {
-            invaders.append(Invader(id: newID(), row: cell.row, column: cell.column, kind: InvaderKind.forRow(cell.row),
-                                    isGolden: index == golden))
+            invaders.append(Invader(id: newID(), row: cell.row, column: cell.column, kind: cell.kind, isGolden: index == golden))
         }
         formationSize = invaders.count
         // The first step comes one beat after the march begins.
@@ -830,6 +856,204 @@ public struct InvadersGame: Sendable {
         volleysFired -= volleys.values.filter { $0.hits == 0 }.count
         volleys = [:]
         shots = []
+    }
+
+    // MARK: Made-up formations
+
+    /// A place in the formation's grid, and the kind of invader there.
+    struct Cell: Equatable {
+        let row: Int
+        let column: Int
+        let kind: InvaderKind
+    }
+
+    /// The fewest invaders a made-up formation holds: seven tenths of the classic one.
+    static let generatedMinimum = 28
+
+    /// A formation made up on the spot for random waves, mirrored left to right like the classic
+    /// one: scattered, blobs, a diamond, an hourglass or a bow tie, a pyramid, chevrons, stripes,
+    /// columns, a frame, a skyline or one giant invader, each with its own sizes and gaps. A shape too
+    /// sparse grows outward from what it has until it holds `generatedMinimum`. It sits on the
+    /// classic formation's bottom row, so it comes down no later.
+    ///
+    /// The kinds follow a pattern of their own (in rows either way up, from the middle out or the
+    /// outside in, a checkerboard, or scattered) in about the classic's shares, a fifth rug pullers
+    /// and two fifths each pump bots and meme coins, so a wave is worth about as much.
+    static func generatedFormation<R: RandomNumberGenerator>(using rng: inout R) -> [Cell] {
+        let grid = grownToMinimum(madeUpShape(using: &rng), using: &rng)
+        // Down onto the bottom row.
+        let lowest = (0..<rows).last { grid[$0].contains(true) } ?? rows - 1
+        let shift = rows - 1 - lowest
+        var cells: [(row: Int, column: Int)] = []
+        for row in 0..<rows {
+            for column in 0..<(columns / 2) where grid[row][column] { cells.append((row: row + shift, column: column)) }
+        }
+        let kinds = mixedKinds(for: cells, using: &rng)
+        var formation: [Cell] = []
+        for (index, cell) in cells.enumerated() {
+            formation.append(Cell(row: cell.row, column: cell.column, kind: kinds[index]))
+            formation.append(Cell(row: cell.row, column: columns - 1 - cell.column, kind: kinds[index]))
+        }
+        return formation.sorted { $0.row != $1.row ? $0.row < $1.row : $0.column < $1.column }
+    }
+
+    /// The left half of a made-up shape, row by row: the right half mirrors it.
+    private static func madeUpShape<R: RandomNumberGenerator>(using rng: inout R) -> [[Bool]] {
+        let half = columns / 2
+        var grid = Array(repeating: Array(repeating: false, count: half), count: rows)
+        /// Columns out from the middle: 0 beside it, 3 at the edge.
+        func reach(_ column: Int) -> Int { half - 1 - column }
+        let middle = rows / 2
+        switch Int.random(in: 0..<11, using: &rng) {
+        case 0: // Scattered.
+            let density = Double.random(in: 0.6...0.85, using: &rng)
+            for row in 0..<rows { for column in 0..<half { grid[row][column] = Double.random(in: 0..<1, using: &rng) < density } }
+        case 1: // Blobs: scattered across the whole width, smoothed twice so they clump together.
+            let full = blobs(density: Double.random(in: 0.5...0.66, using: &rng), using: &rng)
+            for row in 0..<rows { for column in 0..<half { grid[row][column] = full[row][column] } }
+        case 2: // A diamond: a slim one, or a fat one that's sometimes hollow.
+            let fat = Bool.random(using: &rng)
+            let hollow = fat && Bool.random(using: &rng)
+            for row in 0..<rows {
+                let width = Double(half) - Double(abs(row - middle)) * (fat ? 0.75 : 1)
+                for column in 0..<half {
+                    let isHole = hollow && row == middle && reach(column) == 0
+                    grid[row][column] = Double(reach(column)) < width && !isHole
+                }
+            }
+        case 3: // An hourglass, or a bow tie on its side.
+            let bowTie = Bool.random(using: &rng)
+            for row in 0..<rows {
+                let fromMiddle = abs(row - middle)
+                for column in 0..<half { grid[row][column] = bowTie ? fromMiddle <= reach(column) : reach(column) < 2 + fromMiddle }
+            }
+        case 4: // A pyramid, pointing up or down, with a narrow or a broad tip.
+            let pointsUp = Bool.random(using: &rng)
+            let tip = Int.random(in: 1...2, using: &rng)
+            for row in 0..<rows {
+                let depth = pointsUp ? row : rows - 1 - row
+                for column in 0..<half { grid[row][column] = reach(column) < tip + depth }
+            }
+        case 5: // Chevrons, pointing up or down.
+            let period = Int.random(in: 3...4, using: &rng)
+            let upward = Bool.random(using: &rng)
+            for row in 0..<rows {
+                let depth = upward ? row : rows - 1 - row
+                for column in 0..<half { grid[row][column] = (depth + reach(column)) % period < period - 1 }
+            }
+        case 6: // Stripes: every row but one.
+            let gap = Int.random(in: 0..<(rows - 1), using: &rng)
+            for row in 0..<rows where row != gap { for column in 0..<half { grid[row][column] = true } }
+        case 7: // Columns, with a gap between them: in the middle, at the edges, or in between.
+            let gap = Int.random(in: 0..<half, using: &rng)
+            for row in 0..<rows { for column in 0..<half { grid[row][column] = reach(column) != gap } }
+        case 8: // A frame: a thick one with a slot in the middle and a few gaps, or a thin one with a bar across.
+            let bar = Bool.random(using: &rng)
+            let holes = Double.random(in: 0...0.12, using: &rng)
+            for row in 0..<rows {
+                for column in 0..<half {
+                    let ring = min(row, rows - 1 - row, column)
+                    if bar {
+                        grid[row][column] = ring == 0 || row == middle
+                    } else {
+                        grid[row][column] = ring <= 1 && Double.random(in: 0..<1, using: &rng) >= holes
+                    }
+                }
+            }
+        case 9: // A skyline: columns of different heights, standing on the bottom row.
+            for column in 0..<half {
+                let height = Int.random(in: 2...rows, using: &rng)
+                for row in (rows - height)..<rows { grid[row][column] = true }
+            }
+        default: // One giant invader, eyes and legs and all.
+            let art = ["..XX", ".XXX", "XX.X", "XXXX", ".X.X"]
+            for (row, line) in art.enumerated() {
+                for (column, mark) in line.enumerated() { grid[row][column] = mark == "X" }
+            }
+        }
+        return grid
+    }
+
+    /// Scattered cells across the whole formation, smoothed twice: a cell stays when at least five
+    /// of the nine around it (itself included) are taken.
+    private static func blobs<R: RandomNumberGenerator>(density: Double, using rng: inout R) -> [[Bool]] {
+        var full = Array(repeating: Array(repeating: false, count: columns), count: rows)
+        for row in 0..<rows { for column in 0..<columns { full[row][column] = Double.random(in: 0..<1, using: &rng) < density } }
+        for _ in 0..<2 {
+            var next = full
+            for row in 0..<rows {
+                for column in 0..<columns {
+                    var count = 0
+                    for r in (row - 1)...(row + 1) where (0..<rows).contains(r) {
+                        for c in (column - 1)...(column + 1) where (0..<columns).contains(c) && full[r][c] { count += 1 }
+                    }
+                    next[row][column] = count >= 5
+                }
+            }
+            full = next
+        }
+        return full
+    }
+
+    /// Grows a shape too sparse outward from what it has (or from anywhere, when it has nothing)
+    /// until the formation holds `generatedMinimum`.
+    private static func grownToMinimum<R: RandomNumberGenerator>(_ shape: [[Bool]], using rng: inout R) -> [[Bool]] {
+        let half = columns / 2
+        var grid = shape
+        func isTaken(_ row: Int, _ column: Int) -> Bool {
+            (0..<rows).contains(row) && (0..<half).contains(column) && grid[row][column]
+        }
+        var count = 2 * grid.joined().filter { $0 }.count
+        while count < generatedMinimum {
+            var empty: [(row: Int, column: Int)] = []
+            var touching: [(row: Int, column: Int)] = []
+            for row in 0..<rows {
+                for column in 0..<half where !grid[row][column] {
+                    empty.append((row: row, column: column))
+                    if isTaken(row - 1, column) || isTaken(row + 1, column) || isTaken(row, column - 1) || isTaken(row, column + 1) {
+                        touching.append((row: row, column: column))
+                    }
+                }
+            }
+            guard let pick = (touching.isEmpty ? empty : touching).randomElement(using: &rng) else { break }
+            grid[pick.row][pick.column] = true
+            count += 2
+        }
+        return grid
+    }
+
+    /// The kinds for a formation's left half: the cells ranked by a pattern, then each group of
+    /// equal rank takes the kind its place in the ranking falls in. The first fifth are rug
+    /// pullers, the next two fifths pump bots, and the rest meme coins.
+    private static func mixedKinds<R: RandomNumberGenerator>(for cells: [(row: Int, column: Int)], using rng: inout R) -> [InvaderKind] {
+        let pattern = Int.random(in: 0..<6, using: &rng)
+        var ranks: [Double] = []
+        for cell in cells {
+            let reach = columns / 2 - 1 - cell.column
+            switch pattern {
+            case 0: ranks.append(Double(cell.row)) // In rows, rug pullers on top like the classic.
+            case 1: ranks.append(Double(-cell.row)) // Upside down: rug pullers at the bottom.
+            case 2: ranks.append(Double(reach)) // From the middle out.
+            case 3: ranks.append(Double(-reach)) // From the outside in.
+            case 4: ranks.append(Double((cell.row + cell.column) % 2 * rows + cell.row)) // A checkerboard.
+            default: ranks.append(Double.random(in: 0..<1, using: &rng)) // Scattered.
+            }
+        }
+        let order = cells.indices.sorted { a, b in
+            if ranks[a] != ranks[b] { return ranks[a] < ranks[b] }
+            return cells[a].row != cells[b].row ? cells[a].row < cells[b].row : cells[a].column < cells[b].column
+        }
+        var kinds = Array(repeating: InvaderKind.memeCoin, count: cells.count)
+        var start = 0
+        while start < order.count {
+            var end = start + 1
+            while end < order.count && ranks[order[end]] == ranks[order[start]] { end += 1 }
+            let place = Double(start + end) / 2 / Double(order.count)
+            let kind: InvaderKind = place < 0.2 ? .rugPuller : place < 0.6 ? .pumpBot : .memeCoin
+            for index in order[start..<end] { kinds[index] = kind }
+            start = end
+        }
+        return kinds
     }
 
     private static func box(around center: Vector2, size: (width: Double, height: Double)) -> Box {

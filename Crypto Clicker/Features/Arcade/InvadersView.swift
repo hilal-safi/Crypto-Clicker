@@ -1,21 +1,91 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Scam Invaders: drag anywhere on the field to move the ship, which fires while your finger is
-/// down. Rows of scam tokens march down; shoot them all to bring the next, faster wave, and every
-/// fifth wave the Bear. The whale and golden invaders drop power-ups to catch. The speed comes from
-/// the Options sheet. The game runs on the display's frame clock while it's on screen.
+/// The screens inside Scam Invaders, opened from its start screen.
+enum InvadersRoute: Hashable {
+    /// A game from wave 1 with these formations.
+    case play(InvadersGame.WaveStyle)
+}
+
+/// Where Scam Invaders opens, like Brick Breaker: the classic waves, random formations and the
+/// speed setting, each on a card. Either kind of game starts at wave 1.
 struct InvadersView: View {
+    @Environment(GameStore.self) private var store
+    @AppStorage(Preferences.invadersSpeedKey) private var speed = GameSpeed.normal
+    @State private var showingHelp = false
+
+    var body: some View {
+        let stats = store.game.stats
+        let tint = MiniGame.invaders.color
+        ScrollView {
+            VStack(spacing: 14) {
+                ModeCard(tint: tint, icon: "square.grid.3x3.fill", title: "Waves",
+                         status: stats.invadersGames == 0
+                            ? "Start at wave 1"
+                            : "Best: wave \(CoinFormat.grouped(stats.invadersBestWave)) · \(CoinFormat.grouped(stats.invadersBosses)) Bear\(stats.invadersBosses == 1 ? "" : "s") beaten",
+                         detail: "The classic formation from wave 1 up: rug pullers on top, then pump bots and meme coins, marching a little faster and lower every wave. The Bear comes every fifth wave.",
+                         note: nil) {
+                    VStack(spacing: 12) {
+                        LevelTrack(best: stats.invadersBestWave, bossEvery: InvadersGame.bossEvery, tint: tint,
+                                   bossSymbol: "pawprint.fill", noun: "wave", bossNote: "The Bear every fifth wave.")
+                        NavigationLink(value: InvadersRoute.play(.classic)) {
+                            Label("Play Wave 1", systemImage: "play.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.glassProminent)
+                    }
+                }
+                ModeCard(tint: tint, icon: "dice.fill", title: "Random Waves", status: "A new formation every wave",
+                         detail: "Formations made up for every wave, never the same twice: diamonds, arrows, frames, skylines and more, with the three kinds mixed up. They pay about the same, a golden invader shows up from the first wave, and the Bear still comes every fifth wave.",
+                         note: nil) {
+                    NavigationLink(value: InvadersRoute.play(.generated)) {
+                        Label("Play Random Waves", systemImage: "play.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glassProminent)
+                }
+                ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Settings", status: "\(speed.name) speed",
+                         detail: "How fast the invaders march, and everyone fires. A point is worth the same at every speed: Fast scores sooner, Slow is relaxed.",
+                         note: nil) {
+                    Picker("Speed", selection: $speed) {
+                        ForEach(GameSpeed.allCases) { speed in
+                            Text(speed.name).tag(speed)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+            .frame(maxWidth: 600)
+            .frame(maxWidth: .infinity)
+        }
+        .background { AppBackground(tint: tint) }
+        .navigationTitle("Scam Invaders")
+        .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.invaders, isPresented: $showingHelp)
+    }
+}
+
+/// Scam Invaders' game: drag anywhere on the field to move the ship, which fires while your finger
+/// is down. Scam tokens march down; shoot them all to bring the next, faster wave, and every fifth
+/// wave the Bear. The whale and golden invaders drop power-ups to catch. The formations come from
+/// the start screen, and the speed from its setting. The game runs on the display's frame clock
+/// while it's on screen.
+struct InvadersPlayView: View {
+    /// Classic formations or random ones.
+    let waves: InvadersGame.WaveStyle
     @Environment(GameStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @AppStorage(Preferences.invadersSpeedKey) private var speed = GameSpeed.normal
-    @State private var game = InvadersGame()
+    /// The next game's seed: the field behind the start card shows that game's first wave.
+    @State private var seed: UInt64
+    @State private var game: InvadersGame
     @State private var isPlaying = false
     @State private var isPaused = false
     @State private var showingHelp = false
-    @State private var showingOptions = false
     @State private var result: GameResult?
     @State private var lastFrame: Date?
     @State private var effects = Effects()
@@ -31,6 +101,13 @@ struct InvadersView: View {
     @State private var bossHits = 0
 
     private var isRunning: Bool { isPlaying && !isPaused }
+
+    init(waves: InvadersGame.WaveStyle) {
+        self.waves = waves
+        let seed = UInt64.random(in: 0...UInt64.max)
+        _seed = State(initialValue: seed)
+        _game = State(initialValue: InvadersGame(seed: seed, waves: waves))
+    }
 
     var body: some View {
         withLifecycle(withFeedback(layout))
@@ -73,12 +150,11 @@ struct InvadersView: View {
         }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
-        .navigationTitle("Scam Invaders")
+        .navigationTitle(waves == .generated ? "Random Waves" : "Scam Invaders")
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.invaders, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
         }
-        .gameOptions(.invaders, isPresented: $showingOptions, isEnabled: !isPlaying, speed: $speed)
     }
 
     /// Haptics for hits, catches and lost ships, and confetti for cleared waves and beaten bosses.
@@ -244,21 +320,14 @@ struct InvadersView: View {
         if !isPlaying {
             if let result {
                 GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
-                    VStack(spacing: 14) {
-                        GameOverSummary(score: result.score, isNewBest: result.isNewBest,
-                                        best: store.game.stats.invadersBestScore, reward: result.reward,
-                                        details: summaryDetails, challenge: result.challenge)
-                        GameOptionsChip(speed: speed) { showingOptions = true }
-                    }
+                    GameOverSummary(score: result.score, isNewBest: result.isNewBest,
+                                    best: store.game.stats.invadersBestScore, reward: result.reward,
+                                    details: summaryDetails, challenge: result.challenge)
                 }
             } else {
-                GamePanel(title: "Scam Invaders", buttonTitle: "Start", action: start) {
-                    VStack(spacing: 12) {
-                        GameIntro(best: store.game.stats.invadersBestScore,
-                                  detail: store.game.stats.invadersBestWave > 0
-                                    ? "Best wave \(store.game.stats.invadersBestWave) · \(speed.name) speed" : "\(speed.name) speed")
-                        GameOptionsChip(speed: speed) { showingOptions = true }
-                    }
+                GamePanel(title: "Wave 1", buttonTitle: "Start", action: start) {
+                    GameIntro(best: store.game.stats.invadersBestScore,
+                              detail: "\(waves == .generated ? "Random formations" : "Classic formation") · \(speed.name) speed")
                 }
             }
         }
@@ -329,7 +398,8 @@ struct InvadersView: View {
     }
 
     private func start() {
-        game = InvadersGame(speed: speed)
+        game = InvadersGame(seed: seed, speed: speed, waves: waves)
+        seed = .random(in: 0...UInt64.max)
         result = nil
         isPaused = false
         lastFrame = nil

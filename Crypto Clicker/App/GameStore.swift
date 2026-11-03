@@ -105,6 +105,7 @@ final class GameStore {
     private let stepTracker = StepTracker()
     private let watch = WatchBridge()
     private let notifier = Notifier()
+    private let balanceSharing = BalanceSharing()
     @ObservationIgnored private var ticker: Task<Void, Never>?
     /// Income is credited only while the app is on screen. In the background the game clock stays
     /// at `game.lastUpdate`, so wake-ups from the watch can't add up to more than the offline cap.
@@ -116,6 +117,7 @@ final class GameStore {
     @ObservationIgnored private var lastTapAt = Date.distantPast
     @ObservationIgnored private var lastSave = Date.now
     @ObservationIgnored private var lastWatchPush = Date.distantPast
+    @ObservationIgnored private var lastBalanceShare = Date.distantPast
     @ObservationIgnored private var lastStepSync = Date.distantPast
     @ObservationIgnored private var lastDayCheck = Date.distantPast
     @ObservationIgnored private var hasUnsavedChanges = false
@@ -170,6 +172,7 @@ final class GameStore {
             if nextAirdropAt <= now || nextAirdropAt == .distantFuture { scheduleAirdrop(from: now) }
             startTicking()
             pushToWatch(force: true)
+            shareBalance(force: true)
             notifier.clear()
             Task { await syncSteps() }
         case .inactive:
@@ -183,6 +186,7 @@ final class GameStore {
             comboStreak = 0
             save()
             pushToWatch(force: true)
+            shareBalance(force: true)
             scheduleNotifications()
         @unknown default:
             break
@@ -281,6 +285,7 @@ final class GameStore {
         let sinceSave = now.timeIntervalSince(lastSave)
         if sinceSave >= 30 || (hasUnsavedChanges && sinceSave >= 5) { save() }
         pushToWatch()
+        shareBalance()
         if game.steps.isConnected && now.timeIntervalSince(lastStepSync) >= 300 {
             lastStepSync = now
             Task { await syncSteps(force: true) }
@@ -940,6 +945,31 @@ final class GameStore {
         // The balance is anchored at the game clock, which stays put in the background, so the watch
         // projects exactly what the phone will credit (up to the offline cap) when it next opens.
         watch.send(game.watchSnapshot(at: now))
+    }
+
+    // MARK: Widgets and the Live Activity
+
+    /// Shares the balance with the widgets and the Live Activity: at once as the app opens or goes
+    /// to the background, and otherwise about once a minute while it's open. Like the watch's, the
+    /// balance is anchored at the game clock, so both project what the game will credit.
+    private func shareBalance(force: Bool = false) {
+        guard !isSaveLocked else { return }
+        let now = Date.now
+        guard force || now.timeIntervalSince(lastBalanceShare) >= 60 else { return }
+        lastBalanceShare = now
+        if isInForeground { catchUp(to: now) }
+        balanceSharing.share(game.balanceSnapshot(finish: coinFinish), liveActivity: Preferences.showsLiveActivity, force: force)
+    }
+
+    /// The coin's finish picked in Settings, or gold while it's locked.
+    private var coinFinish: CoinFinish {
+        let picked = UserDefaults.standard.string(forKey: Preferences.coinFinishKey).flatMap(CoinFinish.init(rawValue:)) ?? .gold
+        return picked.isUnlocked(stars: game.earnedAchievementTiers) ? picked : .gold
+    }
+
+    /// Starts or ends the Live Activity when its setting changes.
+    func liveActivitySettingChanged() {
+        shareBalance(force: true)
     }
 
     // MARK: Saving

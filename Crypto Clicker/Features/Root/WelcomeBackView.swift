@@ -4,9 +4,10 @@ import CryptoClickerKit
 /// Shown after time away: what the miners earned while the app was closed, what that unlocked,
 /// the best thing to buy now, and on request a breakdown of where every coin came from.
 ///
-/// Breakdown and Collect stay pinned at the bottom, and the sheet opens tall enough to show the
-/// summary and the first card above them. Anything further down (more cards, the breakdown) is
-/// pointed out by a "More below" chip that scrolls to it.
+/// See Breakdown and Collect stay pinned at the bottom, side by side at the same size; once the
+/// breakdown is open, See Breakdown goes and Collect takes the whole width. The sheet opens tall
+/// enough to show the summary and the first card above them. Anything further down (more cards,
+/// the breakdown) is pointed out by a "More below" chip that scrolls to it.
 struct WelcomeBackView: View {
     let welcome: WelcomeBack
     /// Opens the Shop at its power-ups. Called after this sheet starts closing.
@@ -120,10 +121,18 @@ struct WelcomeBackView: View {
         }
     }
 
+    /// See Breakdown and Collect at the same size, side by side (one above the other when the text
+    /// is too large for that). See Breakdown goes once the breakdown is open.
     private func buttons(_ scroller: ScrollViewProxy) -> some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) { breakdownButton(scroller); collectButton }
-            VStack(spacing: 10) { collectButton; breakdownButton(scroller) }
+            EqualWidthHStack(spacing: 12) {
+                if !showsBreakdown { breakdownButton(scroller) }
+                collectButton
+            }
+            VStack(spacing: 10) {
+                collectButton
+                if !showsBreakdown { breakdownButton(scroller) }
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
@@ -133,18 +142,22 @@ struct WelcomeBackView: View {
     private func breakdownButton(_ scroller: ScrollViewProxy) -> some View {
         Button {
             withAnimation(.snappy) {
-                showsBreakdown.toggle()
-                if showsBreakdown { detent = .large }
+                showsBreakdown = true
+                detent = .large
             }
-            if showsBreakdown { scroll(to: Self.breakdownID, with: scroller) }
+            scroll(to: Self.breakdownID, with: scroller)
         } label: {
-            Label(showsBreakdown ? "Hide Breakdown" : "See Breakdown",
-                  systemImage: showsBreakdown ? "chevron.up" : "list.bullet.rectangle.fill")
-                .font(.subheadline.weight(.semibold))
+            // Text only, in Collect's font, so the two fit side by side at the same size on a
+            // small phone.
+            Text("See Breakdown")
+                .font(.headline)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
         }
         .buttonStyle(.glass)
-        .fixedSize()
+        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+        .accessibilityHint("Shows where every coin came from")
     }
 
     private var collectButton: some View {
@@ -153,6 +166,7 @@ struct WelcomeBackView: View {
         } label: {
             Text("Collect")
                 .font(.headline)
+                .lineLimit(1)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
         }
@@ -484,5 +498,44 @@ private struct BestBuyCard: View {
         }
         .rowCard()
         .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
+    }
+}
+
+/// Views side by side at equal widths, sharing all the width they're offered. Its ideal width is
+/// the widest view's times the count, so inside a `ViewThatFits` it's only picked when every view
+/// fits in its share.
+private struct EqualWidthHStack: Layout {
+    var spacing: CGFloat = 12
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard !subviews.isEmpty else { return .zero }
+        let width: CGFloat
+        if let offered = proposal.width, offered.isFinite {
+            width = offered
+        } else {
+            let widest = subviews.map { $0.sizeThatFits(.unspecified).width }.max() ?? 0
+            width = widest * CGFloat(subviews.count) + gaps(subviews)
+        }
+        let each = share(of: width, subviews)
+        let height = subviews.map { $0.sizeThatFits(ProposedViewSize(width: each, height: proposal.height)).height }.max() ?? 0
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let each = share(of: bounds.width, subviews)
+        var x = bounds.minX
+        for subview in subviews {
+            subview.place(at: CGPoint(x: x, y: bounds.midY), anchor: .leading,
+                          proposal: ProposedViewSize(width: each, height: bounds.height))
+            x += each + spacing
+        }
+    }
+
+    private func gaps(_ subviews: Subviews) -> CGFloat {
+        spacing * CGFloat(max(0, subviews.count - 1))
+    }
+
+    private func share(of width: CGFloat, _ subviews: Subviews) -> CGFloat {
+        max(0, (width - gaps(subviews)) / CGFloat(max(1, subviews.count)))
     }
 }

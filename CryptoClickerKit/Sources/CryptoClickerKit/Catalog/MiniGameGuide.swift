@@ -340,7 +340,7 @@ extension MiniGame {
             controls: [
                 "Drag anywhere to move your ship. It fires while your finger is down: lift it to hold fire.",
                 "Only two volleys can be in the air at once: shots that hit come back sooner than ones that fly off the top.",
-                "Options (the sliders at the top) set the speed: everything moves and fires faster or slower.",
+                "On the start screen, Waves starts at wave 1, Random Waves makes up a new formation for every wave (never the same twice, with the kinds mixed up), and Settings sets the speed.",
             ],
             scoring: [
                 "Meme coins score \(kinds.memeCoin.points), pump bots \(kinds.pumpBot.points) and rug pullers \(kinds.rugPuller.points).",
@@ -349,13 +349,13 @@ extension MiniGame {
             ],
             items: [
                 .init(id: "invaders.memeCoin", symbol: "bitcoinsign.circle.fill", name: "Meme coins",
-                      detail: "The bottom two rows: \(kinds.memeCoin.points) points each."),
+                      detail: "\(kinds.memeCoin.points) points each, in the bottom two rows of the classic formation."),
                 .init(id: "invaders.pumpBot", symbol: "arrow.up.circle.fill", name: "Pump bots",
-                      detail: "The middle rows: \(kinds.pumpBot.points) points each."),
+                      detail: "\(kinds.pumpBot.points) points each, in the middle rows of the classic formation."),
                 .init(id: "invaders.rugPuller", symbol: "exclamationmark.triangle.fill", name: "Rug pullers",
-                      detail: "The top row: \(kinds.rugPuller.points) points each."),
+                      detail: "\(kinds.rugPuller.points) points each, in the top row of the classic formation."),
                 .init(id: "invaders.golden", symbol: "star.circle.fill", name: "Golden tokens",
-                      detail: "From wave 2, one invader a wave glows gold: it's worth double and drops a power-up."),
+                      detail: "From wave 2 (wave 1 in Random Waves), one invader a wave glows gold: it's worth double and drops a power-up."),
                 .init(id: "invaders.whale", symbol: "fish.fill", name: "Whale",
                       detail: "Swims across the top now and then: shoot it for 50 to 300 points and a power-up."),
                 .init(id: "invaders.firewall", symbol: "square.grid.3x3.fill", name: "Firewalls",

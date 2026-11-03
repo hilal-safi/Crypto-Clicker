@@ -1,54 +1,20 @@
 import SwiftUI
 import CryptoClickerKit
 
-extension CoinFinish {
-    /// The glow around the coin.
-    var glow: Color {
-        switch self {
-        case .gold: Theme.bitcoin
-        case .silver: Color(white: 0.85)
-        case .roseGold: Color(red: 0.95, green: 0.55, blue: 0.60)
-        case .emerald: Color(red: 0.15, green: 0.80, blue: 0.45)
-        case .sapphire: Color(red: 0.20, green: 0.45, blue: 1.00)
-        case .amethyst: Color(red: 0.65, green: 0.35, blue: 0.95)
-        case .obsidian: Color(red: 0.45, green: 0.30, blue: 0.60)
-        case .holographic: Color(red: 0.40, green: 0.85, blue: 1.00)
-        }
-    }
-}
-
-/// The coin artwork in a finish: the gold coin, recoloured. Holographic shimmers through every
-/// hue (and holds still with Reduce Motion on).
+/// The coin artwork in a finish: the gold coin, recoloured (see `CoinFinishImage`, which the
+/// widgets share). Holographic shimmers through every hue, and holds still with Reduce Motion on.
 struct CoinArt: View {
     var finish = CoinFinish.gold
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let coin = Image("Coin").resizable().scaledToFit()
-        switch finish {
-        case .gold:
-            coin
-        case .silver:
-            coin.saturation(0).brightness(0.06).contrast(1.15)
-        case .roseGold:
-            coin.hueRotation(.degrees(-30)).saturation(0.75).brightness(0.03)
-        case .emerald:
-            coin.hueRotation(.degrees(95)).saturation(1.1)
-        case .sapphire:
-            coin.hueRotation(.degrees(180)).saturation(1.1)
-        case .amethyst:
-            coin.hueRotation(.degrees(235)).saturation(0.95)
-        case .obsidian:
-            coin.saturation(0.15).brightness(-0.32).contrast(1.45)
-        case .holographic:
-            if reduceMotion {
-                coin.hueRotation(.degrees(150))
-            } else {
-                TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
-                    let degrees = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 6) * 60
-                    coin.hueRotation(.degrees(degrees))
-                }
+        if finish == .holographic && !reduceMotion {
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+                let degrees = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 6) * 60
+                Image("Coin").resizable().scaledToFit().hueRotation(.degrees(degrees))
             }
+        } else {
+            CoinFinishImage(finish: finish)
         }
     }
 }

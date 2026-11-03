@@ -62,10 +62,8 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     /// The phone's balance at `now`: while it is closed it keeps earning for its first minute and
     /// then up to its Offline Mining limit, exactly as it will credit the time when it next opens.
     public func projectedCoins(at now: Date) -> Double {
-        let elapsed = min(max(0, now.timeIntervalSince(anchor)), max(offlineCap, Tuning.awayThreshold))
-        var boosted = 0.0
-        if let boostEndsAt { boosted = min(elapsed, max(0, boostEndsAt.timeIntervalSince(anchor))) }
-        return coins + income * elapsed + boostIncome * boosted
+        BalanceSnapshot.projected(coins: coins, income: income, boostIncome: boostIncome, boostEndsAt: boostEndsAt,
+                                  offlineCap: offlineCap, anchor: anchor, at: now)
     }
 }
 

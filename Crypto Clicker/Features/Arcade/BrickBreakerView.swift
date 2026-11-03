@@ -26,7 +26,8 @@ struct BrickBreakerView: View {
                          detail: "The classic walls from level 1 up: armored, explosive and bonus bricks, and a boss every fifth level.",
                          note: nil) {
                     VStack(spacing: 12) {
-                        BrickLevelTrack(bestLevel: stats.brickBreakerBestLevel)
+                        LevelTrack(best: stats.brickBreakerBestLevel, bossEvery: BrickBreakerGame.bossEvery, tint: tint,
+                                   bossSymbol: "crown.fill", noun: "level", bossNote: "A boss every fifth level.")
                         NavigationLink(value: BrickBreakerRoute.play(.classic)) {
                             Label("Play Level 1", systemImage: "play.fill")
                                 .frame(maxWidth: .infinity)
@@ -63,40 +64,6 @@ struct BrickBreakerView: View {
         .navigationTitle("Brick Breaker")
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.brickBreaker, isPresented: $showingHelp)
-    }
-}
-
-/// Ten levels at a time, the ones reached so far lit and every fifth one a boss.
-private struct BrickLevelTrack: View {
-    let bestLevel: Int
-
-    var body: some View {
-        let first = max(0, bestLevel - 1) / 10 * 10 + 1
-        HStack(spacing: 4) {
-            ForEach(first..<(first + 10), id: \.self) { level in
-                let reached = level <= bestLevel
-                let isBoss = level % BrickBreakerGame.bossEvery == 0
-                ZStack {
-                    Circle()
-                        .fill(reached ? AnyShapeStyle(MiniGame.brickBreaker.color.gradient) : AnyShapeStyle(Color.primary.opacity(0.08)))
-                    if isBoss {
-                        Image(systemName: "crown.fill")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(reached ? .white : Theme.gold)
-                    } else {
-                        Text("\(level)")
-                            .font(.footnote.weight(.bold).monospacedDigit())
-                            .foregroundStyle(reached ? .white : .primary)
-                            .minimumScaleFactor(0.6)
-                    }
-                }
-                .frame(maxWidth: 34)
-                .aspectRatio(1, contentMode: .fit)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(bestLevel > 0 ? "Best level reached: \(bestLevel). A boss every fifth level." : "No levels reached yet. A boss every fifth level.")
     }
 }
 
