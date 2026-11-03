@@ -70,6 +70,11 @@ struct ArcadeView: View {
                 case .level, .daily, .classic, .random: TokenSwapPlayView(route: route)
                 }
             }
+            .navigationDestination(for: BrickBreakerRoute.self) { route in
+                switch route {
+                case .play(let levels): BrickBreakerPlayView(levels: levels)
+                }
+            }
         }
     }
 
@@ -91,6 +96,8 @@ struct ArcadeView: View {
             path.append(TodaysPieces(day: challenge.day))
         } else if game == .tokenSwap {
             path.append(TokenSwapRoute.classic) // Match Day asks for a Classic score.
+        } else if game == .brickBreaker {
+            path.append(BrickBreakerRoute.play(.classic)) // Straight into a game, from level 1.
         } else {
             path.append(game)
         }

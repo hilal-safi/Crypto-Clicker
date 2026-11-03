@@ -1,22 +1,121 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Brick Breaker: drag anywhere on the field to move the paddle and lift your finger to launch.
-/// Bonus bricks drop power-ups to catch, explosive bricks break their neighbors, and every fifth
-/// level is a boss. Options pick the ball's speed and classic or random walls. The physics runs on
-/// the display's frame clock while the ball is in play.
+/// The screens inside Brick Breaker, opened from its start screen.
+enum BrickBreakerRoute: Hashable {
+    /// A game from level 1 with these walls.
+    case play(BrickBreakerGame.LevelStyle)
+}
+
+/// Where Brick Breaker opens, like Token Swap: the classic levels, random walls and the speed
+/// setting, each on a card. Either kind of game starts at level 1.
 struct BrickBreakerView: View {
+    @Environment(GameStore.self) private var store
+    @AppStorage(Preferences.brickBreakerSpeedKey) private var speed = GameSpeed.normal
+    @State private var showingHelp = false
+
+    var body: some View {
+        let stats = store.game.stats
+        let tint = MiniGame.brickBreaker.color
+        ScrollView {
+            VStack(spacing: 14) {
+                ModeCard(tint: tint, icon: "square.grid.3x2.fill", title: "Levels",
+                         status: stats.brickBreakerGames == 0
+                            ? "Start at level 1"
+                            : "Best: level \(CoinFormat.grouped(stats.brickBreakerBestLevel)) · \(CoinFormat.grouped(stats.brickBreakerBosses)) boss\(stats.brickBreakerBosses == 1 ? "" : "es") beaten",
+                         detail: "The classic walls from level 1 up: armored, explosive and bonus bricks, and a boss every fifth level.",
+                         note: nil) {
+                    VStack(spacing: 12) {
+                        BrickLevelTrack(bestLevel: stats.brickBreakerBestLevel)
+                        NavigationLink(value: BrickBreakerRoute.play(.classic)) {
+                            Label("Play Level 1", systemImage: "play.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.glassProminent)
+                    }
+                }
+                ModeCard(tint: tint, icon: "dice.fill", title: "Random Walls", status: "A new wall every level",
+                         detail: "Walls made up for every level, never the same twice. They take about as many hits and pay about the same, and a boss still comes every fifth level.",
+                         note: nil) {
+                    NavigationLink(value: BrickBreakerRoute.play(.generated)) {
+                        Label("Play Random Walls", systemImage: "play.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glassProminent)
+                }
+                ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Settings", status: "\(speed.name) speed",
+                         detail: "How fast the ball moves. A point is worth the same at every speed: Fast scores sooner, Slow is relaxed.",
+                         note: nil) {
+                    Picker("Speed", selection: $speed) {
+                        ForEach(GameSpeed.allCases) { speed in
+                            Text(speed.name).tag(speed)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+            .frame(maxWidth: 600)
+            .frame(maxWidth: .infinity)
+        }
+        .background { AppBackground(tint: .orange) }
+        .navigationTitle("Brick Breaker")
+        .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.brickBreaker, isPresented: $showingHelp)
+    }
+}
+
+/// Ten levels at a time, the ones reached so far lit and every fifth one a boss.
+private struct BrickLevelTrack: View {
+    let bestLevel: Int
+
+    var body: some View {
+        let first = max(0, bestLevel - 1) / 10 * 10 + 1
+        HStack(spacing: 4) {
+            ForEach(first..<(first + 10), id: \.self) { level in
+                let reached = level <= bestLevel
+                let isBoss = level % BrickBreakerGame.bossEvery == 0
+                ZStack {
+                    Circle()
+                        .fill(reached ? AnyShapeStyle(MiniGame.brickBreaker.color.gradient) : AnyShapeStyle(Color.primary.opacity(0.08)))
+                    if isBoss {
+                        Image(systemName: "crown.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(reached ? .white : Theme.gold)
+                    } else {
+                        Text("\(level)")
+                            .font(.footnote.weight(.bold).monospacedDigit())
+                            .foregroundStyle(reached ? .white : .primary)
+                            .minimumScaleFactor(0.6)
+                    }
+                }
+                .frame(maxWidth: 34)
+                .aspectRatio(1, contentMode: .fit)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(bestLevel > 0 ? "Best level reached: \(bestLevel). A boss every fifth level." : "No levels reached yet. A boss every fifth level.")
+    }
+}
+
+/// Brick Breaker's game: drag anywhere on the field to move the paddle and lift your finger to
+/// launch. Bonus bricks drop power-ups to catch, explosive bricks break their neighbors, and every
+/// fifth level is a boss. The walls come from the start screen, and the ball's speed from its
+/// setting. The physics runs on the display's frame clock while the ball is in play.
+struct BrickBreakerPlayView: View {
+    /// Classic walls or random ones.
+    let levels: BrickBreakerGame.LevelStyle
     @Environment(GameStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @AppStorage(Preferences.brickBreakerSpeedKey) private var speed = GameSpeed.normal
-    @AppStorage(Preferences.brickBreakerLevelsKey) private var levels = BrickBreakerGame.LevelStyle.classic
     @State private var game = BrickBreakerGame()
     @State private var isPlaying = false
     @State private var isPaused = false
     @State private var showingHelp = false
-    @State private var showingOptions = false
     @State private var result: GameResult?
     @State private var lastFrame: Date?
     /// Where the current drag began, and whether a ball was waiting to be served then. Only a
@@ -71,12 +170,11 @@ struct BrickBreakerView: View {
         }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
-        .navigationTitle("Brick Breaker")
+        .navigationTitle(levels == .generated ? "Random Walls" : "Brick Breaker")
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.brickBreaker, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
         }
-        .gameOptions(.brickBreaker, isPresented: $showingOptions, isEnabled: !isPlaying, speed: $speed, levels: $levels)
     }
 
     /// Haptics and confetti for what the game just did.
@@ -107,7 +205,9 @@ struct BrickBreakerView: View {
                 store.releaseArcadeRun()
             case .background:
                 isPaused = true
-                store.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: game.score, detail: game.bricksBroken, extra: game.level))
+                store.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: game.score, detail: game.bricksBroken, extra: game.level,
+                                              records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated,
+                                                             bestStreak: game.bestLevelStreak)))
             default:
                 isPaused = true
             }
@@ -168,23 +268,18 @@ struct BrickBreakerView: View {
         if !isPlaying {
             if let result {
                 GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
-                    VStack(spacing: 14) {
-                        GameOverSummary(score: result.score, isNewBest: result.isNewBest,
-                                        best: store.game.stats.brickBreakerBestScore, reward: result.reward,
-                                        details: ["\(CoinFormat.grouped(result.detail)) bricks · reached level \(game.level)",
-                                                  "\(game.powerUpsCaught) power-up\(game.powerUpsCaught == 1 ? "" : "s")"
-                                                    + (game.bossesDefeated > 0 ? " · \(game.bossesDefeated) boss\(game.bossesDefeated == 1 ? "" : "es") beaten" : "")
-                                                    + " · best streak \(game.bestLevelStreak)"],
-                                        challenge: result.challenge)
-                        GameOptionsChip(speed: speed, levels: levels) { showingOptions = true }
-                    }
+                    GameOverSummary(score: result.score, isNewBest: result.isNewBest,
+                                    best: store.game.stats.brickBreakerBestScore, reward: result.reward,
+                                    details: ["\(CoinFormat.grouped(result.detail)) bricks · reached level \(game.level)",
+                                              "\(game.powerUpsCaught) power-up\(game.powerUpsCaught == 1 ? "" : "s")"
+                                                + (game.bossesDefeated > 0 ? " · \(game.bossesDefeated) boss\(game.bossesDefeated == 1 ? "" : "es") beaten" : "")
+                                                + " · best streak \(game.bestLevelStreak)"],
+                                    challenge: result.challenge)
                 }
             } else {
-                GamePanel(title: "Brick Breaker", buttonTitle: "Start", action: start) {
-                    VStack(spacing: 14) {
-                        GameIntro(best: store.game.stats.brickBreakerBestScore)
-                        GameOptionsChip(speed: speed, levels: levels) { showingOptions = true }
-                    }
+                GamePanel(title: "Level 1", buttonTitle: "Start", action: start) {
+                    GameIntro(best: store.game.stats.brickBreakerBestScore,
+                              detail: "\(levels == .generated ? "Random walls" : "Classic walls") · \(speed.name) speed")
                 }
             }
         }

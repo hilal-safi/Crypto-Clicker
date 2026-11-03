@@ -26,7 +26,7 @@ struct TokenSwapView: View {
         let allWon = progress.levelsWon == TokenSwapLevel.all.count
         ScrollView {
             VStack(spacing: 14) {
-                ModeCard(icon: "square.grid.3x3.fill", title: "Levels",
+                ModeCard(tint: MiniGame.tokenSwap.color, icon: "square.grid.3x3.fill", title: "Levels",
                          status: "\(progress.levelsWon) of \(TokenSwapLevel.all.count) won · \(progress.totalStars) of \(TokenSwapLevel.all.count * 3) stars",
                          detail: allWon ? "Every level won. Replay any of them for three stars."
                                         : "Next: Level \(next.id), \(next.name). \(next.goals.map(\.description).joined(separator: ", ")) in \(next.moves) moves.",
@@ -42,7 +42,7 @@ struct TokenSwapView: View {
                     }
                     .buttonStyle(.glass)
                 }
-                ModeCard(icon: "calendar", title: "Daily Puzzle",
+                ModeCard(tint: MiniGame.tokenSwap.color, icon: "calendar", title: "Daily Puzzle",
                          status: progress.hasWonDaily(day: today) ? "Solved today" : "Win for \(CoinFormat.short(store.game.tokenSwapDailyReward)) coins",
                          detail: "\(daily.name): \(daily.goals.map(\.description).joined(separator: ", ")) in \(daily.moves) moves. The same board for everyone today.",
                          note: progress.hasWonDaily(day: today) ? "Play again for fun; the reward is once a day." : nil) {
@@ -52,7 +52,7 @@ struct TokenSwapView: View {
                     }
                     .buttonStyle(.glassProminent)
                 }
-                ModeCard(icon: "dice.fill", title: "Random Level",
+                ModeCard(tint: MiniGame.tokenSwap.color, icon: "dice.fill", title: "Random Level",
                          status: store.game.stats.tokenSwapRandomWins > 0
                             ? "\(CoinFormat.grouped(store.game.stats.tokenSwapRandomWins)) won"
                             : "A new level every time",
@@ -72,7 +72,7 @@ struct TokenSwapView: View {
                         .buttonStyle(.glassProminent)
                     }
                 }
-                ModeCard(icon: "timer", title: "Classic",
+                ModeCard(tint: MiniGame.tokenSwap.color, icon: "timer", title: "Classic",
                          status: store.game.stats.tokenSwapBestScore > 0 ? "Best \(CoinFormat.grouped(store.game.stats.tokenSwapBestScore))" : "A minute on the clock",
                          detail: "Score as much as you can in a minute. Every point pays coins.", note: nil) {
                     NavigationLink(value: TokenSwapRoute.classic) {
@@ -97,54 +97,6 @@ struct TokenSwapView: View {
     /// The difficulty picked for random levels (saved as its number).
     private var difficulty: TokenSwapLevel.Difficulty {
         TokenSwapLevel.Difficulty(rawValue: randomDifficulty) ?? .medium
-    }
-}
-
-/// One way to play, with its buttons.
-private struct ModeCard<Buttons: View>: View {
-    let icon: String
-    let title: String
-    let status: String
-    let detail: String
-    let note: String?
-    @ViewBuilder let buttons: Buttons
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 46, height: 46)
-                    .background(MiniGame.tokenSwap.color.gradient, in: .rect(cornerRadius: 12))
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.title3.bold())
-                    Text(status)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.accent)
-                }
-            }
-            Text(detail)
-                .font(.body)
-                .fixedSize(horizontal: false, vertical: true)
-            if let note {
-                Label(note, systemImage: "info.circle.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.accent)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            ViewThatFits {
-                HStack(spacing: 10) { buttons }
-                VStack(spacing: 8) { buttons }
-            }
-            .font(.headline)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: 22)
-        .accessibilityElement(children: .contain)
     }
 }
 

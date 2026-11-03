@@ -10,7 +10,7 @@ struct CheckCoinsIntent: AppIntent {
     static let description: IntentDescription? = IntentDescription("Says how many coins you have and how fast your miners are mining.")
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        switch SaveStore().load() {
+        switch SaveStore().load(setsAsideUnreadable: false) {
         case .loaded(var game):
             let now = Date.now
             game.advance(to: now)
@@ -21,6 +21,8 @@ struct CheckCoinsIntent: AppIntent {
             return .result(dialog: "You haven't started mining yet. Open Crypto Clicker and tap the coin.")
         case .unavailable:
             return .result(dialog: "Unlock your iPhone first, then ask again.")
+        case .unreadable:
+            return .result(dialog: "Your saved game needs a look. Open Crypto Clicker.")
         }
     }
 }

@@ -14,6 +14,27 @@ struct PrestigeTests {
     /// Lifetime coins worth `points`³ of potential: the first point needs 15 billion coins.
     func cubed(_ points: Double) -> Double { points * points * points * Tuning.prestigeScale }
 
+    @Test func nothingBetWithTheOldRunsTokensSurvivesAPrestige() throws {
+        var game = state(lifetime: cubed(10))
+        game.tokens = [.bitcoin: 40]
+        game.slotsFreeSpins = SlotsFreeSpins(token: .bitcoin, bet: 10, left: 3)
+        game.moonRound = MoonRound(token: .bitcoin, bet: 10, crashPoint: 50, autoCashOut: nil)
+        let points = game.prestige(at: t0)
+        #expect(points == 10)
+        #expect(game.tokens.isEmpty)
+        #expect(game.slotsFreeSpins == nil)
+        #expect(game.moonRound == nil)
+        // The free spins can't pay the old run's tokens into the new one: with no tokens, the
+        // slots refuse the spin.
+        var rng = SeededGenerator(seed: 7)
+        let spin = game.spinSlots(.bitcoin, bet: 10, using: &rng)
+        #expect(spin == nil)
+        #expect(game.tokenCount(.bitcoin) == 0)
+        // And it all survives a save: nothing comes back on loading.
+        let loaded = try GameCoding.decoder().decode(GameState.self, from: try GameCoding.encoder().encode(game))
+        #expect(loaded.slotsFreeSpins == nil && loaded.moonRound == nil && loaded.tokens.isEmpty)
+    }
+
     @Test func potentialGrowsWithTheCubeRootOfLifetimeCoins() {
         #expect(Tuning.prestigeScale == 1.5e10)
         #expect(state(lifetime: 0).prestigePotential == 0)
@@ -489,6 +510,39 @@ struct AirdropTests {
         #expect(early.claimAirdrop(.whale, at: t0) == .whale(5_000))
         // Never less than an ordinary airdrop's 30 seconds of income.
         #expect(GameState.make(miners: minersEarning(10)).whaleAmount == 300)
+    }
+
+    @Test func airdropsAreLoggedCaughtOrMissed() throws {
+        var game = GameState.make(coins: 1e12, miners: minersEarning(10)) // 10 coins per second.
+        game.stats.runCoins = 1e6
+        game.claimAirdrop(.coins, at: at(1))
+        game.claimAirdrop(.whale, at: at(2))
+        game.claimAirdrop(.bullRun, at: at(3))
+        game.missAirdrop(.whale, at: at(4))
+        #expect(game.recentAirdrops == [
+            AirdropLog(kind: .coins, date: at(1), caught: true, coins: 9_000),
+            AirdropLog(kind: .whale, date: at(2), caught: true, coins: 36_000),
+            AirdropLog(kind: .bullRun, date: at(3), caught: true),
+            AirdropLog(kind: .whale, date: at(4), caught: false),
+        ])
+        #expect(game.stats.airdrops == 3 && game.stats.airdropsMissed == 1)
+        #expect(game.stats.bullRuns == 1 && game.stats.whaleAirdrops == 1)
+        #expect(game.stats.bestAirdrop == 36_000)
+        // Kept through a save, and through a prestige.
+        var loaded = try GameCoding.decoder().decode(GameState.self, from: try GameCoding.encoder().encode(game))
+        #expect(loaded.recentAirdrops == game.recentAirdrops)
+        #expect(loaded.stats.airdropsMissed == 1 && loaded.stats.bullRuns == 1 && loaded.stats.bestAirdrop == 36_000)
+        loaded.stats.lifetimeCoins = 1e12
+        #expect(loaded.prestige(at: at(10)) > 0)
+        #expect(loaded.recentAirdrops.count == 4 && loaded.stats.airdropsMissed == 1)
+    }
+
+    @Test func theAirdropHistoryKeepsTheLatestTen() {
+        var game = GameState.make(miners: minersEarning(10))
+        for second in 0..<25 { game.missAirdrop(.coins, at: at(Double(second))) }
+        #expect(game.recentAirdrops.count == Tuning.rememberedAirdrops)
+        #expect(game.recentAirdrops.first?.date == at(15) && game.recentAirdrops.last?.date == at(24))
+        #expect(game.stats.airdropsMissed == 25)
     }
 }
 

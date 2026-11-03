@@ -18,8 +18,12 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     public var stepsToday: Int
     public var stepsDay: String?
     public var stepValue: Double
-    /// The newest watch tap batches the phone has applied, oldest first.
+    /// The newest watch tap batches the phone has applied, oldest first (for batches from watch apps
+    /// that don't number them).
     public var appliedBatches: [UUID]
+    /// For each watch (by its queue's `source`), the number of the last batch the phone applied:
+    /// every batch up to it is in the game.
+    public var appliedSequences: [String: Int]?
     /// When the phone sent this snapshot. Orders snapshots and shows how fresh they are.
     public var date: Date
     /// The phone's game clock: `coins` is the balance at this moment. While the phone app is in the
@@ -28,7 +32,7 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
 
     public init(coins: Double, income: Double, boostIncome: Double, boostEndsAt: Date?, tapValue: Double,
                 offlineCap: TimeInterval, stepsConnected: Bool, stepsToday: Int, stepsDay: String?, stepValue: Double,
-                appliedBatches: [UUID], date: Date, anchor: Date) {
+                appliedBatches: [UUID], appliedSequences: [String: Int]? = nil, date: Date, anchor: Date) {
         self.coins = coins
         self.income = income
         self.boostIncome = boostIncome
@@ -40,6 +44,7 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         self.stepsDay = stepsDay
         self.stepValue = stepValue
         self.appliedBatches = appliedBatches
+        self.appliedSequences = appliedSequences
         self.date = date
         self.anchor = anchor
     }
@@ -66,11 +71,18 @@ public struct WatchTapBatch: Codable, Equatable, Sendable, Identifiable {
     public let id: UUID
     public let taps: Int
     public let date: Date
+    /// The watch that sent it (its queue's `source`) and the batch's number from that watch,
+    /// counting up from 1. Batches from one watch arrive in order, so the phone only needs to
+    /// remember the last number it applied. `nil` from watch apps that don't number batches.
+    public let source: UUID?
+    public let sequence: Int?
 
-    public init(id: UUID = UUID(), taps: Int, date: Date) {
+    public init(id: UUID = UUID(), taps: Int, date: Date, source: UUID? = nil, sequence: Int? = nil) {
         self.id = id
         self.taps = taps
         self.date = date
+        self.source = source
+        self.sequence = sequence
     }
 }
 
@@ -80,11 +92,33 @@ public struct WatchTapQueue: Codable, Equatable, Sendable {
     public private(set) var unsent = 0
     /// Batches handed to WatchConnectivity, oldest first.
     public private(set) var sent: [WatchTapBatch] = []
+    /// This watch, as the phone knows it, and the number the next batch gets.
+    public private(set) var source = UUID()
+    public private(set) var nextSequence = 1
 
     /// Batches this old are dropped from the display even if never confirmed.
     static let maximumAge: TimeInterval = 24 * 3_600
 
     public init() {}
+
+    private enum CodingKeys: String, CodingKey { case unsent, sent, source, nextSequence }
+
+    /// A queue saved by an earlier version starts numbering now, under a new source.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        unsent = max(0, c.value(.unsent, default: 0))
+        sent = c.value(.sent, default: [])
+        source = c.value(.source, default: UUID())
+        nextSequence = max(1, c.value(.nextSequence, default: 1))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(unsent, forKey: .unsent)
+        try c.encode(sent, forKey: .sent)
+        try c.encode(source, forKey: .source)
+        try c.encode(nextSequence, forKey: .nextSequence)
+    }
 
     public var pendingTaps: Int { sent.reduce(unsent) { $0 + $1.taps } }
 
@@ -95,7 +129,9 @@ public struct WatchTapQueue: Codable, Equatable, Sendable {
     /// Seals the collected taps into a batch for transfer, or returns `nil` if there are none.
     public mutating func seal(at date: Date) -> WatchTapBatch? {
         guard unsent > 0 else { return nil }
-        let batch = WatchTapBatch(taps: min(unsent, Tuning.maxWatchTapsPerBatch), date: date)
+        let batch = WatchTapBatch(taps: min(unsent, Tuning.maxWatchTapsPerBatch), date: date,
+                                  source: source, sequence: nextSequence)
+        nextSequence = nextSequence < Int.max ? nextSequence + 1 : nextSequence
         unsent -= batch.taps
         sent.append(batch)
         return batch
@@ -104,6 +140,9 @@ public struct WatchTapQueue: Codable, Equatable, Sendable {
     /// Drops batches the phone has applied. Transfers arrive in the order they were sent,
     /// so every batch sent before the newest confirmed one has been applied as well.
     public mutating func acknowledge(_ snapshot: WatchSnapshot) {
+        if let last = snapshot.appliedSequences?[source.uuidString] {
+            sent.removeAll { batch in batch.source == source && (batch.sequence ?? .max) <= last }
+        }
         let applied = Set(snapshot.appliedBatches)
         if let newest = sent.lastIndex(where: { applied.contains($0.id) }) {
             sent.removeSubrange(...newest)
@@ -147,6 +186,7 @@ extension GameState {
             stepsDay: steps.todayKey,
             stepValue: stepValue,
             appliedBatches: Array(recentWatchBatches.suffix(16)),
+            appliedSequences: watchSequences,
             date: now,
             anchor: lastUpdate)
     }

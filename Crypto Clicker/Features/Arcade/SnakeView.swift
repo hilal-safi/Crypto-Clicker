@@ -93,7 +93,8 @@ struct SnakeView: View {
             case .background:
                 isPaused = true
                 store.holdArcadeRun(ArcadeRun(game: .snake, score: game.score, detail: game.body.count,
-                                              stage: game.mode == .coinRush ? ArcadeRun.coinRushStage : 0))
+                                              stage: game.mode == .coinRush ? ArcadeRun.coinRushStage : 0,
+                                              records: .init(coins: game.eaten, seconds: game.time, powerUps: game.powerUpsCollected)))
             default:
                 isPaused = true
             }

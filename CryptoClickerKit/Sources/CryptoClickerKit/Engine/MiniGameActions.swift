@@ -314,18 +314,24 @@ extension GameState {
     @discardableResult
     public mutating func payUnfinishedRun() -> (run: ArcadeRun, payout: ArcadePayout)? {
         guard let run = unfinishedRun else { return nil }
+        let records = run.records
         let payout: ArcadePayout = switch run.game {
-        case .tetris: finishTetris(score: run.score, lines: run.detail, rewardPoints: run.extra)
-        case .snake: finishSnake(score: run.score, length: run.detail,
+        case .tetris: finishTetris(score: run.score, lines: run.detail, rewardPoints: run.extra, level: max(1, records.level),
+                                   bestCombo: records.bestCombo, tetrises: records.tetrises)
+        case .snake: finishSnake(score: run.score, length: run.detail, coins: records.coins > 0 ? records.coins : nil,
+                                 time: records.seconds, powerUps: records.powerUps,
                                  mode: run.stage == ArcadeRun.coinRushStage ? .coinRush : .classic)
-        case .brickBreaker: finishBrickBreaker(score: run.score, bricks: run.detail, level: run.extra)
-        case .bubbleBlaster: finishBubbleBlaster(score: run.score, popped: run.detail, bestShot: run.extra, wave: run.stage)
+        case .brickBreaker: finishBrickBreaker(score: run.score, bricks: run.detail, level: run.extra, bosses: records.bosses,
+                                               powerUps: records.powerUps, bestStreak: records.bestStreak)
+        case .bubbleBlaster: finishBubbleBlaster(score: run.score, popped: run.detail, bestShot: run.extra, wave: run.stage,
+                                                 bestStreak: records.bestStreak, bonuses: records.bonuses)
         case .merge2048:
             run.stage == ArcadeRun.dailyStage
                 ? finishMerge2048Daily(day: nil, score: run.score, bestTile: run.detail).payout
                 : finishMerge2048(score: run.score, bestTile: run.detail)
-        case .pumpDump: finishPumpDump(score: run.score, coinsHit: run.detail, bestCombo: run.extra, rounds: max(1, run.stage))
-        case .tokenSwap: finishTokenSwap(score: run.score, tokens: run.detail, bestChain: run.extra)
+        case .pumpDump: finishPumpDump(score: run.score, coinsHit: run.detail, bestCombo: run.extra,
+                                       scamsHit: records.scamsHit, rounds: max(1, run.stage))
+        case .tokenSwap: finishTokenSwap(score: run.score, tokens: run.detail, bestChain: run.extra, blasts: records.specials)
         case .blackjack, .slots, .moon, .videoPoker: ArcadePayout(coins: 0, isNewBest: false)
         }
         unfinishedRun = nil

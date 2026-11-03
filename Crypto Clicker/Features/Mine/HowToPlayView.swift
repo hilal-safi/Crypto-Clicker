@@ -1,49 +1,11 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// A guide to every system in the game, then the full rules of each mini-game. Opened from
-/// Settings, so it's a page in Settings' navigation rather than a sheet of its own.
+/// A guide to every system in the game, grouped by what it's for, then the full rules of each
+/// mini-game. Each topic is one line saying what it is and a few short points, so the page reads
+/// at a glance. Opened from Settings, so it's a page in Settings' navigation rather than a sheet.
 struct HowToPlayView: View {
     @AppStorage(Preferences.howToPlaySeenKey) private var seen = false
-
-    private let topics: [(icon: String, title: String, text: String)] = [
-        ("hand.tap.fill", "Tap to mine",
-         "Tap the coin to earn coins. Tapping upgrades make every tap also earn a share of a second's production, up to a whole second's worth, so tapping always pays. Tap the balance to switch between the short form (12.3K) and every digit (12,345); what each tap earns shows the same way. Tap the rates under your balance to see where every coin comes from."),
-        ("flame.fill", "Combos",
-         "Keep tapping quickly and a combo builds: every four or five quick taps add ×0.1, so after about 45 every tap earns twice as much. Pause for more than about half a second and it starts over. The flame under the coin shows your biggest combo."),
-        ("bolt.fill", "Combo power-ups",
-         "In the Shop's Power-ups page, Combo Booster raises the biggest combo by ×0.5 a level, up to ×5, and then Combo Overdrive by ×1 a level, up to ×10. Quick Combos makes each ×0.1 come sooner: 50% faster a level, up to four times as fast. The Combo Master perk doubles that speed again and lifts the biggest combo to at least ×3. Power-ups stay when you prestige."),
-        ("cpu", "Buy miners",
-         "Miners earn coins every second while the app is open. A Chromebook earns a coin every four seconds; a Desktop costs ten times as much and earns eight times as much, so after two or three Chromebooks it's the better buy. Each tier after earns several times the one before. Each unit costs 15% more than the last, so a few of one tier make the next the better buy: in the Shop, every miner shows what one more adds, and Best value marks the one that adds the most for its price. The miners you own show under the coin."),
-        ("arrow.up.right.circle.fill", "Milestones and Mk upgrades",
-         "Owning 25, 50, 100, 200 (and every 100 up to 1,000) of a miner doubles its output each time. At 25, 50, 100, 200 and 400 owned, a Mk upgrade (Mk II to Mk VI) appears in the Shop: each doubles that miner again for the rest of the run."),
-        ("sparkles", "Upgrades",
-         "One-time purchases that multiply production, power up taps, add automatic taps (each worth a quarter of a tap), and boost steps and mini-games."),
-        ("moon.zzz.fill", "Offline Mining",
-         "At first, miners stop a minute after you leave the app. The Offline Mining power-up keeps them earning while it's closed: 30 minutes more per level up to a day, then an hour more per level, up to three days. Power-ups stay when you prestige."),
-        ("shippingbox.fill", "Airdrops",
-         "Every few minutes an airdrop falls. Catch it for a pile of coins, or a Bull Run that multiplies production by 7 for a minute. Now and then a whale swims by instead: catch it for up to an hour of income at once (early in a run, at most what the run has mined so far)."),
-        ("gift.fill", "Daily rewards and quests",
-         "From your second day, claim a reward every day in Trophies › Daily to build a streak: the week builds up to an hour of income on day 7. Three new quests arrive each day too."),
-        ("target", "Daily challenge",
-         "From your second day, each day brings a challenge in one of your games: a score in Tetris, a tile in 2048, a Pump and Dump run, a Classic score in Token Swap, good hands at the casino, or points in three different arcade games. Complete it for 15 minutes of income, and complete five in a week (Monday to Sunday) for two hours more. On Block Day, Tetris deals everyone the same pieces."),
-        ("chart.line.uptrend.xyaxis", "Tokens",
-         "In the Shop's Tokens page, token prices drift every five minutes, usually by a few percent a day, and news nudges them up or down. Buy tokens to bet at the casino games, or to sell later: selling costs a 10% fee. Pick ×1, ×10, ×100 or Max above the list to buy and sell in bulk. Tokens reset when you prestige."),
-        ("figure.walk", "Steps",
-         "After 2,000 taps you can turn steps into coins. Steps count as you walk, for quests and achievements, and each day's steps are paid the next day, at your step value then. Every step you take, on iPhone or Apple Watch, is paid once, and steps grow more valuable as your income grows."),
-        ("applewatch", "Apple Watch",
-         "Tap to mine from your wrist and keep an eye on your balance. Taps are delivered to your iPhone and counted exactly once."),
-        ("gamecontroller.fill", "Arcade",
-         "Games unlock one at a time: Blackjack and Tetris cost a few thousand coins, and each game after costs several times the one before, up to about a trillion. Blackjack, Crypto Slots, Video Poker and To the Moon pay tokens plus a coin bonus for wins. In Video Poker, hold the cards you want and draw once: Hint holds what a strong player would. In To the Moon the multiplier climbs until the market crashes: cash out in time, or set an automatic cash-out. Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump and Token Swap pay coins for every point, and half as much again for a new best score; a minute of good play pays about two minutes of income. Making a 2048 tile pays ten minutes of income on top. Token Swap also has levels, whose stars each pay once, a daily puzzle paid once a day, and random levels made up for you, never the same twice. Brick Breaker, Snake and Tetris have Options (the sliders at the top) for their speed, and Brick Breaker can make up random walls. Every game has a How to Play button with its full rules."),
-        ("trophy.fill", "Achievements",
-         "Every bronze, silver, gold and mythic star permanently adds 1% to production, and stars unlock new finishes for the coin in Settings › Coin Finish."),
-        ("chart.bar.xaxis", "Statistics and your journey",
-         "Settings › Statistics charts your income over the last day, week or month, or all time, and keeps every record. Its Your Journey page lists when each first happened, and how long after you started: every miner tier, Offline Mining, each game, every thousandfold of coins mined and your first prestige."),
-        ("mic.fill", "Siri and Shortcuts",
-         "Ask Siri \u{201C}How many coins do I have in Crypto Clicker?\u{201D}, or add Check My Coins in the Shortcuts app, to hear your balance and income without opening the game."),
-        ("rosette", "Prestige and perks",
-         "Once you've mined 15 billion coins in all, you can prestige: start a new run for prestige points. Every point adds 5% production forever, and points also buy permanent perks. The Shop suggests prestiging once it would make you at least half as fast again. Your first prestige reveals three new miners. The difficulty in Settings changes the points: Hard earns half as many again, Easy half as many."),
-    ]
 
     var body: some View {
         List {
@@ -51,21 +13,11 @@ struct HowToPlayView: View {
                 Text("Mine coins, build a mining empire and keep it growing, even while you're away.")
                     .font(.headline)
             }
-            Section {
-                ForEach(topics, id: \.title) { topic in
-                    Label {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(topic.title)
-                                .font(.headline)
-                            Text(topic.text)
-                                .font(.subheadline)
-                                .foregroundStyle(.subtext)
-                        }
-                    } icon: {
-                        Image(systemName: topic.icon)
-                            .foregroundStyle(Theme.accent)
+            ForEach(HowToChapter.all) { chapter in
+                Section(chapter.title) {
+                    ForEach(chapter.topics) { topic in
+                        HowToTopicRow(topic: topic)
                     }
-                    .padding(.vertical, 4)
                 }
             }
             Section {
@@ -91,5 +43,192 @@ struct HowToPlayView: View {
         .navigationTitle("How to Play")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { seen = true }
+    }
+}
+
+/// One topic: its name, a line saying what it is, and the details as short points.
+private struct HowToTopic: Identifiable {
+    let icon: String
+    let title: String
+    let summary: String
+    let points: [String]
+    var id: String { title }
+
+    init(_ icon: String, _ title: String, _ summary: String, _ points: [String] = []) {
+        self.icon = icon
+        self.title = title
+        self.summary = summary
+        self.points = points
+    }
+}
+
+/// Topics under one heading.
+private struct HowToChapter: Identifiable {
+    let title: String
+    let topics: [HowToTopic]
+    var id: String { title }
+
+    static let all: [HowToChapter] = [mining, rewards, games, progress, beyondTheApp]
+
+    private static let mining = HowToChapter(title: "Mining", topics: [
+        HowToTopic("hand.tap.fill", "Tap to mine", "Tap the coin to earn coins.", [
+            "Tapping upgrades add a share of a second's production to every tap, up to a whole second's worth.",
+            "Tap your balance to switch between 12.3K and 12,345.",
+            "Tap the rates under it to see where every coin comes from.",
+        ]),
+        HowToTopic("flame.fill", "Combos", "Tap quickly and each tap earns more.", [
+            "Every four or five quick taps add ×0.1, so about 45 make ×2.",
+            "Pause for about half a second and the combo starts over.",
+            "The flame under the coin shows your biggest combo.",
+        ]),
+        HowToTopic("bolt.fill", "Combo power-ups", "Bought in levels in Shop › Power-ups, and kept when you prestige.", [
+            "Combo Booster: the biggest combo grows ×0.5 a level, up to ×5.",
+            "Combo Overdrive: then ×1 a level, up to ×10.",
+            "Quick Combos: each ×0.1 comes 50% faster a level, up to four times as fast.",
+            "The Combo Master perk doubles that speed and lifts the biggest combo to at least ×3.",
+        ]),
+        HowToTopic("cpu", "Miners", "Miners earn coins every second while the app is open.", [
+            "A Chromebook mines a coin every four seconds, and each tier after mines several times more.",
+            "Each unit costs 15% more than the last, so the next tier soon becomes the better buy.",
+            "In the Shop, each miner shows what one more adds, and Best value marks the best buy.",
+        ]),
+        HowToTopic("arrow.up.right.circle.fill", "Milestones and Mk upgrades", "The more of a miner you own, the more each one mines.", [
+            "Owning 25, 50, 100, 200, then every 100 up to 1,000, doubles a miner's output each time.",
+            "At 25, 50, 100, 200 and 400 owned, a Mk upgrade (Mk II to Mk VI) appears in the Shop.",
+            "Each Mk upgrade doubles that miner again for the rest of the run.",
+        ]),
+        HowToTopic("sparkles", "Upgrades", "One-time purchases in the Shop.", [
+            "Multiply production and power up taps.",
+            "Add automatic taps, each worth a quarter of a tap.",
+            "Boost steps and mini-games.",
+        ]),
+        HowToTopic("moon.zzz.fill", "Offline Mining", "Keeps your miners earning while the app is closed.", [
+            "Without it, miners stop a minute after you leave.",
+            "Each level adds 30 minutes, up to a day, then an hour, up to three days.",
+            "It's a power-up, so it stays when you prestige.",
+        ]),
+    ])
+
+    private static let rewards = HowToChapter(title: "Rewards", topics: [
+        HowToTopic("shippingbox.fill", "Airdrops", "Every few minutes an airdrop falls: tap it to catch it.", [
+            "It holds a pile of coins, or a Bull Run that multiplies production by 7 for a minute.",
+            "Now and then a whale swims by instead: up to an hour of income at once.",
+            "Early in a run, a whale pays at most what the run has mined so far.",
+        ]),
+        HowToTopic("gift.fill", "Daily rewards and quests", "From your second day, in Trophies › Daily.", [
+            "Claim a reward every day to build a streak: day 7 pays an hour of income.",
+            "Three new quests arrive each day.",
+        ]),
+        HowToTopic("target", "Daily challenge", "From your second day, a challenge a day in one of your games.", [
+            "A Tetris score, a 2048 tile, a Pump and Dump run, a Token Swap score, good casino hands, or points in three arcade games.",
+            "Each pays 15 minutes of income, and five in a week (Monday to Sunday) pay two hours more.",
+            "On Block Day, Tetris deals everyone the same pieces.",
+        ]),
+        HowToTopic("figure.walk", "Steps", "After \(CoinFormat.grouped(Tuning.stepsUnlockTaps)) taps, your steps turn into coins.", [
+            "Steps count toward quests and achievements as you walk.",
+            "Each day's steps are paid the next day, at your step value then.",
+            "Every step, on iPhone or Apple Watch, is paid once, and steps grow more valuable as your income grows.",
+        ]),
+        HowToTopic("trophy.fill", "Achievements", "Bronze, silver, gold and mythic stars, in Trophies.", [
+            "Every star adds 1% to production for good.",
+            "Stars unlock new finishes for the coin in Settings › Coin Finish.",
+        ]),
+    ])
+
+    private static let games = HowToChapter(title: "Tokens and Games", topics: [
+        HowToTopic("chart.line.uptrend.xyaxis", "Tokens", "Buy and sell crypto in Shop › Tokens.", [
+            "Prices drift every five minutes, usually a few percent a day, and news nudges them.",
+            "Bet tokens at the casino, or sell them later: selling costs a 10% fee.",
+            "Pick ×1, ×10, ×100 or Max to buy and sell in bulk.",
+            "Tokens reset when you prestige.",
+        ]),
+        HowToTopic("gamecontroller.fill", "Arcade", "Games unlock one at a time, from a few thousand coins up to about a trillion.", [
+            "Arcade games pay coins for every point, and half as much again for a new best.",
+            "A minute of good play pays about two minutes of income.",
+            "Playing earns XP for your Arcade Rank, and six different games in a week pay half an hour of income.",
+            "Every game has a How to Play button with its full rules.",
+        ]),
+        HowToTopic("suit.spade.fill", "Casino", "Blackjack, Crypto Slots, Video Poker and To the Moon: bet your tokens.", [
+            "Wins pay tokens, plus a coin bonus.",
+            "Video Poker: hold the cards you want and draw once. Hint holds what a strong player would.",
+            "To the Moon: cash out before the market crashes, or set an automatic cash-out.",
+        ]),
+        HowToTopic("square.grid.3x3.fill", "More ways to play", "Some games have levels, puzzles and options.", [
+            "Making the 2048 tile pays ten minutes of income on top.",
+            "Token Swap has levels whose stars each pay once, a daily puzzle and random levels.",
+            "Brick Breaker's start screen has its levels, random walls and speed.",
+            "Snake and Tetris have Options for their speed.",
+            "Swipe in from the left edge to leave a game.",
+        ]),
+    ])
+
+    private static let progress = HowToChapter(title: "Progress", topics: [
+        HowToTopic("flag.fill", "Goals", "Trophies › Goals shows what to aim for next.", [
+            "The next miner, milestone, upgrade and game, the closest achievement star, and more.",
+            "Each goal shows how close you are.",
+        ]),
+        HowToTopic("chart.bar.xaxis", "Statistics", "Settings › Statistics keeps every record.", [
+            "Chart your income over the last day, week or month, or all time.",
+            "Your Journey lists when each first happened, and how long after you started.",
+        ]),
+        HowToTopic("rosette", "Prestige and perks", "After 15 billion coins mined in all, start a new run for prestige points.", [
+            "Every point adds 5% production for good, and points buy permanent perks.",
+            "The Shop suggests prestiging once it would make you at least half as fast again.",
+            "Your first prestige reveals three new miners.",
+            "Hard earns half as many points again, and Easy half as many: pick in Settings.",
+        ]),
+    ])
+
+    private static let beyondTheApp = HowToChapter(title: "Beyond the App", topics: [
+        HowToTopic("applewatch", "Apple Watch", "Tap to mine from your wrist and keep an eye on your balance.", [
+            "Taps reach your iPhone and count exactly once.",
+        ]),
+        HowToTopic("mic.fill", "Siri and Shortcuts", "Hear your balance without opening the game.", [
+            "Ask Siri \u{201C}How many coins do I have in Crypto Clicker?\u{201D}",
+            "Or add Check My Coins in the Shortcuts app.",
+        ]),
+    ])
+}
+
+/// A topic: its icon and name, the line saying what it is, then its points.
+private struct HowToTopicRow: View {
+    let topic: HowToTopic
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: topic.icon)
+                .font(.title3)
+                .foregroundStyle(Theme.accent)
+                .frame(width: 28)
+                .padding(.top, 1)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(topic.title)
+                        .font(.headline)
+                    Text(topic.summary)
+                        .font(.subheadline)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if !topic.points.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(topic.points, id: \.self) { point in
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text("•")
+                                    .font(.subheadline.weight(.heavy))
+                                    .foregroundStyle(Theme.accent)
+                                    .accessibilityHidden(true)
+                                Text(point)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.subtext)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .combine)
     }
 }

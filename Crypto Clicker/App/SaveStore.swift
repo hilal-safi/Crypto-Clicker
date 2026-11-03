@@ -11,6 +11,9 @@ struct SaveStore {
         /// A save exists but can't be read yet, because iOS launched the app in the background
         /// before the device was first unlocked. It must not be overwritten.
         case unavailable
+        /// A save exists but isn't a game this version can read (it's damaged). It has been moved
+        /// aside to `backup`, untouched, so the player can be told and it can be tried again.
+        case unreadable(backup: URL)
     }
 
     let url: URL
@@ -20,14 +23,26 @@ struct SaveStore {
         url = base.appending(path: "game.json", directoryHint: .notDirectory)
     }
 
-    func load() -> LoadResult {
+    /// Reads the save. A damaged one is moved aside (never deleted) unless `setsAsideUnreadable` is
+    /// false, for a quick look from outside the app (Siri) that must change nothing.
+    func load(setsAsideUnreadable: Bool = true) -> LoadResult {
         guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else { return .missing }
         guard let data = try? Data(contentsOf: url) else { return .unavailable }
         if let state = try? GameCoding.decoder().decode(GameState.self, from: data) { return .loaded(state) }
-        // Not a game at all: set it aside (so it can still be recovered by hand) and start over.
+        guard setsAsideUnreadable else { return .unreadable(backup: url) }
+        // Not a game this version can read: set it aside, never deleted, and let the player decide.
         let backup = url.deletingPathExtension().appendingPathExtension("unreadable-\(Int(Date.now.timeIntervalSince1970)).json")
-        try? FileManager.default.moveItem(at: url, to: backup)
-        return .missing
+        guard (try? FileManager.default.moveItem(at: url, to: backup)) != nil else { return .unavailable }
+        return .unreadable(backup: backup)
+    }
+
+    /// Tries a set-aside save again: if it reads now, it goes back into place and is returned.
+    func restore(from backup: URL) -> GameState? {
+        guard let data = try? Data(contentsOf: backup),
+              let state = try? GameCoding.decoder().decode(GameState.self, from: data) else { return nil }
+        try? FileManager.default.removeItem(at: url)
+        guard (try? FileManager.default.moveItem(at: backup, to: url)) != nil else { return nil }
+        return state
     }
 
     func save(_ state: GameState) throws {

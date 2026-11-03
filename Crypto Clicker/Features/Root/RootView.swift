@@ -72,6 +72,14 @@ struct RootView: View {
         } message: {
             Text(store.errorMessage ?? "")
         }
+        // A damaged save: say so plainly, keep the file, and only start over when the player says.
+        .alert(store.unreadableSave?.attempts ?? 0 > 0 ? "Still couldn't read your save" : "Your saved game couldn't be read",
+               isPresented: Binding(get: { store.unreadableSave != nil }, set: { _ in })) {
+            Button("Try Again") { store.retryUnreadableSave() }
+            Button("Start a New Game", role: .destructive) { store.startOverAfterUnreadableSave() }
+        } message: {
+            Text("Part of the save file is damaged, so your progress can't be opened right now. Nothing has been deleted: the file is kept on this iPhone as \(store.unreadableSave?.fileName ?? "a backup"), so it can still be recovered. Until you choose, nothing new is saved.")
+        }
     }
 
     private func openPowerUps() {

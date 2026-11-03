@@ -1,7 +1,7 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Daily rewards and quests, and the achievements that add production.
+/// What to work toward next, daily rewards and quests, and the achievements that add production.
 struct TrophiesView: View {
     /// Goes up by one each time another tab asks to show the Daily page.
     var dailyRequests = 0
@@ -12,6 +12,7 @@ struct TrophiesView: View {
     @State private var handledDailyRequests = 0
 
     enum Page: String, CaseIterable, Identifiable {
+        case goals = "Goals"
         case daily = "Daily"
         case achievements = "Achievements"
 
@@ -34,6 +35,8 @@ struct TrophiesView: View {
                     }
                     .pickerStyle(.segmented)
                     switch page {
+                    case .goals:
+                        GoalsPage(goals: game.nextGoals)
                     case .daily:
                         DailyPage(openChallenge: openChallenge)
                     case .achievements:
@@ -66,6 +69,86 @@ struct TrophiesView: View {
         guard handledDailyRequests != dailyRequests else { return }
         handledDailyRequests = dailyRequests
         page = .daily
+    }
+}
+
+// MARK: - Goals
+
+/// The next few things worth working toward, each with how far along it is.
+private struct GoalsPage: View {
+    let goals: [Goal]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Your next goals")
+                .font(.title3.bold())
+                .padding(.horizontal, 4)
+            ForEach(goals) { goal in
+                GoalCard(goal: goal)
+            }
+        }
+    }
+}
+
+private struct GoalCard: View {
+    let goal: Goal
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: goal.kind.symbol)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 46, height: 46)
+                .background(goal.kind.color.gradient, in: .circle)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(goal.title)
+                        .font(.headline)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    Text(goal.progress >= 1 ? "Ready" : CoinFormat.percent((goal.progress * 100).rounded(.down) / 100))
+                        .font(.subheadline.weight(.bold).monospacedDigit())
+                        .foregroundStyle(goal.progress >= 1 ? Theme.gain : goal.kind.color)
+                }
+                Text(goal.detail)
+                    .font(.subheadline)
+                    .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+                ProgressView(value: goal.progress)
+                    .tint(goal.kind.color)
+            }
+        }
+        .rowCard()
+        .accessibilityElement(children: .combine)
+    }
+}
+
+extension Goal.Kind {
+    var symbol: String {
+        switch self {
+        case .miner: "cpu.fill"
+        case .milestone: "arrow.up.right.circle.fill"
+        case .upgrade: "sparkles"
+        case .game: "gamecontroller.fill"
+        case .achievement: "trophy.fill"
+        case .arcadeRank: "star.circle.fill"
+        case .tokenSwap: "square.grid.3x3.fill"
+        case .prestige: "rosette"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .miner: .blue
+        case .milestone: .orange
+        case .upgrade: .purple
+        case .game: Theme.arcadeButton
+        case .achievement: Color(red: 0.85, green: 0.6, blue: 0.0)
+        case .arcadeRank: .pink
+        case .tokenSwap: MiniGame.tokenSwap.color
+        case .prestige: .indigo
+        }
     }
 }
 

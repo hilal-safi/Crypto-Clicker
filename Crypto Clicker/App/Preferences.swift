@@ -22,11 +22,10 @@ enum Preferences {
     static let lastShortWelcomeDayKey = "lastShortWelcomeDay"
     /// First-run tips the player has closed, comma-separated.
     static let dismissedTipsKey = "dismissedTips"
-    /// Each action game's Speed option, and Brick Breaker's walls.
+    /// Each action game's Speed option.
     static let brickBreakerSpeedKey = "speed.brickBreaker"
     static let snakeSpeedKey = "speed.snake"
     static let tetrisSpeedKey = "speed.tetris"
-    static let brickBreakerLevelsKey = "brickBreakerLevels"
     /// The difficulty last picked for a random Token Swap level.
     static let tokenSwapRandomDifficultyKey = "tokenSwapRandomDifficulty"
     /// The player has opened How to Play (in Settings), so the tip pointing there is done.

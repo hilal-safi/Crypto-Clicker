@@ -51,8 +51,25 @@ public struct OfflineReport: Equatable, Sendable, Identifiable {
 }
 
 /// What an airdrop holds, decided when it appears so a whale can look different.
-public enum AirdropKind: Equatable, Sendable {
+public enum AirdropKind: String, Codable, Equatable, Sendable {
     case coins, bullRun, whale
+}
+
+/// One airdrop, caught or missed, for the history in Statistics.
+public struct AirdropLog: Codable, Equatable, Sendable {
+    public let kind: AirdropKind
+    public let date: Date
+    /// Whether it was caught before it went away.
+    public let caught: Bool
+    /// The coins it paid: none for a miss, or for a Bull Run, whose reward is the boost.
+    public let coins: Double
+
+    public init(kind: AirdropKind, date: Date, caught: Bool, coins: Double = 0) {
+        self.kind = kind
+        self.date = date
+        self.caught = caught
+        self.coins = coins
+    }
 }
 
 /// What an airdrop paid out.
@@ -199,12 +216,23 @@ extension GameState {
 
     /// Applies a batch of taps made on Apple Watch exactly once.
     /// Returns `nil` when the batch was already applied.
+    ///
+    /// Numbered batches are checked against the last number applied from their watch, which is
+    /// saved with the game: batches from one watch arrive in order, so this remembers every batch
+    /// ever applied, however many arrive at once. Batches from watch apps that don't number them
+    /// are remembered by id (the newest `Tuning.rememberedWatchBatches`).
     @discardableResult
     public mutating func applyWatchTaps(_ batch: WatchTapBatch, at now: Date) -> Double? {
-        guard !recentWatchBatches.contains(batch.id) else { return nil }
-        recentWatchBatches.append(batch.id)
-        let overflow = recentWatchBatches.count - Tuning.rememberedWatchBatches
-        if overflow > 0 { recentWatchBatches.removeFirst(overflow) }
+        if let source = batch.source, let sequence = batch.sequence {
+            let key = source.uuidString
+            guard sequence > watchSequences[key, default: 0] else { return nil }
+            watchSequences[key] = sequence
+        } else {
+            guard !recentWatchBatches.contains(batch.id) else { return nil }
+            recentWatchBatches.append(batch.id)
+            let overflow = recentWatchBatches.count - Tuning.rememberedWatchBatches
+            if overflow > 0 { recentWatchBatches.removeFirst(overflow) }
+        }
         let taps = min(max(batch.taps, 0), Tuning.maxWatchTapsPerBatch)
         return tap(count: taps, at: now)
     }
@@ -319,20 +347,42 @@ extension GameState {
     public mutating func claimAirdrop(_ kind: AirdropKind, at now: Date) -> AirdropReward {
         stats.airdrops += 1
         let income = rewardIncome
+        let reward: AirdropReward
         switch kind {
         case .bullRun:
+            stats.bullRuns += 1
             startBullRun(duration: bullRunDuration, at: now)
-            return .bullRun(multiplier: Tuning.bullRunMultiplier, duration: bullRunDuration)
+            reward = .bullRun(multiplier: Tuning.bullRunMultiplier, duration: bullRunDuration)
         case .whale:
             stats.whaleAirdrops += 1
             let amount = whaleAmount
             credit(amount, source: .airdrop)
-            return .whale(amount)
+            reward = .whale(amount)
         case .coins:
             let amount = Self.wholeCoins(max(min(coins * Tuning.airdropBankShare, income * Tuning.airdropIncomeSeconds),
                                              income * Tuning.airdropMinimumSeconds), minimum: 1)
             credit(amount, source: .airdrop)
-            return .coins(amount)
+            reward = .coins(amount)
+        }
+        let paid: Double = switch reward {
+        case .coins(let amount), .whale(let amount): amount
+        case .bullRun: 0
+        }
+        stats.bestAirdrop = max(stats.bestAirdrop, paid)
+        logAirdrop(AirdropLog(kind: kind, date: now, caught: true, coins: paid))
+        return reward
+    }
+
+    /// Notes an airdrop that went away before it was caught.
+    public mutating func missAirdrop(_ kind: AirdropKind, at now: Date) {
+        stats.airdropsMissed += 1
+        logAirdrop(AirdropLog(kind: kind, date: now, caught: false))
+    }
+
+    private mutating func logAirdrop(_ log: AirdropLog) {
+        recentAirdrops.append(log)
+        if recentAirdrops.count > Tuning.rememberedAirdrops {
+            recentAirdrops.removeFirst(recentAirdrops.count - Tuning.rememberedAirdrops)
         }
     }
 

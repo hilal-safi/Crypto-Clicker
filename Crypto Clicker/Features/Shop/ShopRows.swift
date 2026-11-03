@@ -250,7 +250,8 @@ struct UpgradeRow: View {
     }
 }
 
-/// The Offline Mining power-up: its current limit, what the next level adds, and its price.
+/// The Offline Mining power-up: its current limit, what the next level adds, and its price. Laid
+/// out like the combo power-ups: a header line, then the details across the whole card.
 struct OfflineMiningRow: View {
     let level: Int
     let price: Double?
@@ -263,61 +264,44 @@ struct OfflineMiningRow: View {
     var body: some View {
         let cap = GameState.offlineCap(level: level)
         let nextCap = GameState.offlineCap(level: level + 1)
-        HStack(spacing: 14) {
-            Image(systemName: "moon.zzz.fill")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.indigo)
-                .frame(width: 52, height: 52)
-                .background(Color.indigo.opacity(0.15), in: .circle)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Offline Mining")
-                    .font(.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                if level > 0 {
-                    Text("Level \(level)")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.subtext)
-                }
-                Text(level == 0
-                     ? "Miners stop a minute after you leave the app. Keep them mining while it's closed."
-                     : "Miners keep earning for \(CoinFormat.duration(cap)) after you leave the app.")
-                    .font(.subheadline)
-                    .foregroundStyle(.subtext)
-                    .fixedSize(horizontal: false, vertical: true)
-                if price != nil {
-                    Label("Next level: \(CoinFormat.duration(nextCap))", systemImage: "arrow.up.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.indigo)
+        VStack(alignment: .leading, spacing: 10) {
+            PowerUpHeader(title: "Offline Mining", subtitle: level > 0 ? "Level \(level)" : "Not bought yet") {
+                Image(systemName: "moon.zzz.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.indigo)
+                    .frame(width: 46, height: 46)
+                    .background(Color.indigo.opacity(0.15), in: .circle)
+            } action: {
+                if let price {
+                    PowerUpPriceButton(price: price, canAfford: canAfford,
+                                       label: "Buy Offline Mining level \(level + 1) for \(CoinFormat.cost(price)) coins") {
+                        if store.buyOfflineMining() { purchases += 1 } else { refusals += 1 }
+                    }
+                } else {
+                    MaxedBadge()
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            if let price {
-                Button {
-                    if store.buyOfflineMining() { purchases += 1 } else { refusals += 1 }
-                } label: {
-                    Text(CoinFormat.cost(price))
-                        .font(.subheadline.weight(.bold).monospacedDigit())
-                        .frame(minWidth: 72)
-                }
-                .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
-                .fixedSize()
-                .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
-                .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
-                .accessibilityLabel("Buy Offline Mining level \(level + 1) for \(CoinFormat.cost(price)) coins")
-            } else {
-                Label("Max", systemImage: "checkmark.circle.fill")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.green)
+            Text(level == 0
+                 ? "Miners stop a minute after you leave the app. Keep them mining while it's closed."
+                 : "Miners keep earning for \(CoinFormat.duration(cap)) after you leave the app.")
+                .font(.subheadline)
+                .foregroundStyle(.subtext)
+                .fixedSize(horizontal: false, vertical: true)
+            if price != nil {
+                Label("Next level: \(CoinFormat.duration(nextCap))", systemImage: "arrow.up.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.indigo)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .rowCard()
+        .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
+        .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
     }
 }
 
-/// A combo power-up: its level as a row of pips, what it gives now, what the next level adds, and
-/// the price of the next level. Kept when you prestige.
+/// A combo power-up: a header with its name, level and price, its level as a bar of pips across the
+/// card, what it gives now and what the next level adds. Kept when you prestige.
 struct PowerUpRow: View {
     let powerUp: PowerUpID
     let level: Int
@@ -329,50 +313,38 @@ struct PowerUpRow: View {
     @State private var refusals = 0
 
     var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: powerUp.symbol)
-                .font(.title3.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(width: 52, height: 52)
-                .background(powerUp.color.gradient, in: .circle)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 5) {
-                Text(powerUp.name)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                LevelPips(level: level, maxLevel: powerUp.maxLevel, color: powerUp.color)
-                Text(level == 0 ? powerUp.summary : powerUp.effect(atLevel: level))
-                    .font(.subheadline.weight(level == 0 ? .regular : .semibold))
-                    .foregroundStyle(level == 0 ? Theme.subtext : .primary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if price != nil {
-                    Label("Next: \(powerUp.effect(atLevel: level + 1))", systemImage: "arrow.up.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(powerUp.color)
+        VStack(alignment: .leading, spacing: 10) {
+            PowerUpHeader(title: powerUp.name, subtitle: "Level \(level) of \(powerUp.maxLevel)") {
+                Image(systemName: powerUp.symbol)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 46, height: 46)
+                    .background(powerUp.color.gradient, in: .circle)
+            } action: {
+                if let price {
+                    PowerUpPriceButton(price: price, canAfford: canAfford,
+                                       label: "Buy \(powerUp.name) level \(level + 1) for \(CoinFormat.cost(price)) coins") {
+                        if store.buyPowerUp(powerUp) { purchases += 1 } else { refusals += 1 }
+                    }
+                } else {
+                    MaxedBadge()
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            if let price {
-                Button {
-                    if store.buyPowerUp(powerUp) { purchases += 1 } else { refusals += 1 }
-                } label: {
-                    Text(CoinFormat.cost(price))
-                        .font(.subheadline.weight(.bold).monospacedDigit())
-                        .frame(minWidth: 72)
-                }
-                .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
-                .fixedSize()
-                .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
-                .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
-                .accessibilityLabel("Buy \(powerUp.name) level \(level + 1) for \(CoinFormat.cost(price)) coins")
-            } else {
-                Label("Max", systemImage: "checkmark.circle.fill")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.green)
+            LevelPips(level: level, maxLevel: powerUp.maxLevel, color: powerUp.color)
+            Text(level == 0 ? powerUp.summary : powerUp.effect(atLevel: level))
+                .font(.subheadline.weight(level == 0 ? .regular : .semibold))
+                .foregroundStyle(level == 0 ? Theme.subtext : .primary)
+                .fixedSize(horizontal: false, vertical: true)
+            if price != nil {
+                Label("Next: \(powerUp.effect(atLevel: level + 1))", systemImage: "arrow.up.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(powerUp.color)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .rowCard()
+        .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
+        .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
         .accessibilityElement(children: .contain)
     }
 }
@@ -383,48 +355,101 @@ struct LockedPowerUpRow: View {
     let required: PowerUpID
 
     var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "lock.fill")
-                .font(.title3.weight(.bold))
-                .foregroundStyle(powerUp.color)
-                .frame(width: 52, height: 52)
-                .background(powerUp.color.opacity(0.15), in: .circle)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(powerUp.name)
-                    .font(.headline)
-                Text(powerUp.summary)
-                    .font(.subheadline)
-                    .foregroundStyle(.subtext)
-                    .fixedSize(horizontal: false, vertical: true)
-                Label("Opens when \(required.name) reaches level \(required.maxLevel)", systemImage: "lock.open.fill")
-                    .font(.subheadline.weight(.semibold))
+        VStack(alignment: .leading, spacing: 10) {
+            PowerUpHeader(title: powerUp.name, subtitle: "Locked") {
+                Image(systemName: "lock.fill")
+                    .font(.title3.weight(.bold))
                     .foregroundStyle(powerUp.color)
+                    .frame(width: 46, height: 46)
+                    .background(powerUp.color.opacity(0.15), in: .circle)
+            } action: {
+                EmptyView()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(powerUp.summary)
+                .font(.subheadline)
+                .foregroundStyle(.subtext)
+                .fixedSize(horizontal: false, vertical: true)
+            Label("Opens when \(required.name) reaches level \(required.maxLevel)", systemImage: "lock.open.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(powerUp.color)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .rowCard()
         .accessibilityElement(children: .combine)
     }
 }
 
-/// Filled and empty pips for a level, out of the last level.
+/// The top line of a power-up card: its icon, its name with a line under it, and the buy button (or
+/// Max) at the far end, so the details below get the card's whole width.
+private struct PowerUpHeader<Icon: View, Action: View>: View {
+    let title: String
+    let subtitle: String
+    @ViewBuilder let icon: Icon
+    @ViewBuilder let action: Action
+
+    var body: some View {
+        HStack(spacing: 12) {
+            icon
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text(subtitle)
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(.subtext)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            action
+        }
+    }
+}
+
+/// The price of a power-up's next level, as a button: filled when it's affordable.
+private struct PowerUpPriceButton: View {
+    let price: Double
+    let canAfford: Bool
+    let label: String
+    let buy: () -> Void
+
+    var body: some View {
+        Button(action: buy) {
+            Text(CoinFormat.cost(price))
+                .font(.subheadline.weight(.bold).monospacedDigit())
+                .frame(minWidth: 64)
+        }
+        .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
+        .fixedSize()
+        .accessibilityLabel(label)
+    }
+}
+
+/// Shown instead of a price once a power-up is at its last level.
+private struct MaxedBadge: View {
+    var body: some View {
+        Label("Max", systemImage: "checkmark.circle.fill")
+            .font(.subheadline.weight(.bold))
+            .foregroundStyle(.green)
+    }
+}
+
+/// A power-up's level as a bar of pips across the card: filled up to the level reached.
 struct LevelPips: View {
     let level: Int
     let maxLevel: Int
     let color: Color
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 5) {
             ForEach(0..<maxLevel, id: \.self) { index in
                 Capsule()
-                    .fill(index < level ? AnyShapeStyle(color.gradient) : AnyShapeStyle(color.opacity(0.18)))
-                    .frame(width: 18, height: 7)
+                    .fill(index < level ? AnyShapeStyle(color.gradient) : AnyShapeStyle(color.opacity(0.2)))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 8)
             }
-            Text("Level \(level) of \(maxLevel)")
-                .font(.subheadline.weight(.semibold).monospacedDigit())
-                .foregroundStyle(.subtext)
-                .padding(.leading, 4)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Level \(level) of \(maxLevel)")

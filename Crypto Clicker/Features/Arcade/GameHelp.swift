@@ -130,22 +130,17 @@ struct GameRulesPage: View {
             }
         }
         .labelStyle(HelpLabelStyle(tint: game.color))
-        .navigationTitle("How to Play \(game.name)")
+        .navigationTitle("How to Play")
         .navigationBarTitleDisplayMode(.inline)
-        // A long title like "How to Play Bubble Blaster" would be pushed off center by the bar's
-        // buttons, so it's set in two short centered lines instead.
+        // One short line, a little larger than a usual title: the game's name and icon open the page.
         .toolbar {
             ToolbarItem(placement: .principal) {
-                VStack(spacing: 0) {
-                    Text("How to Play")
-                        .font(.footnote.weight(.bold))
-                        .foregroundStyle(Theme.accent)
-                    Text(game.name)
-                        .font(.headline)
-                }
-                .multilineTextAlignment(.center)
-                .accessibilityElement(children: .combine)
-                .accessibilityAddTraits(.isHeader)
+                Text("How to Play")
+                    .font(.title3.bold())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .accessibilityLabel("How to Play \(game.name)")
+                    .accessibilityAddTraits(.isHeader)
             }
         }
     }

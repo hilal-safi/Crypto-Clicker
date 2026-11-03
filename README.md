@@ -41,6 +41,7 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 - **Airdrops.** Every 3–6 minutes an airdrop falls. Catch it within 20 seconds for a pile of coins, or for
   a 60-second Bull Run that multiplies production ×7 (the screen's edges burn red while it lasts). One in twenty is a whale worth up to an hour of income
   (early in a run, no more than the run has mined so far, so a lucky whale can't skip the opening).
+  Statistics counts the ones caught and missed and lists the last ten with what each paid.
 - **Daily.** From the second day: a daily reward with a streak that builds to an hour of income on day
   7, and three new quests every day. The first day is for learning to mine, without big handouts.
 - **Daily challenge.** From the second day, each day picks a challenge in one of your games: a score in
@@ -82,13 +83,15 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   - **Snake:** Classic in four arenas or a one-minute Coin Rush, with Speed Boost (coins count
     double), Slow Motion, Shield and Coin Magnet power-ups.
   - **Brick Breaker:** armored, explosive and bonus bricks, Multi-ball, Wide Paddle, Slow Ball and
-    Laser power-ups, and a boss with a health bar every fifth level. Play the classic walls or random
-    ones made up for every game, about as hard and paying about the same.
+    Laser power-ups, and a boss with a health bar every fifth level. Its start screen, like Token
+    Swap's, shows the level track (play starts at level 1), Random Walls made up for every game (about
+    as hard and paying about the same) and the ball's speed.
   - **Bubble Blaster:** waves that add colors and grow deeper, a streak that adds 10% a pop (up to
     double) and earns Rainbow and Bomb bubbles, gold bonus bubbles, and a ring where the shot will land.
   - Snake and 2048 are played with swipes anywhere on the screen.
-  - Tetris, Snake and Brick Breaker have Options for their speed (Slow, Normal or Fast): a point is
-    worth the same at every speed, so Fast scores sooner and Slow is relaxed. Every action game pauses.
+  - Tetris and Snake have Options for their speed, and Brick Breaker sets it on its start screen
+    (Slow, Normal or Fast): a point is worth the same at every speed, so Fast scores sooner and Slow is
+    relaxed. Every action game pauses, and a swipe in from the left edge leaves it.
 - **Pump and Dump.** Whack the coins as they pop up, round after round: each 30-second round has a
   score goal to reach and a bonus objective (a combo, golden coins, or no mistakes), and each is
   quicker than the last, with more scam tokens and rug pulls (coins with a red rim that shake, then turn).
@@ -99,8 +102,9 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   star paying coins the first time; a daily puzzle with the same board for everyone, paid once a day;
   random levels made up from a seed in three difficulties, never the same twice, with a bonus for each
   win; or Classic, a minute to score as much as you can.
-- **How to Play.** In the Settings tab: a guide to every part of the game, then the full rules of every
-  mini-game. Each game also explains its goal, controls, scoring,
+- **How to Play.** In the Settings tab: a guide to every part of the game in five groups (Mining,
+  Rewards, Tokens and Games, Progress, Beyond the App), each topic a line and a few short points, then
+  the full rules of every mini-game. Each game also explains its goal, controls, scoring,
   specials and hazards, how it ends, and a few tips, opening by itself the first time, from a button in
   the game, and from the pause card. A tip on the home screen points new players to it.
 - **Arcade Rank.** Finishing games earns XP, with more for a new best, the first game of each kind
@@ -111,20 +115,27 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   Token Swap levels, clearing Pump and Dump rounds and reaching 2048 tile goals.
 - **Trophies.** 60 achievements with bronze, silver, gold and mythic tiers, each card glinting in the
   metal it has earned. Each star adds 1% production forever, and stars unlock new finishes for the coin.
+  The Goals page lists what to aim for next, each with how close it is: the next miner, the nearest
+  milestone, the cheapest upgrade and game, the star closest to done, the next Arcade Rank and Token
+  Swap level, and the next prestige.
 - **Prestige.** Once you've mined 15 billion coins in all, start a new run for prestige points. Points
   grow with the cube root of lifetime coins, so each prestige takes longer than the last. Every point
   adds 5% production forever, and points buy permanent perks in three branches (Mining, Tapping and
   Fortune); the last few take about three weeks to afford. The Shop suggests prestiging once it would
   make you at least half as fast again: for someone who checks in four times a day, around day five.
-- **Difficulty.** In Settings, with what each one does: Easy mines 50% more but prestiges earn half the
-  points; Hard mines 40% less and prestiges earn 50% more. Everything that follows income moves with
-  it; prices don't. A run's prestige points use the easiest difficulty picked since it began.
+  Tokens reset, and so does anything riding on them (a bet, a poker hand, a flight, free spins).
+- **Difficulty.** In Settings, each with what it does in a line (an info button explains the rest): Easy
+  mines 50% more but prestiges earn half the points; Hard mines 40% less and prestiges earn 50% more.
+  Everything that follows income moves with it; prices don't. A run's prestige points use the easiest
+  difficulty picked since it began.
 - **Notifications.** Optional reminders when Offline Mining runs out and when a daily reward is waiting.
 - **Statistics.** In Settings: a chart of income over the last day, week or month, or all time (a point
   a minute, with times in hours and minutes at first, then hours, days and months as the range grows,
   and a scale in steps of ten once income has grown a hundredfold), plus everything the game counts
   (win streaks, biggest wins, what the casino paid back, records for every game), in short form or with
-  every digit. Your Journey lists when each first happened: every miner tier, each game, Offline
+  every digit. Each game has a card with its best score (or biggest win) up top and its records as
+  tiles; miners show their Mk upgrade and share of income, tokens what they're worth now, and airdrops
+  what they've paid. Your Journey lists when each first happened: every miner tier, each game, Offline
   Mining, every thousandfold of coins and the first prestige. Tapping the rates under the balance (or
   the bar at the bottom of the other tabs) shows where every coin comes from: each miner's share,
   automatic taps, multipliers and what makes up a tap.
@@ -145,7 +156,7 @@ Crypto Clicker/                 iPhone and iPad app
   Design/                       Theme, backgrounds, coin finishes, Liquid Glass cards, shared components
   Features/                     Mine (with Statistics, the income chart and the journey), Shop (miners,
                                 power-ups, prestige and perks), Exchange (the Shop's Tokens page),
-                                Arcade (eleven games), Trophies (daily and achievements), Settings
+                                Arcade (eleven games), Trophies (goals, daily and achievements), Settings
 Crypto Clicker Watch App/       Apple Watch app
 CryptoClickerKit/               Swift package with all game rules, shared by both apps
   Sources/CryptoClickerKit/
@@ -182,15 +193,20 @@ Config/                         Entitlements
   earlier saves load unchanged.
 - **Safety nets.** An unfinished Blackjack bet or To the Moon flight is saved and refunded if the app
   closes mid-round (leaving a flight normally cashes it out first), and an unfinished Video Poker hand
-  is played out with the suggested holds. An arcade game left mid-run is paid on the next launch. Watch taps are written to disk the moment they arrive.
-  A save that can't be read yet (before the first unlock after a restart) is never overwritten.
+  is played out with the suggested holds. An arcade game left mid-run is paid on the next launch, with
+  its records and Arcade XP. Watch taps are written to disk the moment they arrive.
+  A save that can't be read yet (before the first unlock after a restart) is never overwritten. One
+  that can't be read at all is set aside under a new name, and the app asks whether to try again or
+  start a new game; nothing is saved until you choose.
 - **Steps.** The iPhone reads daily totals from HealthKit statistics queries, which merge iPhone and Apple
   Watch samples without double counting. A ledger remembers how many steps of each day have been paid,
   so syncing is safe to repeat at any time and late-arriving data is still paid.
 - **Apple Watch.** The phone sends the watch a snapshot: balance, income rates, any active boost and
   step info. The watch projects the balance forward on its own. Watch taps travel back as batches through
-  `transferUserInfo`, which is queued, ordered and survives either app quitting. The phone applies each
-  batch exactly once by its ID.
+  `transferUserInfo`, which is queued, ordered and survives either app quitting. Each watch numbers its
+  batches, and the phone applies each number once and sends back the last number it applied, so the
+  watch clears exactly what's been paid, however many batches arrive together. (Batches from older
+  versions are still matched by ID.)
 
 ## Tests
 

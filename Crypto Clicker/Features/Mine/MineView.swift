@@ -27,13 +27,18 @@ struct MineView: View {
         NavigationStack {
             // The coin takes the room the other items leave, from 200 points up to 320 (and larger
             // still on a new game, with nothing under it yet). When even 200 doesn't fit (a small
-            // iPhone with very large text), the page scrolls instead.
-            ViewThatFits(in: .vertical) {
-                content
-                ScrollView {
-                    content
+            // iPhone with very large text), the page scrolls instead. The balance sits a twentieth
+            // of the screen below the top, clear of the status bar.
+            GeometryReader { proxy in
+                let topPadding = (proxy.size.height * 0.05).rounded()
+                ViewThatFits(in: .vertical) {
+                    content(topPadding: topPadding)
+                    ScrollView {
+                        content(topPadding: topPadding)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
                 }
-                .scrollBounceBehavior(.basedOnSize)
+                .frame(width: proxy.size.width, height: proxy.size.height)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
@@ -50,7 +55,7 @@ struct MineView: View {
         }
     }
 
-    private var content: some View {
+    private func content(topPadding: CGFloat) -> some View {
         let game = store.game
         let now = Date.now
         // A new game has no cards under the coin yet, so the coin grows into the room and sits in
@@ -62,11 +67,15 @@ struct MineView: View {
                           income: game.idleIncome(at: now), tapValue: game.tapValue(at: now), openIncome: openIncome) {
                 withAnimation(.snappy) { exactNumbers.toggle() }
             }
-            CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers,
-                       finish: finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold,
-                       maxSize: hasCards ? CoinButton.maximumSize : CoinButton.freshMaximumSize) {
-                effects.rainCoins()
-                return store.tap()
+            GeometryReader { proxy in
+                let cap = hasCards ? CoinButton.maximumSize : CoinButton.freshMaximumSize
+                CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers,
+                           finish: finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold,
+                           maxSize: CoinButton.size(in: proxy.size, cap: cap)) {
+                    effects.rainCoins()
+                    return store.tap()
+                }
+                .frame(width: proxy.size.width, height: proxy.size.height)
             }
             .frame(minHeight: CoinButton.minimumSize, idealHeight: CoinButton.minimumSize, maxHeight: .infinity)
             .animation(.smooth, value: hasCards)
@@ -83,6 +92,7 @@ struct MineView: View {
             StepsCard(learnMore: { showingStepsIntro = true })
         }
         .padding(.horizontal, 20)
+        .padding(.top, topPadding)
         .padding(.bottom, 12)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
@@ -220,6 +230,17 @@ struct CoinButton: View {
     static let maximumSize: CGFloat = 320
     /// ...and the largest on a new game, with nothing under it yet (width allowing).
     static let freshMaximumSize: CGFloat = 420
+    /// Share of the room above and below the coin that the coin grows into, so it isn't lost in
+    /// space: 15% less padding around it.
+    static let spareRoomTaken: CGFloat = 0.15
+
+    /// The coin's size in an area: as big as `cap` allows, then grown into 15% of the room left
+    /// above and below it, never wider than the area.
+    static func size(in area: CGSize, cap: CGFloat) -> CGFloat {
+        let fitted = min(cap, area.width, area.height)
+        let spare = max(0, area.height - fitted)
+        return max(0, min(area.width, fitted + spare * spareRoomTaken))
+    }
 
     /// Coins one tap earns without a combo: always a whole number.
     let tapValue: Double

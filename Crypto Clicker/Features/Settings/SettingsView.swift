@@ -76,9 +76,9 @@ struct SettingsView: View {
                     Toggle("Daily Reward", isOn: $notifyDaily)
                         .onChange(of: notifyDaily) { _, isOn in checkPermission(isOn) { notifyDaily = false } }
                 } header: {
-                    Text("Notifications")
+                    SettingsHeader("Notifications", info: "Sent only while the game is closed: when Offline Mining runs out (if you have half an hour of it or more), and when a daily reward is waiting to be claimed.")
                 } footer: {
-                    SettingsNote("Only while the game is closed: when Offline Mining runs out (from half an hour of it), and when a daily reward is waiting.")
+                    SettingsNote("Sent only while the game is closed.")
                 }
 
                 difficultySection(game)
@@ -92,7 +92,7 @@ struct SettingsView: View {
                 Section {
                     Button("Reset All Progress", role: .destructive) { confirmingReset = true }
                 } footer: {
-                    SettingsNote("Erases coins, miners, upgrades, power-ups, tokens, prestige points, perks, achievements, daily streaks and statistics.")
+                    SettingsNote("Erases everything, prestige and achievements included.")
                 }
 
                 Section("About") {
@@ -103,7 +103,7 @@ struct SettingsView: View {
                 Section {
                     Button("Testing Tools", systemImage: "ladybug") { showingTestingTools = true }
                 } footer: {
-                    SettingsNote("Add coins, tokens and miners, unlock everything and trigger events. Only in builds run from Xcode.")
+                    SettingsNote("Only in builds run from Xcode.")
                 }
                 #endif
             }
@@ -139,8 +139,8 @@ struct SettingsView: View {
         showingHowToPlay = true
     }
 
-    /// The three difficulties side by side with what each changes, the current one ticked, and how
-    /// switching works during a run.
+    /// The three difficulties, one line each with what they change, the current one ticked. How
+    /// switching works during a run is behind the ⓘ.
     private func difficultySection(_ game: GameState) -> some View {
         Section {
             ForEach(Difficulty.allCases) { difficulty in
@@ -153,15 +153,12 @@ struct SettingsView: View {
             }
             if game.runPrestigeMultiplier < game.difficulty.prestigeMultiplier {
                 let kept = Difficulty.allCases.first { $0.prestigeMultiplier == game.runPrestigeMultiplier } ?? .easy
-                Label("This run keeps \(kept.name)'s prestige points (\(CoinFormat.multiplier(kept.prestigeMultiplier))), the easiest difficulty used since it began. Your next run gets \(game.difficulty.name)'s \(CoinFormat.multiplier(game.difficulty.prestigeMultiplier)).",
-                      systemImage: "info.circle.fill")
+                Label("This run keeps \(kept.name)'s prestige points until you prestige.", systemImage: "info.circle.fill")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Theme.accent)
             }
         } header: {
-            Text("Difficulty")
-        } footer: {
-            SettingsNote("Easy makes mining faster but prestiges pay fewer points; Hard makes it slower but prestiges pay more. Everything that follows your income moves with your miners: the income part of each tap, steps, airdrops and game prizes. Prices stay the same. A run's prestige points use the easiest difficulty picked since it began, so switching to Hard just before prestiging doesn't pay extra; a run that hasn't started mining yet takes the new difficulty in full.")
+            SettingsHeader("Difficulty", info: "Easy mines faster, but prestiges pay fewer points; Hard mines slower and pays more. Everything that follows your income moves with it (the income part of each tap, steps, airdrops and game prizes); prices stay the same.\n\nA run's prestige points use the easiest difficulty picked since it began, so switching to Hard just before prestiging doesn't pay extra. Before your first miner, a new difficulty applies in full.")
         }
     }
 
@@ -176,12 +173,12 @@ struct SettingsView: View {
                                value: "\(CoinFormat.grouped(game.tapsUntilSteps)) to go")
             } else if game.steps.isConnected {
                 let today = store.today
-                LabeledContent("Each step pays", value: "\(CoinFormat.short(game.stepValue)) coins, the next day")
+                LabeledContent("Each step pays", value: Self.coins(game.stepValue))
                 if game.steps.todayKey == today {
-                    LabeledContent("Today so far", value: "\(CoinFormat.grouped(game.steps.todaySteps)) steps · ≈ +\(CoinFormat.short(game.pendingStepCoins(today: today))) tomorrow")
+                    LabeledContent("Today", value: "\(CoinFormat.grouped(game.steps.todaySteps)) steps")
+                    LabeledContent("Pays tomorrow", value: "≈ \(Self.coins(game.pendingStepCoins(today: today)))")
                 }
                 LabeledContent("Steps walked", value: CoinFormat.grouped(game.stats.lifetimeSteps))
-                LabeledContent("Steps paid for", value: CoinFormat.grouped(game.stats.stepsPaid))
                 if let lastSync = game.steps.lastSync {
                     LabeledContent("Last synced") {
                         Text(lastSync, style: .relative)
@@ -204,10 +201,15 @@ struct SettingsView: View {
                 }
             }
         } header: {
-            Text("Apple Health")
+            SettingsHeader("Apple Health", info: "Each day's steps are paid the next day, at your step value then, and count toward quests and achievements right away. Steps from your iPhone and Apple Watch are combined by Apple Health, and each one is paid once.\n\nIf no steps appear, allow access in the Health app under Sharing › Apps › Crypto Clicker.")
         } footer: {
-            SettingsNote("Each day's steps are paid the next day, at that day's step value; today's count toward quests and achievements right away. Steps from your iPhone and Apple Watch are combined by Apple Health and each one is paid once. If no steps appear, allow access in the Health app under Sharing › Apps › Crypto Clicker.")
+            SettingsNote("Steps are paid the day after you walk them.")
         }
+    }
+
+    /// "1 coin", "250 coins", "1.2M coins".
+    private static func coins(_ amount: Double) -> String {
+        amount == 1 ? "1 coin" : "\(CoinFormat.short(amount)) coins"
     }
 
     /// Asks for permission when a reminder is switched on, and switches it back off if it's refused.
@@ -284,56 +286,52 @@ private struct SettingsLinkLabel: View {
     }
 }
 
-/// One difficulty: what it does to production and to prestige points, ticked when it's the one in use.
+/// One difficulty on one line: its name and what it changes, ticked when it's the one in use.
 private struct DifficultyRow: View {
     let difficulty: Difficulty
     let isSelected: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(spacing: 12) {
             Image(systemName: symbol)
-                .font(.title3.weight(.semibold))
+                .font(.body.weight(.semibold))
                 .foregroundStyle(isSelected ? .white : color)
-                .frame(width: 40, height: 40)
+                .frame(width: 34, height: 34)
                 .background(isSelected ? AnyShapeStyle(color.gradient) : AnyShapeStyle(color.opacity(0.15)), in: .circle)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(difficulty.name)
                     .font(.headline)
-                Label(production, systemImage: "cpu")
-                Label(prestige, systemImage: "rosette")
+                Text(effects)
+                    .font(.subheadline)
+                    .foregroundStyle(.subtext)
             }
-            .font(.subheadline)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .font(.title2)
-                .foregroundStyle(isSelected ? color : Theme.subtext)
-                .accessibilityHidden(true)
+            Spacer(minLength: 8)
+            if isSelected {
+                Image(systemName: "checkmark")
+                    .font(.headline)
+                    .foregroundStyle(Theme.accent)
+                    .accessibilityHidden(true)
+            }
         }
-        .padding(.vertical, 4)
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
-    private var production: String {
-        let factor = difficulty.productionMultiplier
-        if factor == 1 { return "Miners produce the usual amount" }
-        return factor > 1 ? "Miners produce \(CoinFormat.percent(factor - 1)) more" : "Miners produce \(CoinFormat.percent(1 - factor)) less"
-    }
-
-    private var prestige: String {
-        let factor = difficulty.prestigeMultiplier
-        if factor == 1 { return "Prestiges earn the usual points" }
-        if factor == 0.5 { return "Prestiges earn half the points" }
-        return factor > 1 ? "Prestiges earn \(CoinFormat.percent(factor - 1)) more points" : "Prestiges earn \(CoinFormat.percent(1 - factor)) fewer points"
+    /// "Mining +50% · prestige points ×0.5".
+    private var effects: String {
+        let production = difficulty.productionMultiplier, prestige = difficulty.prestigeMultiplier
+        guard production != 1 || prestige != 1 else { return "Standard mining and prestige points" }
+        let mining = production > 1 ? "Mining +\(CoinFormat.percent(production - 1))" : "Mining −\(CoinFormat.percent(1 - production))"
+        return "\(mining) · prestige points \(CoinFormat.multiplier(prestige))"
     }
 
     private var symbol: String {
         switch difficulty {
-        case .easy: "tortoise.fill"
-        case .normal: "scalemass.fill"
-        case .hard: "flame.fill"
+        case .easy: "gauge.with.dots.needle.0percent"
+        case .normal: "gauge.with.dots.needle.50percent"
+        case .hard: "gauge.with.dots.needle.100percent"
         }
     }
 
@@ -342,6 +340,50 @@ private struct DifficultyRow: View {
         case .easy: .green
         case .normal: .blue
         case .hard: .red
+        }
+    }
+}
+
+/// A section header with an ⓘ at its end that explains the section in a popover, so the page
+/// doesn't carry paragraphs.
+struct SettingsHeader: View {
+    let title: String
+    let info: String
+    @State private var isShowingInfo = false
+
+    init(_ title: String, info: String) {
+        self.title = title
+        self.info = info
+    }
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Button {
+                isShowingInfo = true
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                    .frame(minWidth: 32, minHeight: 32)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .textCase(nil)
+            .accessibilityLabel("About \(title)")
+            .popover(isPresented: $isShowingInfo) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .font(.headline)
+                    Text(info)
+                        .font(.subheadline)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(16)
+                .frame(width: 300, alignment: .leading)
+                .presentationCompactAdaptation(.popover)
+            }
         }
     }
 }

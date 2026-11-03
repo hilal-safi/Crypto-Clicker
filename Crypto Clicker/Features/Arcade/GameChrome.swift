@@ -6,7 +6,8 @@ import CryptoClickerKit
 
 extension View {
     /// Shared behavior for a game screen: toasts and airdrops wait until it closes, and games
-    /// played with drags turn off swipe-to-go-back so a drag is never taken as "back".
+    /// played with drags turn off iOS 26's swipe-back from anywhere, so a drag is never taken as
+    /// "back". The swipe from the left edge still goes back.
     func gameScreen(blocksSwipeBack: Bool = false) -> some View {
         modifier(GameScreen(blocksSwipeBack: blocksSwipeBack))
     }
@@ -30,9 +31,10 @@ private struct GameScreen: ViewModifier {
     }
 }
 
-/// Switches off the navigation swipe-back gestures (from the edge, and iOS 26's swipe from
-/// anywhere) while a game is on screen. The back button still works, and the gestures come
-/// back as soon as the game closes.
+/// Switches off iOS 26's swipe-back from anywhere while a game is on screen, so a drag across the
+/// board is never taken as "back". The swipe from the left edge still goes back (the game ends
+/// and pays what it scored, as with the back button), and everything is restored when the game
+/// closes.
 private struct SwipeBackBlocker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> Controller { Controller() }
 
@@ -51,7 +53,7 @@ private struct SwipeBackBlocker: UIViewControllerRepresentable {
 
         private func setSwipeBack(enabled: Bool) {
             guard let navigation = navigationController else { return }
-            navigation.interactivePopGestureRecognizer?.isEnabled = enabled
+            navigation.interactivePopGestureRecognizer?.isEnabled = true
             navigation.interactiveContentPopGestureRecognizer?.isEnabled = enabled
         }
     }
@@ -165,6 +167,56 @@ struct GamePanel<Content: View>: View {
     }
 }
 
+/// One way to play on a game's start screen (Token Swap's and Brick Breaker's): an icon, a title
+/// with a status line, what it is, an optional note, and its buttons.
+struct ModeCard<Buttons: View>: View {
+    let tint: Color
+    let icon: String
+    let title: String
+    let status: String
+    let detail: String
+    let note: String?
+    @ViewBuilder let buttons: Buttons
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 46, height: 46)
+                    .background(tint.gradient, in: .rect(cornerRadius: 12))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.title3.bold())
+                    Text(status)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                }
+            }
+            Text(detail)
+                .font(.body)
+                .fixedSize(horizontal: false, vertical: true)
+            if let note {
+                Label(note, systemImage: "info.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            ViewThatFits {
+                HStack(spacing: 10) { buttons }
+                VStack(spacing: 8) { buttons }
+            }
+            .font(.headline)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: 22)
+        .accessibilityElement(children: .contain)
+    }
+}
+
 /// What a finished arcade game earned. Everything is large enough to read at a glance: the
 /// panel has room to spare.
 struct GameOverSummary: View {
@@ -269,7 +321,6 @@ struct GameIntro: View {
 struct GameOptionsSheet: View {
     let game: MiniGame
     @Binding var speed: GameSpeed
-    var levels: Binding<BrickBreakerGame.LevelStyle>? = nil
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -287,27 +338,6 @@ struct GameOptionsSheet: View {
                     Text("Speed")
                 } footer: {
                     SettingsNote(speedFooter)
-                }
-                if let levels {
-                    Section {
-                        Picker("Walls", selection: levels) {
-                            ForEach(BrickBreakerGame.LevelStyle.allCases) { style in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(style.name)
-                                    Text(style.summary)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.subtext)
-                                }
-                                .tag(style)
-                            }
-                        }
-                        .pickerStyle(.inline)
-                        .labelsHidden()
-                    } header: {
-                        Text("Walls")
-                    } footer: {
-                        SettingsNote("Both kinds take about as many hits and pay about the same; a boss still comes every fifth level.")
-                    }
                 }
             }
             .navigationTitle("Options")
@@ -334,31 +364,23 @@ struct GameOptionsSheet: View {
 /// The options on a game's start card, as a button that opens them.
 struct GameOptionsChip: View {
     let speed: GameSpeed
-    var levels: BrickBreakerGame.LevelStyle? = nil
     let change: () -> Void
 
     var body: some View {
         Button(action: change) {
-            Label(summary, systemImage: speed.icon)
+            Label("\(speed.name) speed", systemImage: speed.icon)
                 .font(.subheadline.weight(.semibold))
         }
         .buttonStyle(.glass)
-        .accessibilityLabel("Options: \(summary)")
-        .accessibilityHint("Changes the speed\(levels == nil ? "" : " and the walls")")
-    }
-
-    private var summary: String {
-        var parts = ["\(speed.name) speed"]
-        if let levels { parts.append(levels == .generated ? "random walls" : "classic walls") }
-        return parts.joined(separator: " · ")
+        .accessibilityLabel("Options: \(speed.name) speed")
+        .accessibilityHint("Changes the speed")
     }
 }
 
 extension View {
     /// The Options button in a game's navigation bar, and the sheet it opens. The options apply to
     /// the next game, so the button waits while a game is on.
-    func gameOptions(_ game: MiniGame, isPresented: Binding<Bool>, isEnabled: Bool, speed: Binding<GameSpeed>,
-                     levels: Binding<BrickBreakerGame.LevelStyle>? = nil) -> some View {
+    func gameOptions(_ game: MiniGame, isPresented: Binding<Bool>, isEnabled: Bool, speed: Binding<GameSpeed>) -> some View {
         toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Options", systemImage: "slider.horizontal.3") { isPresented.wrappedValue = true }
@@ -366,7 +388,7 @@ extension View {
             }
         }
         .sheet(isPresented: isPresented) {
-            GameOptionsSheet(game: game, speed: speed, levels: levels)
+            GameOptionsSheet(game: game, speed: speed)
         }
     }
 }

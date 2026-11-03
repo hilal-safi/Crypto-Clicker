@@ -35,20 +35,98 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
     /// Rush. 0 for the other games and modes.
     public let stage: Int
 
+    /// Everything else the game reports when it ends, so a run paid on the next launch keeps all
+    /// of its statistics (and earns its Arcade XP) as if it had ended normally.
+    public let records: Records
+
     /// The `stage` of a daily 2048 puzzle, which pays like one rather than a Classic game.
     public static let dailyStage = 1
     /// The `stage` of a Snake Coin Rush, which pays and keeps its record like one.
     public static let coinRushStage = 1
 
-    public init(game: MiniGame, score: Int, detail: Int, extra: Int = 0, stage: Int = 0) {
+    /// The rest of a game's end-of-game report. Each game fills in its own; the rest stay 0.
+    public struct Records: Codable, Equatable, Sendable {
+        /// Tetris: the level reached, the best combo and the Tetrises cleared.
+        public var level: Int
+        public var bestCombo: Int
+        public var tetrises: Int
+        /// Snake: coins eaten and seconds played.
+        public var coins: Int
+        public var seconds: Double
+        /// Snake and Brick Breaker: power-ups collected.
+        public var powerUps: Int
+        /// Brick Breaker: bosses beaten.
+        public var bosses: Int
+        /// Brick Breaker and Bubble Blaster: the best streak.
+        public var bestStreak: Int
+        /// Bubble Blaster: gold bonus bubbles.
+        public var bonuses: Int
+        /// Pump and Dump: scam tokens hit.
+        public var scamsHit: Int
+        /// Token Swap: specials set off.
+        public var specials: Int
+
+        public init(level: Int = 0, bestCombo: Int = 0, tetrises: Int = 0, coins: Int = 0, seconds: Double = 0,
+                    powerUps: Int = 0, bosses: Int = 0, bestStreak: Int = 0, bonuses: Int = 0, scamsHit: Int = 0,
+                    specials: Int = 0) {
+            self.level = level
+            self.bestCombo = bestCombo
+            self.tetrises = tetrises
+            self.coins = coins
+            self.seconds = seconds
+            self.powerUps = powerUps
+            self.bosses = bosses
+            self.bestStreak = bestStreak
+            self.bonuses = bonuses
+            self.scamsHit = scamsHit
+            self.specials = specials
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case level, bestCombo, tetrises, coins, seconds, powerUps, bosses, bestStreak, bonuses, scamsHit, specials
+        }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            level = c.value(.level, default: 0)
+            bestCombo = c.value(.bestCombo, default: 0)
+            tetrises = c.value(.tetrises, default: 0)
+            coins = c.value(.coins, default: 0)
+            seconds = c.value(.seconds, default: 0)
+            powerUps = c.value(.powerUps, default: 0)
+            bosses = c.value(.bosses, default: 0)
+            bestStreak = c.value(.bestStreak, default: 0)
+            bonuses = c.value(.bonuses, default: 0)
+            scamsHit = c.value(.scamsHit, default: 0)
+            specials = c.value(.specials, default: 0)
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            if level != 0 { try c.encode(level, forKey: .level) }
+            if bestCombo != 0 { try c.encode(bestCombo, forKey: .bestCombo) }
+            if tetrises != 0 { try c.encode(tetrises, forKey: .tetrises) }
+            if coins != 0 { try c.encode(coins, forKey: .coins) }
+            if seconds != 0 { try c.encode(seconds, forKey: .seconds) }
+            if powerUps != 0 { try c.encode(powerUps, forKey: .powerUps) }
+            if bosses != 0 { try c.encode(bosses, forKey: .bosses) }
+            if bestStreak != 0 { try c.encode(bestStreak, forKey: .bestStreak) }
+            if bonuses != 0 { try c.encode(bonuses, forKey: .bonuses) }
+            if scamsHit != 0 { try c.encode(scamsHit, forKey: .scamsHit) }
+            if specials != 0 { try c.encode(specials, forKey: .specials) }
+        }
+    }
+
+    public init(game: MiniGame, score: Int, detail: Int, extra: Int = 0, stage: Int = 0, records: Records = Records()) {
         self.game = game
         self.score = score
         self.detail = detail
         self.extra = extra
         self.stage = stage
+        self.records = records
     }
 
-    private enum CodingKeys: String, CodingKey { case game, score, detail, extra, stage }
+    private enum CodingKeys: String, CodingKey { case game, score, detail, extra, stage, records }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -57,6 +135,7 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
         detail = try c.decode(Int.self, forKey: .detail)
         extra = c.value(.extra, default: 0)
         stage = c.value(.stage, default: 0)
+        records = c.value(.records, default: Records())
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -66,6 +145,7 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
         try c.encode(detail, forKey: .detail)
         try c.encode(extra, forKey: .extra)
         if stage != 0 { try c.encode(stage, forKey: .stage) }
+        if records != Records() { try c.encode(records, forKey: .records) }
     }
 }
 
@@ -126,6 +206,10 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var steps = StepLedger()
     /// Watch tap batches already applied, newest last, so a resend is never paid twice.
     public internal(set) var recentWatchBatches: [UUID] = []
+    /// For each watch (by source id), the number of the last tap batch applied from it.
+    public internal(set) var watchSequences: [String: Int] = [:]
+    /// The latest airdrops, caught or missed, newest last.
+    public internal(set) var recentAirdrops: [AirdropLog] = []
 
     /// When income was last credited.
     public internal(set) var lastUpdate: Date
@@ -149,7 +233,7 @@ public struct GameState: Codable, Equatable, Sendable {
         case boost, offlineMiningLevel, powerUps, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun, tokenSwap
         case merge2048Daily, slotsFreeSpins, arcade, journey
         case achievementTiers, daily
-        case incomeHistory, stats, steps, recentWatchBatches, lastUpdate, runStart, created
+        case incomeHistory, stats, steps, recentWatchBatches, watchSequences, recentAirdrops, lastUpdate, runStart, created
     }
 
     public init(from decoder: Decoder) throws {
@@ -199,6 +283,8 @@ public struct GameState: Codable, Equatable, Sendable {
         stats = c.value(.stats, default: Stats())
         steps = c.value(.steps, default: StepLedger())
         recentWatchBatches = c.value(.recentWatchBatches, default: [])
+        watchSequences = c.value(.watchSequences, default: [:])
+        recentAirdrops = c.value(.recentAirdrops, default: [])
         lastUpdate = c.value(.lastUpdate, default: now)
         runStart = c.value(.runStart, default: now)
         created = c.value(.created, default: now)
@@ -239,6 +325,8 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encode(stats, forKey: .stats)
         try c.encode(steps, forKey: .steps)
         try c.encode(recentWatchBatches, forKey: .recentWatchBatches)
+        if !watchSequences.isEmpty { try c.encode(watchSequences, forKey: .watchSequences) }
+        if !recentAirdrops.isEmpty { try c.encode(recentAirdrops, forKey: .recentAirdrops) }
         try c.encode(lastUpdate, forKey: .lastUpdate)
         try c.encode(runStart, forKey: .runStart)
         try c.encode(created, forKey: .created)

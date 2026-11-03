@@ -44,6 +44,71 @@ struct WatchSyncTests {
         #expect(game.watchSnapshot(at: t0).appliedBatches == batches.suffix(16).map(\.id))
     }
 
+    @Test func numberedBatchesAreAppliedOnceHoweverManyArriveTogether() throws {
+        // A hundred batches waiting at once: more than the ids the game remembers. If the phone
+        // saves and then stops before clearing its inbox, applying the inbox again pays nothing.
+        var game = GameState.make()
+        var queue = WatchTapQueue()
+        var batches: [WatchTapBatch] = []
+        for _ in 0..<100 {
+            queue.record()
+            let sealed = queue.seal(at: t0)
+            batches.append(try #require(sealed))
+        }
+        #expect(batches.map(\.sequence) == (1...100).map { Optional($0) })
+        for batch in batches { game.applyWatchTaps(batch, at: t0) }
+        #expect(game.stats.taps == 100)
+        let loaded = try GameCoding.decoder().decode(GameState.self, from: try GameCoding.encoder().encode(game))
+        var again = loaded
+        for batch in batches { #expect(again.applyWatchTaps(batch, at: t0) == nil) }
+        #expect(again.stats.taps == 100)
+        // A later batch from the same watch still counts.
+        queue.record(taps: 3)
+        let sealedLater = queue.seal(at: t0)
+        let later = try #require(sealedLater)
+        #expect(again.applyWatchTaps(later, at: t0) != nil)
+        #expect(again.stats.taps == 103)
+    }
+
+    @Test func eachWatchKeepsItsOwnCount() throws {
+        var game = GameState.make()
+        var first = WatchTapQueue(), second = WatchTapQueue()
+        first.record()
+        second.record()
+        let sealedA = first.seal(at: t0), sealedB = second.seal(at: t0)
+        let a = try #require(sealedA), b = try #require(sealedB)
+        #expect(a.sequence == 1 && b.sequence == 1 && a.source != b.source)
+        #expect(game.applyWatchTaps(a, at: t0) != nil)
+        #expect(game.applyWatchTaps(b, at: t0) != nil)
+        #expect(game.stats.taps == 2)
+    }
+
+    @Test func theWatchClearsEverythingUpToTheLastAppliedNumber() throws {
+        var game = GameState.make()
+        var queue = WatchTapQueue()
+        for _ in 0..<3 {
+            queue.record()
+            let sealed = queue.seal(at: t0)
+            let batch = try #require(sealed)
+            if batch.sequence != 3 { game.applyWatchTaps(batch, at: t0) }
+        }
+        queue.acknowledge(game.watchSnapshot(at: t0))
+        #expect(queue.sent.map(\.sequence) == [3])
+        #expect(queue.pendingTaps == 1)
+    }
+
+    @Test func queuesAndBatchesFromEarlierVersionsStillLoad() throws {
+        let queue = try GameCoding.decoder().decode(WatchTapQueue.self, from: Data(#"{"unsent":3,"sent":[]}"#.utf8))
+        #expect(queue.unsent == 3 && queue.nextSequence == 1)
+        // A batch without a number is remembered by id, as before.
+        var game = GameState.make()
+        let old = try GameCoding.decoder().decode(WatchTapBatch.self, from: try GameCoding.encoder().encode(WatchTapBatch(taps: 2, date: t0)))
+        #expect(old.source == nil && old.sequence == nil)
+        #expect(game.applyWatchTaps(old, at: t0) != nil)
+        #expect(game.applyWatchTaps(old, at: t0) == nil)
+        #expect(game.recentWatchBatches == [old.id])
+    }
+
     // MARK: Projection
 
     @Test func theBalanceKeepsGrowingUpToTheOfflineCap() {

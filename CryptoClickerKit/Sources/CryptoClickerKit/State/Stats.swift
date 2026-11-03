@@ -150,6 +150,11 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var coinsFromSales: Double = 0
     public internal(set) var airdrops = 0
     public internal(set) var whaleAirdrops = 0
+    /// Airdrops that went away before they were caught (counted from version 33 on).
+    public internal(set) var airdropsMissed = 0
+    public internal(set) var bullRuns = 0
+    /// The most coins one airdrop has paid.
+    public internal(set) var bestAirdrop: Double = 0
     public internal(set) var prestiges = 0
     public internal(set) var questsCompleted = 0
     public internal(set) var longestStreak = 0
@@ -194,6 +199,7 @@ public struct Stats: Codable, Equatable, Sendable {
         case pokerHands, pokerWins, pokerWagered, pokerPaidOut, pokerBestHand, pokerRoyals, pokerBiggestWin
         case tokenSwapGames, tokenSwapBestScore, tokenSwapTokens, tokenSwapBestChain, tokenSwapBlasts
         case tokensBought, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
+        case airdropsMissed, bullRuns, bestAirdrop
         case prestiges = "forksPerformed" // Saved under its old Hard Fork name.
         case earnedFromTaps, earnedFromIdle, earnedOffline, earnedFromSteps, earnedFromGames, earnedFromAirdrops
         case earnedFromDaily, challengesCompleted
@@ -252,6 +258,9 @@ public struct Stats: Codable, Equatable, Sendable {
         coinsFromSales = c.value(.coinsFromSales, default: 0)
         airdrops = c.value(.airdrops, default: 0)
         whaleAirdrops = c.value(.whaleAirdrops, default: 0)
+        airdropsMissed = c.value(.airdropsMissed, default: 0)
+        bullRuns = c.value(.bullRuns, default: 0)
+        bestAirdrop = c.value(.bestAirdrop, default: 0)
         prestiges = c.value(.prestiges, default: 0)
         questsCompleted = c.value(.questsCompleted, default: 0)
         longestStreak = c.value(.longestStreak, default: 0)
@@ -371,6 +380,9 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(coinsFromSales, forKey: .coinsFromSales)
         try c.encode(airdrops, forKey: .airdrops)
         try c.encode(whaleAirdrops, forKey: .whaleAirdrops)
+        try c.encode(airdropsMissed, forKey: .airdropsMissed)
+        try c.encode(bullRuns, forKey: .bullRuns)
+        try c.encode(bestAirdrop, forKey: .bestAirdrop)
         try c.encode(prestiges, forKey: .prestiges)
         try c.encode(questsCompleted, forKey: .questsCompleted)
         try c.encode(longestStreak, forKey: .longestStreak)

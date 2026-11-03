@@ -116,7 +116,8 @@ struct BubbleBlasterView: View {
                 case .background:
                     isPaused = true
                     store.holdArcadeRun(ArcadeRun(game: .bubbleBlaster, score: game.score, detail: game.popped,
-                                                  extra: game.bestClear, stage: game.wave))
+                                                  extra: game.bestClear, stage: game.wave,
+                                                  records: .init(bestStreak: game.bestStreak, bonuses: game.bonusesCollected)))
                 default:
                     isPaused = true
                 }

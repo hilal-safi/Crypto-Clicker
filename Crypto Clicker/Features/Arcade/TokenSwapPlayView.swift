@@ -123,7 +123,7 @@ struct TokenSwapPlayView: View {
                 isPaused = true
                 if game.isClassic {
                     store.holdArcadeRun(ArcadeRun(game: .tokenSwap, score: game.score, detail: game.tokensCleared,
-                                                  extra: game.bestChain))
+                                                  extra: game.bestChain, records: .init(specials: game.specialsSetOff)))
                 }
             default:
                 isPaused = true

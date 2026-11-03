@@ -134,7 +134,8 @@ struct TetrisView: View {
                 store.releaseArcadeRun()
             case .background:
                 isPaused = true
-                store.holdArcadeRun(ArcadeRun(game: .tetris, score: game.score, detail: game.lines, extra: game.rewardPoints))
+                store.holdArcadeRun(ArcadeRun(game: .tetris, score: game.score, detail: game.lines, extra: game.rewardPoints,
+                                              records: .init(level: game.level, bestCombo: game.bestCombo, tetrises: game.tetrises)))
             default:
                 isPaused = true
             }

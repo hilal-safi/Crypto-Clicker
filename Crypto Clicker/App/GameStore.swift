@@ -81,6 +81,8 @@ final class GameStore {
     private(set) var game: GameState
     var welcomeBack: WelcomeBack?
     var errorMessage: String?
+    /// Set when the save couldn't be read: the player is told before a new game starts saving.
+    var unreadableSave: UnreadableSave?
     private(set) var toasts: [Toast] = []
     private(set) var airdrop: Airdrop?
     private(set) var isSyncingSteps = false
@@ -131,6 +133,11 @@ final class GameStore {
         case .unavailable:
             game = GameState()
             isSaveLocked = true
+        case .unreadable(let backup):
+            // Nothing is saved over it until the player has been told and has chosen what to do.
+            game = GameState()
+            isSaveLocked = true
+            unreadableSave = UnreadableSave(backup: backup)
         }
         watch.onTapBatchesReceived = { [weak self] in self?.applyWatchInbox() }
         watch.onRefreshRequest = { [weak self] in self?.refreshWatch() }
@@ -193,10 +200,13 @@ final class GameStore {
 
     /// Loads the save that was unreadable at launch, now that the device is unlocked.
     private func loadIfLocked() {
-        guard isSaveLocked else { return }
+        guard isSaveLocked, unreadableSave == nil else { return }
         switch saves.load() {
         case .loaded(let saved): game = saved
         case .missing: game = GameState()
+        case .unreadable(let backup):
+            unreadableSave = UnreadableSave(backup: backup)
+            return
         case .unavailable:
             // Unlocked and still unreadable: a real error. Keep the file safe and say so.
             if UIApplication.shared.isProtectedDataAvailable && errorMessage == nil {
@@ -228,7 +238,9 @@ final class GameStore {
                         : "\(hand.hand.name) on the hand you left"))
             save()
         }
-        if let paid = game.payUnfinishedRun() {
+        // Through `perform`, like a game that ended normally, so the run also earns its Arcade XP
+        // and counts toward the week's variety goal.
+        if let paid = perform({ game, _ in game.payUnfinishedRun() }) {
             show(Toast(icon: paid.run.game.icon, title: "\(paid.run.game.name) paid out",
                        message: "+\(CoinFormat.short(paid.payout.coins)) coins for \(CoinFormat.grouped(paid.run.score)) points"))
             save()
@@ -477,6 +489,10 @@ final class GameStore {
         if let airdrop {
             guard now >= airdrop.expiresAt else { return }
             self.airdrop = nil
+            // Missed, unless a game covered it before it went.
+            if !isInGame {
+                perform { game, now in game.missAirdrop(airdrop.kind, at: now) }
+            }
             scheduleAirdrop(from: now)
         } else if now >= nextAirdropAt, game.totalMiners > 0, !isInGame {
             spawnAirdrop(game.airdropKind(roll: .random(in: 0..<1)), at: now)
@@ -733,6 +749,29 @@ final class GameStore {
         guard now.timeIntervalSince(last) >= Tuning.incomeSampleInterval || last > now else { return }
         game.recordIncomeSample(at: now)
         hasUnsavedChanges = true
+    }
+
+    /// Tries the damaged save once more; if it reads now, the game carries on from it.
+    func retryUnreadableSave() {
+        guard let problem = unreadableSave else { return }
+        if let saved = saves.restore(from: problem.backup) {
+            game = saved
+            unreadableSave = nil
+            isSaveLocked = false
+            finishLoading()
+        } else {
+            unreadableSave = UnreadableSave(backup: problem.backup, attempts: problem.attempts + 1)
+        }
+    }
+
+    /// Starts a new game after an unreadable save. The old file stays where it was set aside.
+    func startOverAfterUnreadableSave() {
+        guard unreadableSave != nil else { return }
+        unreadableSave = nil
+        game = GameState()
+        isSaveLocked = false
+        finishLoading()
+        save()
     }
 
     func resetGame() {
@@ -994,3 +1033,12 @@ extension GameStore {
     }
 }
 #endif
+
+/// A save that couldn't be read, kept aside under `backup`.
+struct UnreadableSave: Equatable {
+    let backup: URL
+    /// Times "Try Again" has failed.
+    var attempts = 0
+
+    var fileName: String { backup.lastPathComponent }
+}

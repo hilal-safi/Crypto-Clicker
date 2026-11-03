@@ -275,4 +275,7 @@ public enum Tuning {
     /// Upper bound on taps accepted from a single watch batch.
     public static let maxWatchTapsPerBatch = 2_000
     public static let rememberedWatchBatches = 64
+
+    /// Airdrops kept in the history in Statistics.
+    public static let rememberedAirdrops = 10
 }

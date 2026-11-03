@@ -15,7 +15,7 @@ struct StatsPage: View {
             nowSections(game, now: now)
             progressSections(game)
             marketSection(game)
-            casinoSection(game.stats)
+            casinoSection(game)
             arcadeSection(game)
         }
         .monospacedDigit()
@@ -72,10 +72,17 @@ struct StatsPage: View {
         }
 
         if !owned.isEmpty {
-            Section("Miners") {
+            let total = owned.reduce(0) { $0 + game.rate(of: $1) }
+            Section {
                 ForEach(owned) { miner in
-                    minerRow(miner, in: game)
+                    MinerStatRow(miner: miner, owned: game.owned(miner), mostEver: stats.maxOwned[miner, default: 0],
+                                 mkLevel: game.minerUpgradeLevel(miner), rate: rate(game.rate(of: miner)),
+                                 share: total > 0 ? game.rate(of: miner) / total : 0)
                 }
+            } header: {
+                Text("Miners")
+            } footer: {
+                SettingsNote("What each tier mines a second, and its share of what all your miners mine.")
             }
         }
     }
@@ -104,8 +111,6 @@ struct StatsPage: View {
             row("Coins spent", amount(stats.spent))
             row("Best income", "\(rate(stats.peakIncome)) per second")
             row("Achievement stars", "\(game.earnedAchievementTiers) of \(AchievementCatalog.tierCount) · +\(CoinFormat.percent(game.achievementBonus - 1))")
-            row("Airdrops caught", CoinFormat.grouped(stats.airdrops))
-            row("Whale airdrops", CoinFormat.grouped(stats.whaleAirdrops))
         }
 
         Section("Where coins came from") {
@@ -129,6 +134,8 @@ struct StatsPage: View {
             row("Automatic taps", "\(CoinFormat.rate(game.autoTapsPerSecond)) a second · \(CoinFormat.percent(game.autoTapStrength)) of a tap")
         }
 
+        airdropSection(game)
+
         Section("Daily") {
             row("Streak", "\(game.currentStreak(today: today, yesterday: store.yesterday)) days")
             row("Longest streak", "\(CoinFormat.grouped(stats.longestStreak)) days")
@@ -150,69 +157,197 @@ struct StatsPage: View {
         }
     }
 
+    /// Airdrops caught and missed, what they paid, and the latest few.
+    @ViewBuilder
+    private func airdropSection(_ game: GameState) -> some View {
+        let stats = game.stats
+        Section {
+            AirdropSummary(caught: stats.airdrops, missed: stats.airdropsMissed, earned: amount(stats.earnedFromAirdrops),
+                           items: [StatItem("Whales", CoinFormat.grouped(stats.whaleAirdrops)),
+                                   StatItem("Bull Runs", CoinFormat.grouped(stats.bullRuns)),
+                                   StatItem("Best catch", stats.bestAirdrop > 0 ? amount(stats.bestAirdrop) : "–")])
+            ForEach(Array(game.recentAirdrops.reversed().enumerated()), id: \.offset) { _, log in
+                AirdropLogRow(log: log, coins: amount(log.coins))
+            }
+        } header: {
+            Text("Airdrops")
+        } footer: {
+            if !game.recentAirdrops.isEmpty {
+                SettingsNote("The latest airdrops, newest first.")
+            }
+        }
+    }
+
     @ViewBuilder
     private func marketSection(_ game: GameState) -> some View {
         let stats = game.stats
         let market = store.market
-        let held = TokenID.allCases.filter { game.tokenCount($0) > 0 || stats.tokensBought[$0, default: 0] > 0 }
+        let tokens = TokenID.allCases.filter { game.tokenCount($0) > 0 || stats.tokensBought[$0, default: 0] > 0 }
         let walletValue = TokenID.allCases.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
+        let held = TokenID.allCases.reduce(0) { $0 + game.tokenCount($1) }
         Section("Market") {
-            row("Wallet value", amount(walletValue))
-            ForEach(held) { token in
-                let quote = market.quote(token)
-                row("\(token.name)", "\(CoinFormat.grouped(game.tokenCount(token))) held · \(amount(quote.price)) each · \(CoinFormat.grouped(stats.tokensBought[token, default: 0])) bought")
+            WalletCard(value: amount(walletValue),
+                       detail: stats.totalTokensBought > 0
+                           ? "\(counted(held, "token")) held, at today's prices"
+                           : "Buy tokens in the Shop's Tokens page",
+                       items: [StatItem("Bought", CoinFormat.grouped(stats.totalTokensBought)),
+                               StatItem("Sold", CoinFormat.grouped(stats.tokensSold)),
+                               StatItem("From sales", amount(stats.coinsFromSales))])
+            ForEach(tokens) { token in
+                let price = market.quote(token).price
+                TokenStatRow(token: token, held: game.tokenCount(token), bought: stats.tokensBought[token, default: 0],
+                             worth: amount(price * Double(game.tokenCount(token))), price: amount(price))
             }
-            row("Tokens bought", CoinFormat.grouped(stats.totalTokensBought))
-            row("Tokens sold", CoinFormat.grouped(stats.tokensSold))
-            row("Coins from sales", amount(stats.coinsFromSales))
         }
     }
 
-    private func casinoSection(_ stats: Stats) -> some View {
-        Section("Casino") {
-            row("Blackjack hands", CoinFormat.grouped(stats.blackjackHands))
-            row("Blackjack wins", "\(CoinFormat.grouped(stats.blackjackWins))\(winRate(stats.blackjackWins, of: stats.blackjackHands))")
-            row("Naturals", CoinFormat.grouped(stats.blackjackNaturals))
-            row("Win streak", "\(CoinFormat.grouped(stats.blackjackStreak)) now · best \(CoinFormat.grouped(stats.blackjackBestStreak))")
-            row("Biggest Blackjack win", amount(stats.blackjackBiggestWin))
-            row("Slot spins", CoinFormat.grouped(stats.slotsSpins))
-            row("Slot wins", "\(CoinFormat.grouped(stats.slotsWins))\(winRate(stats.slotsWins, of: stats.slotsSpins))")
-            row("Jackpots", CoinFormat.grouped(stats.slotsJackpots))
-            row("Best spin", stats.slotsBestMultiple >= 2 ? "×\(CoinFormat.grouped(stats.slotsBestMultiple)) the bet" : "No wins yet")
-            row("Biggest slots win", amount(stats.slotsBiggestWin))
-            row("Free spins", "\(CoinFormat.grouped(stats.slotsFreeSpinRounds)) won · \(CoinFormat.grouped(stats.slotsFreeSpinsPlayed)) played")
-            row("Bitcoins collected", "\(CoinFormat.grouped(stats.slotsBitcoins)) · \(CoinFormat.grouped(stats.slotsBitcoins / SlotMachine.bitcoinsPerPrize)) prizes")
-            row("Slots bet · paid", "\(amount(stats.slotsWagered)) · \(amount(stats.slotsPaidOut))\(returnRate(stats.slotsPaidOut, of: stats.slotsWagered))")
-            row("Moon flights", CoinFormat.grouped(stats.moonFlights))
-            row("Cash-outs", "\(CoinFormat.grouped(stats.moonCashOuts))\(winRate(stats.moonCashOuts, of: stats.moonFlights))")
-            row("Best cash-out", stats.moonCashOuts > 0 ? CoinFormat.flight(stats.moonBestMultiplier) : "None yet")
-            row("Biggest Moon win", amount(stats.moonBiggestWin))
-            row("Moon bet · paid", "\(amount(stats.moonWagered)) · \(amount(stats.moonPaidOut))\(returnRate(stats.moonPaidOut, of: stats.moonWagered))")
-            row("Video Poker hands", "\(CoinFormat.grouped(stats.pokerHands)) · \(CoinFormat.grouped(stats.pokerWins)) won\(winRate(stats.pokerWins, of: stats.pokerHands))")
-            row("Best poker hand", stats.pokerHands > 0 ? (PokerHand(rawValue: stats.pokerBestHand) ?? .nothing).name : "None yet")
-            row("Royal flushes", CoinFormat.grouped(stats.pokerRoyals))
-            row("Biggest poker win", amount(stats.pokerBiggestWin))
-            row("Poker bet · paid", "\(amount(stats.pokerWagered)) · \(amount(stats.pokerPaidOut))\(returnRate(stats.pokerPaidOut, of: stats.pokerWagered))")
-            Text("Bets and payouts count tokens at their list price.")
-                .font(.subheadline)
-                .foregroundStyle(.subtext)
+    @ViewBuilder
+    private func casinoSection(_ game: GameState) -> some View {
+        let games = MiniGame.byPrice.filter(\.isCasino)
+        let played = games.filter { hasRecords($0, in: game) }
+        let unplayed = games.filter { !played.contains($0) }
+        Section {
+            ForEach(played) { miniGame in
+                card(for: miniGame, in: game)
+            }
+            if !unplayed.isEmpty {
+                UnplayedGamesRow(games: unplayed)
+            }
+        } header: {
+            Text("Casino")
+        } footer: {
+            if !played.isEmpty {
+                SettingsNote("Bets and payouts count tokens at their list price.")
+            }
         }
     }
 
+    @ViewBuilder
     private func arcadeSection(_ game: GameState) -> some View {
-        let stats = game.stats
-        let gamesPlayed = game.arcadeGamesPlayed
-        return Section("Arcade") {
-            row("Arcade Rank", "\(game.arcadeRank) · \(game.arcadeTitle) · \(CoinFormat.grouped(game.arcade.xp)) XP")
-            row("Weekly variety goals", CoinFormat.grouped(game.arcade.weeklyGoals))
-            row("Tetris", "Best \(CoinFormat.grouped(stats.tetrisBestScore)) · level \(stats.tetrisBestLevel) · combo \(stats.tetrisBestCombo) · \(CoinFormat.grouped(stats.tetrisTetrises)) Tetrises · \(CoinFormat.grouped(stats.tetrisLines)) lines · \(CoinFormat.grouped(stats.tetrisGames)) games" + (stats.tetrisBestSprint > 0 ? " · Sprint \(CoinFormat.stopwatch(stats.tetrisBestSprint))" : ""))
-            row("2048", "Best \(CoinFormat.grouped(stats.merge2048BestScore)) · top tile \(stats.merge2048BestTile) · \(CoinFormat.grouped(stats.merge2048Games)) games · \(CoinFormat.grouped(game.merge2048Daily.wins)) daily puzzles · \(CoinFormat.grouped(game.merge2048Daily.totalStars)) stars")
-            row("Snake", "Best \(CoinFormat.grouped(stats.snakeBestScore)) · Coin Rush \(CoinFormat.grouped(stats.snakeRushBestScore)) · longest \(CoinFormat.grouped(stats.snakeLongest)) · most coins \(CoinFormat.grouped(stats.snakeBestCoins)) · longest game \(CoinFormat.stopwatch(stats.snakeLongestTime)) · \(CoinFormat.grouped(stats.snakePowerUps)) power-ups · \(CoinFormat.grouped(stats.snakeGames)) games")
-            row("Brick Breaker", "Best \(CoinFormat.grouped(stats.brickBreakerBestScore)) · level \(CoinFormat.grouped(stats.brickBreakerBestLevel)) · \(CoinFormat.grouped(stats.brickBreakerLevelsCleared)) levels cleared · best streak \(stats.brickBreakerBestStreak) · \(CoinFormat.grouped(stats.brickBreakerBosses)) bosses · \(CoinFormat.grouped(stats.brickBreakerPowerUps)) power-ups · \(CoinFormat.grouped(stats.bricksBroken)) bricks · \(CoinFormat.grouped(stats.brickBreakerGames)) games")
-            row("Bubble Blaster", "Best \(CoinFormat.grouped(stats.bubbleBestScore)) · wave \(CoinFormat.grouped(stats.bubbleBestWave)) · best shot \(CoinFormat.grouped(stats.bubbleBestShot)) · streak \(CoinFormat.grouped(stats.bubbleBestStreak)) · \(CoinFormat.grouped(stats.bubblesPopped)) popped · \(CoinFormat.grouped(stats.bubbleBonuses)) gold · \(CoinFormat.grouped(stats.bubbleGames)) games")
-            row("Pump and Dump", "Best \(CoinFormat.grouped(stats.pumpDumpBestScore)) · round \(stats.pumpDumpBestRound) · combo \(CoinFormat.grouped(stats.pumpDumpBestCombo)) · \(CoinFormat.grouped(stats.pumpDumpCoinsHit)) coins hit · \(CoinFormat.grouped(stats.pumpDumpScamsHit)) scams · \(CoinFormat.grouped(stats.pumpDumpGames)) runs")
-            row("Token Swap", "\(game.tokenSwap.levelsWon) levels won · \(game.tokenSwap.totalStars) stars · \(game.tokenSwap.dailyWins) daily puzzles · Classic best \(CoinFormat.grouped(stats.tokenSwapBestScore)) · chain of \(CoinFormat.grouped(stats.tokenSwapBestChain)) · \(CoinFormat.grouped(stats.tokenSwapTokens)) tokens · \(CoinFormat.grouped(stats.tokenSwapBlasts)) specials · \(CoinFormat.grouped(stats.tokenSwapRandomWins)) of \(CoinFormat.grouped(stats.tokenSwapRandomPlayed)) random levels won")
-            row("Games played", CoinFormat.grouped(gamesPlayed))
+        let games = MiniGame.byPrice.filter { !$0.isCasino }
+        let played = games.filter { hasRecords($0, in: game) }
+        let unplayed = games.filter { !played.contains($0) }
+        Section("Arcade") {
+            ArcadeRankStats(rank: game.arcadeRank, title: game.arcadeTitle, progress: game.arcadeRankProgress,
+                            items: [StatItem("Games played", CoinFormat.grouped(game.arcadeGamesPlayed)),
+                                    StatItem("XP earned", CoinFormat.grouped(game.arcade.xp)),
+                                    StatItem("Weekly goals", CoinFormat.grouped(game.arcade.weeklyGoals))])
+            ForEach(played) { miniGame in
+                card(for: miniGame, in: game)
+            }
+            if !unplayed.isEmpty {
+                UnplayedGamesRow(games: unplayed)
+            }
+        }
+    }
+
+    /// Whether a game has anything to show yet: a game played, a record or a daily win.
+    private func hasRecords(_ miniGame: MiniGame, in game: GameState) -> Bool {
+        game.timesPlayed(miniGame) > 0 || game.bestScore(miniGame) > 0
+            || (miniGame == .merge2048 && game.merge2048Daily.wins > 0)
+            || (miniGame == .tokenSwap && (game.tokenSwap.levelsWon > 0 || game.tokenSwap.dailyWins > 0))
+    }
+
+    /// A game's card: a casino game's biggest win or an arcade game's best score up top, and the
+    /// rest of its records as tiles.
+    private func card(for miniGame: MiniGame, in game: GameState) -> GameStatsCard {
+        let s = game.stats
+        let plays = game.timesPlayed(miniGame)
+        let best = StatItem("Best", CoinFormat.grouped(game.bestScore(miniGame)))
+        switch miniGame {
+        case .blackjack:
+            return GameStatsCard(game: miniGame, plays: counted(plays, "hand"),
+                                 headline: StatItem("Biggest win", amount(s.blackjackBiggestWin)),
+                                 items: [StatItem("Wins", CoinFormat.grouped(s.blackjackWins)),
+                                         StatItem("Win rate", percentage(s.blackjackWins, of: s.blackjackHands)),
+                                         StatItem("Naturals", CoinFormat.grouped(s.blackjackNaturals)),
+                                         StatItem("Streak now", CoinFormat.grouped(s.blackjackStreak)),
+                                         StatItem("Best streak", CoinFormat.grouped(s.blackjackBestStreak))])
+        case .slots:
+            return GameStatsCard(game: miniGame, plays: counted(plays, "spin"),
+                                 headline: StatItem("Biggest win", amount(s.slotsBiggestWin)),
+                                 items: [StatItem("Wins", CoinFormat.grouped(s.slotsWins)),
+                                         StatItem("Win rate", percentage(s.slotsWins, of: s.slotsSpins)),
+                                         StatItem("Jackpots", CoinFormat.grouped(s.slotsJackpots)),
+                                         StatItem("Best spin", s.slotsBestMultiple >= 2 ? "×\(CoinFormat.grouped(s.slotsBestMultiple))" : "–"),
+                                         StatItem("Free rounds", CoinFormat.grouped(s.slotsFreeSpinRounds)),
+                                         StatItem("Free spins", CoinFormat.grouped(s.slotsFreeSpinsPlayed)),
+                                         StatItem("Bitcoins", CoinFormat.grouped(s.slotsBitcoins)),
+                                         StatItem("Bitcoin prizes", CoinFormat.grouped(s.slotsBitcoins / SlotMachine.bitcoinsPerPrize)),
+                                         StatItem("Paid back", paidBack(s.slotsPaidOut, of: s.slotsWagered))],
+                                 note: betNote(s.slotsWagered, paid: s.slotsPaidOut))
+        case .moon:
+            return GameStatsCard(game: miniGame, plays: counted(plays, "flight"),
+                                 headline: StatItem("Biggest win", amount(s.moonBiggestWin)),
+                                 items: [StatItem("Cash-outs", CoinFormat.grouped(s.moonCashOuts)),
+                                         StatItem("Cashed out", percentage(s.moonCashOuts, of: s.moonFlights)),
+                                         StatItem("Best cash-out", s.moonCashOuts > 0 ? CoinFormat.flight(s.moonBestMultiplier) : "–"),
+                                         StatItem("Paid back", paidBack(s.moonPaidOut, of: s.moonWagered))],
+                                 note: betNote(s.moonWagered, paid: s.moonPaidOut))
+        case .videoPoker:
+            return GameStatsCard(game: miniGame, plays: counted(plays, "hand"),
+                                 headline: StatItem("Biggest win", amount(s.pokerBiggestWin)),
+                                 items: [StatItem("Wins", CoinFormat.grouped(s.pokerWins)),
+                                         StatItem("Win rate", percentage(s.pokerWins, of: s.pokerHands)),
+                                         StatItem("Best hand", s.pokerHands > 0 ? (PokerHand(rawValue: s.pokerBestHand) ?? .nothing).name : "–"),
+                                         StatItem("Royal flushes", CoinFormat.grouped(s.pokerRoyals)),
+                                         StatItem("Paid back", paidBack(s.pokerPaidOut, of: s.pokerWagered))],
+                                 note: betNote(s.pokerWagered, paid: s.pokerPaidOut))
+        case .tetris:
+            var items = [StatItem("Best level", CoinFormat.grouped(s.tetrisBestLevel)),
+                         StatItem("Best combo", CoinFormat.grouped(s.tetrisBestCombo)),
+                         StatItem("Tetrises", CoinFormat.grouped(s.tetrisTetrises)),
+                         StatItem("Lines", CoinFormat.grouped(s.tetrisLines))]
+            if s.tetrisBestSprint > 0 {
+                items.append(StatItem("Best Sprint", CoinFormat.stopwatch(s.tetrisBestSprint)))
+            }
+            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best, items: items)
+        case .merge2048:
+            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
+                                 items: [StatItem("Top tile", CoinFormat.grouped(s.merge2048BestTile)),
+                                         StatItem("Daily wins", CoinFormat.grouped(game.merge2048Daily.wins)),
+                                         StatItem("Daily stars", CoinFormat.grouped(game.merge2048Daily.totalStars))])
+        case .snake:
+            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
+                                 items: [StatItem("Coin Rush", CoinFormat.grouped(s.snakeRushBestScore)),
+                                         StatItem("Longest snake", CoinFormat.grouped(s.snakeLongest)),
+                                         StatItem("Most coins", CoinFormat.grouped(s.snakeBestCoins)),
+                                         StatItem("Longest game", CoinFormat.stopwatch(s.snakeLongestTime)),
+                                         StatItem("Power-ups", CoinFormat.grouped(s.snakePowerUps))])
+        case .brickBreaker:
+            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
+                                 items: [StatItem("Best level", CoinFormat.grouped(s.brickBreakerBestLevel)),
+                                         StatItem("Levels cleared", CoinFormat.grouped(s.brickBreakerLevelsCleared)),
+                                         StatItem("Best streak", CoinFormat.grouped(s.brickBreakerBestStreak)),
+                                         StatItem("Bosses", CoinFormat.grouped(s.brickBreakerBosses)),
+                                         StatItem("Power-ups", CoinFormat.grouped(s.brickBreakerPowerUps)),
+                                         StatItem("Bricks", CoinFormat.grouped(s.bricksBroken))])
+        case .bubbleBlaster:
+            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
+                                 items: [StatItem("Best wave", CoinFormat.grouped(s.bubbleBestWave)),
+                                         StatItem("Best shot", CoinFormat.grouped(s.bubbleBestShot)),
+                                         StatItem("Best streak", CoinFormat.grouped(s.bubbleBestStreak)),
+                                         StatItem("Popped", CoinFormat.grouped(s.bubblesPopped)),
+                                         StatItem("Gold bubbles", CoinFormat.grouped(s.bubbleBonuses))])
+        case .pumpDump:
+            return GameStatsCard(game: miniGame, plays: counted(plays, "run"), headline: best,
+                                 items: [StatItem("Best round", CoinFormat.grouped(s.pumpDumpBestRound)),
+                                         StatItem("Best combo", CoinFormat.grouped(s.pumpDumpBestCombo)),
+                                         StatItem("Coins hit", CoinFormat.grouped(s.pumpDumpCoinsHit)),
+                                         StatItem("Scams hit", CoinFormat.grouped(s.pumpDumpScamsHit))])
+        case .tokenSwap:
+            let swap = game.tokenSwap
+            return GameStatsCard(game: miniGame, plays: counted(plays, "game"),
+                                 headline: StatItem("Classic best", CoinFormat.grouped(s.tokenSwapBestScore)),
+                                 items: [StatItem("Levels won", "\(CoinFormat.grouped(swap.levelsWon)) of \(CoinFormat.grouped(TokenSwapLevel.all.count))"),
+                                         StatItem("Stars", CoinFormat.grouped(swap.totalStars)),
+                                         StatItem("Daily wins", CoinFormat.grouped(swap.dailyWins)),
+                                         StatItem("Best chain", CoinFormat.grouped(s.tokenSwapBestChain)),
+                                         StatItem("Specials", CoinFormat.grouped(s.tokenSwapBlasts)),
+                                         StatItem("Tokens cleared", CoinFormat.grouped(s.tokenSwapTokens)),
+                                         StatItem("Random wins", "\(CoinFormat.grouped(s.tokenSwapRandomWins)) of \(CoinFormat.grouped(s.tokenSwapRandomPlayed))"),
+                                         StatItem("Classic games", CoinFormat.grouped(s.tokenSwapGames)),
+                                         StatItem("Levels played", CoinFormat.grouped(s.tokenSwapLevelsPlayed))])
         }
     }
 
@@ -224,13 +359,30 @@ struct StatsPage: View {
         exactNumbers ? CoinFormat.exactRate(value) : CoinFormat.rate(value)
     }
 
-    private func winRate(_ wins: Int, of total: Int) -> String {
-        total > 0 ? " · \(CoinFormat.percent(Double(wins) / Double(total)))" : ""
+    /// "1 hand", "1,204 hands".
+    private func counted(_ count: Int, _ noun: String) -> String {
+        "\(CoinFormat.grouped(count)) \(noun)\(count == 1 ? "" : "s")"
     }
 
-    /// What came back for what went in: " · 95% back".
-    private func returnRate(_ paid: Double, of bet: Double) -> String {
-        bet > 0 ? " · \(CoinFormat.percent(paid / bet)) back" : ""
+    /// A share as a whole percentage: "48%", or "<1%" for a sliver.
+    static func percentage(_ share: Double) -> String {
+        guard share.isFinite, share > 0 else { return "0%" }
+        if share < 0.01 { return "<1%" }
+        return "\(Int((min(share, 1e6) * 100).rounded()))%"
+    }
+
+    private func percentage(_ part: Int, of whole: Int) -> String {
+        whole > 0 ? Self.percentage(Double(part) / Double(whole)) : "–"
+    }
+
+    /// What came back for what was bet: "95%".
+    private func paidBack(_ paid: Double, of bet: Double) -> String {
+        bet > 0 ? Self.percentage(paid / bet) : "–"
+    }
+
+    /// "1.2M bet · 1.1M paid out", once anything's been bet.
+    private func betNote(_ bet: Double, paid: Double) -> String? {
+        bet > 0 ? "\(amount(bet)) bet · \(amount(paid)) paid out" : nil
     }
 
     private func row(_ title: String, _ value: String) -> some View {
@@ -250,22 +402,6 @@ struct StatsPage: View {
                     .font(.subheadline.weight(.semibold))
             }
             .foregroundStyle(.subtext)
-        }
-    }
-
-    private func minerRow(_ miner: MinerID, in game: GameState) -> some View {
-        let level = game.minerUpgradeLevel(miner)
-        let mark = level > 0 ? " · Mk \(MinerID.markName(level: level - 1))" : ""
-        return LabeledContent {
-            VStack(alignment: .trailing, spacing: 1) {
-                Text("\(rate(game.rate(of: miner)))/s")
-                    .multilineTextAlignment(.trailing)
-                Text("Most ever \(CoinFormat.grouped(game.stats.maxOwned[miner, default: 0]))")
-                    .font(.subheadline)
-            }
-            .foregroundStyle(.subtext)
-        } label: {
-            Text("\(miner.emoji) \(miner.name) ×\(CoinFormat.grouped(game.owned(miner)))\(mark)")
         }
     }
 }

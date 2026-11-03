@@ -82,7 +82,8 @@ struct PumpDumpView: View {
             case .background:
                 if game.phase == .playing { isPaused = true }
                 store.holdArcadeRun(ArcadeRun(game: .pumpDump, score: game.score, detail: game.coinsHit,
-                                              extra: game.bestCombo, stage: game.round))
+                                              extra: game.bestCombo, stage: game.round,
+                                              records: .init(scamsHit: game.scamsHit)))
             default:
                 if game.phase == .playing { isPaused = true }
             }

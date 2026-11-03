@@ -159,6 +159,50 @@ struct MiniGameRewardTests {
         #expect(reloaded.payUnfinishedRun() == nil)
     }
 
+    @Test func aHeldRunKeepsEveryRecordAndEarnsItsArcadeXP() throws {
+        var game = earner()
+        let records = ArcadeRun.Records(powerUps: 5, bosses: 2, bestStreak: 3)
+        game.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: 900, detail: 80, extra: 11, records: records))
+        // Saved and loaded with the game, records included.
+        var reloaded = try GameCoding.decoder().decode(GameState.self, from: try GameCoding.encoder().encode(game))
+        #expect(reloaded.unfinishedRun?.records == records)
+        // Paid the way the app pays it on launch: through the same award as a finished game.
+        let before = reloaded.arcadeSnapshot
+        let payment = reloaded.payUnfinishedRun()
+        let paid = try #require(payment)
+        #expect(paid.payout.coins > 0)
+        let award = reloaded.awardArcadeProgress(since: before, today: "2026-10-24")
+        #expect(award.map { $0.xp > 0 } == true)
+        #expect(reloaded.stats.brickBreakerBosses == 2)
+        #expect(reloaded.stats.brickBreakerPowerUps == 5)
+        #expect(reloaded.stats.brickBreakerBestStreak == 3)
+        #expect(reloaded.stats.brickBreakerBestLevel == 11)
+    }
+
+    @Test func everyGamesRecordsSurviveTheTripThroughAHeldRun() {
+        var game = earner()
+        game.holdArcadeRun(ArcadeRun(game: .tetris, score: 3_000, detail: 12, extra: 2_400,
+                                     records: .init(level: 3, bestCombo: 4, tetrises: 2)))
+        game.payUnfinishedRun()
+        #expect(game.stats.tetrisBestLevel == 3 && game.stats.tetrisBestCombo == 4 && game.stats.tetrisTetrises == 2)
+        game.holdArcadeRun(ArcadeRun(game: .snake, score: 150, detail: 18, records: .init(coins: 14, seconds: 95, powerUps: 2)))
+        game.payUnfinishedRun()
+        #expect(game.stats.snakeBestCoins == 14 && game.stats.snakePowerUps == 2 && game.stats.snakeLongestTime == 95)
+        game.holdArcadeRun(ArcadeRun(game: .bubbleBlaster, score: 400, detail: 40, extra: 6, stage: 3,
+                                     records: .init(bestStreak: 7, bonuses: 2)))
+        game.payUnfinishedRun()
+        #expect(game.stats.bubbleBestStreak == 7 && game.stats.bubbleBonuses == 2 && game.stats.bubbleBestWave == 3)
+        game.holdArcadeRun(ArcadeRun(game: .pumpDump, score: 800, detail: 60, extra: 9, stage: 2, records: .init(scamsHit: 3)))
+        game.payUnfinishedRun()
+        #expect(game.stats.pumpDumpScamsHit == 3)
+        game.holdArcadeRun(ArcadeRun(game: .tokenSwap, score: 900, detail: 70, extra: 4, records: .init(specials: 5)))
+        game.payUnfinishedRun()
+        #expect(game.stats.tokenSwapBlasts == 5)
+        // A run saved by an earlier version, without records, still pays.
+        let old = try? GameCoding.decoder().decode(ArcadeRun.self, from: Data(#"{"game":"tetris","score":100,"detail":1,"extra":100}"#.utf8))
+        #expect(old?.records == ArcadeRun.Records())
+    }
+
     @Test func finishingOrReturningClearsTheHeldRun() {
         var game = earner()
         game.holdArcadeRun(ArcadeRun(game: .tetris, score: 900, detail: 4))

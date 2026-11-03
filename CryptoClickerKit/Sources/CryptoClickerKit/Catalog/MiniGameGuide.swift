@@ -263,7 +263,7 @@ extension MiniGame {
             objective: "Bounce the ball off your paddle to break every brick and reach the next, faster level. Every \(BrickBreakerGame.bossEvery)th level is a boss.",
             controls: [
                 "Drag anywhere to move the paddle, and lift your finger to launch the ball.",
-                "Options (the sliders at the top) set the ball's speed, and Classic or Random walls: Random makes up a new wall for every level, never the same twice.",
+                "On the start screen, Levels starts at level 1, Random Walls makes up a new wall for every level (never the same twice), and Settings sets the ball's speed.",
             ],
             scoring: [
                 "Each brick scores 10 points per hit it takes; clearing a level adds 100 times the level, and beating a boss 500 more.",

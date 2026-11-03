@@ -75,8 +75,12 @@ extension GameState {
         stats.runCoins = 0
         coins = 0
         tokens = [:]
+        // Anything still riding on this run's tokens goes with them: a Blackjack bet, a poker hand,
+        // a flight, and free spins (which would otherwise pay tokens into the new run).
         blackjackStake = nil
-        pokerRound = nil // A hand left waiting goes with the tokens it was bet with.
+        pokerRound = nil
+        moonRound = nil
+        slotsFreeSpins = nil
         miners = [:]
         if !hasPerk(.engineeringTeam) { minerUpgrades = [:] }
         let keepsProduction = hasPerk(.blueprints)
