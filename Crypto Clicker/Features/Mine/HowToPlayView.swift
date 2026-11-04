@@ -68,14 +68,13 @@ private struct HowToChapter: Identifiable {
     let topics: [HowToTopic]
     var id: String { title }
 
-    /// Worked out each time, since game names follow the arcade edition.
-    static var all: [HowToChapter] { [mining, rewards, games, progress, beyondTheApp] }
+    static let all = [mining, rewards, games, progress, beyondTheApp]
 
     private static let mining = HowToChapter(title: "Mining", topics: [
         HowToTopic("hand.tap.fill", "Tap to mine", "Tap the coin to earn coins.", [
             "Tapping upgrades add a share of a second's production to every tap, up to a whole second's worth.",
-            "Tap your balance to switch between 12.3K and 12,345.",
-            "Tap the rates under it to see where every coin comes from.",
+            "Tap your balance to switch between 12.3K and 12,345 (Settings and the Income page have the same switch).",
+            "Tap the rates under it, or the balance bar on the other tabs, to see where every coin comes from.",
         ]),
         HowToTopic("flame.fill", "Combos", "Tap quickly and each tap earns more.", [
             "Every four or five quick taps add ×0.1, so about 45 make ×2.",
@@ -121,7 +120,7 @@ private struct HowToChapter: Identifiable {
             "Three new quests arrive each day.",
         ]),
         HowToTopic("target", "Daily challenge", "From your second day, a challenge a day in one of your games.", [
-            "A \(MiniGame.tetris.name) score, a \(MiniGame.merge2048.name) \(ArcadeEdition.pick("miner", classic: "tile")), a Pump and Dump run, a Token Swap score, invaders shot, good casino hands, or points in three arcade games.",
+            "A \(MiniGame.tetris.name) score, a \(MiniGame.merge2048.name) miner, a Pump and Dump run, a Token Swap score, invaders shot, good casino hands, or points in three arcade games.",
             "Each pays 15 minutes of income, and five in a week (Monday to Sunday) pay two hours more.",
             "On Block Day, \(MiniGame.tetris.name) deals everyone the same pieces.",
         ]),
@@ -148,19 +147,21 @@ private struct HowToChapter: Identifiable {
             "Arcade games pay coins for every point, and half as much again for a new best.",
             "A minute of good play pays about two minutes of income.",
             "Playing earns XP for your Arcade Rank, and six different games in a week pay half an hour of income.",
+            "Arcade Rank and achievements unlock looks for every game in Style, on the Arcade's rank card.",
+            "Stats under a game's Play button shows its records before you start.",
             "Every game has a How to Play button with its full rules.",
         ]),
         HowToTopic("suit.spade.fill", "Casino", "\(MiniGame.blackjack.name), Crypto Slots, \(MiniGame.videoPoker.name) and To the Moon: bet your tokens.", [
             "Wins pay tokens, plus a coin bonus.",
-            ArcadeEdition.pick("Diamond Hands: HODL the cards you believe in and draw once. Hint HODLs what a strong player would.",
-                               classic: "Video Poker: hold the cards you want and draw once. Hint holds what a strong player would."),
+            "Diamond Hands: HODL the cards you believe in and draw once. Hint HODLs what a strong player would.",
             "To the Moon: cash out before the market crashes, or set an automatic cash-out.",
         ]),
         HowToTopic("square.grid.3x3.fill", "More ways to play", "Every action game opens on a start screen of its ways to play and its settings.", [
-            "\(MiniGame.tetris.name): Endless, \(ArcadeEdition.pick("Block Rush", classic: "Sprint")) and today's pieces. \(MiniGame.snake.name): Classic in four arenas, and Coin Rush.",
-            "\(MiniGame.merge2048.name): Classic and the Daily Puzzle. \(ArcadeEdition.pick("Building the Lunar Base", classic: "Making the 2048 tile")) pays ten minutes of income on top.",
+            "\(MiniGame.tetris.name): Endless, Block Rush and today's pieces. \(MiniGame.snake.name): Classic in four arenas, and Coin Rush.",
+            "\(MiniGame.merge2048.name): Classic and the Daily Puzzle. Building the Lunar Base pays ten minutes of income on top.",
             "Token Swap has levels whose stars each pay once, a daily puzzle and random levels.",
             "\(MiniGame.brickBreaker.name) and Scam Invaders have their levels or waves, random ones, and speed.",
+            "Pump and Dump plays on a 3×3, 4×4 or 5×5 board, at the speed you pick. Each board keeps its own best.",
             "Swipe in from the left edge to leave a game.",
         ]),
     ]) }

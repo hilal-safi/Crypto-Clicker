@@ -32,6 +32,26 @@ struct CoinAmount: View {
     }
 }
 
+/// How coin amounts are written everywhere: short (12.3K) or with every digit (12,345). Tapping
+/// the balance on Mine switches it too.
+struct NumberFormatPicker: View {
+    /// A segmented control rather than a menu row.
+    var isSegmented = false
+    @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
+
+    var body: some View {
+        let picker = Picker("Numbers", selection: $exactNumbers.animation(.snappy)) {
+            Text("Short · 12.3K").tag(false)
+            Text("Full · 12,345").tag(true)
+        }
+        if isSegmented {
+            picker.pickerStyle(.segmented)
+        } else {
+            picker
+        }
+    }
+}
+
 /// Bronze, silver, gold and mythic stars for achievement tiers. Earned stars are metal; the
 /// mythic one shimmers through every color.
 struct TierStars: View {

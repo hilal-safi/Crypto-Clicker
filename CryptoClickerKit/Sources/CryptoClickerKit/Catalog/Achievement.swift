@@ -17,48 +17,26 @@ public enum AchievementMetric: Hashable, Sendable {
 
 public struct Achievement: Identifiable, Hashable, Sendable {
     public let id: String
-    /// The name and what it counts, in the crypto edition.
-    let cryptoName: String
-    let cryptoDetail: String
-    /// The classic edition's name and detail, where its games differ.
-    let classicName: String?
-    let classicDetail: String?
-    /// The emoji in the crypto edition, and the classic edition's where it differs.
-    let cryptoEmoji: String?
-    let classicEmoji: String?
+    /// The name, and what it counts.
+    public let name: String
+    public let detail: String
+    /// Emoji shown for the achievement, or `nil` when `imageName` is used instead.
+    public let emoji: String?
     /// Asset catalog image (token achievements use the token artwork).
     public let imageName: String?
     public let metric: AchievementMetric
     /// Bronze, silver, gold and mythic thresholds, in increasing order.
     public let thresholds: [Double]
 
-    /// - Parameter classic: The name and detail in the classic edition, when they differ.
-    init(id: String, name: String, detail: String, classic: (name: String?, detail: String)? = nil, emoji: String?,
-         classicEmoji: String? = nil, imageName: String?, metric: AchievementMetric, thresholds: [Double]) {
+    init(id: String, name: String, detail: String, emoji: String?, imageName: String?, metric: AchievementMetric,
+         thresholds: [Double]) {
         self.id = id
-        cryptoName = name
-        cryptoDetail = detail
-        classicName = classic?.name
-        classicDetail = classic?.detail
-        cryptoEmoji = emoji
-        self.classicEmoji = classicEmoji
+        self.name = name
+        self.detail = detail
+        self.emoji = emoji
         self.imageName = imageName
         self.metric = metric
         self.thresholds = thresholds
-    }
-
-    /// Emoji shown for the achievement, or `nil` when `imageName` is used instead.
-    public var emoji: String? { ArcadeEdition.pick(cryptoEmoji, classic: classicEmoji ?? cryptoEmoji) }
-
-    public var name: String { name(in: .current) }
-    public var detail: String { detail(in: .current) }
-
-    public func name(in edition: ArcadeEdition) -> String {
-        edition.pick(cryptoName, classic: classicName ?? cryptoName)
-    }
-
-    public func detail(in edition: ArcadeEdition) -> String {
-        edition.pick(cryptoDetail, classic: classicDetail ?? cryptoDetail)
     }
 }
 
@@ -104,39 +82,30 @@ public enum AchievementCatalog {
 
     private static let games: [Achievement] = [
         Achievement(id: "card-shark", name: localized("Card Shark"), detail: localized("Win hands of 21 Million"),
-                    classic: (nil, localized("Win blackjack hands")), emoji: "🃏", imageName: nil,
-                    metric: .blackjackWins, thresholds: [10, 100, 1_000, 5_000]),
+                    emoji: "🃏", imageName: nil, metric: .blackjackWins, thresholds: [10, 100, 1_000, 5_000]),
         Achievement(id: "natural", name: localized("Natural"), detail: localized("Deal yourself a natural 21"),
-                    classic: (nil, localized("Deal yourself a blackjack")), emoji: "🂡", imageName: nil,
-                    metric: .blackjackNaturals, thresholds: [1, 10, 100, 500]),
+                    emoji: "🂡", imageName: nil, metric: .blackjackNaturals, thresholds: [1, 10, 100, 500]),
         Achievement(id: "line-clearer", name: localized("Line Clearer"), detail: localized("Clear lines in Block Chain"),
-                    classic: (nil, localized("Clear Tetris lines")), emoji: "🧱", imageName: nil,
-                    metric: .tetrisLines, thresholds: [10, 100, 1_000, 10_000]),
+                    emoji: "🧱", imageName: nil, metric: .tetrisLines, thresholds: [10, 100, 1_000, 10_000]),
         Achievement(id: "high-score", name: localized("High Score"), detail: localized("Score in a single Block Chain game"),
-                    classic: (nil, localized("Score in a single Tetris game")), emoji: "🏆", imageName: nil,
-                    metric: .tetrisBestScore, thresholds: [5_000, 25_000, 100_000, 500_000]),
+                    emoji: "🏆", imageName: nil, metric: .tetrisBestScore, thresholds: [5_000, 25_000, 100_000, 500_000]),
         Achievement(id: "high-roller", name: localized("High Roller"), detail: localized("Win spins at Crypto Slots"), emoji: "🎰", imageName: nil,
                     metric: .slotsWins, thresholds: [10, 100, 1_000, 10_000]),
         Achievement(id: "snake-charmer", name: localized("Chain Reaction"), detail: localized("Score in a single Hash Chain game"),
-                    classic: (localized("Snake Charmer"), localized("Score in a single Snake game")), emoji: "🔗", classicEmoji: "🐍", imageName: nil,
-                    metric: .snakeBestScore, thresholds: [100, 300, 600, 1_000]),
+                    emoji: "🔗", imageName: nil, metric: .snakeBestScore, thresholds: [100, 300, 600, 1_000]),
         Achievement(id: "brick-smasher", name: localized("Hash Smasher"), detail: localized("Smash blocks in Hash Smash"),
-                    classic: (localized("Brick Smasher"), localized("Break bricks in Brick Breaker")), emoji: "💥", imageName: nil,
-                    metric: .bricksBroken, thresholds: [50, 500, 5_000, 50_000]),
+                    emoji: "💥", imageName: nil, metric: .bricksBroken, thresholds: [50, 500, 5_000, 50_000]),
         Achievement(id: "bubble-popper", name: localized("Bubble Popper"), detail: localized("Pop bubbles in Bubble Market"),
-                    classic: (nil, localized("Pop bubbles in Bubble Blaster")), emoji: "🫧", imageName: nil,
-                    metric: .bubblesPopped, thresholds: [100, 1_000, 10_000, 100_000]),
+                    emoji: "🫧", imageName: nil, metric: .bubblesPopped, thresholds: [100, 1_000, 10_000, 100_000]),
         Achievement(id: "merge-master", name: localized("Merge Master"), detail: localized("Merge a miner this big in Merge Mining"),
-                    classic: (nil, localized("Make a tile this big in 2048")), emoji: "⛏️", classicEmoji: "🔢",
-                    imageName: nil, metric: .merge2048BestTile, thresholds: [128, 512, 2_048, 8_192]),
+                    emoji: "⛏️", imageName: nil, metric: .merge2048BestTile, thresholds: [128, 512, 2_048, 8_192]),
         Achievement(id: "moonshot", name: localized("Moonshot"), detail: localized("Cash out this high in To the Moon"), emoji: "🚀",
                     imageName: nil, metric: .moonBestMultiplier, thresholds: [2, 5, 20, 100]),
         Achievement(id: "whack-a-coin", name: localized("Coin Whacker"), detail: localized("Hit coins in Pump and Dump"), emoji: "🔨",
                     imageName: nil, metric: .pumpDumpCoinsHit, thresholds: [100, 1_000, 10_000, 50_000]),
         Achievement(id: "poker-face", name: localized("Poker Face"), detail: localized("Win hands of Diamond Hands"),
-                    classic: (nil, localized("Win Video Poker hands")), emoji: "💎", classicEmoji: "♦️",
-                    imageName: nil, metric: .pokerWins, thresholds: [10, 100, 1_000, 5_000]),
-        Achievement(id: "token-swapper", name: localized("Token Swapper"), detail: localized("Match tokens in Token Swap"), emoji: "🪙", classicEmoji: "💎",
+                    emoji: "💎", imageName: nil, metric: .pokerWins, thresholds: [10, 100, 1_000, 5_000]),
+        Achievement(id: "token-swapper", name: localized("Token Swapper"), detail: localized("Match tokens in Token Swap"), emoji: "🪙",
                     imageName: nil, metric: .tokenSwapTokens, thresholds: [250, 2_500, 25_000, 250_000]),
         Achievement(id: "invader-hunter", name: localized("Invader Hunter"), detail: localized("Shoot down invaders in Scam Invaders"), emoji: "🛸",
                     imageName: nil, metric: .invadersDestroyed, thresholds: [100, 1_000, 10_000, 100_000]),
@@ -153,19 +122,15 @@ public enum AchievementCatalog {
         Achievement(id: "all-rounder", name: localized("All-Rounder"), detail: localized("Meet the weekly variety goal"), emoji: "🎲",
                     imageName: nil, metric: .weeklyVarietyGoals, thresholds: [1, 4, 12, 52]),
         Achievement(id: "sprinter", name: localized("Sprinter"), detail: localized("Finish Block Rushes in Block Chain"),
-                    classic: (nil, localized("Finish Tetris Sprints")), emoji: "⏱️",
-                    imageName: nil, metric: .tetrisSprints, thresholds: [1, 10, 50, 200]),
+                    emoji: "⏱️", imageName: nil, metric: .tetrisSprints, thresholds: [1, 10, 50, 200]),
         Achievement(id: "boss-slayer", name: localized("Whale Hunter"), detail: localized("Beat the whale in Hash Smash"),
-                    classic: (localized("Boss Slayer"), localized("Beat Brick Breaker bosses")), emoji: "🐋", classicEmoji: "⚔️",
-                    imageName: nil, metric: .brickBreakerBosses, thresholds: [1, 5, 25, 100]),
+                    emoji: "🐋", imageName: nil, metric: .brickBreakerBosses, thresholds: [1, 5, 25, 100]),
         Achievement(id: "wave-rider", name: localized("Wave Rider"), detail: localized("Wave reached in Bubble Market"),
-                    classic: (nil, localized("Wave reached in Bubble Blaster")), emoji: "🌊",
-                    imageName: nil, metric: .bubbleBestWave, thresholds: [3, 5, 8, 12]),
+                    emoji: "🌊", imageName: nil, metric: .bubbleBestWave, thresholds: [3, 5, 8, 12]),
         Achievement(id: "star-collector", name: localized("Star Collector"), detail: localized("Earn Token Swap level stars"), emoji: "⭐",
                     imageName: nil, metric: .tokenSwapStars, thresholds: [10, 25, 40, 54]),
         Achievement(id: "puzzle-solver", name: localized("Puzzle Solver"), detail: localized("Stars from daily Merge Mining puzzles"),
-                    classic: (nil, localized("Stars from daily 2048 puzzles")), emoji: "🧩",
-                    imageName: nil, metric: .merge2048DailyStars, thresholds: [3, 15, 60, 200]),
+                    emoji: "🧩", imageName: nil, metric: .merge2048DailyStars, thresholds: [3, 15, 60, 200]),
         Achievement(id: "last-line", name: localized("Last Line of Defense"), detail: localized("Wave reached in Scam Invaders"), emoji: "🛡️",
                     imageName: nil, metric: .invadersBestWave, thresholds: [3, 6, 10, 15]),
     ]

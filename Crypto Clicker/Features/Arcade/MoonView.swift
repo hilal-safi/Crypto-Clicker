@@ -72,12 +72,6 @@ struct MoonView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .gameHelp(.moon, isPresented: $showingHelp, isEnabled: !isFlying)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                CoinAmount(amount: store.coins, font: .subheadline.weight(.semibold), iconSize: 16)
-                    .padding(.horizontal, 6)
-            }
-        }
         .sensoryFeedback(trigger: flights) { _, _ in
             guard haptics, let result else { return nil }
             return result.isWin ? .success : .error
@@ -101,7 +95,8 @@ struct MoonView: View {
             let shownTime = isFlying ? min(elapsed, MoonFlight.time(toReach: crash)) : endedAfter
             let multiplier = isFlying ? min(MoonFlight.multiplier(after: shownTime), crash) : endMultiplier
             ZStack {
-                FlightChart(seconds: shownTime, isCrashed: result?.isWin == false, hasFlown: isFlying || result != nil)
+                FlightChart(seconds: shownTime, isCrashed: result?.isWin == false, hasFlown: isFlying || result != nil,
+                            ride: store.game.equipped(.moonRide))
                 VStack(spacing: 4) {
                     Text(CoinFormat.flight(multiplier))
                         .font(.system(size: 52, weight: .heavy, design: .rounded))
@@ -326,6 +321,8 @@ private struct FlightChart: View {
     let seconds: TimeInterval
     let isCrashed: Bool
     let hasFlown: Bool
+    /// What rides the line, picked in Style.
+    var ride = Cosmetic.moonRocket
 
     var body: some View {
         Canvas { context, size in
@@ -358,9 +355,9 @@ private struct FlightChart: View {
             context.fill(area, with: .linearGradient(Gradient(colors: [color.opacity(0.35), color.opacity(0)]),
                                                      startPoint: CGPoint(x: 0, y: 0), endPoint: CGPoint(x: 0, y: size.height)))
             context.stroke(line, with: .color(color), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
-            // The rocket (or the wreck) at the head of the line.
+            // The ride (or the wreck) at the head of the line.
             let head = point(at: seconds)
-            let rocket = context.resolve(Text(isCrashed ? "💥" : "🚀").font(.system(size: 30)))
+            let rocket = context.resolve(Text(isCrashed ? "💥" : ride.moonEmoji).font(.system(size: 30)))
             context.draw(rocket, at: CGPoint(x: min(max(head.x, 18), size.width - 18), y: max(head.y, 18)))
         }
         .accessibilityHidden(true)

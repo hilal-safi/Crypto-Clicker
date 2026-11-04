@@ -2,8 +2,9 @@ import SwiftUI
 import CryptoClickerKit
 
 /// Where the coins come from, right now: every miner's share, automatic taps, the multipliers on
-/// production, what makes up a tap, and the other ways coins arrive. Opened from the bar at the
-/// bottom of the screen. Numbers follow the short-or-full choice made by tapping the balance.
+/// production, what makes up a tap, and the other ways coins arrive. Opened from the balance bar at
+/// the bottom of the screen and the rates on Mine. Its Numbers switch (short or every digit) is the
+/// same one as Settings' and tapping the balance on Mine.
 struct IncomeBreakdownView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -45,6 +46,8 @@ struct IncomeBreakdownView: View {
                         }
                     }
                     .padding(.vertical, 4)
+                    NumberFormatPicker(isSegmented: true)
+                        .padding(.vertical, 2)
                 }
 
                 Section {
@@ -130,12 +133,6 @@ struct IncomeBreakdownView: View {
             .navigationTitle("Income")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(exactNumbers ? "Short" : "Full") {
-                        withAnimation(.snappy) { exactNumbers.toggle() }
-                    }
-                    .accessibilityHint(exactNumbers ? "Shows numbers in short form" : "Shows every digit")
-                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done", systemImage: "checkmark") { dismiss() }
                 }

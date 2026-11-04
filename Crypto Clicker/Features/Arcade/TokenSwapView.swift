@@ -88,10 +88,11 @@ struct TokenSwapView: View {
             .frame(maxWidth: 600)
             .frame(maxWidth: .infinity)
         }
-        .background { AppBackground(tint: MiniGame.tokenSwap.color) }
         .navigationTitle("Token Swap")
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.tokenSwap, isPresented: $showingHelp)
+        .environment(\.swapTiles, store.game.equipped(.swapTiles))
+        .gameBackdrop(.tokenSwap)
     }
 
     /// The difficulty picked for random levels (saved as its number).
@@ -166,9 +167,9 @@ struct TokenSwapLevelsView: View {
             .frame(maxWidth: 700)
             .frame(maxWidth: .infinity)
         }
-        .background { AppBackground(tint: MiniGame.tokenSwap.color) }
         .navigationTitle("Levels")
         .navigationBarTitleDisplayMode(.inline)
+        .gameBackdrop(.tokenSwap)
     }
 }
 

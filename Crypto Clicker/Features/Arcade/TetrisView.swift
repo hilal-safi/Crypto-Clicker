@@ -1,7 +1,7 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// The screens inside Tetris (Block Chain in the crypto edition), opened from its start screen.
+/// The screens inside Block Chain, opened from its start screen.
 enum TetrisRoute: Hashable {
     /// Until the stack tops out, faster every 10 lines.
     case endless
@@ -12,8 +12,8 @@ enum TetrisRoute: Hashable {
     case todaysPieces(day: String)
 }
 
-/// Where Tetris opens, like Brick Breaker and Scam Invaders: Endless, the Sprint (Block Rush),
-/// today's pieces and the speed setting, each on a card.
+/// Where Block Chain opens, like Hash Smash and Scam Invaders: Endless, Block Rush, today's pieces
+/// and the speed setting, each on a card.
 struct TetrisView: View {
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.tetrisSpeedKey) private var speed = GameSpeed.normal
@@ -22,7 +22,6 @@ struct TetrisView: View {
     var body: some View {
         let stats = store.game.stats
         let tint = MiniGame.tetris.color
-        let crypto = store.arcadeEdition == .crypto
         let today = store.today
         let blockDay = store.game.dailyChallenge(today: today).flatMap { $0.kind == .tetris && !$0.isComplete ? $0.goal : nil }
         ScrollView {
@@ -31,9 +30,7 @@ struct TetrisView: View {
                          status: stats.tetrisGames == 0
                             ? "Start at level 1"
                             : "Best \(CoinFormat.grouped(stats.tetrisBestScore)) · level \(CoinFormat.grouped(stats.tetrisBestLevel))",
-                         detail: crypto
-                            ? "Mine rows until the stack tops out, faster every 10 rows. Every \(TetrisGame.gasSpikeEvery) pieces a gas spike pushes the stack up a row from below: clear it to collect the fee."
-                            : "Clear lines until the stack tops out, faster every 10 lines.",
+                         detail: "Mine rows until the stack tops out, faster every 10 rows. Every \(TetrisGame.gasSpikeEvery) pieces a gas spike pushes the stack up a row from below: clear it to collect the fee.",
                          note: nil) {
                     NavigationLink(value: TetrisRoute.endless) {
                         Label("Play Endless", systemImage: "play.fill")
@@ -41,16 +38,14 @@ struct TetrisView: View {
                     }
                     .buttonStyle(.glassProminent)
                 }
-                ModeCard(tint: tint, icon: "stopwatch.fill", title: crypto ? "Block Rush" : "Sprint \(TetrisGame.sprintLines)",
+                ModeCard(tint: tint, icon: "stopwatch.fill", title: "Block Rush",
                          status: stats.tetrisBestSprint > 0
                             ? "Fastest \(CoinFormat.stopwatch(stats.tetrisBestSprint)) · \(CoinFormat.grouped(stats.tetrisSprints)) finished"
                             : "No run finished yet",
-                         detail: crypto
-                            ? "Mine \(TetrisGame.sprintLines) rows as fast as you can, with no gas: the record is your time."
-                            : "Clear \(TetrisGame.sprintLines) lines as fast as you can; the record is your time.",
+                         detail: "Mine \(TetrisGame.sprintLines) rows as fast as you can, with no gas: the record is your time.",
                          note: nil) {
                     NavigationLink(value: TetrisRoute.sprint) {
-                        Label(crypto ? "Play Block Rush" : "Play Sprint", systemImage: "play.fill")
+                        Label("Play Block Rush", systemImage: "play.fill")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.glassProminent)
@@ -81,20 +76,22 @@ struct TetrisView: View {
             .frame(maxWidth: 600)
             .frame(maxWidth: .infinity)
         }
-        .background { AppBackground(tint: .cyan) }
         .navigationTitle(MiniGame.tetris.name)
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.tetris, isPresented: $showingHelp)
+        .gameBackdrop(.tetris)
     }
 }
 
-/// Tetris's game, with rules from `TetrisGame`: the classic well, or Block Chain's shorter one
-/// with gas spikes. The mode comes from the start screen; a day's pieces are seeded by the day.
+/// Block Chain's game, with rules from `TetrisGame`: a 10x18 well with gas spikes in Endless. The
+/// mode comes from the start screen; a day's pieces are seeded by the day.
 /// Points pay coins when the game ends, including when the player leaves mid-game.
 ///
-/// The controls sit in the space beside the well: on the left, force drop, pause and move left;
-/// on the right, hold, drop, rotate and move right. The board also takes taps (rotate), drags
-/// (move), swipes down (drop) and swipes up (hold).
+/// The score sits at the top and the well at the bottom, with the mempool between them: the next
+/// three pieces, the held one, and gauges for the next gas spike and the next level (or, in Block
+/// Rush, the rows to go and the clock). The controls sit in the space beside the well: on the left,
+/// force drop, pause and move left; on the right, hold, drop, rotate and move right. The board also
+/// takes taps (rotate), drags (move), swipes down (drop) and swipes up (hold).
 struct TetrisPlayView: View {
     let route: TetrisRoute
     @Environment(GameStore.self) private var store
@@ -128,7 +125,7 @@ struct TetrisPlayView: View {
     init(route: TetrisRoute) {
         self.route = route
         var rng = SystemRandomNumberGenerator()
-        _game = State(initialValue: TetrisGame(mode: Self.mode(for: route), rules: .edition(.current), using: &rng))
+        _game = State(initialValue: TetrisGame(mode: Self.mode(for: route), using: &rng))
     }
 
     static func mode(for route: TetrisRoute) -> TetrisGame.Mode {
@@ -155,6 +152,10 @@ struct TetrisPlayView: View {
     var body: some View {
         VStack(spacing: 10) {
             scoreboard
+            // The room the well leaves over: the mempool fills it, between the score and the well.
+            Mempool(game: game, elapsed: elapsed, bestRush: store.game.stats.tetrisBestSprint, isChip: showsChips,
+                    canHold: isRunning && game.canHold, hold: hold)
+                .frame(maxHeight: .infinity)
             HStack(alignment: .bottom, spacing: 8) {
                 VStack(spacing: 12) {
                     ArcadeButton(title: "Force drop", systemImage: "arrow.down.to.line") { forceDrop() }
@@ -169,11 +170,10 @@ struct TetrisPlayView: View {
                     .disabled(!isRunning)
                 }
                 .frame(width: Self.columnWidth)
-                TetrisBoard(game: game, flashRows: flashRows, skin: store.game.equipped(.tetris), edition: store.arcadeEdition)
+                TetrisBoard(game: game, flashRows: flashRows, skin: store.game.equipped(.tetris))
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { boardWidth = $0 }
                     .gesture(boardGesture)
                     .overlay(alignment: .top) { bannerView }
-                    .overlay(alignment: .bottom) { gasGauge }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("\(MiniGame.tetris.name) well")
                     .accessibilityValue("Score \(game.score), \(game.lines) lines")
@@ -193,12 +193,13 @@ struct TetrisPlayView: View {
                 .disabled(!isRunning)
                 .frame(width: Self.columnWidth)
             }
+            // The well takes all the height its width allows before the mempool gets any.
+            .layoutPriority(1)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 10)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background { AppBackground(tint: .cyan) }
         .overlay {
             if isPaused {
                 PausedCard(game: .tetris, resume: { isPaused = false }, showHelp: { showingHelp = true })
@@ -220,17 +221,16 @@ struct TetrisPlayView: View {
         }
         .task(id: isRunning) { await run() }
         .arcadeLifecycle(isPlaying: isPlaying, pause: { isPaused = true }, heldRun: { heldRun }) { endGame() }
+        .gameBackdrop(.tetris)
     }
 
-    private var crypto: Bool { store.arcadeEdition == .crypto }
-
-    /// Block Chain's coin chips: its look for the Classic skin.
-    private var showsChips: Bool { crypto && store.game.equipped(.tetris) == .tetrisClassic }
+    /// Block Chain's coin chips, its first skin.
+    private var showsChips: Bool { store.game.equipped(.tetris) == .tetrisClassic }
 
     private var title: String {
         switch route {
         case .endless: MiniGame.tetris.name
-        case .sprint: crypto ? "Block Rush" : "Sprint \(TetrisGame.sprintLines)"
+        case .sprint: "Block Rush"
         case .todaysPieces: "Today's Pieces"
         }
     }
@@ -250,25 +250,21 @@ struct TetrisPlayView: View {
     // MARK: Pieces of the screen
 
     private var scoreboard: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 16) {
             GameStat(title: "Score", value: CoinFormat.grouped(game.score))
             if game.mode == .endless {
-                GameStat(title: crypto ? "Rows" : "Lines", value: CoinFormat.grouped(game.lines))
+                GameStat(title: "Rows", value: CoinFormat.grouped(game.lines))
                 GameStat(title: "Level", value: "\(game.level)")
             } else {
                 GameStat(title: "Left", value: "\(game.linesLeft)")
                 GameStat(title: "Time", value: CoinFormat.stopwatch(elapsed))
             }
             Spacer(minLength: 0)
-            Button(action: hold) {
-                PieceBox(title: "Hold", kind: game.held, isDimmed: !game.canHold, isChip: showsChips)
+            if game.mode == .endless {
+                GameStat(title: "Best", value: CoinFormat.grouped(store.game.stats.tetrisBestScore))
+            } else if store.game.stats.tetrisBestSprint > 0 {
+                GameStat(title: "Best", value: CoinFormat.stopwatch(store.game.stats.tetrisBestSprint))
             }
-            .buttonStyle(.plain)
-            .disabled(!isRunning || !game.canHold)
-            .accessibilityLabel(game.held.map { "Hold, holding \($0.name)" } ?? "Hold, empty")
-            PieceBox(title: "Next", kind: game.nextPiece, isDimmed: false, isChip: showsChips)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(game.nextPiece.map { "Next piece \($0.name)" } ?? "")
         }
         .scoreBar()
     }
@@ -284,23 +280,6 @@ struct TetrisPlayView: View {
                 .id(banner.id)
                 .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
                 .allowsHitTesting(false)
-        }
-    }
-
-    /// Block Chain's gas gauge: how soon the next gas spike comes, once it's close.
-    @ViewBuilder
-    private var gasGauge: some View {
-        if let left = game.piecesUntilGasSpike, isPlaying, left <= 5 {
-            Label(left == 1 ? "Gas spike next piece" : "Gas spike in \(left) pieces", systemImage: "fuelpump.fill")
-                .font(.footnote.weight(.heavy))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Color(red: 0.55, green: 0.2, blue: 0.75).opacity(0.85), in: .capsule)
-                .padding(.bottom, 8)
-                .allowsHitTesting(false)
-                .transition(.opacity)
-                .accessibilityHidden(true)
         }
     }
 
@@ -327,9 +306,9 @@ struct TetrisPlayView: View {
         let speedText = "\(speed.name) speed"
         switch route {
         case .endless:
-            return crypto ? "Gas spikes every \(TetrisGame.gasSpikeEvery) pieces · \(speedText)" : speedText
+            return "Gas spikes every \(TetrisGame.gasSpikeEvery) pieces · \(speedText)"
         case .sprint:
-            return (crypto ? "Mine \(TetrisGame.sprintLines) rows" : "Clear \(TetrisGame.sprintLines) lines") + " · \(speedText)"
+            return ("Mine \(TetrisGame.sprintLines) rows") + " · \(speedText)"
         case .todaysPieces(let day):
             let goal = store.game.dailyChallenge(today: day).flatMap { $0.kind == .tetris ? $0.goal : nil }
             return "Everyone gets the same pieces today." + (goal.map { " Daily challenge: \($0)." } ?? "") + " \(speedText)."
@@ -342,13 +321,13 @@ struct TetrisPlayView: View {
     }
 
     private func resultTitle(_ result: TetrisResult) -> String {
-        if case .sprint = result.mode { return result.isComplete ? (crypto ? "Rush Done" : "Sprint Done") : "Topped Out" }
+        if case .sprint = result.mode { return result.isComplete ? ("Rush Done") : "Topped Out" }
         return "Game Over"
     }
 
     private func resultDetails(_ result: TetrisResult) -> [String] {
         var details: [String] = []
-        let unit = crypto ? "rows" : "lines"
+        let unit = "rows"
         if case .sprint(let lines) = result.mode {
             details.append(result.isComplete
                            ? "\(lines) \(unit) in \(CoinFormat.stopwatch(result.time))" + (result.base.isNewBest ? " · fastest yet" : "")
@@ -357,7 +336,7 @@ struct TetrisPlayView: View {
             details.append("\(CoinFormat.grouped(result.base.detail)) \(unit) · level \(result.level)"
                            + (result.gasRows > 0 ? " · \(result.gasRows) gas row\(result.gasRows == 1 ? "" : "s")" : ""))
         }
-        let fours = crypto ? "Full Block\(result.tetrises == 1 ? "" : "s")" : "Tetris\(result.tetrises == 1 ? "" : "es")"
+        let fours = "Full Block\(result.tetrises == 1 ? "" : "s")"
         details.append("Best combo \(max(0, result.bestCombo)) · \(result.tetrises) \(fours)")
         return details
     }
@@ -409,7 +388,7 @@ struct TetrisPlayView: View {
 
     private func start() {
         rng = SeededGenerator(seed: piecesDay.map(GameState.dailyChallengeSeed(day:)) ?? .random(in: 0...UInt64.max))
-        game = TetrisGame(mode: Self.mode(for: route), speed: speed, rules: .edition(store.arcadeEdition), using: &rng)
+        game = TetrisGame(mode: Self.mode(for: route), speed: speed, using: &rng)
         result = nil
         banner = nil
         flashRows = []
@@ -461,7 +440,7 @@ struct TetrisPlayView: View {
             if game.level > levelBefore && game.mode == .endless {
                 text = "Level \(game.level)!"
             } else if cleared >= 4 {
-                text = crypto ? "FULL BLOCK!" : "TETRIS!"
+                text = "FULL BLOCK!"
             } else if game.combo >= 1 {
                 text = "Combo ×\(game.combo + 1)"
             }
@@ -515,20 +494,19 @@ struct GameResult: Equatable {
     }
 }
 
-/// The well, drawn in one Canvas pass: settled blocks, where the piece will land, then the falling
-/// piece, and a flash over rows just cleared. Block Chain draws coin chips (with its Classic skin),
-/// gas rows, and a dotted pending marker where the classic game draws a ghost outline.
+/// The well, drawn in one Canvas pass: settled blocks and gas rows, a dotted pending marker where
+/// the piece will land, then the falling piece, and a flash over rows just cleared. The Coin Chips
+/// skin draws coins with their token's sign.
 struct TetrisBoard: View {
     let game: TetrisGame
     var flashRows: [Int] = []
     /// The blocks picked in Style.
     var skin: Cosmetic = .tetrisClassic
-    var edition = ArcadeEdition.crypto
 
     var body: some View {
         Canvas { context, size in
             let cell = size.width / CGFloat(TetrisGame.width)
-            let chips = edition == .crypto && skin == .tetrisClassic
+            let chips = skin == .tetrisClassic
             var glyphs: [Tetromino: GraphicsContext.ResolvedText] = [:]
             if chips {
                 for kind in Tetromino.allCases { glyphs[kind] = Cosmetic.coinGlyph(kind, cell: cell, context: context) }
@@ -564,18 +542,14 @@ struct TetrisBoard: View {
             }
             if let ghost = game.ghost {
                 for block in ghost.cells where block.y >= 0 {
-                    if edition == .crypto {
-                        // A pending transaction: a ring of dots where the piece will land.
-                        let spot = frame(block.x, block.y)
-                        let dot = cell * 0.2
-                        context.fill(Path(ellipseIn: CGRect(x: spot.midX - dot / 2, y: spot.midY - dot / 2, width: dot, height: dot)),
-                                     with: .color(ghost.kind.color.opacity(0.9)))
-                        context.stroke(Path(ellipseIn: spot.insetBy(dx: cell * 0.14, dy: cell * 0.14)),
-                                       with: .color(ghost.kind.color.opacity(0.55)),
-                                       style: StrokeStyle(lineWidth: max(1, cell * 0.06), dash: [max(1.5, cell * 0.08), max(2, cell * 0.1)]))
-                    } else {
-                        context.stroke(rect(block.x, block.y), with: .color(ghost.kind.color.opacity(0.7)), lineWidth: 2)
-                    }
+                    // A pending transaction: a ring of dots where the piece will land.
+                    let spot = frame(block.x, block.y)
+                    let dot = cell * 0.2
+                    context.fill(Path(ellipseIn: CGRect(x: spot.midX - dot / 2, y: spot.midY - dot / 2, width: dot, height: dot)),
+                                 with: .color(ghost.kind.color.opacity(0.9)))
+                    context.stroke(Path(ellipseIn: spot.insetBy(dx: cell * 0.14, dy: cell * 0.14)),
+                                   with: .color(ghost.kind.color.opacity(0.55)),
+                                   style: StrokeStyle(lineWidth: max(1, cell * 0.06), dash: [max(1.5, cell * 0.08), max(2, cell * 0.1)]))
                 }
             }
             if let piece = game.piece {
@@ -590,32 +564,208 @@ struct TetrisBoard: View {
         }
         .aspectRatio(CGFloat(TetrisGame.width) / CGFloat(game.height), contentMode: .fit)
         .padding(4)
-        .background(edition == .crypto ? Color(red: 0.02, green: 0.05, blue: 0.1).opacity(0.7) : .black.opacity(0.55),
+        .background(Color(red: 0.02, green: 0.05, blue: 0.1).opacity(0.7),
                     in: .rect(cornerRadius: 14))
     }
 }
 
-/// A small labelled box showing one piece: the next, or the one held.
-struct PieceBox: View {
-    let title: LocalizedStringKey
-    let kind: Tetromino?
-    let isDimmed: Bool
-    /// Drawn as coin chips, like Block Chain's pieces.
-    var isChip = false
+/// The room between the score and the well: the mempool (the next three pieces, waiting to be
+/// mined), the held piece (tap it to hold), and two gauges: the next gas spike and the next level
+/// in Endless, the rows to go and the clock against the best in Block Rush. With room to spare
+/// the gauges get a line each; with less they share one line, then go, then the pieces shrink.
+private struct Mempool: View {
+    let game: TetrisGame
+    let elapsed: TimeInterval
+    let bestRush: TimeInterval
+    let isChip: Bool
+    let canHold: Bool
+    let hold: () -> Void
+
+    private enum Gauges { case lines, shared, none }
 
     var body: some View {
-        VStack(spacing: 2) {
-            Text(title)
-                .font(.caption.weight(.heavy))
-                .foregroundStyle(Theme.accent)
-                .textCase(.uppercase)
-            NextPieceView(kind: kind, isChip: isChip)
-                .opacity(isDimmed ? 0.4 : 1)
+        ViewThatFits(in: .vertical) {
+            panel(pieceHeight: 48, gauges: .lines)
+            panel(pieceHeight: 40, gauges: .shared)
+            panel(pieceHeight: 34, gauges: .shared)
+            panel(pieceHeight: 34, gauges: .none)
+            panel(pieceHeight: 24, gauges: .none)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func panel(pieceHeight: CGFloat, gauges: Gauges) -> some View {
+        VStack(spacing: 8) {
+            pieces(height: pieceHeight)
+            gaugeLines(gauges)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .background(.background.opacity(0.35), in: .rect(cornerRadius: 18))
+    }
+
+    /// The next three pieces, and the held one.
+    private func pieces(height pieceHeight: CGFloat) -> some View {
+        HStack(alignment: .bottom, spacing: 10) {
+            upcoming(height: pieceHeight)
+            Spacer(minLength: 0)
+            holdSlot(height: pieceHeight)
+        }
+    }
+
+    private func upcoming(height pieceHeight: CGFloat) -> some View {
+        let next = Array(game.queue.prefix(3))
+        return VStack(alignment: .leading, spacing: 4) {
+            caption("Mempool")
+            HStack(spacing: 8) {
+                ForEach(next.indices, id: \.self) { index in
+                    PieceSlot(kind: next[index], height: pieceHeight, isChip: isChip, isNext: index == 0)
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Next pieces: " + next.map(\.name).joined(separator: ", "))
+        }
+    }
+
+    private func holdSlot(height pieceHeight: CGFloat) -> some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            caption("Hold")
+            Button(action: hold) {
+                PieceSlot(kind: game.held, height: pieceHeight, isChip: isChip, isNext: false)
+                    .opacity(game.canHold ? 1 : 0.45)
+            }
+            .buttonStyle(.plain)
+            .disabled(!canHold)
+            .accessibilityLabel(game.held.map { "Hold, holding \($0.name)" } ?? "Hold, empty")
+        }
+    }
+
+    @ViewBuilder
+    private func gaugeLines(_ gauges: Gauges) -> some View {
+        switch gauges {
+        case .lines:
+            VStack(spacing: 6) {
+                ForEach(readings, id: \.symbol) { reading in
+                    GaugeRow(reading: reading, isShort: false)
+                }
+            }
+        case .shared:
+            HStack(spacing: 14) {
+                ForEach(readings, id: \.symbol) { reading in
+                    GaugeRow(reading: reading, isShort: true)
+                }
+            }
+        case .none:
+            EmptyView()
+        }
+    }
+
+    private func caption(_ title: LocalizedStringKey) -> some View {
+        Text(title)
+            .font(.footnote.weight(.heavy))
+            .foregroundStyle(Theme.accent)
+            .textCase(.uppercase)
+    }
+
+    /// What the gauges show: the next gas spike and the next level in Endless (no gas in Block
+    /// Rush's), the rows to go and the clock against the best Rush in Block Rush.
+    private var readings: [GaugeReading] {
+        var readings: [GaugeReading] = []
+        if game.mode == .endless {
+            if let left = game.piecesUntilGasSpike {
+                readings.append(GaugeReading(
+                    symbol: "fuelpump.fill",
+                    text: left == 1 ? "Gas spike next piece" : "Gas spike in \(left) pieces", short: "\(left)",
+                    progress: Double(TetrisGame.gasSpikeEvery - left) / Double(TetrisGame.gasSpikeEvery),
+                    tint: left <= 3 ? Theme.loss : Color(red: 0.7, green: 0.45, blue: 1)))
+            }
+            let rows = 10 - game.lines % 10
+            readings.append(GaugeReading(
+                symbol: "arrow.up.circle.fill",
+                text: rows == 1 ? "1 row to level \(game.level + 1)" : "\(rows) rows to level \(game.level + 1)",
+                short: "Lv \(game.level + 1)", progress: Double(game.lines % 10) / 10, tint: .cyan))
+        } else {
+            let total = game.lines + game.linesLeft
+            readings.append(GaugeReading(
+                symbol: "flag.checkered", text: "\(game.linesLeft) of \(total) rows to go", short: "\(game.linesLeft)",
+                progress: total > 0 ? Double(game.lines) / Double(total) : 0, tint: .cyan))
+            readings.append(GaugeReading(
+                symbol: "stopwatch.fill",
+                text: bestRush > 0 ? "Best Rush \(CoinFormat.stopwatch(bestRush))" : "No Rush finished yet",
+                short: bestRush > 0 ? CoinFormat.stopwatch(bestRush) : "–",
+                progress: bestRush > 0 ? min(1, elapsed / bestRush) : 0,
+                tint: bestRush > 0 && elapsed > bestRush ? Theme.loss : Theme.gold))
+        }
+        return readings
     }
 }
 
-struct NextPieceView: View {
+/// One of the mempool's gauges.
+private struct GaugeReading {
+    let symbol: String
+    /// What it counts, in full, and in a word or number for a shared line.
+    let text: String
+    let short: String
+    let progress: Double
+    let tint: Color
+}
+
+/// One of the mempool's gauges: a symbol, what it counts, and a bar filling up. A short one shares
+/// its line with the other, the bar in the middle.
+private struct GaugeRow: View {
+    let reading: GaugeReading
+    let isShort: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: reading.symbol)
+                .foregroundStyle(reading.tint)
+                .frame(width: 22)
+            if isShort {
+                ProgressView(value: min(max(reading.progress, 0), 1))
+                    .tint(reading.tint)
+                Text(reading.short)
+                    .font(.subheadline.weight(.bold).monospacedDigit())
+                    .lineLimit(1)
+                    .fixedSize()
+            } else {
+                Text(reading.text)
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer(minLength: 6)
+                ProgressView(value: min(max(reading.progress, 0), 1))
+                    .tint(reading.tint)
+                    .frame(width: 84)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(reading.text)
+    }
+}
+
+/// A piece waiting in the mempool or the hold slot, in a box; the next one is outlined.
+private struct PieceSlot: View {
+    let kind: Tetromino?
+    let height: CGFloat
+    let isChip: Bool
+    let isNext: Bool
+
+    var body: some View {
+        PiecePreview(kind: kind, isChip: isChip)
+            .padding(height * 0.16)
+            .frame(width: height * 1.5, height: height)
+            .background(Color(red: 0.02, green: 0.05, blue: 0.1).opacity(0.6), in: .rect(cornerRadius: height * 0.22))
+            .overlay {
+                RoundedRectangle(cornerRadius: height * 0.22)
+                    .strokeBorder(isNext ? Theme.accent.opacity(0.8) : .white.opacity(0.15), lineWidth: isNext ? 1.5 : 1)
+            }
+    }
+}
+
+/// One piece, centered in whatever room it's given: coins in Coin Chips, or blocks.
+struct PiecePreview: View {
     let kind: Tetromino?
     var isChip = false
 
@@ -633,13 +783,14 @@ struct NextPieceView: View {
                                    width: unit, height: unit)
                 if isChip {
                     context.fill(Path(ellipseIn: frame.insetBy(dx: 0.5, dy: 0.5)), with: .color(kind.color))
+                    context.stroke(Path(ellipseIn: frame.insetBy(dx: unit * 0.18, dy: unit * 0.18)),
+                                   with: .color(.white.opacity(0.45)), lineWidth: max(0.8, unit * 0.06))
                 } else {
                     context.fill(Path(roundedRect: frame.insetBy(dx: 1, dy: 1), cornerRadius: unit * 0.2),
                                  with: .color(kind.color))
                 }
             }
         }
-        .frame(width: 48, height: 24)
         .accessibilityHidden(true)
     }
 }

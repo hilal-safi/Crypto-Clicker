@@ -330,7 +330,8 @@ extension GameState {
                 ? finishMerge2048Daily(day: nil, score: run.score, bestTile: run.detail).payout
                 : finishMerge2048(score: run.score, bestTile: run.detail)
         case .pumpDump: finishPumpDump(score: run.score, coinsHit: run.detail, bestCombo: run.extra,
-                                       scamsHit: records.scamsHit, rounds: max(1, run.stage))
+                                       scamsHit: records.scamsHit, rounds: max(1, run.stage),
+                                       board: PumpDumpGame.Board(rawValue: records.board) ?? .three)
         case .tokenSwap: finishTokenSwap(score: run.score, tokens: run.detail, bestChain: run.extra, blasts: records.specials)
         case .invaders: finishInvaders(score: run.score, destroyed: run.detail, wave: max(1, run.extra), whales: records.bonuses,
                                        bosses: records.bosses, powerUps: records.powerUps, bestStreak: records.bestStreak,
@@ -500,11 +501,20 @@ extension GameState {
         return points + (bestTile >= Merge2048Game.winningValue ? merge2048TileBonus : 0)
     }
 
-    /// `rounds` is the round the run reached.
+    /// Records a finished run on `board` and pays it: the new-best bonus goes to a board's own
+    /// best, and the points pay the board's share (see `PumpDumpGame.Board.payShare`). `rounds` is
+    /// the round the run reached.
     @discardableResult
-    public mutating func finishPumpDump(score: Int, coinsHit: Int, bestCombo: Int, scamsHit: Int = 0, rounds: Int = 1) -> ArcadePayout {
-        let isNewBest = score > stats.pumpDumpBestScore
+    public mutating func finishPumpDump(score: Int, coinsHit: Int, bestCombo: Int, scamsHit: Int = 0, rounds: Int = 1,
+                                        board: PumpDumpGame.Board = .three) -> ArcadePayout {
+        if stats.pumpDumpBoardBests.isEmpty && stats.pumpDumpBestScore > 0 {
+            // The first run since the bigger boards came: the best so far was on the 3×3.
+            stats.pumpDumpBoardBests[String(PumpDumpGame.Board.three.rawValue)] = stats.pumpDumpBestScore
+        }
+        let boardBest = pumpDumpBest(on: board)
+        let isNewBest = score > boardBest
         stats.pumpDumpGames += 1
+        stats.pumpDumpBoardBests[String(board.rawValue)] = max(boardBest, score)
         stats.pumpDumpBestScore = max(stats.pumpDumpBestScore, score)
         stats.pumpDumpCoinsHit = stats.pumpDumpCoinsHit.addingCount(coinsHit)
         stats.pumpDumpScamsHit = stats.pumpDumpScamsHit.addingCount(scamsHit)
@@ -512,7 +522,15 @@ extension GameState {
         stats.pumpDumpBestRound = max(stats.pumpDumpBestRound, rounds)
         // The run ended in the round it reached, so the ones before it were cleared.
         stats.pumpDumpRoundsCleared = stats.pumpDumpRoundsCleared.addingCount(rounds - 1)
-        return payArcade(.pumpDump, score: score, isNewBest: isNewBest, challengeValue: score)
+        let paid = Int((Double(score) * board.payShare).rounded())
+        return payArcade(.pumpDump, score: score, paidPoints: paid, isNewBest: isNewBest, challengeValue: score)
+    }
+
+    /// The best Pump and Dump score on a board. Before the bigger boards every run was on the 3×3,
+    /// so a save without board records has its best there.
+    public func pumpDumpBest(on board: PumpDumpGame.Board) -> Int {
+        if let best = stats.pumpDumpBoardBests[String(board.rawValue)] { return best }
+        return board == .three && stats.pumpDumpBoardBests.isEmpty ? stats.pumpDumpBestScore : 0
     }
 
     /// `tokens` is how many tokens were matched; `bestChain` the most waves one swap set off.

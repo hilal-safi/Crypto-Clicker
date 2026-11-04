@@ -1,7 +1,7 @@
 import Foundation
 
-/// Pump and Dump: whack-a-mole with coins. Coins pop up in a 3×3 grid of holes; tap them before
-/// they drop back down. Scam tokens cost points, and rug pulls (coins with a red rim) shake and
+/// Pump and Dump: whack-a-mole with coins. Coins list in a grid of slots (3×3, 4×4 or 5×5); tap
+/// them before they're delisted. Scam tokens cost points, and rug pulls (coins with a red rim) shake and
 /// then turn into scams: tap one quickly and it pays like a coin. A rare golden coin is worth
 /// five coins. Hits in a row build a combo that multiplies points (up to ×3); a scam, a tap on an
 /// empty hole or a coin that gets away ends it.
@@ -11,6 +11,11 @@ import Foundation
 /// sets a bonus objective (build a combo, catch golden coins or make no mistakes) worth extra
 /// points, which count toward the goal. Targets never come faster than a finger can fairly keep up
 /// with, and a coin can still be tapped for a moment as it drops back down.
+///
+/// Bigger boards (`Board`) are busier: coins list more often, more at once, and stay a little
+/// longer for the finger to get across, with bigger goals to match. Their points pay a smaller
+/// share each, so every board pays about the same a minute. The Speed option speeds everything up
+/// or slows it down, goals included.
 ///
 /// Time only moves through `advance(by:)`, in fixed steps from one appearance to the next, so a
 /// round plays out the same way at any frame rate (and in tests).
@@ -76,7 +81,53 @@ public struct PumpDumpGame: Sendable {
         }
     }
 
-    public static let holes = 9
+    /// The board: slots along each side.
+    public enum Board: Int, CaseIterable, Codable, Sendable, Identifiable {
+        case three = 3, four = 4, five = 5
+
+        public var id: Int { rawValue }
+        public var side: Int { rawValue }
+        public var holes: Int { rawValue * rawValue }
+        /// "4×4".
+        public var name: String { "\(rawValue)×\(rawValue)" }
+
+        /// More listings up at once than on the 3×3: one on the 4×4, two on the 5×5.
+        var extraTargets: Int { rawValue - 3 }
+        /// How much more often coins list.
+        var listingRate: Double {
+            switch self {
+            case .three: 1
+            case .four: 1.25
+            case .five: 1.5
+            }
+        }
+        /// How much longer a listing stays up, for the finger to get across the board.
+        var stayScale: Double {
+            switch self {
+            case .three: 1
+            case .four: 1.1
+            case .five: 1.2
+            }
+        }
+        /// Round goals, bigger on the busier boards.
+        var goalScale: Double {
+            switch self {
+            case .three: 1
+            case .four: 1.2
+            case .five: 1.42
+            }
+        }
+        /// The share of a run's points that pays coins, so every board pays about the same a
+        /// minute (see `ArcadeBalanceTests`).
+        public var payShare: Double {
+            switch self {
+            case .three: 1
+            case .four: 0.82
+            case .five: 0.7
+            }
+        }
+    }
+
     public static let roundLength: TimeInterval = 30
     public static let coinPoints = 10
     public static let goldenPoints = 50
@@ -97,6 +148,9 @@ public struct PumpDumpGame: Sendable {
 
     // MARK: State
 
+    public let board: Board
+    /// How fast coins list and leave (the game's Speed option).
+    public let speed: GameSpeed
     public private(set) var phase = Phase.playing
     public private(set) var round = 1
     /// Time into the current round.
@@ -134,20 +188,32 @@ public struct PumpDumpGame: Sendable {
     private var nextAppearance: TimeInterval = 0.4
     private var nextID = 0
 
-    public init() {
+    public init(board: Board = .three, speed: GameSpeed = .normal) {
+        self.board = board
+        self.speed = speed
         objective = Self.objective(for: 1)
     }
 
     public var isOver: Bool { phase == .over }
     public var timeLeft: TimeInterval { max(0, Self.roundLength - time) }
+    /// Slots on the board.
+    public var holes: Int { board.holes }
     /// Points needed this round.
-    public var goal: Int { Self.goal(round: round) }
+    public var goal: Int { goal(forRound: round) }
 
-    /// The score goal for a round: 300 in the first, rising faster than a player's score does, so
-    /// every run ends somewhere (most players get three to six rounds in).
+    /// The score goal for a round on the 3×3 at Normal speed: 300 in the first, rising faster than
+    /// a player's score does, so every run ends somewhere (most players get three to six rounds in).
     public static func goal(round: Int) -> Int {
         let after = max(1, round) - 1
         return 300 + 150 * after + 25 * after * after
+    }
+
+    /// A round's goal on this board at this speed (in tens, when it's scaled).
+    public func goal(forRound round: Int) -> Int {
+        let base = Self.goal(round: round)
+        let scale = board.goalScale * speed.factor
+        guard scale != 1 else { return base }
+        return Int((Double(base) * scale / 10).rounded()) * 10
     }
 
     /// Bonus points for meeting a round's objective.
@@ -215,9 +281,13 @@ public struct PumpDumpGame: Sendable {
     var progress: Double { min(1, time / Self.roundLength) }
     /// Later rounds run faster, up to 70% faster than the first.
     var pace: Double { min(1.7, 1 + 0.1 * Double(round - 1)) }
-    var appearanceInterval: TimeInterval { max(Self.minimumGap, (0.72 - 0.32 * progress) / pace) }
-    var stayTime: TimeInterval { max(Self.minimumStay, (1.5 - 0.6 * progress) / pow(pace, 0.6)) }
-    var maxTargets: Int { (progress < 0.5 ? 3 : 4) + (round >= 4 ? 1 : 0) }
+    var appearanceInterval: TimeInterval {
+        max(Self.minimumGap, (0.72 - 0.32 * progress) / (pace * board.listingRate * speed.factor))
+    }
+    var stayTime: TimeInterval {
+        max(Self.minimumStay, (1.5 - 0.6 * progress) * board.stayScale / pow(pace * speed.factor, 0.6))
+    }
+    var maxTargets: Int { (progress < 0.5 ? 3 : 4) + (round >= 4 ? 1 : 0) + board.extraTargets }
     var scamShare: Double { min(0.34, 0.22 + 0.02 * Double(round - 1)) }
     var rugShare: Double { min(0.18, 0.12 + 0.01 * Double(round - 1)) }
 
@@ -336,7 +406,7 @@ public struct PumpDumpGame: Sendable {
     private mutating func appear<R: RandomNumberGenerator>(using rng: inout R) {
         guard targets.count < maxTargets else { return }
         let taken = Set(targets.map(\.hole))
-        let free = (0..<Self.holes).filter { !taken.contains($0) }
+        let free = (0..<holes).filter { !taken.contains($0) }
         guard let hole = free.randomElement(using: &rng) else { return }
         let roll = Double.random(in: 0..<1, using: &rng)
         // Rug pulls start a few seconds into the first round, once the player has the hang of it.

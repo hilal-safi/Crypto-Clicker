@@ -345,23 +345,26 @@ struct CoinTapEffectPicker: View {
         CoinStyleGrid(intro: "Earn achievement stars to unlock effects for each tap on the coin. Tap the big coin to try the one picked. You have \(stars) \(stars == 1 ? "star" : "stars").",
                       items: CoinTapEffect.allCases, selected: $selected, stars: stars, tint: shownFinish.glow,
                       name: \.name, detail: \.detail, starsNeeded: \.starsNeeded, tryIt: { play(selected) }) { effect, size in
-            ZStack {
-                CoinArt(finish: shownFinish)
-                    .overlay { CoinRimView(rim: shownRim, color: shownFinish.glow) }
-                if size > 100 {
-                    // Only the big preview plays effects: the small ones show the coin.
-                    TapEffectsLayer(bursts: bursts, coin: size)
-                        .frame(width: size * 2, height: size * 2)
-                } else if effect != .none {
-                    Image(systemName: effect.symbol)
-                        .font(.system(size: size * 0.3, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(size * 0.08)
-                        .background(Theme.accent, in: .circle)
-                        .offset(x: size * 0.36, y: size * 0.36)
+            // The coin keeps its own size; the effects are drawn over it, spilling past its edge
+            // without taking any room (in a stack beside the coin, their wider frame would also
+            // stretch the coin).
+            CoinArt(finish: shownFinish)
+                .overlay { CoinRimView(rim: shownRim, color: shownFinish.glow) }
+                .frame(width: size, height: size)
+                .overlay {
+                    if size > 100 {
+                        // Only the big preview plays effects: the small ones show the coin.
+                        TapEffectsLayer(bursts: bursts, coin: size)
+                            .frame(width: size * 2, height: size * 2)
+                    } else if effect != .none {
+                        Image(systemName: effect.symbol)
+                            .font(.system(size: size * 0.3, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(size * 0.08)
+                            .background(Theme.accent, in: .circle)
+                            .offset(x: size * 0.36, y: size * 0.36)
+                    }
                 }
-            }
-            .frame(width: size, height: size)
         }
         .sensoryFeedback(.selection, trigger: selected) { _, _ in haptics }
         .sensoryFeedback(.impact(weight: .light), trigger: taps) { _, _ in haptics }

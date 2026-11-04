@@ -5,13 +5,6 @@ import CryptoClickerKit
 /// Shortcuts behind the Testing Tools screen. Like that screen, they exist only in builds run
 /// from Xcode (the Debug configuration) and are left out of App Store builds.
 extension GameStore {
-    /// Switches the arcade between the crypto edition and the classic games, and remembers the
-    /// choice for the next launch (in Debug builds only).
-    func debugSetArcadeEdition(_ edition: ArcadeEdition) {
-        UserDefaults.standard.set(edition.rawValue, forKey: Preferences.arcadeEditionKey)
-        arcadeEdition = edition
-    }
-
     /// Adds coins that count as mined, so upgrades, achievements and prestige unlock as in play.
     func debugAddCoins(_ amount: Double) {
         debugChange { game, _ in game.debugAddCoins(amount) }

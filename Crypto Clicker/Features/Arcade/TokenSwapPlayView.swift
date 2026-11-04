@@ -92,7 +92,6 @@ struct TokenSwapPlayView: View {
         .padding(12)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
-        .background { AppBackground(tint: MiniGame.tokenSwap.color) }
         .overlay {
             if isPaused {
                 PausedCard(game: .tokenSwap, resume: { isPaused = false }, showHelp: { showingHelp = true })
@@ -125,6 +124,8 @@ struct TokenSwapPlayView: View {
                 if game.phase != .playing { finishLevel() }
             }
         }
+        .environment(\.swapTiles, store.game.equipped(.swapTiles))
+        .gameBackdrop(.tokenSwap)
     }
 
     /// The Classic round so far, held while the app is in the background.

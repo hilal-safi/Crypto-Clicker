@@ -27,23 +27,18 @@ struct RootView: View {
                     howToPlayRequests += 1
                     tab = .settings
                 })
-                // Game names and pictures follow the arcade edition (switched in Testing Tools), so
-                // the tabs that show them start afresh when it changes.
-                .id(store.arcadeEdition)
             }
             Tab("Shop", systemImage: "cart.fill", value: AppTab.shop) {
                 ShopView(powerUpRequests: powerUpRequests, tokenRequests: tokenRequests)
             }
             Tab("Arcade", systemImage: "gamecontroller.fill", value: AppTab.arcade) {
                 ArcadeView(challengeRequests: challengeRequests)
-                    .id(store.arcadeEdition)
             }
             Tab("Trophies", systemImage: "trophy.fill", value: AppTab.trophies) {
                 TrophiesView(dailyRequests: dailyRequests, openChallenge: {
                     challengeRequests += 1
                     tab = .arcade
                 })
-                .id(store.arcadeEdition)
             }
             .badge(store.dailyBadgeCount)
             Tab("Settings", systemImage: "gearshape.fill", value: AppTab.settings) {
@@ -115,10 +110,9 @@ private extension View {
     }
 }
 
-/// The bar above the tab bar on every tab but Mine: the balance and coins per second. Tapping the
-/// rate opens a breakdown of where the coins come from. Numbers use the form chosen by tapping the
-/// balance: every digit, or the short form. Long numbers scroll sideways. It collapses next to the
-/// tab bar when scrolling.
+/// The balance and coins per second, under every tab but Mine (which shows them at the top), and
+/// the Bull Run while one lasts. The whole bar opens the Income page. Numbers follow the short or
+/// full form picked by tapping the balance on Mine, on the Income page or in Settings.
 struct BalanceAccessory: View {
     let openIncome: () -> Void
     @Environment(GameStore.self) private var store
@@ -128,60 +122,48 @@ struct BalanceAccessory: View {
     var body: some View {
         let game = store.game
         let now = Date.now
-        HStack(spacing: 12) {
-            ViewThatFits(in: .horizontal) {
-                figures(game, at: now)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    figures(game, at: now)
-                }
-                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-            }
-            .layoutPriority(1) // Offered all the free width first, so it only scrolls when it must.
-            Spacer(minLength: 0)
-            if let boost = game.activeBoost(at: now) {
-                Label(CoinFormat.multiplier(boost.multiplier), systemImage: "flame.fill")
-                    .foregroundStyle(Theme.accent)
-                    .accessibilityLabel("Bull Run active")
-            }
-        }
-        .font(.subheadline.weight(.semibold).monospacedDigit())
-        .lineLimit(1)
-        .padding(.horizontal, 16)
-        .animation(.snappy, value: store.coins)
-    }
-
-    private func figures(_ game: GameState, at now: Date) -> some View {
+        let balance = store.heldCoins ?? store.coins
         let income = game.idleIncome(at: now)
         let rate = exactNumbers ? CoinFormat.exactRate(income) : CoinFormat.rate(income)
-        let balance = store.heldCoins ?? store.coins
-        return HStack(spacing: 12) {
-            Button {
-                withAnimation(.snappy) { exactNumbers.toggle() }
-            } label: {
-                HStack(spacing: 4) {
-                    CoinIcon(size: 20)
-                    Text(amount(balance))
-                        .font(.headline.monospacedDigit())
-                        .contentTransition(.numericText(value: balance))
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(amount(balance)) coins")
-            .accessibilityHint(exactNumbers ? "Shows the short form" : "Shows every digit")
-            if placement != .inline {
-                Button(action: openIncome) {
+        let boost = game.activeBoost(at: now)
+        Button(action: openIncome) {
+            HStack(spacing: 8) {
+                CoinIcon(size: 20)
+                // No rolling digits: the balance changes several times a second, and a roll caught
+                // halfway draws a digit out of line.
+                Text(amount(balance))
+                    .font(.headline.monospacedDigit())
+                    .layoutPriority(1)
+                Spacer(minLength: 6)
+                if placement != .inline {
                     Text("+\(rate)/s")
                         .foregroundStyle(.subtext)
                 }
-                .buttonStyle(.plain)
-                .accessibilityHint("Shows where your coins come from")
+                if let boost {
+                    Label(CoinFormat.multiplier(boost.multiplier), systemImage: "flame.fill")
+                        .foregroundStyle(Theme.accent)
+                }
             }
+            .font(.subheadline.weight(.semibold).monospacedDigit())
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(.rect)
         }
-        .fixedSize()
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityText(balance: balance, rate: rate, boost: boost))
+        .accessibilityHint("Shows where your coins come from")
     }
 
     /// A whole number of coins in the chosen form.
     private func amount(_ value: Double) -> String {
         exactNumbers ? CoinFormat.exact(value) : CoinFormat.short(value)
+    }
+
+    private func accessibilityText(balance: Double, rate: String, boost: Boost?) -> String {
+        var text = "\(amount(balance)) coins, \(rate) a second"
+        if let boost { text += ", Bull Run \(CoinFormat.multiplier(boost.multiplier))" }
+        return text
     }
 }

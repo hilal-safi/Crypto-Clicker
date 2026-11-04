@@ -183,6 +183,9 @@ struct ArcadeProgressionTests {
             }
         }
         #expect(Cosmetic.unlocked(atRank: 3) == [.cardBackMidnight])
+        // Every game has a look of its own to pick.
+        #expect(Set(CosmeticSlot.allCases.flatMap(\.games)) == Set(MiniGame.allCases))
+        #expect(MiniGame.allCases.allSatisfy { game in CosmeticSlot.allCases.contains { $0.games == [game] } })
     }
 
     @Test func progressSurvivesASaveAndOldSavesStartFresh() throws {

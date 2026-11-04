@@ -32,6 +32,9 @@ enum Preferences {
     static let snakeArenaKey = "snakeArena"
     static let tetrisSpeedKey = "speed.tetris"
     static let invadersSpeedKey = "speed.invaders"
+    static let pumpDumpSpeedKey = "speed.pumpDump"
+    /// Pump and Dump's board (a `PumpDumpGame.Board` raw value: its side).
+    static let pumpDumpBoardKey = "pumpDump.board"
     /// The difficulty last picked for a random Token Swap level.
     static let tokenSwapRandomDifficultyKey = "tokenSwapRandomDifficulty"
     /// The player has opened How to Play (in Settings), so the tip pointing there is done.
@@ -40,9 +43,6 @@ enum Preferences {
     static let incomeChartRangeKey = "incomeChartRange"
     /// The balance shows as a Live Activity on the Lock Screen and in the Dynamic Island.
     static let liveActivityKey = "showsLiveActivity"
-    /// The arcade edition picked in Testing Tools (an `ArcadeEdition` raw value). Only Debug builds
-    /// read it: App Store builds always play the crypto edition.
-    static let arcadeEditionKey = "arcadeEdition"
     /// Merge Mining shows each miner's number under its picture.
     static let mergeValuesKey = "merge2048.showsValues"
     /// How quickly 2048's tiles slide (a `GameSpeed` raw value).

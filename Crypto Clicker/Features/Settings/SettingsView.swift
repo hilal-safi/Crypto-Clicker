@@ -48,6 +48,7 @@ struct SettingsView: View {
                     Picker("Theme", selection: $appearance) {
                         ForEach(Appearance.allCases) { Text($0.title).tag($0) }
                     }
+                    NumberFormatPicker()
                     // A finish that's locked again (after a reset) shows as the gold it falls back to.
                     let shownFinish = finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold
                     NavigationLink {

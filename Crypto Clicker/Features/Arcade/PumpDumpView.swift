@@ -2,16 +2,155 @@ import SwiftUI
 import UIKit
 import CryptoClickerKit
 
-/// Pump and Dump: coins pop up in a 3×3 grid; tap them before they drop back down. A run is a
-/// series of 30-second rounds, each with a score goal and a bonus objective; the run ends when a
-/// round falls short. The rules live in `PumpDumpGame`. This view runs its clock, takes every
-/// finger the moment it lands, shows what each tap did, and pays the run when it ends (or when the
-/// player leaves).
+/// The screens inside Pump and Dump, opened from its start screen.
+enum PumpDumpRoute: Hashable {
+    /// A run on this board.
+    case play(PumpDumpGame.Board)
+}
+
+/// Where Pump and Dump opens, like Hash Chain and Merge Mining: a run on the board picked (3×3,
+/// 4×4 or 5×5, each in miniature with its best), and the speed setting, each on a card.
 struct PumpDumpView: View {
+    @Environment(GameStore.self) private var store
+    @AppStorage(Preferences.pumpDumpBoardKey) private var board = PumpDumpGame.Board.three
+    @AppStorage(Preferences.pumpDumpSpeedKey) private var speed = GameSpeed.normal
+    @State private var showingHelp = false
+
+    private let tint = MiniGame.pumpDump.color
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                roundsCard
+                settingsCard
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+            .frame(maxWidth: 600)
+            .frame(maxWidth: .infinity)
+        }
+        .navigationTitle(MiniGame.pumpDump.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.pumpDump, isPresented: $showingHelp)
+        .gameBackdrop(.pumpDump)
+    }
+
+    private var roundsCard: some View {
+        let game = store.game
+        let best = game.pumpDumpBest(on: board)
+        return ModeCard(tint: tint, icon: "chart.line.uptrend.xyaxis", title: "Rounds",
+                        status: best > 0
+                            ? "Best on \(board.name): \(CoinFormat.grouped(best)) · furthest round \(game.stats.pumpDumpBestRound)"
+                            : "Pick a board and play",
+                        detail: "Tap coins as they list and reach each \(Int(PumpDumpGame.roundLength))-second round's goal. Bigger boards list coins faster and more at once, with bigger goals; their points pay a little less each, so every board pays about the same.",
+                        note: nil) {
+            VStack(spacing: 12) {
+                BoardPicker(selection: $board, tint: tint) { game.pumpDumpBest(on: $0) }
+                NavigationLink(value: PumpDumpRoute.play(board)) {
+                    Label("Play \(board.name)", systemImage: "play.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glassProminent)
+            }
+        }
+    }
+
+    private var settingsCard: some View {
+        ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Settings", status: "\(speed.name) speed",
+                 detail: "How fast coins list and leave. Goals move with the speed, so Fast scores sooner but needs quicker fingers, and Slow is relaxed.",
+                 note: nil) {
+            Picker("Speed", selection: $speed) {
+                ForEach(GameSpeed.allCases) { speed in
+                    Text(speed.name).tag(speed)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+}
+
+/// The three boards in miniature, side by side, each with its best: tap one to pick it.
+private struct BoardPicker: View {
+    @Binding var selection: PumpDumpGame.Board
+    let tint: Color
+    let best: (PumpDumpGame.Board) -> Int
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(PumpDumpGame.Board.allCases) { board in
+                tile(board)
+            }
+        }
+    }
+
+    private func tile(_ board: PumpDumpGame.Board) -> some View {
+        let isSelected = board == selection
+        let record = best(board)
+        return Button {
+            selection = board
+        } label: {
+            VStack(spacing: 6) {
+                BoardPreview(board: board, tint: tint)
+                    .frame(width: 46, height: 46)
+                Text(board.name)
+                    .font(.headline)
+                Text(record > 0 ? CoinFormat.grouped(record) : "–")
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(.subtext)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(isSelected ? tint.opacity(0.25) : Color.primary.opacity(0.06), in: .rect(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(isSelected ? tint.mix(with: .white, by: 0.3) : .clear, lineWidth: 2)
+            }
+            .contentShape(.rect(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(board.name) board")
+        .accessibilityValue(record > 0 ? "Best \(CoinFormat.grouped(record))" : "Not played yet")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// A board's slots in miniature, a few lit as if coins were listed.
+private struct BoardPreview: View {
+    let board: PumpDumpGame.Board
+    let tint: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let side = board.side
+            let gap = size.width * 0.06
+            let cell = (size.width - gap * CGFloat(side + 1)) / CGFloat(side)
+            let lit: Set<Int> = [1, side + 2, side * side - 2]
+            for hole in 0..<board.holes {
+                let frame = CGRect(x: gap + CGFloat(hole % side) * (cell + gap), y: gap + CGFloat(hole / side) * (cell + gap),
+                                   width: cell, height: cell)
+                let slot = Path(roundedRect: frame, cornerRadius: cell * 0.22)
+                context.fill(slot, with: .color(lit.contains(hole) ? Theme.gold : .white.opacity(0.18)))
+            }
+        }
+        .background(Color(red: 0.05, green: 0.09, blue: 0.16), in: .rect(cornerRadius: 8))
+        .accessibilityHidden(true)
+    }
+}
+
+/// Pump and Dump's game on one board: coins list in a grid of slots; tap them before they're
+/// delisted. A run is a series of 30-second rounds, each with a score goal and a bonus objective;
+/// the run ends when a round falls short. The rules live in `PumpDumpGame`. This view runs its
+/// clock, takes every finger the moment it lands, shows what each tap did, and pays the run when it
+/// ends (or when the player leaves).
+struct PumpDumpPlayView: View {
+    let board: PumpDumpGame.Board
     @Environment(GameStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
-    @State private var game = PumpDumpGame()
+    @AppStorage(Preferences.pumpDumpSpeedKey) private var speed = GameSpeed.normal
+    @State private var game: PumpDumpGame
     /// A run is under way: a round, or the break between two.
     @State private var isPlaying = false
     @State private var isPaused = false
@@ -31,6 +170,12 @@ struct PumpDumpView: View {
 
     private var isRunning: Bool { isPlaying && !isPaused && game.phase == .playing }
 
+    init(board: PumpDumpGame.Board) {
+        self.board = board
+        let speed = GameSpeed(rawValue: UserDefaults.standard.string(forKey: Preferences.pumpDumpSpeedKey) ?? "") ?? .normal
+        _game = State(initialValue: PumpDumpGame(board: board, speed: speed))
+    }
+
     var body: some View {
         VStack(spacing: 10) {
             HStack(spacing: 16) {
@@ -46,7 +191,7 @@ struct PumpDumpView: View {
             }
             .scoreBar()
             RoundStatus(game: game)
-            board
+            field
                 .frame(maxHeight: .infinity)
                 .overlay {
                     if isPaused {
@@ -59,11 +204,10 @@ struct PumpDumpView: View {
         .padding(12)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
-        .background { AppBackground(tint: MiniGame.pumpDump.color) }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
         .animation(.snappy, value: game.phase)
-        .navigationTitle("Pump and Dump")
+        .navigationTitle("\(MiniGame.pumpDump.name) \(board.name)")
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.pumpDump, isPresented: $showingHelp) {
             if isPlaying && game.phase == .playing { isPaused = true }
@@ -76,19 +220,20 @@ struct PumpDumpView: View {
         // Between rounds there's nothing running to pause.
         .arcadeLifecycle(isPlaying: isPlaying, pause: { if game.phase == .playing { isPaused = true } },
                          heldRun: { heldRun }) { endGame() }
+        .gameBackdrop(.pumpDump)
     }
 
     /// The game so far, held while the app is in the background.
     private var heldRun: ArcadeRun {
         ArcadeRun(game: .pumpDump, score: game.score, detail: game.coinsHit, extra: game.bestCombo, stage: game.round,
-                  records: .init(scamsHit: game.scamsHit))
+                  records: .init(scamsHit: game.scamsHit, board: board.rawValue))
     }
 
     // MARK: Board
 
-    private var board: some View {
+    private var field: some View {
         GeometryReader { proxy in
-            let layout = BoardLayout(side: min(proxy.size.width, proxy.size.height))
+            let layout = BoardLayout(side: min(proxy.size.width, proxy.size.height), count: board.side)
             // Every piece is placed by its center inside one fixed square, and touches are judged
             // against the same square, so what's drawn and what's tapped always line up.
             ZStack(alignment: .topLeading) {
@@ -96,11 +241,12 @@ struct PumpDumpView: View {
                     if let hole = layout.hole(at: point) { tap(hole) }
                 }
                 .accessibilityHidden(true)
-                ForEach(0..<PumpDumpGame.holes, id: \.self) { hole in
+                ForEach(0..<game.holes, id: \.self) { hole in
                     let target = game.target(inHole: hole)
                     HoleView(target: target, time: game.time,
                              sink: target.map(sinkProgress) ?? 0,
-                             flash: flash(at: hole), size: layout.cell, reduceMotion: reduceMotion)
+                             flash: flash(at: hole), size: layout.cell, reduceMotion: reduceMotion,
+                             look: store.game.equipped(.pumpBoard))
                         .frame(width: layout.cell, height: layout.cell)
                         .allowsHitTesting(false)
                         .accessibilityElement(children: .ignore)
@@ -140,9 +286,7 @@ struct PumpDumpView: View {
     }
 
     private func label(for hole: Int) -> String {
-        let row = ["Top", "Middle", "Bottom"][hole / 3]
-        let column = ["left", "center", "right"][hole % 3]
-        let place = "\(row) \(column)"
+        let place = "Row \(hole / board.side + 1), column \(hole % board.side + 1)"
         guard let target = game.target(inHole: hole) else { return "\(place): empty" }
         if target.isScam(at: game.time) { return "\(place): scam token, don't tap" }
         if target.kind == .rug { return target.isWarning(at: game.time) ? "\(place): rug pull, shaking" : "\(place): coin with a red rim" }
@@ -161,13 +305,14 @@ struct PumpDumpView: View {
             if let result {
                 GamePanel(title: "Run Over", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.isNewBest,
-                                    best: store.game.stats.pumpDumpBestScore, reward: result.reward,
+                                    best: store.game.pumpDumpBest(on: board), reward: result.reward,
                                     details: runDetails, challenge: result.challenge)
                 }
             } else {
-                GamePanel(title: "Pump and Dump", buttonTitle: "Start", action: start) {
-                    GameIntro(best: store.game.stats.pumpDumpBestScore,
-                              note: store.game.stats.pumpDumpBestRound > 0 ? "Furthest: round \(store.game.stats.pumpDumpBestRound)" : nil)
+                GamePanel(title: "\(board.name) Board", buttonTitle: "Start", action: start) {
+                    GameIntro(best: store.game.pumpDumpBest(on: board),
+                              note: store.game.stats.pumpDumpBestRound > 0 ? "Furthest: round \(store.game.stats.pumpDumpBestRound)" : nil,
+                              detail: "\(board.holes) slots · \(speed.name) speed · first goal \(CoinFormat.grouped(game.goal(forRound: 1)))")
                 }
             }
         }
@@ -185,7 +330,7 @@ struct PumpDumpView: View {
     // MARK: Game flow
 
     private func start() {
-        game = PumpDumpGame()
+        game = PumpDumpGame(board: board, speed: speed)
         rng = SeededGenerator(seed: .random(in: 0...UInt64.max))
         marks = []
         lostCombo = nil
@@ -215,7 +360,7 @@ struct PumpDumpView: View {
             let breaks = game.comboBreaks
             game.advance(by: min(now.timeIntervalSince(last), 0.1), using: &rng)
             last = now
-            for hole in game.escapedHoles { addMark(.escaped, at: hole, text: ArcadeEdition.pick("Delisted", classic: "Missed")) }
+            for hole in game.escapedHoles { addMark(.escaped, at: hole, text: "Delisted") }
             noteLostCombo(since: breaks)
             marks.removeAll { game.time - $0.time > 0.8 }
             switch game.phase {
@@ -265,22 +410,25 @@ struct PumpDumpView: View {
         isPlaying = false
         isPaused = false
         let payout = store.finishPumpDump(score: game.score, coinsHit: game.coinsHit, bestCombo: game.bestCombo,
-                                          scamsHit: game.scamsHit, rounds: game.round)
+                                          scamsHit: game.scamsHit, rounds: game.round, board: board)
         result = GameResult(score: game.score, payout: payout, detail: game.coinsHit)
     }
 }
 
 // MARK: - Layout and touch
 
-/// Where the nine holes sit in a square board `side` points across, and which hole a point is in.
+/// Where the holes sit in a square board `side` points across, `count` to a side, and which hole a
+/// point is in.
 private struct BoardLayout {
     let side: CGFloat
-    var gap: CGFloat { side * 0.04 }
-    var cell: CGFloat { max(0, (side - gap * 4) / 3) }
+    let count: Int
+    /// The gap between slots: a little narrower on the bigger boards, so their slots stay big.
+    var gap: CGFloat { side * (count > 3 ? 0.03 : 0.04) }
+    var cell: CGFloat { max(0, (side - gap * CGFloat(count + 1)) / CGFloat(count)) }
 
     func center(of hole: Int) -> CGPoint {
-        CGPoint(x: gap + CGFloat(hole % 3) * (cell + gap) + cell / 2,
-                y: gap + CGFloat(hole / 3) * (cell + gap) + cell / 2)
+        CGPoint(x: gap + CGFloat(hole % count) * (cell + gap) + cell / 2,
+                y: gap + CGFloat(hole / count) * (cell + gap) + cell / 2)
     }
 
     /// The hole under `point`. Each hole owns its cell plus half the gap around it, so a touch
@@ -288,9 +436,9 @@ private struct BoardLayout {
     func hole(at point: CGPoint) -> Int? {
         guard side > 0, (0...side).contains(point.x), (0...side).contains(point.y) else { return nil }
         let step = cell + gap
-        let column = min(2, max(0, Int((point.x - gap / 2) / step)))
-        let row = min(2, max(0, Int((point.y - gap / 2) / step)))
-        return row * 3 + column
+        let column = min(count - 1, max(0, Int((point.x - gap / 2) / step)))
+        let row = min(count - 1, max(0, Int((point.y - gap / 2) / step)))
+        return row * count + column
     }
 }
 
@@ -416,21 +564,12 @@ private struct HoleView: View {
     let flash: Double
     let size: CGFloat
     let reduceMotion: Bool
+    /// The board picked in Style.
+    var look = Cosmetic.pumpExchange
 
     var body: some View {
         ZStack {
-            if ArcadeEdition.current == .crypto {
-                listingSlot
-            } else {
-                RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
-                    .fill(.black.opacity(0.35))
-                RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
-                    .fill(Theme.loss.opacity(0.55 * flash))
-                Ellipse()
-                    .fill(.black.opacity(0.45))
-                    .frame(width: size * 0.7, height: size * 0.22)
-                    .offset(y: size * 0.3)
-            }
+            listingSlot
             if let target {
                 let warning = target.isWarning(at: time)
                 PumpPiece(look: look(of: target), size: size, isWarning: warning)
@@ -445,23 +584,26 @@ private struct HoleView: View {
         .animation(reduceMotion ? nil : .spring(duration: 0.18), value: target?.id)
     }
 
-    /// The crypto edition's hole: a listing slot on an exchange board, lit while a coin is listed.
+    /// The hole: a listing slot on an exchange board, lit while a coin is listed, in the look
+    /// picked in Style.
     @ViewBuilder
     private var listingSlot: some View {
         let isListed = target != nil
+        let colors = look.pumpSlotColors
         RoundedRectangle(cornerRadius: size * 0.14, style: .continuous)
-            .fill(Color(red: 0.05, green: 0.09, blue: 0.16).opacity(0.85))
+            .fill(colors.fill.opacity(0.85))
         RoundedRectangle(cornerRadius: size * 0.14, style: .continuous)
             .fill(Theme.loss.opacity(0.55 * flash))
         RoundedRectangle(cornerRadius: size * 0.14, style: .continuous)
-            .strokeBorder(isListed ? Color.green.opacity(0.55) : .white.opacity(0.12), lineWidth: 1.5)
+            .strokeBorder(isListed ? colors.rim.opacity(0.6) : .white.opacity(0.12), lineWidth: 1.5)
+            .shadow(color: isListed && look == .pumpNeon ? colors.rim.opacity(0.8) : .clear, radius: size * 0.06)
         RoundedRectangle(cornerRadius: size * 0.05, style: .continuous)
             .fill(.black.opacity(0.55))
             .frame(width: size * 0.74, height: size * 0.14)
             .offset(y: size * 0.32)
         Text(isListed ? "LISTED" : "— — —")
             .font(.system(size: max(8, size * 0.09), weight: .heavy, design: .monospaced))
-            .foregroundStyle(isListed ? Color.green : .white.opacity(0.3))
+            .foregroundStyle(isListed ? colors.listed : .white.opacity(0.3))
             .offset(y: -size * 0.41)
             .accessibilityHidden(true)
     }
@@ -660,7 +802,7 @@ private struct RoundClearedSummary: View {
                 .foregroundStyle(.subtext)
             Divider()
             VStack(spacing: 4) {
-                Text("Next goal: \(CoinFormat.grouped(PumpDumpGame.goal(round: next)))")
+                Text("Next goal: \(CoinFormat.grouped(game.goal(forRound: next)))")
                     .font(.headline)
                 Text("Bonus: \(PumpDumpGame.objective(for: next).description)")
                     .font(.subheadline)

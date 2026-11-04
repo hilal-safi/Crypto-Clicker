@@ -1,13 +1,13 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// The screens inside Snake (Hash Chain in the crypto edition), opened from its start screen.
+/// The screens inside Hash Chain, opened from its start screen.
 enum SnakeRoute: Hashable {
     /// A game in this mode: Classic in the arena picked on the start screen, or Coin Rush.
     case play(SnakeGame.Mode)
 }
 
-/// Where Snake opens, like Brick Breaker and Scam Invaders: Classic with its four arenas, Coin
+/// Where Hash Chain opens, like Hash Smash and Scam Invaders: Classic with its four arenas, Coin
 /// Rush, and the speed setting, each on a card.
 struct SnakeView: View {
     @Environment(GameStore.self) private var store
@@ -18,20 +18,17 @@ struct SnakeView: View {
     var body: some View {
         let stats = store.game.stats
         let tint = MiniGame.snake.color
-        let crypto = store.arcadeEdition == .crypto
         ScrollView {
             VStack(spacing: 14) {
-                ModeCard(tint: tint, icon: crypto ? "link" : "point.topleft.down.to.point.bottomright.curvepath.fill",
+                ModeCard(tint: tint, icon: "link",
                          title: "Classic",
                          status: stats.snakeGames == 0
                             ? "Pick an arena and play"
                             : "Best \(CoinFormat.grouped(stats.snakeBestScore)) · longest \(CoinFormat.grouped(stats.snakeLongest))",
-                         detail: crypto
-                            ? "Grow the chain until it crashes: every coin adds a block, and the chain speeds up as it grows. Every arena but Open adds walls to steer around."
-                            : "Grow until you crash: every coin makes the snake longer, and faster. Every arena but Open adds walls to steer around.",
+                         detail: "Grow the chain until it crashes: every coin adds a block, and the chain speeds up as it grows. Every arena but Open adds walls to steer around.",
                          note: nil) {
                     VStack(spacing: 12) {
-                        ArenaPicker(selection: $arena, tint: tint, edition: store.arcadeEdition)
+                        ArenaPicker(selection: $arena, tint: tint)
                         NavigationLink(value: SnakeRoute.play(.classic)) {
                             Label(arena == .open ? "Play Classic" : "Play \(arena.name)", systemImage: "play.fill")
                                 .frame(maxWidth: .infinity)
@@ -52,9 +49,7 @@ struct SnakeView: View {
                     .buttonStyle(.glassProminent)
                 }
                 ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Settings", status: "\(speed.name) speed",
-                         detail: crypto
-                            ? "How fast the chain moves. A coin is worth the same at every speed: Fast scores sooner, Slow is relaxed."
-                            : "How fast the snake moves. A coin is worth the same at every speed: Fast scores sooner, Slow is relaxed.",
+                         detail: "How fast the chain moves. A coin is worth the same at every speed: Fast scores sooner, Slow is relaxed.",
                          note: nil) {
                     Picker("Speed", selection: $speed) {
                         ForEach(GameSpeed.allCases) { speed in
@@ -69,10 +64,10 @@ struct SnakeView: View {
             .frame(maxWidth: 600)
             .frame(maxWidth: .infinity)
         }
-        .background { AppBackground(tint: .green) }
         .navigationTitle(MiniGame.snake.name)
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.snake, isPresented: $showingHelp)
+        .gameBackdrop(.snake)
     }
 }
 
@@ -80,7 +75,6 @@ struct SnakeView: View {
 private struct ArenaPicker: View {
     @Binding var selection: SnakeGame.Arena
     let tint: Color
-    let edition: ArcadeEdition
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
@@ -90,7 +84,7 @@ private struct ArenaPicker: View {
                     selection = arena
                 } label: {
                     HStack(spacing: 10) {
-                        ArenaPreview(arena: arena, edition: edition)
+                        ArenaPreview(arena: arena)
                             .frame(width: 36, height: 48)
                         Text(arena.name)
                             .font(.subheadline.weight(.bold))
@@ -118,18 +112,17 @@ private struct ArenaPicker: View {
 /// An arena's walls in miniature.
 private struct ArenaPreview: View {
     let arena: SnakeGame.Arena
-    let edition: ArcadeEdition
 
     var body: some View {
         Canvas { context, size in
             let cell = min(size.width / CGFloat(SnakeGame.width), size.height / CGFloat(SnakeGame.height))
             for wall in arena.walls {
                 let frame = CGRect(x: CGFloat(wall.x) * cell, y: CGFloat(wall.y) * cell, width: cell, height: cell)
-                context.fill(Path(frame), with: .color(SnakeBoard.wallColor(edition)))
+                context.fill(Path(frame), with: .color(SnakeBoard.wallColor))
             }
         }
         .padding(2)
-        .background(SnakeBoard.boardColor(edition), in: .rect(cornerRadius: 5))
+        .background(SnakeBoard.boardColor, in: .rect(cornerRadius: 5))
         .accessibilityHidden(true)
     }
 }
@@ -170,17 +163,17 @@ struct SnakePlayView: View {
 
     var body: some View {
         withLifecycle(withFeedback(layout))
+            .gameBackdrop(.snake)
     }
 
     private var layout: some View {
-        let edition = store.arcadeEdition
         return VStack(spacing: 10) {
             HStack(spacing: 16) {
                 GameStat(title: "Score", value: CoinFormat.grouped(game.score))
                 if game.mode == .coinRush {
                     GameStat(title: "Time", value: "\(Int(game.timeLeft.rounded(.up)))s")
                 } else {
-                    GameStat(title: edition == .crypto ? "Blocks" : "Length", value: "\(game.body.count)")
+                    GameStat(title: "Blocks", value: "\(game.body.count)")
                 }
                 Spacer(minLength: 0)
                 GameStat(title: "Best", value: CoinFormat.grouped(best))
@@ -190,12 +183,12 @@ struct SnakePlayView: View {
                 .disabled(!isPlaying)
             }
             .scoreBar()
-            PowerUpStrip(game: game, edition: edition)
-            SnakeBoard(game: game, reduceMotion: reduceMotion, skin: store.game.equipped(.snake), edition: edition)
+            PowerUpStrip(game: game)
+            SnakeBoard(game: game, reduceMotion: reduceMotion, skin: store.game.equipped(.snake))
                 .overlay(alignment: .top) { pickupBanner }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(MiniGame.snake.name) board")
-                .accessibilityValue("Score \(game.score), \(edition == .crypto ? "blocks" : "length") \(game.body.count)")
+                .accessibilityValue("Score \(game.score), blocks \(game.body.count)")
                 .accessibilityAction(named: "Turn up") { turn(.up) }
                 .accessibilityAction(named: "Turn down") { turn(.down) }
                 .accessibilityAction(named: "Turn left") { turn(.left) }
@@ -209,7 +202,6 @@ struct SnakePlayView: View {
         .padding(12)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
-        .background { AppBackground(tint: .green) }
         .overlay {
             if isPaused {
                 PausedCard(game: .snake, resume: { isPaused = false }, showHelp: { showingHelp = true })
@@ -273,11 +265,10 @@ struct SnakePlayView: View {
     private var panel: some View {
         if !isPlaying {
             if let result {
-                let crypto = store.arcadeEdition == .crypto
                 GamePanel(title: game.mode == .coinRush && game.timeLeft == 0 ? "Time's Up" : "Game Over",
                           buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.isNewBest, best: best, reward: result.reward,
-                                    details: ["\(game.eaten) coins · \(game.body.count) \(crypto ? "blocks" : "long") · \(CoinFormat.stopwatch(game.time))",
+                                    details: ["\(game.eaten) coins · \(game.body.count) blocks · \(CoinFormat.stopwatch(game.time))",
                                               "\(game.powerUpsCollected) power-up\(game.powerUpsCollected == 1 ? "" : "s")"
                                                 + (game.mode == .classic ? " · \(game.arena.name)" : " · Coin Rush")],
                                     challenge: result.challenge)
@@ -377,19 +368,17 @@ struct SnakePlayView: View {
 extension SnakeGame.PowerUp {
     /// In Hash Chain: Lightning, Cold Storage, a Hardware Wallet and the Airdrop Magnet.
     var symbol: String {
-        let crypto = ArcadeEdition.current == .crypto
         return switch self {
-        case .speedBoost: crypto ? "bolt.fill" : "hare.fill"
-        case .slowMotion: crypto ? "snowflake" : "tortoise.fill"
-        case .shield: crypto ? "lock.shield.fill" : "shield.fill"
+        case .speedBoost: "bolt.fill"
+        case .slowMotion: "snowflake"
+        case .shield: "lock.shield.fill"
         case .magnet: "dot.radiowaves.left.and.right"
         }
     }
 
     var color: Color {
-        let crypto = ArcadeEdition.current == .crypto
         return switch self {
-        case .speedBoost: crypto ? Color(red: 0.98, green: 0.72, blue: 0.0) : .orange
+        case .speedBoost: Color(red: 0.98, green: 0.72, blue: 0.0)
         case .slowMotion: .cyan
         case .shield: Color(red: 0.4, green: 0.6, blue: 1)
         case .magnet: .pink
@@ -400,7 +389,6 @@ extension SnakeGame.PowerUp {
 /// The power-ups running, each with the time it has left.
 private struct PowerUpStrip: View {
     let game: SnakeGame
-    let edition: ArcadeEdition
 
     var body: some View {
         HStack(spacing: 8) {
@@ -422,7 +410,7 @@ private struct PowerUpStrip: View {
                     .padding(.vertical, 5)
                     .glassEffect(.regular, in: .capsule)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(kind.name(in: edition))
+                    .accessibilityLabel(kind.name)
                     .accessibilityValue(game.effects[kind].map { "\(Int($0.rounded(.up))) seconds left" } ?? "Ready")
                 }
             }
@@ -437,23 +425,16 @@ private struct PowerUpStrip: View {
     }
 }
 
-/// The board, tail to head. Classic: a soft checkerboard, brick walls and a snake with eyes. Hash
-/// Chain: a ledger grid, server walls, and a chain of blocks linked one to the next, a hash mark on
-/// the head block.
+/// The board, tail to head: a ledger grid, server walls, and a chain of blocks linked one to the
+/// next, a hash mark on the head block.
 struct SnakeBoard: View {
     let game: SnakeGame
     var reduceMotion = false
     /// The skin picked in Style.
     var skin: Cosmetic = .snakeGreen
-    var edition = ArcadeEdition.crypto
 
-    static func boardColor(_ edition: ArcadeEdition) -> Color {
-        edition == .crypto ? Color(red: 0.03, green: 0.09, blue: 0.13).opacity(0.9) : Color(red: 0.03, green: 0.16, blue: 0.08).opacity(0.85)
-    }
-
-    static func wallColor(_ edition: ArcadeEdition) -> Color {
-        edition == .crypto ? Color(red: 0.32, green: 0.36, blue: 0.44) : Color(red: 0.45, green: 0.38, blue: 0.3)
-    }
+    static let boardColor = Color(red: 0.03, green: 0.09, blue: 0.13).opacity(0.9)
+    static let wallColor = Color(red: 0.32, green: 0.36, blue: 0.44)
 
     var body: some View {
         Canvas { context, size in
@@ -462,21 +443,9 @@ struct SnakeBoard: View {
                 CGRect(x: CGFloat(point.x) * cell, y: CGFloat(point.y) * cell, width: cell, height: cell)
                     .insetBy(dx: inset, dy: inset)
             }
-            if edition == .crypto {
-                drawLedger(in: &context, size: size, cell: cell)
-                for wall in game.walls {
-                    drawServer(in: &context, frame: frame(wall, inset: 1), cell: cell, lit: (wall.x + wall.y) % 3 == 0)
-                }
-            } else {
-                for y in 0..<SnakeGame.height {
-                    for x in 0..<SnakeGame.width where (x + y) % 2 == 0 {
-                        context.fill(Path(frame(GridPoint(x: x, y: y))), with: .color(.white.opacity(0.04)))
-                    }
-                }
-                for wall in game.walls {
-                    context.fill(Path(roundedRect: frame(wall, inset: 1), cornerRadius: cell * 0.18),
-                                 with: .color(Self.wallColor(edition)))
-                }
+            drawLedger(in: &context, size: size, cell: cell)
+            for wall in game.walls {
+                drawServer(in: &context, frame: frame(wall, inset: 1), cell: cell, lit: (wall.x + wall.y) % 3 == 0)
             }
             for coin in game.coins {
                 context.draw(context.resolve(Image("CoinSmall")), in: frame(coin, inset: cell * 0.08))
@@ -490,11 +459,7 @@ struct SnakeBoard: View {
                 let ring = CGRect(x: center.x - reach * cell, y: center.y - reach * cell, width: reach * cell * 2, height: reach * cell * 2)
                 context.stroke(Path(ellipseIn: ring), with: .color(.pink.opacity(0.5)), style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
             }
-            if edition == .crypto {
-                drawChain(in: &context, cell: cell, frame: { frame($0) })
-            } else {
-                drawSnake(in: &context, cell: cell, frame: { frame($0, inset: $1) })
-            }
+            drawChain(in: &context, cell: cell, frame: { frame($0) })
             if game.hasShield || game.graceTicks > 0 {
                 let bubble = frame(game.head, inset: -cell * 0.18)
                 context.stroke(Path(ellipseIn: bubble), with: .color(Color(red: 0.5, green: 0.7, blue: 1).opacity(game.hasShield ? 0.9 : 0.5)),
@@ -503,10 +468,10 @@ struct SnakeBoard: View {
         }
         .aspectRatio(CGFloat(SnakeGame.width) / CGFloat(SnakeGame.height), contentMode: .fit)
         .padding(4)
-        .background(Self.boardColor(edition), in: .rect(cornerRadius: 16))
+        .background(Self.boardColor, in: .rect(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(edition == .crypto ? Color.cyan.opacity(0.3) : .green.opacity(0.35), lineWidth: 1)
+                .strokeBorder(Color.cyan.opacity(0.3), lineWidth: 1)
         }
     }
 
@@ -515,18 +480,7 @@ struct SnakeBoard: View {
     private func color(at index: Int, count: Int) -> Color {
         let shade = count > 1 ? Double(index) / Double(count - 1) : 0
         guard game.isActive(.speedBoost) else { return skin.snakeColor(shade: shade, index: index) }
-        return edition == .crypto
-            ? Color(red: 1.0 - 0.2 * shade, green: 0.82 - 0.3 * shade, blue: 0.15)
-            : Color(red: 1.0 - 0.3 * shade, green: 0.65 - 0.3 * shade, blue: 0.2)
-    }
-
-    private func drawSnake(in context: inout GraphicsContext, cell: CGFloat, frame: (GridPoint, CGFloat) -> CGRect) {
-        let count = game.body.count
-        for (index, segment) in game.body.enumerated().reversed() {
-            let inset = index == 0 ? cell * 0.04 : cell * 0.1
-            context.fill(Path(roundedRect: frame(segment, inset), cornerRadius: cell * 0.32), with: .color(color(at: index, count: count)))
-        }
-        drawEyes(in: &context, cell: cell, frame: frame(game.head, 0))
+        return Color(red: 1.0 - 0.2 * shade, green: 0.82 - 0.3 * shade, blue: 0.15)
     }
 
     /// Hash Chain: square blocks, each tied to the next by a short link, the head marked with a hash.
@@ -573,7 +527,7 @@ struct SnakeBoard: View {
     /// A wall cell as a server: a dark unit with a vent line and a status light.
     private func drawServer(in context: inout GraphicsContext, frame: CGRect, cell: CGFloat, lit: Bool) {
         let unit = Path(roundedRect: frame, cornerRadius: cell * 0.1)
-        context.fill(unit, with: .color(Self.wallColor(.crypto)))
+        context.fill(unit, with: .color(Self.wallColor))
         context.stroke(unit, with: .color(.black.opacity(0.4)), lineWidth: 1)
         var vent = Path()
         vent.move(to: CGPoint(x: frame.minX + cell * 0.15, y: frame.midY))
@@ -595,26 +549,5 @@ struct SnakeBoard: View {
         var symbol = context.resolve(Image(systemName: item.kind.symbol))
         symbol.shading = .color(.white)
         context.draw(symbol, in: frame.insetBy(dx: cell * 0.24, dy: cell * 0.24))
-    }
-
-    private func drawEyes(in context: inout GraphicsContext, cell: CGFloat, frame: CGRect) {
-        let center = CGPoint(x: frame.midX, y: frame.midY)
-        let forward: CGVector = switch game.heading {
-        case .up: CGVector(dx: 0, dy: -1)
-        case .down: CGVector(dx: 0, dy: 1)
-        case .left: CGVector(dx: -1, dy: 0)
-        case .right: CGVector(dx: 1, dy: 0)
-        }
-        let side = CGVector(dx: -forward.dy, dy: forward.dx)
-        for direction in [-1.0, 1.0] {
-            let eye = CGPoint(x: center.x + forward.dx * cell * 0.15 + side.dx * cell * 0.2 * direction,
-                              y: center.y + forward.dy * cell * 0.15 + side.dy * cell * 0.2 * direction)
-            let radius = cell * 0.12
-            context.fill(Path(ellipseIn: CGRect(x: eye.x - radius, y: eye.y - radius, width: radius * 2, height: radius * 2)),
-                         with: .color(.white))
-            let pupil = radius * 0.55
-            context.fill(Path(ellipseIn: CGRect(x: eye.x - pupil + forward.dx * radius * 0.3, y: eye.y - pupil + forward.dy * radius * 0.3,
-                                                width: pupil * 2, height: pupil * 2)), with: .color(.black))
-        }
     }
 }

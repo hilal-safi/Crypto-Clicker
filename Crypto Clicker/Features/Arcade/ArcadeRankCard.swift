@@ -62,8 +62,9 @@ struct ArcadeRankCard: View {
     }
 }
 
-/// Looks for the games: card backs, the Blackjack felt, slot reels, Tetris blocks and the snake.
-/// Locked looks say what unlocks them.
+/// Looks for the games, at least one kind for every game: card backs, the tables, slot reels, the
+/// moon ride, coins, tiles, the chain, the paddle, bubbles, the Pump and Dump board and the ship.
+/// Each kind is headed by its games' icons. Locked looks say what unlocks them.
 struct StyleView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -78,9 +79,15 @@ struct StyleView: View {
                         .foregroundStyle(.subtext)
                 }
                 ForEach(CosmeticSlot.allCases) { slot in
-                    Section(slot.name) {
+                    Section {
                         ForEach(Cosmetic.all(in: slot)) { cosmetic in
                             row(cosmetic, game: game)
+                        }
+                    } header: {
+                        HStack(spacing: 6) {
+                            Text(verbatim: slot.games.map(\.icon).joined())
+                                .accessibilityHidden(true)
+                            Text(slot.name)
                         }
                     }
                 }

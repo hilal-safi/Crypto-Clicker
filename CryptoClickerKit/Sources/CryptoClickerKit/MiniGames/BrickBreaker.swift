@@ -56,16 +56,14 @@ public struct BrickBreakerGame: Sendable {
     public enum PowerUp: String, CaseIterable, Sendable {
         case multiBall, widePaddle, slowBall, laser
 
-        public var name: String { name(in: .current) }
-
         /// Hash Smash's power-ups: a Fork splits the ball, Deep Liquidity widens the paddle, a Gas
         /// Limit slows the ball and Hash Rate fires bolts.
-        public func name(in edition: ArcadeEdition) -> String {
+        public var name: String {
             switch self {
-            case .multiBall: edition.pick(localized("Fork"), classic: localized("Multi-ball"))
-            case .widePaddle: edition.pick(localized("Deep Liquidity"), classic: localized("Wide Paddle"))
-            case .slowBall: edition.pick(localized("Gas Limit"), classic: localized("Slow Ball"))
-            case .laser: edition.pick(localized("Hash Rate"), classic: localized("Laser"))
+            case .multiBall: localized("Fork")
+            case .widePaddle: localized("Deep Liquidity")
+            case .slowBall: localized("Gas Limit")
+            case .laser: localized("Hash Rate")
             }
         }
 

@@ -1,60 +1,60 @@
 import Foundation
 
+/// One fact in a game's record: a label and its value, "Best" and "12,345".
+public struct RecordFact: Equatable, Sendable {
+    public let label: String
+    public let value: String
+
+    public init(_ label: String, _ value: String) {
+        self.label = label
+        self.value = value
+    }
+}
+
 /// Records and counts for every mini-game, read from the statistics, for the Arcade and
 /// Statistics screens.
 extension GameState {
-    /// The record line under a game in the Arcade: "Best 12,345 · longest 38".
-    public func record(for game: MiniGame) -> String {
+    /// The record under a game in the Arcade: always the same two facts for a game, so every row
+    /// reads alike. Arcade games lead with their best score ("Best" 12,345, then "Wave" 5);
+    /// casino games with their wins. A dash stands for something not done yet.
+    public func record(for game: MiniGame) -> [RecordFact] {
         let s = stats
+        let none = "–"
+        func count(_ value: Int) -> String { CoinFormat.grouped(value) }
+        let best = RecordFact(localized("Best"), count(bestScore(game)))
         return switch game {
         case .blackjack:
-            localized("\(CoinFormat.grouped(s.blackjackWins)) hands won · best streak \(CoinFormat.grouped(s.blackjackBestStreak))")
+            [RecordFact(localized("Wins"), count(s.blackjackWins)), RecordFact(localized("Best streak"), count(s.blackjackBestStreak))]
         case .slots:
-            localized("\(CoinFormat.grouped(s.slotsWins)) wins · \(CoinFormat.grouped(s.slotsJackpots)) jackpots")
+            [RecordFact(localized("Wins"), count(s.slotsWins)), RecordFact(localized("Jackpots"), count(s.slotsJackpots))]
         case .moon:
-            s.moonCashOuts > 0 ? localized("Best cash-out \(CoinFormat.flight(s.moonBestMultiplier))") : localized("No cash-outs yet")
+            [RecordFact(localized("Best"), s.moonCashOuts > 0 ? CoinFormat.flight(s.moonBestMultiplier) : none),
+             RecordFact(localized("Cash-outs"), count(s.moonCashOuts))]
         case .videoPoker:
-            s.pokerHands > 0
-                ? localized("\(CoinFormat.grouped(s.pokerWins)) hands won · best \((PokerHand(rawValue: s.pokerBestHand) ?? .nothing).name.lowercased())")
-                : localized("No hands yet")
+            [RecordFact(localized("Wins"), count(s.pokerWins)),
+             RecordFact(localized("Best hand"), s.pokerWins > 0 ? (PokerHand(rawValue: s.pokerBestHand) ?? .nothing).name : none)]
         case .tetris:
-            s.tetrisBestSprint > 0
-                ? ArcadeEdition.pick(localized("Best \(CoinFormat.grouped(s.tetrisBestScore)) · Rush \(CoinFormat.stopwatch(s.tetrisBestSprint))"),
-                                     classic: localized("Best \(CoinFormat.grouped(s.tetrisBestScore)) · Sprint \(CoinFormat.stopwatch(s.tetrisBestSprint))"))
-                : localized("Best \(CoinFormat.grouped(s.tetrisBestScore))")
+            [best, RecordFact(localized("Rush"), s.tetrisBestSprint > 0 ? CoinFormat.stopwatch(s.tetrisBestSprint) : none)]
         case .merge2048:
-            s.merge2048BestTile > 0
-                ? localized("Best \(CoinFormat.grouped(s.merge2048BestScore)) · ") + ArcadeEdition.pick(
-                    localized("top miner: \(Merge2048Game.miner(for: s.merge2048BestTile).name)"), classic: localized("top tile \(s.merge2048BestTile)"))
-                : localized("Best 0")
+            [best, RecordFact(localized("Top miner"), s.merge2048BestTile > 0 ? Merge2048Game.miner(for: s.merge2048BestTile).name : none)]
         case .snake:
-            s.snakeLongest > 0
-                ? localized("Best \(CoinFormat.grouped(s.snakeBestScore)) · longest \(CoinFormat.grouped(s.snakeLongest))")
-                : localized("Best \(CoinFormat.grouped(s.snakeBestScore))")
+            [best, RecordFact(localized("Chain"), count(s.snakeLongest))]
         case .brickBreaker:
-            s.brickBreakerBestLevel > 0
-                ? localized("Best \(CoinFormat.grouped(s.brickBreakerBestScore)) · level \(CoinFormat.grouped(s.brickBreakerBestLevel))")
-                : localized("Best \(CoinFormat.grouped(s.brickBreakerBestScore))")
+            [best, RecordFact(localized("Level"), count(s.brickBreakerBestLevel))]
         case .bubbleBlaster:
-            s.bubbleBestWave > 0
-                ? localized("Best \(CoinFormat.grouped(s.bubbleBestScore)) · wave \(CoinFormat.grouped(s.bubbleBestWave))")
-                : localized("Best \(CoinFormat.grouped(s.bubbleBestScore))")
+            [best, RecordFact(localized("Wave"), count(s.bubbleBestWave))]
         case .pumpDump:
-            s.pumpDumpBestRound > 0
-                ? localized("Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · round \(s.pumpDumpBestRound) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))")
-                : s.pumpDumpBestCombo > 0
-                    ? localized("Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))")
-                    : localized("Best \(CoinFormat.grouped(s.pumpDumpBestScore))")
+            [best, RecordFact(localized("Round"), count(s.pumpDumpBestRound))]
         case .invaders:
-            s.invadersBestWave > 0
-                ? localized("Best \(CoinFormat.grouped(s.invadersBestScore)) · wave \(CoinFormat.grouped(s.invadersBestWave))")
-                : localized("Best \(CoinFormat.grouped(s.invadersBestScore))")
+            [best, RecordFact(localized("Wave"), count(s.invadersBestWave))]
         case .tokenSwap:
-            (tokenSwap.totalStars > 0 ? localized("\(tokenSwap.totalStars) stars · ") : "")
-                + (s.tokenSwapBestChain > 1
-                    ? localized("Best \(CoinFormat.grouped(s.tokenSwapBestScore)) · chain of \(CoinFormat.grouped(s.tokenSwapBestChain))")
-                    : localized("Best \(CoinFormat.grouped(s.tokenSwapBestScore))"))
+            [best, RecordFact(localized("Stars"), count(tokenSwap.totalStars))]
         }
+    }
+
+    /// The record in one line: "Best 12,345 · Wave 5".
+    public func recordLine(for game: MiniGame) -> String {
+        record(for: game).map { "\($0.label) \($0.value)" }.joined(separator: " · ")
     }
 
     /// Games played (arcade), or hands, spins and flights (casino).

@@ -70,14 +70,16 @@ struct GameRecordTests {
 
     @Test func recordsReadTheStatistics() {
         var game = GameState.make(miners: minersEarning(10))
-        #expect(game.record(for: .snake) == "Best 0")
-        #expect(game.record(for: .moon) == "No cash-outs yet")
+        #expect(game.recordLine(for: .snake) == "Best 0 · Chain 0")
+        #expect(game.recordLine(for: .moon) == "Best – · Cash-outs 0")
+        // Every game's record is two facts, so the Arcade's rows read alike.
+        #expect(MiniGame.allCases.allSatisfy { game.record(for: $0).count == 2 })
         game.finishSnake(score: 250, length: 28)
         game.finishBrickBreaker(score: 900, bricks: 60, level: 3)
         game.finishTetris(score: 1_234, lines: 9, rewardPoints: 1_234)
-        #expect(game.record(for: .snake) == "Best 250 · longest 28")
-        #expect(game.record(for: .brickBreaker) == "Best 900 · level 3")
-        #expect(game.record(for: .tetris) == "Best 1,234")
+        #expect(game.recordLine(for: .snake) == "Best 250 · Chain 28")
+        #expect(game.recordLine(for: .brickBreaker) == "Best 900 · Level 3")
+        #expect(game.recordLine(for: .tetris) == "Best 1,234 · Rush –")
         #expect(game.timesPlayed(.snake) == 1)
         #expect(game.bestScore(.brickBreaker) == 900)
         #expect(game.arcadeGamesPlayed == 3)
@@ -102,7 +104,7 @@ struct GameRecordTests {
         #expect(game.stats.blackjackBestStreak == 3)
         // Two winning hands: 4 tokens (4,000 coins) plus a 600-coin bonus each.
         #expect(game.stats.blackjackBiggestWin == 5_200)
-        #expect(game.record(for: .blackjack) == "3 hands won · best streak 3")
+        #expect(game.recordLine(for: .blackjack) == "Wins 3 · Best streak 3")
 
         var rng = SeededGenerator(seed: 3)
         let before = game.tokenCount(.shibaInu)

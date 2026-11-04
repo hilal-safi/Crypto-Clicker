@@ -173,9 +173,11 @@ extension GameStore {
     }
 
     @discardableResult
-    func finishPumpDump(score: Int, coinsHit: Int, bestCombo: Int, scamsHit: Int, rounds: Int) -> ArcadePayout {
+    func finishPumpDump(score: Int, coinsHit: Int, bestCombo: Int, scamsHit: Int, rounds: Int,
+                        board: PumpDumpGame.Board) -> ArcadePayout {
         let payout = perform { game, _ in
-            game.finishPumpDump(score: score, coinsHit: coinsHit, bestCombo: bestCombo, scamsHit: scamsHit, rounds: rounds)
+            game.finishPumpDump(score: score, coinsHit: coinsHit, bestCombo: bestCombo, scamsHit: scamsHit, rounds: rounds,
+                                board: board)
         }
         save()
         return payout

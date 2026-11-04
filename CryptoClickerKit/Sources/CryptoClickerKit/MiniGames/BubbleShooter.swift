@@ -20,14 +20,11 @@ public struct BubbleShooterGame: Sendable {
         /// Blows up every bubble within two bubbles of where it lands, whatever the color.
         case bomb
 
-        public var name: String { name(in: .current) }
-
-        /// In Bubble Market a Stablecoin matches whatever it touches, and a Flash Crash wipes out
-        /// everything around it.
-        public func name(in edition: ArcadeEdition) -> String {
+        /// A Stablecoin matches whatever it touches, and a Flash Crash wipes out everything around it.
+        public var name: String {
             switch self {
-            case .rainbow: edition.pick(localized("Stablecoin"), classic: localized("Rainbow"))
-            case .bomb: edition.pick(localized("Flash Crash"), classic: localized("Bomb"))
+            case .rainbow: localized("Stablecoin")
+            case .bomb: localized("Flash Crash")
             }
         }
     }

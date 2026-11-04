@@ -1,7 +1,7 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// The screens inside 2048 (Merge Mining in the crypto edition), opened from its start screen.
+/// The screens inside Merge Mining, opened from its start screen.
 enum Merge2048Route: Hashable {
     /// Goes on until the board locks up, with tile goals to climb and three undos.
     case classic
@@ -21,21 +21,16 @@ struct Merge2048View: View {
         let game = store.game
         let stats = game.stats
         let tint = MiniGame.merge2048.color
-        let crypto = store.arcadeEdition == .crypto
         let today = store.today
         let stars = game.merge2048Daily.stars(on: today)
         let winner = Merge2048Game.winningValue
         ScrollView {
             VStack(spacing: 14) {
-                ModeCard(tint: tint, icon: crypto ? "cpu" : "square.grid.3x3.fill", title: "Classic",
+                ModeCard(tint: tint, icon: "cpu", title: "Classic",
                          status: stats.merge2048Games == 0
-                            ? (crypto ? "Start with a Chromebook or two" : "Start with two tiles")
-                            : "Best \(CoinFormat.grouped(stats.merge2048BestScore)) · " + (crypto
-                                ? "top miner: \(Merge2048Game.miner(for: stats.merge2048BestTile).name)"
-                                : "top tile \(stats.merge2048BestTile)"),
-                         detail: crypto
-                            ? "Merge miners as far as you can, with goals to climb and \(Merge2048Game.undosPerGame) undos. Building the Lunar Base (\(CoinFormat.grouped(winner))) reaches the Moon: a bonus of \(CoinFormat.short(game.merge2048TileBonus)) coins."
-                            : "Merge as far as you can, with tile goals to climb and \(Merge2048Game.undosPerGame) undos. A \(winner) tile pays a bonus of \(CoinFormat.short(game.merge2048TileBonus)) coins.",
+                            ? ("Start with a Chromebook or two")
+                            : "Best \(CoinFormat.grouped(stats.merge2048BestScore)) · " + ("top miner: \(Merge2048Game.miner(for: stats.merge2048BestTile).name)"),
+                         detail: "Merge miners as far as you can, with goals to climb and \(Merge2048Game.undosPerGame) undos. Building the Lunar Base (\(CoinFormat.grouped(winner))) reaches the Moon: a bonus of \(CoinFormat.short(game.merge2048TileBonus)) coins.",
                          note: nil) {
                     NavigationLink(value: Merge2048Route.classic) {
                         Label("Play Classic", systemImage: "play.fill")
@@ -45,9 +40,7 @@ struct Merge2048View: View {
                 }
                 ModeCard(tint: tint, icon: "calendar", title: "Daily Puzzle",
                          status: stars == 0 ? "No stars yet today" : "\(stars) of 3 stars today · best \(CoinFormat.grouped(game.merge2048Daily.bestScore(on: today)))",
-                         detail: crypto
-                            ? "The same start and miners for everyone today: \(Merge2048Game.dailyMoves) moves, stars at \(starScores). Each star pays \(CoinFormat.short(game.merge2048DailyStarReward)) coins the first time today."
-                            : "The same start and tiles for everyone today: \(Merge2048Game.dailyMoves) moves, stars at \(starScores). Each star pays \(CoinFormat.short(game.merge2048DailyStarReward)) coins the first time today.",
+                         detail: "The same start and miners for everyone today: \(Merge2048Game.dailyMoves) moves, stars at \(starScores). Each star pays \(CoinFormat.short(game.merge2048DailyStarReward)) coins the first time today.",
                          note: nil) {
                     VStack(spacing: 12) {
                         StarRow(stars: stars, size: 22)
@@ -59,9 +52,7 @@ struct Merge2048View: View {
                     }
                 }
                 ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Settings", status: "\(slideSpeed.name) slides",
-                         detail: crypto
-                            ? "How quickly the miners slide, and whether each shows its number under its picture. Neither changes the score."
-                            : "How quickly the tiles slide. It doesn't change the score.",
+                         detail: "How quickly the miners slide, and whether each shows its number under its picture. Neither changes the score.",
                          note: nil) {
                     VStack(spacing: 12) {
                         Picker("Slide speed", selection: $slideSpeed) {
@@ -70,10 +61,8 @@ struct Merge2048View: View {
                             }
                         }
                         .pickerStyle(.segmented)
-                        if crypto {
-                            Toggle("Show numbers on miners", isOn: $showsValues)
-                                .font(.body.weight(.semibold))
-                        }
+                        Toggle("Show numbers on miners", isOn: $showsValues)
+                            .font(.body.weight(.semibold))
                     }
                 }
             }
@@ -82,10 +71,11 @@ struct Merge2048View: View {
             .frame(maxWidth: 600)
             .frame(maxWidth: .infinity)
         }
-        .background { AppBackground(tint: Theme.gold) }
         .navigationTitle(MiniGame.merge2048.name)
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.merge2048, isPresented: $showingHelp)
+        .environment(\.mergeTiles, store.game.equipped(.mergeTiles))
+        .gameBackdrop(.merge2048)
     }
 
     private var starScores: String {
@@ -149,7 +139,6 @@ struct Merge2048PlayView: View {
         let points: Int
     }
 
-    private var crypto: Bool { store.arcadeEdition == .crypto }
 
     /// The slide's animation, at the speed picked on the start screen.
     private var slideAnimation: Animation {
@@ -158,38 +147,20 @@ struct Merge2048PlayView: View {
 
     var body: some View {
         withLifecycle(withFeedback(layout))
+            .environment(\.mergeTiles, store.game.equipped(.mergeTiles))
+            .gameBackdrop(.merge2048)
     }
 
     private var layout: some View {
         VStack(spacing: 12) {
             scoreBar
-            Merge2048Board(game: game, slideSpeed: slideSpeed)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(MiniGame.merge2048.name) board")
-                .accessibilityValue(boardDescription)
-                .accessibilityAction(named: "Slide up") { slide(.up) }
-                .accessibilityAction(named: "Slide down") { slide(.down) }
-                .accessibilityAction(named: "Slide left") { slide(.left) }
-                .accessibilityAction(named: "Slide right") { slide(.right) }
-                .accessibilityAction(named: "Undo") { undo() }
-                .overlay(alignment: .top) {
-                    if showsWinBanner {
-                        winBanner
-                    } else if let goalBanner {
-                        goalBannerView(goalBanner)
-                    }
-                }
-                // The square board sits in all the space left, and swipes work anywhere in it.
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(.rect)
-                .gesture(swipe)
+            board
             goalLine
             worth
         }
         .padding(12)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
-        .background { AppBackground(tint: Theme.gold) }
         .overlay { EffectsLayer(effects: effects).ignoresSafeArea() }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
@@ -202,6 +173,35 @@ struct Merge2048PlayView: View {
         } message: {
             Text(endMessage)
         }
+    }
+
+    /// The board, with its banners, taking swipes anywhere in the space left.
+    private var board: some View {
+        withBoardAccessibility(Merge2048Board(game: game, slideSpeed: slideSpeed))
+            .overlay(alignment: .top) {
+                if showsWinBanner {
+                    winBanner
+                } else if let goalBanner {
+                    goalBannerView(goalBanner)
+                }
+            }
+            // The square board sits in all the space left, and swipes work anywhere in it.
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(.rect)
+            .gesture(swipe)
+    }
+
+    /// The board for VoiceOver: what's on it, and a slide each way and Undo as actions.
+    private func withBoardAccessibility(_ view: some View) -> some View {
+        view
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(MiniGame.merge2048.name) board")
+            .accessibilityValue(boardDescription)
+            .accessibilityAction(named: "Slide up") { slide(.up) }
+            .accessibilityAction(named: "Slide down") { slide(.down) }
+            .accessibilityAction(named: "Slide left") { slide(.left) }
+            .accessibilityAction(named: "Slide right") { slide(.right) }
+            .accessibilityAction(named: "Undo") { undo() }
     }
 
     private func withFeedback(_ view: some View) -> some View {
@@ -245,9 +245,8 @@ struct Merge2048PlayView: View {
             if let left = game.movesLeft {
                 GameStat(title: "Moves left", value: "\(left)")
             } else {
-                GameStat(title: crypto ? "Top miner" : "Top tile",
-                         value: crypto ? Merge2048Game.miner(for: game.bestTile).emoji + " " + CoinFormat.grouped(game.bestTile)
-                                       : String(game.bestTile))
+                GameStat(title: "Top miner",
+                         value: Merge2048Game.miner(for: game.bestTile).emoji + " " + CoinFormat.grouped(game.bestTile))
             }
             Spacer(minLength: 0)
             ArcadeButton(title: "Undo, \(game.undosLeft) left", systemImage: "arrow.uturn.backward", size: 40) {
@@ -283,10 +282,10 @@ struct Merge2048PlayView: View {
             } else if let goal = game.nextGoal {
                 Image(systemName: "target")
                     .foregroundStyle(Theme.gold)
-                Text(crypto ? "Goal: build the" : "Goal: make a")
+                Text("Goal: build the")
                     .font(.subheadline.weight(.semibold))
-                Merge2048TileView(value: goal, side: crypto ? 30 : 26, pops: false)
-                Text(crypto ? Merge2048Game.miner(for: goal).name : "tile")
+                Merge2048TileView(value: goal, side: 30, pops: false)
+                Text(Merge2048Game.miner(for: goal).name)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -322,11 +321,9 @@ struct Merge2048PlayView: View {
                     }
                 }
             } else {
-                GamePanel(title: crypto ? MiniGame.merge2048.name : "Classic", buttonTitle: "Start", action: start) {
+                GamePanel(title: MiniGame.merge2048.name, buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.merge2048BestScore,
-                              detail: crypto
-                                ? "Build the Lunar Base to reach the Moon: +\(CoinFormat.short(store.game.merge2048TileBonus)) coins."
-                                : "A \(Merge2048Game.winningValue) tile pays a bonus of \(CoinFormat.short(store.game.merge2048TileBonus)) coins.")
+                              detail: "Build the Lunar Base to reach the Moon: +\(CoinFormat.short(store.game.merge2048TileBonus)) coins.")
                 }
             }
         }
@@ -368,10 +365,9 @@ struct Merge2048PlayView: View {
 
     private var winBanner: some View {
         VStack(spacing: 2) {
-            Text(crypto ? "🌕 Lunar Base built!" : "2048!")
+            Text("🌕 Lunar Base built!")
                 .font(.title2.weight(.heavy))
-            Text(crypto ? "You reached the Moon: +\(CoinFormat.short(store.game.merge2048TileBonus)) coins when the game ends. Keep going!"
-                        : "+\(CoinFormat.short(store.game.merge2048TileBonus)) coins when the game ends. Keep going!")
+            Text("You reached the Moon: +\(CoinFormat.short(store.game.merge2048TileBonus)) coins when the game ends. Keep going!")
                 .font(.subheadline.weight(.semibold))
                 .multilineTextAlignment(.center)
         }
@@ -386,10 +382,10 @@ struct Merge2048PlayView: View {
 
     private func goalBannerView(_ banner: GoalBanner) -> some View {
         VStack(spacing: 2) {
-            Text(crypto ? "\(Merge2048Game.miner(for: banner.tile).name) built!" : "\(banner.tile) made!")
+            Text("\(Merge2048Game.miner(for: banner.tile).name) built!")
                 .font(.title3.weight(.heavy))
             if let next = Merge2048Game.goalTiles.first(where: { $0 > banner.tile }) {
-                Text(crypto ? "Next goal: the \(Merge2048Game.miner(for: next).name)" : "Next goal: \(next)")
+                Text("Next goal: the \(Merge2048Game.miner(for: next).name)")
                     .font(.subheadline.weight(.semibold))
             }
         }
@@ -406,7 +402,7 @@ struct Merge2048PlayView: View {
     private var boardDescription: String {
         let rows = game.rows.enumerated().map { index, row in
             "Row \(index + 1): " + row.map { value in
-                value == 0 ? "empty" : crypto ? "\(Merge2048Game.miner(for: value).name) \(value)" : String(value)
+                value == 0 ? "empty" : "\(Merge2048Game.miner(for: value).name) \(value)"
             }.joined(separator: ", ")
         }
         var lines = ["Score \(game.score)"]
@@ -582,7 +578,7 @@ struct Merge2048Result: Equatable {
 
     /// "top tile 512", or in Merge Mining "top miner: Quantum Computer".
     private var topTile: String {
-        ArcadeEdition.current == .crypto ? "top miner: \(Merge2048Game.miner(for: bestTile).name)" : "top tile \(bestTile)"
+        "top miner: \(Merge2048Game.miner(for: bestTile).name)"
     }
 
     var details: [String] {
@@ -598,9 +594,7 @@ struct Merge2048Result: Equatable {
             lines.append(topTile.prefix(1).uppercased() + topTile.dropFirst()
                          + (undosUsed > 0 ? " · \(undosUsed) \(undosUsed == 1 ? "undo" : "undos")" : ""))
             if payout.tileBonus > 0 {
-                lines.append(ArcadeEdition.current == .crypto
-                             ? "Includes \(CoinFormat.short(payout.tileBonus)) coins for reaching the Moon"
-                             : "Includes \(CoinFormat.short(payout.tileBonus)) coins for the 2048 tile")
+                lines.append("Includes \(CoinFormat.short(payout.tileBonus)) coins for reaching the Moon")
             }
         }
         return lines
@@ -630,22 +624,8 @@ struct Merge2048Board: View {
             let cell = (proxy.size.width - gap * CGFloat(size + 1)) / CGFloat(size)
             let mergedAway = Set(game.mergedAway.map(\.id))
             ZStack(alignment: .topLeading) {
-                ForEach(0..<size * size, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: cell * 0.14, style: .continuous)
-                        .fill(.white.opacity(0.07))
-                        .frame(width: cell, height: cell)
-                        .offset(x: gap + CGFloat(index % size) * (cell + gap), y: gap + CGFloat(index / size) * (cell + gap))
-                }
-                // One list, so a tile that merges away keeps its identity and slides into place.
-                ForEach(game.mergedAway + game.tiles) { tile in
-                    Merge2048TileView(value: tile.value, side: cell, pops: !reduceMotion)
-                        .offset(x: gap + CGFloat(tile.column) * (cell + gap), y: gap + CGFloat(tile.row) * (cell + gap))
-                        .zIndex(mergedAway.contains(tile.id) ? 0 : 1)
-                        .transition(.asymmetric(
-                            insertion: AnyTransition.scale(scale: 0.3).combined(with: .opacity)
-                                .animation(.easeOut(duration: 0.14).delay(0.1)),
-                            removal: .identity))
-                }
+                slots(size: size, cell: cell, gap: gap)
+                tiles(cell: cell, gap: gap, mergedAway: mergedAway)
             }
         }
         .aspectRatio(1, contentMode: .fit)
@@ -656,36 +636,53 @@ struct Merge2048Board: View {
         }
         .contentShape(.rect)
     }
+
+    /// The empty slots under the tiles.
+    private func slots(size: Int, cell: CGFloat, gap: CGFloat) -> some View {
+        ForEach(0..<size * size, id: \.self) { index in
+            RoundedRectangle(cornerRadius: cell * 0.14, style: .continuous)
+                .fill(.white.opacity(0.07))
+                .frame(width: cell, height: cell)
+                .offset(x: gap + CGFloat(index % size) * (cell + gap), y: gap + CGFloat(index / size) * (cell + gap))
+        }
+    }
+
+    /// One list of tiles, so a tile that merges away keeps its identity and slides into place.
+    private func tiles(cell: CGFloat, gap: CGFloat, mergedAway: Set<Int>) -> some View {
+        ForEach(game.mergedAway + game.tiles) { tile in
+            Merge2048TileView(value: tile.value, side: cell, pops: !reduceMotion)
+                .offset(x: gap + CGFloat(tile.column) * (cell + gap), y: gap + CGFloat(tile.row) * (cell + gap))
+                .zIndex(mergedAway.contains(tile.id) ? 0 : 1)
+                .transition(.asymmetric(
+                    insertion: AnyTransition.scale(scale: 0.3).combined(with: .opacity)
+                        .animation(.easeOut(duration: 0.14).delay(0.1)),
+                    removal: .identity))
+        }
+    }
 }
 
-/// One numbered tile. The number always shows; colors climb from cool to warm and end in
-/// Bitcoin gold at 2048.
+/// One miner tile, with its number under it (a setting). In the Classic look colors climb from
+/// cool to warm and end in Bitcoin gold at 2048; Midnight puts each color in a glowing rim on a
+/// dark tile, and Gold Rush runs from bronze through gold to platinum.
 struct Merge2048TileView: View {
     let value: Int
     let side: CGFloat
     var pops = true
     /// Merge Mining shows each miner's number under its picture, unless turned off.
     @AppStorage(Preferences.mergeValuesKey) private var showsValues = true
+    /// The tiles picked in Style.
+    @Environment(\.mergeTiles) private var look
 
     var body: some View {
-        let style = Self.style(for: value)
+        let style = Self.style(for: value, look: look)
         RoundedRectangle(cornerRadius: side * 0.14, style: .continuous)
             .fill(style.background.gradient)
             .overlay {
                 RoundedRectangle(cornerRadius: side * 0.14, style: .continuous)
-                    .strokeBorder(.white.opacity(0.2), lineWidth: 1)
+                    .strokeBorder(style.rim, lineWidth: look == .mergeMidnight ? max(1.5, side * 0.05) : 1)
             }
             .overlay {
-                if ArcadeEdition.current == .crypto {
-                    miner(style: style)
-                } else {
-                    Text(verbatim: String(value))
-                        .font(.system(size: side * Self.fontScale(digits: String(value).count), weight: .heavy, design: .rounded))
-                        .foregroundStyle(style.foreground)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-                        .padding(.horizontal, side * 0.06)
-                }
+                miner(style: style)
             }
             .shadow(color: value >= Merge2048Game.winningValue ? Theme.gold.opacity(0.75) : .clear, radius: side * 0.12)
             .frame(width: side, height: side)
@@ -701,7 +698,7 @@ struct Merge2048TileView: View {
     }
 
     /// Merge Mining's tile: the miner's picture, with its number underneath on tiles big enough.
-    private func miner(style: (background: Color, foreground: Color)) -> some View {
+    private func miner(style: (background: Color, foreground: Color, rim: Color)) -> some View {
         let showsNumber = showsValues && side >= 44
         return VStack(spacing: side * 0.01) {
             Text(verbatim: Merge2048Game.miner(for: value).emoji)
@@ -718,12 +715,26 @@ struct Merge2048TileView: View {
         }
     }
 
-    static func fontScale(digits: Int) -> CGFloat {
-        switch digits {
-        case ...2: 0.46
-        case 3: 0.38
-        case 4: 0.30
-        default: 0.24
+    /// Background, number and rim colors in a look, the number at least 4:1 against its tile.
+    static func style(for value: Int, look: Cosmetic) -> (background: Color, foreground: Color, rim: Color) {
+        let classic = style(for: value)
+        switch look {
+        case .mergeMidnight:
+            // The classic color as a rim and number on a dark tile (the palest ones deepened, and
+            // gold past the Lunar Base, whose classic tile is dark already).
+            let color = value <= 4 ? Color(red: 0.55, green: 0.7, blue: 1)
+                : value > Merge2048Game.winningValue ? Theme.gold : classic.background
+            return (Color(red: 0.07, green: 0.08, blue: 0.13), color.mix(with: .white, by: 0.35), color)
+        case .mergeGold:
+            // Bronze, then gold, then platinum past the Lunar Base.
+            let step = Double(max(1, Int(log2(Double(max(2, value)))))) / 11
+            let metal: Color = value > Merge2048Game.winningValue
+                ? Color(red: 0.86, green: 0.88, blue: 0.92)
+                : Color(red: 0.55 + 0.45 * step, green: 0.33 + 0.5 * step, blue: 0.14 + 0.16 * step)
+            // White numbers on the darker bronze, brown on the brighter gold.
+            return (metal, step < 0.5 ? .white : Color(red: 0.24, green: 0.13, blue: 0.0), .white.opacity(0.45))
+        default:
+            return (classic.background, classic.foreground, .white.opacity(0.2))
         }
     }
 

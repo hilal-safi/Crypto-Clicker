@@ -123,6 +123,9 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var pumpDumpBestRound = 0
     /// Pump and Dump rounds cleared over all runs.
     public internal(set) var pumpDumpRoundsCleared = 0
+    /// The best Pump and Dump score on each board, by its side ("3", "4", "5"). Saves from before
+    /// the bigger boards have none: their best (`pumpDumpBestScore`) was on the 3×3.
+    public internal(set) var pumpDumpBoardBests: [String: Int] = [:]
     public internal(set) var pokerHands = 0
     /// Hands that paid (a pair of jacks or better).
     public internal(set) var pokerWins = 0
@@ -206,7 +209,7 @@ public struct Stats: Codable, Equatable, Sendable {
         case merge2048Goals
         case moonFlights, moonCashOuts, moonBestMultiplier, moonWagered, moonPaidOut, moonBiggestWin
         case pumpDumpGames, pumpDumpBestScore, pumpDumpCoinsHit, pumpDumpScamsHit, pumpDumpBestCombo, pumpDumpBestRound
-        case pumpDumpRoundsCleared
+        case pumpDumpRoundsCleared, pumpDumpBoardBests
         case tokenSwapLevelsPlayed
         case tokenSwapLevelWins
         case tokenSwapRandomPlayed, tokenSwapRandomWins
@@ -336,6 +339,7 @@ public struct Stats: Codable, Equatable, Sendable {
         pumpDumpBestCombo = c.value(.pumpDumpBestCombo, default: 0)
         pumpDumpBestRound = c.value(.pumpDumpBestRound, default: 0)
         pumpDumpRoundsCleared = c.value(.pumpDumpRoundsCleared, default: 0)
+        pumpDumpBoardBests = c.value(.pumpDumpBoardBests, default: [:])
         tokenSwapLevelsPlayed = c.value(.tokenSwapLevelsPlayed, default: 0)
         tokenSwapLevelWins = c.value(.tokenSwapLevelWins, default: 0)
         tokenSwapRandomPlayed = c.value(.tokenSwapRandomPlayed, default: 0)
@@ -467,6 +471,7 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(pumpDumpBestCombo, forKey: .pumpDumpBestCombo)
         try c.encode(pumpDumpBestRound, forKey: .pumpDumpBestRound)
         try c.encode(pumpDumpRoundsCleared, forKey: .pumpDumpRoundsCleared)
+        if !pumpDumpBoardBests.isEmpty { try c.encode(pumpDumpBoardBests, forKey: .pumpDumpBoardBests) }
         try c.encode(tokenSwapLevelsPlayed, forKey: .tokenSwapLevelsPlayed)
         try c.encode(tokenSwapLevelWins, forKey: .tokenSwapLevelWins)
         try c.encode(tokenSwapRandomPlayed, forKey: .tokenSwapRandomPlayed)

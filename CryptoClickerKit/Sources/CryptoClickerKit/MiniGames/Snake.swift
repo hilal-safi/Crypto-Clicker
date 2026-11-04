@@ -61,16 +61,14 @@ public struct SnakeGame: Sendable {
 
         public var id: String { rawValue }
 
-        public var name: String { name(in: .current) }
-
         /// Hash Chain's arenas are a mining farm's racks, an exchange's trading floor and a node
-        /// network's links; the classic ones are plain walls.
-        public func name(in edition: ArcadeEdition) -> String {
+        /// network's links.
+        public var name: String {
             switch self {
             case .open: localized("Open")
-            case .pillars: edition.pick(localized("Mining Farm"), classic: localized("Pillars"))
-            case .rooms: edition.pick(localized("Exchange Floor"), classic: localized("Rooms"))
-            case .cross: edition.pick(localized("Node Network"), classic: localized("Crossroads"))
+            case .pillars: localized("Mining Farm")
+            case .rooms: localized("Exchange Floor")
+            case .cross: localized("Node Network")
             }
         }
 
@@ -99,14 +97,12 @@ public struct SnakeGame: Sendable {
     public enum PowerUp: String, CaseIterable, Codable, Sendable {
         case speedBoost, slowMotion, shield, magnet
 
-        public var name: String { name(in: .current) }
-
-        public func name(in edition: ArcadeEdition) -> String {
+        public var name: String {
             switch self {
-            case .speedBoost: edition.pick(localized("Lightning"), classic: localized("Speed Boost"))
-            case .slowMotion: edition.pick(localized("Cold Storage"), classic: localized("Slow Motion"))
-            case .shield: edition.pick(localized("Hardware Wallet"), classic: localized("Shield"))
-            case .magnet: edition.pick(localized("Airdrop Magnet"), classic: localized("Coin Magnet"))
+            case .speedBoost: localized("Lightning")
+            case .slowMotion: localized("Cold Storage")
+            case .shield: localized("Hardware Wallet")
+            case .magnet: localized("Airdrop Magnet")
             }
         }
 

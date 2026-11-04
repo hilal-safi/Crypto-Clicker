@@ -68,7 +68,7 @@ struct VideoPokerView: View {
                 .padding(.bottom, 8)
                 .frame(maxWidth: 560)
         }
-        .background { PokerBackground() }
+        .background { PokerBackground(look: game.equipped(.pokerTable)) }
         .environment(\.cardBack, game.equipped(.cardBack))
         .overlay { EffectsLayer(effects: effects).ignoresSafeArea() }
         .environment(\.colorScheme, .dark)
@@ -76,12 +76,6 @@ struct VideoPokerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .gameHelp(.videoPoker, isPresented: $showingHelp)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                CoinAmount(amount: store.heldCoins ?? store.coins, font: .subheadline.weight(.semibold), iconSize: 16)
-                    .padding(.horizontal, 6)
-            }
-        }
         .sensoryFeedback(.selection, trigger: holdTaps) { _, _ in haptics }
         .sensoryFeedback(.success, trigger: wins) { _, _ in haptics }
         .onAppear(perform: resume)
@@ -223,7 +217,7 @@ struct VideoPokerView: View {
                             .padding(.vertical, 8)
                     }
                     .buttonStyle(.glass)
-                    .accessibilityHint(ArcadeEdition.pick("HODLs the cards a strong player would keep", classic: "Holds the cards a strong player would keep"))
+                    .accessibilityHint("HODLs the cards a strong player would keep")
                     Button(action: draw) {
                         Text("DRAW")
                             .font(.title3.weight(.black))
@@ -428,7 +422,7 @@ private struct PokerCardSlot: View {
             }
             .buttonStyle(.plain)
             .allowsHitTesting(canHold) // Not disabled, which would dim the cards between hands.
-            Text(ArcadeEdition.pick("HODL", classic: "HELD"))
+            Text("HODL")
                 .font(.footnote.weight(.black))
                 .tracking(1)
                 .foregroundStyle(.black)
@@ -439,9 +433,9 @@ private struct PokerCardSlot: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(card.map { isFaceUp ? $0.accessibilityName : "Face-down card" } ?? "No card")
-        .accessibilityValue(isHeld ? ArcadeEdition.pick("HODL", classic: "Held") : "")
+        .accessibilityValue(isHeld ? "HODL" : "")
         .accessibilityAddTraits(canHold ? .isButton : [])
-        .accessibilityHint(canHold ? (isHeld ? "Lets this card go" : ArcadeEdition.pick("HODLs this card", classic: "Holds this card")) : "")
+        .accessibilityHint(canHold ? (isHeld ? "Lets this card go" : "HODLs this card") : "")
         .accessibilityAction {
             if canHold { toggle() }
         }
@@ -490,9 +484,12 @@ private struct PayTable: View {
 
 /// Deep blue, like a video poker machine's screen.
 private struct PokerBackground: View {
+    /// The table picked in Style.
+    var look = Cosmetic.pokerSapphire
+
     var body: some View {
-        RadialGradient(colors: [Color(red: 0.10, green: 0.19, blue: 0.48), Color(red: 0.02, green: 0.04, blue: 0.15)],
-                       center: .top, startRadius: 40, endRadius: 760)
+        let colors = look.pokerColors
+        RadialGradient(colors: [colors.center, colors.edge], center: .top, startRadius: 40, endRadius: 760)
             .ignoresSafeArea()
             .accessibilityHidden(true)
     }

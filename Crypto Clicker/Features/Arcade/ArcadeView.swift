@@ -7,6 +7,10 @@ struct ArcadeView: View {
     @Environment(GameStore.self) private var store
     @State private var path = NavigationPath()
     @State private var handledChallengeRequests = 0
+    /// The game whose records are showing in a sheet.
+    @State private var statsGame: MiniGame?
+    /// A game to open once the records sheet has closed (its Play button).
+    @State private var gameAfterStats: MiniGame?
 
     var body: some View {
         let game = store.game
@@ -42,12 +46,26 @@ struct ArcadeView: View {
             .navigationTitle("Arcade")
             .balanceToolbar()
             .modifier(ArcadeDestinations())
+            .sheet(item: $statsGame, onDismiss: openGameAfterStats) { miniGame in
+                GameStatsSheet(miniGame: miniGame) {
+                    gameAfterStats = miniGame
+                    statsGame = nil
+                }
+            }
         }
     }
 
     private func row(_ miniGame: MiniGame, in game: GameState) -> some View {
         MiniGameRow(miniGame: miniGame, isUnlocked: game.isUnlocked(miniGame),
-                    canAfford: miniGame.unlockCost <= game.coins, record: game.record(for: miniGame))
+                    canAfford: miniGame.unlockCost <= game.coins, record: game.record(for: miniGame),
+                    showStats: { statsGame = miniGame })
+    }
+
+    /// Opens the game picked on the records sheet, once the sheet is out of the way.
+    private func openGameAfterStats() {
+        guard let miniGame = gameAfterStats else { return }
+        gameAfterStats = nil
+        path.append(miniGame)
     }
 
     /// The challenge's game is unlocked (the arcade mix has no single game to open).
@@ -72,6 +90,10 @@ struct ArcadeView: View {
             path.append(BrickBreakerRoute.play(.classic)) // Straight into a game, from level 1.
         } else if game == .invaders {
             path.append(InvadersRoute.play(.classic)) // Straight into a game, from wave 1.
+        } else if game == .pumpDump {
+            // Reflex Day counts a run on any board: the one last picked.
+            let side = UserDefaults.standard.integer(forKey: Preferences.pumpDumpBoardKey)
+            path.append(PumpDumpRoute.play(PumpDumpGame.Board(rawValue: side) ?? .three))
         } else {
             path.append(game)
         }
@@ -138,6 +160,11 @@ private struct ArcadeDestinations: ViewModifier {
                 case .play(let waves): InvadersPlayView(waves: waves)
                 }
             }
+            .navigationDestination(for: PumpDumpRoute.self) { route in
+                switch route {
+                case .play(let board): PumpDumpPlayView(board: board)
+                }
+            }
     }
 }
 
@@ -155,12 +182,13 @@ extension MiniGame {
     var pitch: String { info.pitch }
 }
 
-/// One mini-game: what it is, your record, and Play or Unlock.
+/// One mini-game: what it is, your record, and Play (with its records under it) or Unlock.
 struct MiniGameRow: View {
     let miniGame: MiniGame
     let isUnlocked: Bool
     let canAfford: Bool
-    let record: String
+    let record: [RecordFact]
+    let showStats: () -> Void
     @Environment(GameStore.self) private var store
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(Preferences.hapticsKey) private var haptics = true
@@ -173,7 +201,7 @@ struct MiniGameRow: View {
                 .frame(width: 58, height: 58)
                 .background(miniGame.color.opacity(0.18), in: .rect(cornerRadius: 16))
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(miniGame.name)
                     .font(.headline)
                 Text(miniGame.pitch)
@@ -181,21 +209,34 @@ struct MiniGameRow: View {
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
                 if isUnlocked {
-                    Text(record)
-                        .font(.subheadline.weight(.bold).monospacedDigit())
-                        .foregroundStyle(miniGame.textColor(in: colorScheme))
+                    RecordLine(facts: record, tint: miniGame.textColor(in: colorScheme))
+                        .padding(.top, 1)
                 }
             }
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // 18 points between the text and the buttons (the row's gap and this), half what it was.
+            .padding(.trailing, 4)
             if isUnlocked {
-                NavigationLink(value: miniGame) {
-                    Text("Play")
-                        .font(.subheadline.weight(.bold))
-                        .frame(minWidth: 56)
+                VStack(spacing: 8) {
+                    NavigationLink(value: miniGame) {
+                        Text("Play")
+                            .font(.subheadline.weight(.bold))
+                            .frame(minWidth: 56)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(miniGame.color)
+                    .accessibilityLabel("Play \(miniGame.name)")
+                    Button(action: showStats) {
+                        Label("Stats", systemImage: "chart.bar.fill")
+                            .font(.footnote.weight(.semibold))
+                            .frame(minWidth: 56)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(miniGame.textColor(in: colorScheme))
+                    .accessibilityLabel("\(miniGame.name) stats")
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(miniGame.color)
-                .accessibilityLabel("Play \(miniGame.name)")
+                .fixedSize()
             } else {
                 Button {
                     if !store.unlock(miniGame) { refusals += 1 }
@@ -209,10 +250,89 @@ struct MiniGameRow: View {
                     .frame(minWidth: 72)
                 }
                 .priceButtonStyle(canAfford: canAfford, tint: Theme.arcadeButton)
+                .fixedSize()
                 .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
                 .accessibilityLabel("Unlock \(miniGame.name) for \(CoinFormat.cost(miniGame.unlockCost)) coins")
             }
         }
         .rowCard()
+    }
+}
+
+/// A game's record as label and value pairs, the labels in small capitals in the game's color:
+/// BEST 12,345  WAVE 5. On one line when it fits, one pair a line when it doesn't.
+private struct RecordLine: View {
+    let facts: [RecordFact]
+    let tint: Color
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 14) { pairs }
+            VStack(alignment: .leading, spacing: 2) { pairs }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(facts.map { "\($0.label) \($0.value)" }.joined(separator: ", "))
+    }
+
+    private var pairs: some View {
+        ForEach(facts, id: \.label) { fact in
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(fact.label)
+                    .font(.footnote.weight(.heavy))
+                    .textCase(.uppercase)
+                    .foregroundStyle(tint)
+                Text(fact.value)
+                    .font(.subheadline.weight(.bold).monospacedDigit())
+                    .foregroundStyle(.primary)
+            }
+            .lineLimit(1)
+            .fixedSize()
+        }
+    }
+}
+
+/// One game's records, the card Statistics shows for it, opened from the game's row in the Arcade
+/// to look before playing. Its Play button opens the game.
+private struct GameStatsSheet: View {
+    let miniGame: MiniGame
+    let play: () -> Void
+    @Environment(GameStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
+
+    var body: some View {
+        let game = store.game
+        NavigationStack {
+            List {
+                Section {
+                    GameStatsCard(miniGame, in: game, exactNumbers: exactNumbers)
+                } footer: {
+                    if game.timesPlayed(miniGame) == 0 {
+                        SettingsNote("Nothing played yet: your records fill in as you play.")
+                    }
+                }
+            }
+            .monospacedDigit()
+            .navigationTitle("Records")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done", systemImage: "checkmark") { dismiss() }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                Button(action: play) {
+                    Label("Play \(miniGame.name)", systemImage: "play.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(miniGame.color)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }

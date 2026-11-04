@@ -2,11 +2,17 @@ import Foundation
 import Testing
 @testable import CryptoClickerKit
 
+extension TetrisGame.Rules {
+    /// A 10x20 well with nothing rising from below, the shape these tests' positions are set out
+    /// in. Block Chain's own well is tested below.
+    static let tall = TetrisGame.Rules(rows: 20, gasSpikes: false)
+}
+
 @Suite("Tetris")
 struct TetrisTests {
     func newGame(seed: UInt64 = 1) -> (TetrisGame, SeededGenerator) {
         var rng = SeededGenerator(seed: seed)
-        let game = TetrisGame(using: &rng)
+        let game = TetrisGame(rules: .tall, using: &rng)
         return (game, rng)
     }
 
@@ -363,7 +369,7 @@ struct TetrisTests {
 
     @Test func aSprintEndsTheMomentItsLinesAreCleared() {
         var rng = SeededGenerator(seed: 3)
-        var game = TetrisGame(mode: .sprint(lines: 4), using: &rng)
+        var game = TetrisGame(mode: .sprint(lines: 4), rules: .tall, using: &rng)
         #expect(game.linesLeft == 4)
         game.load(blocks: (16...19).flatMap { row($0, columns: 0...8) }, piece: piece(.i, rotation: 1, x: 7, y: 0))
         game.hardDrop(using: &rng)
@@ -376,7 +382,7 @@ struct TetrisTests {
         game.tick(using: &rng)
         #expect(game.piece == nil) // Nothing moves after the end.
         // Endless never completes.
-        var endless = TetrisGame(using: &rng)
+        var endless = TetrisGame(rules: .tall, using: &rng)
         #expect(endless.linesLeft == 0)
         endless.load(blocks: (16...19).flatMap { row($0, columns: 0...8) }, piece: piece(.i, rotation: 1, x: 7, y: 0))
         endless.hardDrop(using: &rng)
@@ -402,13 +408,13 @@ struct TetrisTests {
         #expect(game.stats.tetrisBestCombo == 3)
         #expect(game.stats.tetrisTetrises == 2)
         #expect(game.stats.tetrisGames == 4)
-        #expect(game.record(for: .tetris) == "Best 5,000 · Rush 2:01.4")
+        #expect(game.recordLine(for: .tetris) == "Best 5,000 · Rush 2:01.4")
         #expect(CoinFormat.stopwatch(59.96) == "0:59.9")
         #expect(CoinFormat.stopwatch(3_725) == "62:05.0")
     }
 }
 
-/// Block Chain, the crypto edition's Tetris: a shorter well, and gas spikes in Endless.
+/// Block Chain's own rules: a shorter well, and gas spikes in Endless.
 @Suite("Block Chain")
 struct BlockChainTests {
     func newGame(_ mode: TetrisGame.Mode = .endless, rules: TetrisGame.Rules = .blockChain, seed: UInt64 = 1) -> (TetrisGame, SeededGenerator) {
@@ -425,13 +431,14 @@ struct BlockChainTests {
         columns.map { GridPoint(x: $0, y: y) }
     }
 
-    @Test func theEditionsPlayTheirOwnWells() {
+    @Test func blockChainPlaysAShortWell() {
         let (chain, _) = newGame()
         #expect(chain.height == 18 && chain.board.count == 180 && chain.hasGasSpikes)
-        let (classic, _) = newGame(rules: .classic)
-        #expect(classic.height == 20 && classic.board.count == 200 && !classic.hasGasSpikes)
-        #expect(classic.piecesUntilGasSpike == nil)
-        #expect(TetrisGame.Rules.edition(.crypto) == .blockChain && TetrisGame.Rules.edition(.classic) == .classic)
+        var rng = SeededGenerator(seed: 1)
+        #expect(TetrisGame(using: &rng).rules == .blockChain) // The game's own rules are the default.
+        let (tall, _) = newGame(rules: .tall)
+        #expect(tall.height == 20 && tall.board.count == 200 && !tall.hasGasSpikes)
+        #expect(tall.piecesUntilGasSpike == nil)
         // Block Rush, Block Chain's Sprint, has no gas spikes.
         let (rush, _) = newGame(.sprint(lines: TetrisGame.sprintLines))
         #expect(rush.height == 18 && !rush.hasGasSpikes)
@@ -474,8 +481,8 @@ struct BlockChainTests {
         #expect(game.gasSpikes == 1 && game.isOver)
     }
 
-    @Test func theClassicWellAndBlockRushNeverSpike() {
-        for (mode, rules) in [(TetrisGame.Mode.endless, TetrisGame.Rules.classic), (.sprint(lines: 40), .blockChain)] {
+    @Test func wellsWithoutGasAndBlockRushNeverSpike() {
+        for (mode, rules) in [(TetrisGame.Mode.endless, TetrisGame.Rules.tall), (.sprint(lines: 40), .blockChain)] {
             var (game, rng) = newGame(mode, rules: rules)
             game.setPieces(TetrisGame.gasSpikeEvery - 1)
             game.hardDrop(using: &rng)

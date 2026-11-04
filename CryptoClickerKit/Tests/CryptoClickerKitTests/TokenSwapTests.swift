@@ -909,7 +909,7 @@ struct TokenSwapRewardTests {
         #expect(game.stats.tokenSwapBestChain == 4)
         #expect(game.stats.tokenSwapBlasts == 3)
         #expect(game.bestScore(.tokenSwap) == 2_000)
-        #expect(game.record(for: .tokenSwap) == "Best 2,000 · chain of 4")
+        #expect(game.recordLine(for: .tokenSwap) == "Best 2,000 · Stars 0")
         // A round held when the app went away is paid on the next launch.
         game.holdArcadeRun(ArcadeRun(game: .tokenSwap, score: 500, detail: 40, extra: 2))
         let held = game.payUnfinishedRun()

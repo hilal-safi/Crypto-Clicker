@@ -44,6 +44,42 @@ extension Cosmetic {
         }
     }
 
+    /// What rides the To the Moon chart.
+    var moonEmoji: String {
+        switch self {
+        case .moonLambo: "🏎️"
+        case .moonSaucer: "🛸"
+        default: "🚀"
+        }
+    }
+
+    /// The Diamond Hands table's middle and edge.
+    var pokerColors: (center: Color, edge: Color) {
+        switch self {
+        case .pokerObsidian: (Color(red: 0.17, green: 0.13, blue: 0.24), Color(red: 0.02, green: 0.02, blue: 0.04))
+        case .pokerRoseGold: (Color(red: 0.50, green: 0.27, blue: 0.27), Color(red: 0.13, green: 0.05, blue: 0.07))
+        default: (Color(red: 0.10, green: 0.19, blue: 0.48), Color(red: 0.02, green: 0.04, blue: 0.15))
+        }
+    }
+
+    /// Hash Smash's paddle, top to bottom, and the glow around it (none for gold).
+    var paddleColors: (fill: [Color], glow: Color?) {
+        switch self {
+        case .paddleNeon: ([Color(red: 0.4, green: 1, blue: 0.95), Color(red: 0.1, green: 0.45, blue: 1)], .cyan)
+        case .paddleDiamond: ([.white, Color(red: 0.72, green: 0.88, blue: 1), Color(red: 0.45, green: 0.62, blue: 0.85)], .white)
+        default: ([Theme.gold, Theme.bitcoin], nil)
+        }
+    }
+
+    /// A Pump and Dump slot: its fill, its rim while a coin is listed, and the "LISTED" light.
+    var pumpSlotColors: (fill: Color, rim: Color, listed: Color) {
+        switch self {
+        case .pumpNeon: (Color(red: 0.04, green: 0.02, blue: 0.1), Color(red: 1, green: 0.3, blue: 0.85), .cyan)
+        case .pumpGold: (Color(red: 0.16, green: 0.1, blue: 0.03), Theme.gold, Theme.gold)
+        default: (Color(red: 0.05, green: 0.09, blue: 0.16), .green, .green)
+        }
+    }
+
     /// The snake's color at a segment: `shade` runs from 0 at the head to 1 at the tail.
     func snakeColor(shade: Double, index: Int) -> Color {
         switch self {
@@ -56,8 +92,8 @@ extension Cosmetic {
         }
     }
 
-    /// Block Chain's coin chips, the crypto edition's look for the Classic skin: a coin in the
-    /// piece's token color on a tinted square, with a rim, a shine and the token's sign.
+    /// Block Chain's coin chips, the Coin Chips skin: a coin in the piece's token color on a tinted
+    /// square, with a rim, a shine and the token's sign.
     static func drawCoinChip(_ color: Color, in frame: CGRect, cell: CGFloat, glyph: GraphicsContext.ResolvedText?,
                              context: inout GraphicsContext) {
         context.fill(Path(roundedRect: frame.insetBy(dx: 0.5, dy: 0.5), cornerRadius: cell * 0.14), with: .color(color.opacity(0.28)))
@@ -81,10 +117,9 @@ extension Cosmetic {
             .foregroundStyle(.white.opacity(0.92)))
     }
 
-    /// Draws one piece's block in this skin, or as a coin chip where Block Chain uses them (its
-    /// Classic skin, in the crypto edition).
-    func drawPiece(_ kind: Tetromino, in frame: CGRect, cell: CGFloat, edition: ArcadeEdition, context: inout GraphicsContext) {
-        if edition == .crypto && self == .tetrisClassic {
+    /// Draws one piece's block in this skin: a coin chip in the Coin Chips skin.
+    func drawPiece(_ kind: Tetromino, in frame: CGRect, cell: CGFloat, context: inout GraphicsContext) {
+        if self == .tetrisClassic {
             Self.drawCoinChip(kind.color, in: frame, cell: cell, glyph: Self.coinGlyph(kind, cell: cell, context: context), context: &context)
         } else {
             drawBlock(kind.color, in: frame, cell: cell, context: &context)
@@ -119,11 +154,31 @@ private struct CardBackKey: EnvironmentKey {
     static let defaultValue = Cosmetic.cardBackClassic
 }
 
+private struct MergeTilesKey: EnvironmentKey {
+    static let defaultValue = Cosmetic.mergeClassic
+}
+
+private struct SwapTilesKey: EnvironmentKey {
+    static let defaultValue = Cosmetic.swapRounded
+}
+
 extension EnvironmentValues {
     /// The card back the casino tables draw: set by Blackjack and Video Poker from the saved game.
     var cardBack: Cosmetic {
         get { self[CardBackKey.self] }
         set { self[CardBackKey.self] = newValue }
+    }
+
+    /// Merge Mining's tiles: set by its screens from the saved game.
+    var mergeTiles: Cosmetic {
+        get { self[MergeTilesKey.self] }
+        set { self[MergeTilesKey.self] = newValue }
+    }
+
+    /// Token Swap's tiles: set by its screens from the saved game.
+    var swapTiles: Cosmetic {
+        get { self[SwapTilesKey.self] }
+        set { self[SwapTilesKey.self] = newValue }
     }
 }
 
@@ -162,7 +217,7 @@ struct CosmeticPreview: View {
                     let kinds: [Tetromino] = [.i, .t, .l, .o]
                     for (index, spot) in [(0, 1), (1, 1), (2, 1), (1, 0)].enumerated() {
                         let frame = CGRect(x: CGFloat(spot.0) * cell, y: CGFloat(spot.1) * cell + cell / 2, width: cell, height: cell)
-                        cosmetic.drawPiece(kinds[index], in: frame, cell: cell, edition: .current, context: &context)
+                        cosmetic.drawPiece(kinds[index], in: frame, cell: cell, context: &context)
                     }
                 }
                 .frame(width: 48, height: 48)
@@ -183,9 +238,190 @@ struct CosmeticPreview: View {
                     }
                 }
                 .frame(width: 52, height: 48)
+            case .pokerTable: PokerTablePreview(look: cosmetic)
+            case .moonRide: MoonRidePreview(look: cosmetic)
+            case .mergeTiles: MergeTilesPreview(look: cosmetic)
+            case .paddle: PaddlePreview(look: cosmetic)
+            case .bubbles: BubblesPreview(look: cosmetic)
+            case .pumpBoard: PumpBoardPreview(look: cosmetic)
+            case .swapTiles: SwapTilesPreview(look: cosmetic)
             }
         }
         .accessibilityHidden(true)
+    }
+}
+
+// MARK: Previews of the newer looks
+
+private struct PokerTablePreview: View {
+    let look: Cosmetic
+
+    var body: some View {
+        let colors = look.pokerColors
+        RadialGradient(colors: [colors.center, colors.edge], center: .top, startRadius: 2, endRadius: 50)
+            .frame(width: 48, height: 48)
+            .clipShape(.rect(cornerRadius: 10))
+            .overlay { Text(verbatim: "💎").font(.system(size: 20)) }
+    }
+}
+
+private struct MoonRidePreview: View {
+    let look: Cosmetic
+
+    var body: some View {
+        Text(verbatim: look.moonEmoji)
+            .font(.system(size: 28))
+            .frame(width: 48, height: 48)
+            .background(LinearGradient(colors: [Color(red: 0.16, green: 0.12, blue: 0.4), Color(red: 0.02, green: 0.02, blue: 0.08)],
+                                       startPoint: .top, endPoint: .bottom), in: .rect(cornerRadius: 10))
+    }
+}
+
+private struct MergeTilesPreview: View {
+    let look: Cosmetic
+
+    var body: some View {
+        Grid(horizontalSpacing: 3, verticalSpacing: 3) {
+            GridRow {
+                Merge2048TileView(value: 2, side: 22, pops: false)
+                Merge2048TileView(value: 64, side: 22, pops: false)
+            }
+            GridRow {
+                Merge2048TileView(value: 512, side: 22, pops: false)
+                Merge2048TileView(value: 2_048, side: 22, pops: false)
+            }
+        }
+        .environment(\.mergeTiles, look)
+        .frame(width: 48, height: 48)
+    }
+}
+
+private struct PaddlePreview: View {
+    let look: Cosmetic
+
+    var body: some View {
+        Canvas { context, size in
+            let paddle = CGRect(x: size.width * 0.12, y: size.height * 0.66, width: size.width * 0.76, height: size.height * 0.14)
+            look.drawPaddle(paddle, in: &context)
+            let coin = context.resolve(Image("CoinSmall"))
+            context.draw(coin, in: CGRect(x: size.width / 2 - 7, y: size.height * 0.28, width: 14, height: 14))
+        }
+        .frame(width: 48, height: 48)
+        .background(Color(red: 0.06, green: 0.06, blue: 0.12), in: .rect(cornerRadius: 10))
+    }
+}
+
+private struct BubblesPreview: View {
+    let look: Cosmetic
+
+    var body: some View {
+        Canvas { context, size in
+            let spots: [(x: CGFloat, y: CGFloat)] = [(0.3, 0.38), (0.7, 0.38), (0.5, 0.72)]
+            for (index, spot) in spots.enumerated() {
+                let center = CGPoint(x: size.width * spot.x, y: size.height * spot.y)
+                look.drawBubble(Theme.bubble(index * 2 + 1), at: center, radius: size.width * 0.19, in: &context)
+            }
+        }
+        .frame(width: 48, height: 48)
+        .background(Color(red: 0.05, green: 0.07, blue: 0.18), in: .rect(cornerRadius: 10))
+    }
+}
+
+private struct PumpBoardPreview: View {
+    let look: Cosmetic
+
+    var body: some View {
+        Grid(horizontalSpacing: 3, verticalSpacing: 3) {
+            ForEach(0..<2, id: \.self) { row in
+                GridRow {
+                    ForEach(0..<2, id: \.self) { column in
+                        slot(isListed: row == column, hasCoin: row == 0 && column == 0)
+                    }
+                }
+            }
+        }
+        .frame(width: 48, height: 48)
+    }
+
+    private func slot(isListed: Bool, hasCoin: Bool) -> some View {
+        let colors = look.pumpSlotColors
+        return RoundedRectangle(cornerRadius: 4)
+            .fill(colors.fill)
+            .overlay {
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(isListed ? colors.rim : .white.opacity(0.15), lineWidth: 1.2)
+            }
+            .overlay {
+                if hasCoin {
+                    Image("CoinSmall").resizable().scaledToFit().padding(3)
+                }
+            }
+            .frame(width: 21, height: 21)
+    }
+}
+
+private struct SwapTilesPreview: View {
+    let look: Cosmetic
+
+    var body: some View {
+        HStack(spacing: 1) {
+            ForEach([0, 2], id: \.self) { kind in
+                TokenSwapTileView(tile: TokenSwapGame.Tile(id: kind, kind: kind), size: 24, reduceMotion: true)
+            }
+        }
+        .environment(\.swapTiles, look)
+        .frame(width: 52, height: 48)
+    }
+}
+
+extension Cosmetic {
+    /// Hash Smash's paddle in this look: gold, neon with a glow, or cut diamond.
+    func drawPaddle(_ paddle: CGRect, isShrunk: Bool = false, in context: inout GraphicsContext) {
+        let look = paddleColors
+        let colors = isShrunk ? [Color(white: 0.7), Color(white: 0.45)] : look.fill
+        let shape = Path(roundedRect: paddle, cornerRadius: paddle.height / 2)
+        var body = context
+        if let glow = look.glow, !isShrunk {
+            body.addFilter(.shadow(color: glow.opacity(0.85), radius: paddle.height * 0.6))
+        }
+        body.fill(shape, with: .linearGradient(Gradient(colors: colors), startPoint: CGPoint(x: paddle.minX, y: paddle.minY),
+                                               endPoint: CGPoint(x: paddle.minX, y: paddle.maxY)))
+        if self == .paddleDiamond && !isShrunk {
+            // Facets: slanted cuts across the stone.
+            var facets = Path()
+            for step in 1..<6 {
+                let x = paddle.minX + paddle.width * CGFloat(step) / 6
+                facets.move(to: CGPoint(x: x - paddle.height * 0.4, y: paddle.minY + 1))
+                facets.addLine(to: CGPoint(x: x + paddle.height * 0.4, y: paddle.maxY - 1))
+            }
+            context.stroke(facets, with: .color(.white.opacity(0.7)), lineWidth: 1)
+        } else if self == .paddleNeon && !isShrunk {
+            context.stroke(shape, with: .color(.white.opacity(0.8)), lineWidth: 1)
+        }
+    }
+
+    /// A Bubble Market bubble of `base` color in this finish: glossy, a neon ring, or soft pearl.
+    func drawBubble(_ base: Color, at middle: CGPoint, radius: CGFloat, in context: inout GraphicsContext) {
+        let rect = CGRect(x: middle.x - radius, y: middle.y - radius, width: radius * 2, height: radius * 2)
+        let circle = Path(ellipseIn: rect)
+        let highlight = CGPoint(x: middle.x - radius * 0.35, y: middle.y - radius * 0.35)
+        switch self {
+        case .bubblesNeon:
+            context.fill(circle, with: .color(base.mix(with: .black, by: 0.72)))
+            var ring = context
+            ring.addFilter(.shadow(color: base, radius: radius * 0.35))
+            ring.stroke(Path(ellipseIn: rect.insetBy(dx: radius * 0.1, dy: radius * 0.1)), with: .color(base.mix(with: .white, by: 0.2)),
+                        lineWidth: max(1.5, radius * 0.18))
+        case .bubblesPearl:
+            context.fill(circle, with: .radialGradient(
+                Gradient(colors: [.white, base.mix(with: .white, by: 0.62), base.mix(with: .white, by: 0.3)]),
+                center: highlight, startRadius: 0, endRadius: radius * 1.6))
+            context.stroke(circle, with: .color(.white.opacity(0.55)), lineWidth: max(1, radius * 0.06))
+        default:
+            context.fill(circle, with: .radialGradient(
+                Gradient(colors: [base.mix(with: .white, by: 0.55), base, base.mix(with: .black, by: 0.25)]),
+                center: highlight, startRadius: 0, endRadius: radius * 1.5))
+        }
     }
 }
 

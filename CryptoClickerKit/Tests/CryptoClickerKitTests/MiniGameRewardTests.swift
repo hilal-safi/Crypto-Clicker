@@ -175,7 +175,7 @@ struct MiniGameRewardTests {
         #expect(s.invadersDestroyed == 85 && s.invadersWhales == 2 && s.invadersPowerUps == 3 && s.invadersBestStreak == 14)
         // Hits can't outnumber volleys.
         #expect(s.invadersVolleys == 110 && s.invadersVolleysHit == 80)
-        #expect(game.record(for: .invaders) == "Best 1,000 · wave 3")
+        #expect(game.recordLine(for: .invaders) == "Best 1,000 · Wave 3")
         #expect(game.timesPlayed(.invaders) == 2 && game.bestScore(.invaders) == 1_000)
         // A held run comes back with every record.
         game.holdArcadeRun(ArcadeRun(game: .invaders, score: 2_000, detail: 70, extra: 6,

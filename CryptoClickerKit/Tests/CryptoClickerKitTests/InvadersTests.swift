@@ -38,7 +38,7 @@ struct InvadersTests {
         #expect(game.invaders.filter { (1...2).contains($0.row) }.allSatisfy { $0.kind == .pumpBot })
         #expect(game.invaders.filter { $0.row >= 3 }.allSatisfy { $0.kind == .memeCoin })
         #expect(!game.invaders.contains { $0.isGolden }) // Golden invaders come from wave 2.
-        #expect(game.firewalls.count == 4 && game.firewalls.allSatisfy { $0.standing == 34 })
+        #expect(game.firewalls.count == 4 && game.firewalls.allSatisfy { $0.standing == 40 }) // Solid server racks, 5 by 8.
         #expect(game.lives == 3 && game.wave == 1 && game.score == 0)
         // The banner holds for a moment, then the march begins.
         #expect(game.phase == .incoming)
@@ -175,13 +175,13 @@ struct InvadersTests {
         game.isFiring = false
         run(&game, for: 0.5)
         let wall = game.firewalls[0]
-        #expect(wall.standing == 33)
+        #expect(wall.standing == 39)
         #expect(!wall.isStanding(row: 4, column: 1) && wall.isStanding(row: 3, column: 1))
         #expect(game.streak == 0) // Hitting a wall is a miss.
         // An invader's shot lands on top and takes a neighbor with it.
         game.dropEnemyShot(at: Vector2(x: 0.12, y: 1.1))
         run(&game, for: 0.5)
-        #expect(game.firewalls[0].standing == 31)
+        #expect(game.firewalls[0].standing == 37)
         #expect(!game.firewalls[0].isStanding(row: 0, column: 1))
     }
 
@@ -235,7 +235,7 @@ struct InvadersTests {
         // Invaders crush the firewalls they reach, and reaching the ship's line is the end.
         game.placeFormation(at: Vector2(x: game.formationOrigin.x, y: 1.16 - 4 * Game.rowSpacing))
         run(&game, for: 2 * game.marchInterval + 0.02)
-        #expect(game.firewalls.contains { $0.standing < 34 })
+        #expect(game.firewalls.contains { $0.standing < 40 })
         game.placeFormation(at: Vector2(x: game.formationOrigin.x, y: Game.shipTop - Game.invaderSize.height - 4 * Game.rowSpacing + 0.001))
         run(&game, for: 2 * game.marchInterval + 0.02)
         #expect(game.phase == .over && game.lives == 0)
@@ -265,7 +265,7 @@ struct InvadersTests {
         run(&game, for: 1.1)
         #expect(game.wave == 2 && game.phase == .incoming)
         #expect(game.invaders.count == 40 && game.invaders.filter { $0.isGolden }.count == 1)
-        #expect(game.firewalls.allSatisfy { $0.standing == 34 })
+        #expect(game.firewalls.allSatisfy { $0.standing == 40 })
         #expect(abs(game.formationOrigin.y - Game.formationTop(wave: 2)) < 1e-9)
     }
 

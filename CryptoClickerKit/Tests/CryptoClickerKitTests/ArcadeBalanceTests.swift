@@ -57,6 +57,25 @@ struct ArcadeBalanceTests {
         #expect((90...160).contains(rush), "Coin Rush pays \(rush)")
     }
 
+    /// Pump and Dump's bigger boards pay about what the 3×3 does (their points pay a smaller
+    /// share), and the Speed option moves the pay a little either way.
+    @Test func pumpDumpBoardsPayAboutTheSame() {
+        guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
+        let seeds: [UInt64] = [11, 22, 33, 44, 55, 66]
+        func income(_ board: PumpDumpGame.Board, _ speed: GameSpeed = .normal) -> Double {
+            let points = seeds.map { PumpDumpBot.pointsPerMinute(seed: $0, board: board, speed: speed) }.reduce(0, +) / Double(seeds.count)
+            return points * MiniGame.pumpDump.secondsPerPoint
+        }
+        let small = income(.three)
+        for board in PumpDumpGame.Board.allCases {
+            let normal = income(board), slow = income(board, .slow), fast = income(board, .fast)
+            print("Balance: Pump and Dump", board.name, "| slow", Int(slow), "normal", Int(normal), "fast", Int(fast))
+            #expect((90...160).contains(normal), "\(board.name) pays \(normal)")
+            #expect(abs(normal - small) <= 0.1 * small, "\(board.name) pays \(normal), the 3×3 \(small)")
+            #expect(slow < normal && fast > normal && fast <= 1.5 * normal)
+        }
+    }
+
     /// Brick Breaker's random walls pay about what the classic ones do, and the Speed option moves
     /// the pay a little either way: Fast scores quicker, Slow slower.
     @Test func brickBreakerOptionsPayAboutTheSame() {
@@ -95,23 +114,6 @@ struct ArcadeBalanceTests {
         #expect(fast <= 1.6 * normal)
     }
 
-    /// Block Chain (shorter well, gas spikes and their fees) pays about what classic Tetris does,
-    /// and Scam Invaders' server racks about what its arches do.
-    @Test func theEditionsPayAboutTheSame() {
-        guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
-        let seeds: [UInt64] = [11, 22, 33, 44, 55, 66]
-        func average(_ rate: (UInt64) -> Double) -> Double { seeds.map(rate).reduce(0, +) / Double(seeds.count) }
-        let chain = average { TetrisBot.pointsPerMinute(seed: $0, rules: .blockChain) } * MiniGame.tetris.secondsPerPoint
-        let tetris = average { TetrisBot.pointsPerMinute(seed: $0, rules: .classic) } * MiniGame.tetris.secondsPerPoint
-        print("Balance: Block Chain", Int(chain), "| Tetris", Int(tetris))
-        #expect((90...160).contains(chain) && (90...160).contains(tetris))
-        #expect(abs(chain - tetris) <= 0.15 * tetris)
-        let racks = average { InvadersBot.pointsPerMinute(seed: $0, firewalls: .rack) } * MiniGame.invaders.secondsPerPoint
-        let arches = average { InvadersBot.pointsPerMinute(seed: $0, firewalls: .arch) } * MiniGame.invaders.secondsPerPoint
-        print("Balance: Scam Invaders racks", Int(racks), "| arches", Int(arches))
-        #expect(abs(racks - arches) <= 0.1 * arches)
-    }
-
     @Test(arguments: [MiniGame.tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap, .invaders])
     func everyArcadeGamePaysAboutTheSame(_ game: MiniGame) {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
@@ -130,9 +132,9 @@ struct ArcadeBalanceTests {
 enum TetrisBot {
     static let secondsPerPiece = 1.0
 
-    static func pointsPerMinute(seed: UInt64, minutes: Double = 4, rules: TetrisGame.Rules = .blockChain) -> Double {
+    static func pointsPerMinute(seed: UInt64, minutes: Double = 4) -> Double {
         var rng = SeededGenerator(seed: seed)
-        var game = TetrisGame(rules: rules, using: &rng)
+        var game = TetrisGame(using: &rng)
         var placed = 0
         while !game.isOver, Double(placed) * secondsPerPiece < minutes * 60 {
             guard let plan = bestPlacement(in: game) else { break }
@@ -485,26 +487,40 @@ enum BubbleBot {
 /// Taps coins 0.35 s after they appear, at most one tap every 0.2 s, and leaves scams and shaking
 /// rug pulls alone. Plays whole runs, round after round until one falls short of its goal. A round
 /// takes 30 seconds, plus about 3 to start the next.
+/// Taps the coin about to leave first, a reaction time after it lists, at most one tap every
+/// `tapGap`. Bigger boards take a little longer to scan and to cross.
 enum PumpDumpBot {
-    static let reaction = 0.35
-    static let tapGap = 0.2
     static let secondsBetweenRounds = 3.0
 
-    static func pointsPerMinute(seed: UInt64, runs: Int = 2, maxRounds: Int = 12) -> Double {
+    static func reaction(_ board: PumpDumpGame.Board) -> Double { 0.35 + 0.03 * Double(board.side - 3) }
+    static func tapGap(_ board: PumpDumpGame.Board) -> Double { 0.2 + 0.02 * Double(board.side - 3) }
+
+    /// Points a minute that pay coins: the score times the board's pay share.
+    static func pointsPerMinute(seed: UInt64, runs: Int = 2, maxRounds: Int = 12, board: PumpDumpGame.Board = .three,
+                                speed: GameSpeed = .normal) -> Double {
+        let (score, rounds) = totals(seed: seed, runs: runs, maxRounds: maxRounds, board: board, speed: speed)
+        let minutes = Double(rounds) * (PumpDumpGame.roundLength + secondsBetweenRounds) / 60
+        return Double(score) * board.payShare / minutes
+    }
+
+    /// The score and rounds reached over a few runs.
+    static func totals(seed: UInt64, runs: Int = 2, maxRounds: Int = 12, board: PumpDumpGame.Board = .three,
+                     speed: GameSpeed = .normal) -> (score: Int, rounds: Int) {
         var rng = SeededGenerator(seed: seed)
         var total = 0
         var rounds = 0
         for _ in 0..<runs {
-            let game = play(using: &rng, maxRounds: maxRounds)
+            let game = play(using: &rng, maxRounds: maxRounds, board: board, speed: speed)
             total += game.score
             rounds += game.round
         }
-        let minutes = Double(rounds) * (PumpDumpGame.roundLength + secondsBetweenRounds) / 60
-        return Double(total) / minutes
+        return (total, rounds)
     }
 
-    static func play<R: RandomNumberGenerator>(using rng: inout R, maxRounds: Int = 12) -> PumpDumpGame {
-        var game = PumpDumpGame()
+    static func play<R: RandomNumberGenerator>(using rng: inout R, maxRounds: Int = 12, board: PumpDumpGame.Board = .three,
+                                               speed: GameSpeed = .normal) -> PumpDumpGame {
+        var game = PumpDumpGame(board: board, speed: speed)
+        let reaction = reaction(board), tapGap = tapGap(board)
         while true {
             var nextTap = 0.0
             while game.phase == .playing {
@@ -575,8 +591,8 @@ enum InvadersBot {
     static let dodgeTime = 0.45
 
     static func pointsPerMinute(seed: UInt64, minutes: Double = 3, speed: GameSpeed = .normal,
-                                waves: InvadersGame.WaveStyle = .classic, firewalls: InvadersGame.FirewallStyle = .rack) -> Double {
-        var game = InvadersGame(seed: seed, speed: speed, waves: waves, firewalls: firewalls)
+                                waves: InvadersGame.WaveStyle = .classic) -> Double {
+        var game = InvadersGame(seed: seed, speed: speed, waves: waves)
         let time = play(&game, seconds: minutes * 60)
         return Double(game.score) / (time / 60)
     }

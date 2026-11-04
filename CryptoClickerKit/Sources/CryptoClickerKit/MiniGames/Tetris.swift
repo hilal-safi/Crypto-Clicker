@@ -69,17 +69,17 @@ public struct TetrisPiece: Equatable, Sendable {
     }
 }
 
-/// Guideline-style Tetris on a 10-wide board: 7-bag randomizer, SRS rotation with wall kicks,
-/// a ghost piece, a hold slot, one tick of lock delay, and 100/300/500/800 x level line scores.
-/// Clearing lines with piece after piece builds a combo worth 50 x combo x level more each time.
+/// Block Chain: guideline-style Tetris on a 10-wide board, with a 7-bag randomizer, SRS rotation
+/// with wall kicks, a pending marker (the ghost piece), a hold slot, one tick of lock delay, and
+/// 100/300/500/800 x level line scores. Clearing lines with piece after piece builds a combo worth
+/// 50 x combo x level more each time.
 ///
-/// Two modes: Endless goes on, faster every 10 lines, until the stack tops out; Sprint ends the
-/// moment 40 lines are cleared, as fast as the player can.
+/// Two modes: Endless goes on, faster every 10 lines, until the stack tops out; Sprint (Block
+/// Rush) ends the moment 40 lines are cleared, as fast as the player can.
 ///
-/// The rules come in two editions (`Rules`): the classic 10x20 well, or Block Chain's: a shorter
-/// 10x18 well where, in Endless, every `gasSpikeEvery` pieces a gas spike pushes the stack up a
-/// row from below. The gas row has one gap, under the stack's lowest column, and clearing a row
-/// with gas in it pays a fee on top of the line score.
+/// The well is 10x18 (`Rules`), and in Endless every `gasSpikeEvery` pieces a gas spike pushes the
+/// stack up a row from below. The gas row has one gap, under the stack's lowest column, and
+/// clearing a row with gas in it pays a fee on top of the line score.
 public struct TetrisGame: Sendable {
     public enum Mode: Hashable, Sendable {
         case endless
@@ -87,7 +87,8 @@ public struct TetrisGame: Sendable {
         case sprint(lines: Int)
     }
 
-    /// What differs between the classic game and Block Chain.
+    /// The well's height, and whether Endless games get gas spikes. The game plays `blockChain`;
+    /// tests can build other wells.
     public struct Rules: Hashable, Sendable {
         /// Rows in the well.
         public let rows: Int
@@ -99,15 +100,8 @@ public struct TetrisGame: Sendable {
             self.gasSpikes = gasSpikes
         }
 
-        /// The original rules: a 10x20 well and nothing rising from below.
-        public static let classic = Rules(rows: 20, gasSpikes: false)
         /// Block Chain's: a 10x18 well, and gas spikes in Endless.
         public static let blockChain = Rules(rows: 18, gasSpikes: true)
-
-        /// The rules an edition plays.
-        public static func edition(_ edition: ArcadeEdition) -> Rules {
-            edition.pick(.blockChain, classic: .classic)
-        }
     }
 
     public static let width = 10
@@ -164,7 +158,7 @@ public struct TetrisGame: Sendable {
     private let gasSeed: UInt64
     private var groundedTicks = 0
 
-    public init<R: RandomNumberGenerator>(mode: Mode = .endless, speed: GameSpeed = .normal, rules: Rules = .classic,
+    public init<R: RandomNumberGenerator>(mode: Mode = .endless, speed: GameSpeed = .normal, rules: Rules = .blockChain,
                                           using rng: inout R) {
         self.mode = mode
         self.speed = speed

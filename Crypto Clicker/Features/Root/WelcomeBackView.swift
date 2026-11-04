@@ -24,6 +24,10 @@ struct WelcomeBackView: View {
     @State private var fittedHeight: CGFloat?
     /// Part of the page is out of sight below.
     @State private var hasMoreBelow = false
+    /// The greeting and the lines under it: two points under Large Title and Title 3, scaled
+    /// with Dynamic Type like them.
+    @ScaledMetric(relativeTo: .largeTitle) private var greetingSize: CGFloat = 32
+    @ScaledMetric(relativeTo: .title3) private var lineSize: CGFloat = 18
 
     private static let topPadding: CGFloat = 24
     private static let gap: CGFloat = 16
@@ -211,14 +215,14 @@ struct WelcomeBackView: View {
         VStack(spacing: 14) {
             VStack(spacing: 6) {
                 Text("Welcome back!")
-                    .font(.largeTitle.bold())
+                    .font(.system(size: greetingSize, weight: .bold))
                 Text("You were away for \(CoinFormat.duration(report.elapsed)).")
-                    .font(.title3)
+                    .font(.system(size: lineSize))
                     .foregroundStyle(.subtext)
             }
             VStack(spacing: 4) {
                 Text("Your miners earned")
-                    .font(.title3.weight(.medium))
+                    .font(.system(size: lineSize, weight: .medium))
                     .foregroundStyle(.subtext)
                 CoinAmount(amount: report.earned, font: .system(size: 42, weight: .bold, design: .rounded), iconSize: 34)
             }

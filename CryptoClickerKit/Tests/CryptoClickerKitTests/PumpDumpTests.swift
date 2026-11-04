@@ -7,8 +7,8 @@ struct PumpDumpTests {
     /// Taps `count` coins in a row, as fast as the rules allow.
     func tapCoins(_ count: Int, in game: inout PumpDumpGame) {
         for index in 0..<count {
-            game.place(.coin, inHole: index % PumpDumpGame.holes)
-            game.tap(hole: index % PumpDumpGame.holes)
+            game.place(.coin, inHole: index % game.holes)
+            game.tap(hole: index % game.holes)
         }
     }
 
@@ -265,13 +265,66 @@ struct PumpDumpTests {
         #expect(game.stats.pumpDumpScamsHit == 2)
         #expect(game.stats.pumpDumpBestCombo == 18)
         #expect(game.stats.pumpDumpBestRound == 3)
-        #expect(game.record(for: .pumpDump) == "Best 400 · round 3 · combo 18")
+        #expect(game.recordLine(for: .pumpDump) == "Best 400 · Round 3")
         // A run held when the app went away is paid on the next launch, round and all.
         game.holdArcadeRun(ArcadeRun(game: .pumpDump, score: 200, detail: 15, extra: 9, stage: 4))
         let held = game.payUnfinishedRun()
         #expect(held?.payout.isNewBest == false)
         #expect(game.stats.pumpDumpCoinsHit == 55)
         #expect(game.stats.pumpDumpBestRound == 4)
+    }
+
+    @Test func biggerBoardsAreBusierWithBiggerGoals() {
+        let small = PumpDumpGame(), middle = PumpDumpGame(board: .four), big = PumpDumpGame(board: .five)
+        let holes = [small.holes, middle.holes, big.holes], goals = [small.goal, middle.goal, big.goal]
+        #expect(holes == [9, 16, 25])
+        #expect(goals == [300, 360, 430])
+        #expect(PumpDumpGame(board: .five).goal(forRound: 2) == 670) // 475 × 1.42, in tens.
+        // More listings up at once, listing sooner and staying a little longer.
+        #expect(middle.maxTargets == small.maxTargets + 1 && big.maxTargets == small.maxTargets + 2)
+        #expect(big.appearanceInterval < middle.appearanceInterval && middle.appearanceInterval < small.appearanceInterval)
+        #expect(big.stayTime > small.stayTime)
+        // Coins list all over the board.
+        var game = PumpDumpGame(board: .five)
+        var rng = SeededGenerator(seed: 3)
+        var used = Set<Int>()
+        while game.phase == .playing {
+            game.advance(by: 0.05, using: &rng)
+            used.formUnion(game.targets.map(\.hole))
+        }
+        #expect(used.count > 20 && used.allSatisfy { (0..<25).contains($0) })
+    }
+
+    @Test func theSpeedOptionMovesTheGoalsWithThePace() {
+        let slow = PumpDumpGame(speed: .slow), fast = PumpDumpGame(speed: .fast), normal = PumpDumpGame()
+        let goals = [slow.goal, normal.goal, fast.goal]
+        #expect(goals == [230, 300, 390])
+        #expect(fast.appearanceInterval < normal.appearanceInterval && normal.appearanceInterval < slow.appearanceInterval)
+        #expect(fast.stayTime < normal.stayTime && normal.stayTime < slow.stayTime)
+    }
+
+    @Test func eachBoardKeepsItsOwnBestAndPaysItsShare() throws {
+        var game = GameState.make(miners: minersEarning(10))
+        // A save from before the bigger boards: its best was on the 3×3.
+        game.stats.pumpDumpBestScore = 900
+        #expect(game.pumpDumpBest(on: .three) == 900 && game.pumpDumpBest(on: .four) == 0)
+        let big = game.finishPumpDump(score: 1_000, coinsHit: 50, bestCombo: 10, rounds: 3, board: .five)
+        #expect(big.isNewBest)
+        #expect(big.coins == game.arcadeReward(.pumpDump, score: 700, multiplier: 1 + Tuning.newBestBonus)) // 70% of its points.
+        #expect(game.pumpDumpBest(on: .five) == 1_000 && game.pumpDumpBest(on: .three) == 900)
+        #expect(game.stats.pumpDumpBestScore == 1_000 && game.bestScore(.pumpDump) == 1_000)
+        // Beating the 3×3's best is a new best there, though not the best overall.
+        let small = game.finishPumpDump(score: 950, coinsHit: 50, bestCombo: 10, rounds: 3)
+        #expect(small.isNewBest && small.coins == game.arcadeReward(.pumpDump, score: 950, multiplier: 1 + Tuning.newBestBonus))
+        #expect(game.pumpDumpBest(on: .three) == 950 && game.stats.pumpDumpBestScore == 1_000)
+        // A held run remembers its board.
+        game.holdArcadeRun(ArcadeRun(game: .pumpDump, score: 500, detail: 25, extra: 6, stage: 2, records: .init(board: 4)))
+        let held = game.payUnfinishedRun()
+        #expect(held?.payout.isNewBest == true && game.pumpDumpBest(on: .four) == 500)
+        #expect(held?.payout.coins == game.arcadeReward(.pumpDump, score: 410, multiplier: 1 + Tuning.newBestBonus))
+        // And the board bests survive a save.
+        let reloaded = try GameCoding.decoder().decode(GameState.self, from: GameCoding.encoder().encode(game))
+        #expect(reloaded.stats.pumpDumpBoardBests == ["3": 950, "4": 500, "5": 1_000])
     }
 
     @Test func aHeldRunSurvivesSavingWithItsRound() throws {

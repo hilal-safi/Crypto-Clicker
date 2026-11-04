@@ -11,7 +11,6 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
     /// The instruction, with the target filled in: "Tap the coin 500 times".
     public func title(target: Double) -> String {
         let amount = CoinFormat.short(target)
-        let crypto = ArcadeEdition.current == .crypto
         return switch self {
         case .tapCoin: localized("Tap the coin \(amount) times")
         case .buyMiners: localized("Buy \(amount) miners")
@@ -21,8 +20,8 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .winBlackjack: localized("Win \(amount) \(MiniGame.blackjack.name) hands")
         case .spinSlots: localized("Spin Crypto Slots \(amount) times")
         case .clearLines: localized("Clear \(amount) lines in \(MiniGame.tetris.name)")
-        case .eatSnakeCoins: crypto ? localized("Mine \(amount) coins in \(MiniGame.snake.name)") : localized("Eat \(amount) coins in \(MiniGame.snake.name)")
-        case .breakBricks: crypto ? localized("Smash \(amount) hash blocks") : localized("Break \(amount) bricks")
+        case .eatSnakeCoins: localized("Mine \(amount) coins in \(MiniGame.snake.name)")
+        case .breakBricks: localized("Smash \(amount) hash blocks")
         case .popBubbles: localized("Pop \(amount) bubbles")
         case .sellTokens: localized("Sell \(amount) tokens on the market")
         case .score2048: localized("Score \(amount) points in \(MiniGame.merge2048.name)")
@@ -32,8 +31,7 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
         case .matchTokens: localized("Match \(amount) tokens in Token Swap")
         case .winTokenSwapLevels: target == 1 ? localized("Win a Token Swap level") : localized("Win \(amount) Token Swap levels")
         case .clearPumpRounds: localized("Clear \(amount) rounds in Pump and Dump")
-        case .reach2048Goals: crypto ? localized("Reach \(amount) miner goals in \(MiniGame.merge2048.name)")
-                                     : localized("Reach \(amount) tile goals in \(MiniGame.merge2048.name)")
+        case .reach2048Goals: localized("Reach \(amount) miner goals in \(MiniGame.merge2048.name)")
         case .shootInvaders: localized("Shoot \(amount) invaders in Scam Invaders")
         }
     }
@@ -141,18 +139,14 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    /// The goal, with the target filled in: "Eat 15 coins in one Snake game".
+    /// The goal, with the target filled in: "Mine 15 coins in one Hash Chain game".
     public func goal(target: Int) -> String {
         let amount = CoinFormat.grouped(target)
-        let crypto = ArcadeEdition.current == .crypto
         return switch self {
         case .tetris: localized("Score \(amount) in one \(MiniGame.tetris.name) game")
-        case .merge2048: crypto ? localized("Merge your way to the \(Merge2048Game.miner(for: target).name) (\(target)) in \(MiniGame.merge2048.name)")
-                                : localized("Make a \(target) tile in 2048")
-        case .snake: crypto ? localized("Mine \(amount) coins in one \(MiniGame.snake.name) game")
-                            : localized("Eat \(amount) coins in one \(MiniGame.snake.name) game")
-        case .brickBreaker: crypto ? localized("Smash \(amount) blocks in one \(MiniGame.brickBreaker.name) game")
-                                   : localized("Break \(amount) bricks in one Brick Breaker game")
+        case .merge2048: localized("Merge your way to the \(Merge2048Game.miner(for: target).name) (\(target)) in \(MiniGame.merge2048.name)")
+        case .snake: localized("Mine \(amount) coins in one \(MiniGame.snake.name) game")
+        case .brickBreaker: localized("Smash \(amount) blocks in one \(MiniGame.brickBreaker.name) game")
         case .bubbleBlaster: localized("Pop \(amount) bubbles in one \(MiniGame.bubbleBlaster.name) game")
         case .pumpDump: localized("Score \(amount) in one Pump and Dump run")
         case .tokenSwap: localized("Score \(amount) in one round of Token Swap Classic")
@@ -162,9 +156,7 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
         case .moon: localized("Cash out at 2× or more \(amount) times in To the Moon today")
         case .videoPoker: localized("Make two pair or better \(amount) times in \(MiniGame.videoPoker.name) today")
         case .arcadeMix: localized("Score in \(amount) different arcade games today")
-        case .blackjackNatural: crypto
-            ? (target == 1 ? localized("Deal yourself a natural 21 today") : localized("Deal yourself \(amount) natural 21s today"))
-            : (target == 1 ? localized("Deal yourself a natural blackjack today") : localized("Deal yourself \(amount) natural blackjacks today"))
+        case .blackjackNatural: target == 1 ? localized("Deal yourself a natural 21 today") : localized("Deal yourself \(amount) natural 21s today")
         }
     }
 

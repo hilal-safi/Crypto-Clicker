@@ -112,15 +112,6 @@ final class GameStore {
     var isInGame = false
     /// A balance to show instead of the real one while a slot spin is still being revealed.
     var heldCoins: Double?
-    /// How the arcade looks and plays: the crypto edition, or the classic games, picked in Testing
-    /// Tools to compare them. Names and pictures everywhere follow `ArcadeEdition.current`, kept
-    /// in step with this; each game asks for its rules when it starts.
-    var arcadeEdition = ArcadeEdition.crypto {
-        didSet {
-            ArcadeEdition.current = arcadeEdition
-            publish()
-        }
-    }
 
     let saves = SaveStore()
     let stepTracker = StepTracker()
@@ -161,12 +152,6 @@ final class GameStore {
             unreadableSave = UnreadableSave(backup: backup)
         }
         coins = state.coins
-        #if DEBUG
-        if let saved = UserDefaults.standard.string(forKey: Preferences.arcadeEditionKey).flatMap(ArcadeEdition.init(rawValue:)) {
-            arcadeEdition = saved
-        }
-        #endif
-        ArcadeEdition.current = arcadeEdition
         watch.onTapBatchesReceived = { [weak self] in self?.applyWatchInbox() }
         watch.onRefreshRequest = { [weak self] in self?.refreshWatch() }
         watch.onStatusChange = { [weak self] status in

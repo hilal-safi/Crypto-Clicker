@@ -248,118 +248,8 @@ struct StatsPage: View {
             || (miniGame == .tokenSwap && (game.tokenSwap.levelsWon > 0 || game.tokenSwap.dailyWins > 0))
     }
 
-    /// A game's card: a casino game's biggest win or an arcade game's best score up top, and the
-    /// rest of its records as tiles.
     private func card(for miniGame: MiniGame, in game: GameState) -> GameStatsCard {
-        let s = game.stats
-        let plays = game.timesPlayed(miniGame)
-        let best = StatItem("Best", CoinFormat.grouped(game.bestScore(miniGame)))
-        switch miniGame {
-        case .blackjack:
-            return GameStatsCard(game: miniGame, plays: counted(plays, "hand"),
-                                 headline: StatItem("Biggest win", amount(s.blackjackBiggestWin)),
-                                 items: [StatItem("Wins", CoinFormat.grouped(s.blackjackWins)),
-                                         StatItem("Win rate", percentage(s.blackjackWins, of: s.blackjackHands)),
-                                         StatItem("Naturals", CoinFormat.grouped(s.blackjackNaturals)),
-                                         StatItem("Streak now", CoinFormat.grouped(s.blackjackStreak)),
-                                         StatItem("Best streak", CoinFormat.grouped(s.blackjackBestStreak))])
-        case .slots:
-            return GameStatsCard(game: miniGame, plays: counted(plays, "spin"),
-                                 headline: StatItem("Biggest win", amount(s.slotsBiggestWin)),
-                                 items: [StatItem("Wins", CoinFormat.grouped(s.slotsWins)),
-                                         StatItem("Win rate", percentage(s.slotsWins, of: s.slotsSpins)),
-                                         StatItem("Jackpots", CoinFormat.grouped(s.slotsJackpots)),
-                                         StatItem("Best spin", s.slotsBestMultiple >= 2 ? "×\(CoinFormat.grouped(s.slotsBestMultiple))" : "–"),
-                                         StatItem("Free rounds", CoinFormat.grouped(s.slotsFreeSpinRounds)),
-                                         StatItem("Free spins", CoinFormat.grouped(s.slotsFreeSpinsPlayed)),
-                                         StatItem("Bitcoins", CoinFormat.grouped(s.slotsBitcoins)),
-                                         StatItem("Bitcoin prizes", CoinFormat.grouped(s.slotsBitcoins / SlotMachine.bitcoinsPerPrize)),
-                                         StatItem("Paid back", paidBack(s.slotsPaidOut, of: s.slotsWagered))],
-                                 note: betNote(s.slotsWagered, paid: s.slotsPaidOut))
-        case .moon:
-            return GameStatsCard(game: miniGame, plays: counted(plays, "flight"),
-                                 headline: StatItem("Biggest win", amount(s.moonBiggestWin)),
-                                 items: [StatItem("Cash-outs", CoinFormat.grouped(s.moonCashOuts)),
-                                         StatItem("Cashed out", percentage(s.moonCashOuts, of: s.moonFlights)),
-                                         StatItem("Best cash-out", s.moonCashOuts > 0 ? CoinFormat.flight(s.moonBestMultiplier) : "–"),
-                                         StatItem("Paid back", paidBack(s.moonPaidOut, of: s.moonWagered))],
-                                 note: betNote(s.moonWagered, paid: s.moonPaidOut))
-        case .videoPoker:
-            return GameStatsCard(game: miniGame, plays: counted(plays, "hand"),
-                                 headline: StatItem("Biggest win", amount(s.pokerBiggestWin)),
-                                 items: [StatItem("Wins", CoinFormat.grouped(s.pokerWins)),
-                                         StatItem("Win rate", percentage(s.pokerWins, of: s.pokerHands)),
-                                         StatItem("Best hand", s.pokerHands > 0 ? (PokerHand(rawValue: s.pokerBestHand) ?? .nothing).name : "–"),
-                                         StatItem("Royal flushes", CoinFormat.grouped(s.pokerRoyals)),
-                                         StatItem("Paid back", paidBack(s.pokerPaidOut, of: s.pokerWagered))],
-                                 note: betNote(s.pokerWagered, paid: s.pokerPaidOut))
-        case .tetris:
-            let crypto = ArcadeEdition.current == .crypto
-            var items = [StatItem("Best level", CoinFormat.grouped(s.tetrisBestLevel)),
-                         StatItem("Best combo", CoinFormat.grouped(s.tetrisBestCombo)),
-                         StatItem(crypto ? "Full Blocks" : "Tetrises", CoinFormat.grouped(s.tetrisTetrises)),
-                         StatItem(crypto ? "Rows" : "Lines", CoinFormat.grouped(s.tetrisLines))]
-            if s.tetrisBestSprint > 0 {
-                items.append(StatItem(crypto ? "Best Rush" : "Best Sprint", CoinFormat.stopwatch(s.tetrisBestSprint)))
-            }
-            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best, items: items)
-        case .merge2048:
-            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
-                                 items: [ArcadeEdition.current == .crypto
-                                            ? StatItem("Top miner", Merge2048Game.miner(for: s.merge2048BestTile).name)
-                                            : StatItem("Top tile", CoinFormat.grouped(s.merge2048BestTile)),
-                                         StatItem("Daily wins", CoinFormat.grouped(game.merge2048Daily.wins)),
-                                         StatItem("Daily stars", CoinFormat.grouped(game.merge2048Daily.totalStars))])
-        case .snake:
-            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
-                                 items: [StatItem("Coin Rush", CoinFormat.grouped(s.snakeRushBestScore)),
-                                         StatItem(ArcadeEdition.pick("Longest chain", classic: "Longest snake"), CoinFormat.grouped(s.snakeLongest)),
-                                         StatItem("Most coins", CoinFormat.grouped(s.snakeBestCoins)),
-                                         StatItem("Longest game", CoinFormat.stopwatch(s.snakeLongestTime)),
-                                         StatItem("Power-ups", CoinFormat.grouped(s.snakePowerUps))])
-        case .brickBreaker:
-            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
-                                 items: [StatItem("Best level", CoinFormat.grouped(s.brickBreakerBestLevel)),
-                                         StatItem("Levels cleared", CoinFormat.grouped(s.brickBreakerLevelsCleared)),
-                                         StatItem("Best streak", CoinFormat.grouped(s.brickBreakerBestStreak)),
-                                         StatItem(ArcadeEdition.pick("Whales", classic: "Bosses"), CoinFormat.grouped(s.brickBreakerBosses)),
-                                         StatItem("Power-ups", CoinFormat.grouped(s.brickBreakerPowerUps)),
-                                         StatItem(ArcadeEdition.pick("Blocks", classic: "Bricks"), CoinFormat.grouped(s.bricksBroken))])
-        case .bubbleBlaster:
-            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
-                                 items: [StatItem("Best wave", CoinFormat.grouped(s.bubbleBestWave)),
-                                         StatItem("Best shot", CoinFormat.grouped(s.bubbleBestShot)),
-                                         StatItem("Best streak", CoinFormat.grouped(s.bubbleBestStreak)),
-                                         StatItem("Popped", CoinFormat.grouped(s.bubblesPopped)),
-                                         StatItem(ArcadeEdition.pick("Blue chips", classic: "Gold bubbles"), CoinFormat.grouped(s.bubbleBonuses))])
-        case .pumpDump:
-            return GameStatsCard(game: miniGame, plays: counted(plays, "run"), headline: best,
-                                 items: [StatItem("Best round", CoinFormat.grouped(s.pumpDumpBestRound)),
-                                         StatItem("Best combo", CoinFormat.grouped(s.pumpDumpBestCombo)),
-                                         StatItem("Coins hit", CoinFormat.grouped(s.pumpDumpCoinsHit)),
-                                         StatItem("Scams hit", CoinFormat.grouped(s.pumpDumpScamsHit))])
-        case .invaders:
-            return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
-                                 items: [StatItem("Best wave", CoinFormat.grouped(s.invadersBestWave)),
-                                         StatItem("Invaders shot", CoinFormat.grouped(s.invadersDestroyed)),
-                                         StatItem("Best streak", CoinFormat.grouped(s.invadersBestStreak)),
-                                         StatItem("Accuracy", percentage(s.invadersVolleysHit, of: s.invadersVolleys)),
-                                         StatItem("Whales", CoinFormat.grouped(s.invadersWhales)),
-                                         StatItem("Bosses", CoinFormat.grouped(s.invadersBosses))])
-        case .tokenSwap:
-            let swap = game.tokenSwap
-            return GameStatsCard(game: miniGame, plays: counted(plays, "game"),
-                                 headline: StatItem("Classic best", CoinFormat.grouped(s.tokenSwapBestScore)),
-                                 items: [StatItem("Levels won", "\(CoinFormat.grouped(swap.levelsWon)) of \(CoinFormat.grouped(TokenSwapLevel.all.count))"),
-                                         StatItem("Stars", CoinFormat.grouped(swap.totalStars)),
-                                         StatItem("Daily wins", CoinFormat.grouped(swap.dailyWins)),
-                                         StatItem("Best chain", CoinFormat.grouped(s.tokenSwapBestChain)),
-                                         StatItem("Specials", CoinFormat.grouped(s.tokenSwapBlasts)),
-                                         StatItem("Tokens cleared", CoinFormat.grouped(s.tokenSwapTokens)),
-                                         StatItem("Random wins", "\(CoinFormat.grouped(s.tokenSwapRandomWins)) of \(CoinFormat.grouped(s.tokenSwapRandomPlayed))"),
-                                         StatItem("Classic games", CoinFormat.grouped(s.tokenSwapGames)),
-                                         StatItem("Levels played", CoinFormat.grouped(s.tokenSwapLevelsPlayed))])
-        }
+        GameStatsCard(miniGame, in: game, exactNumbers: exactNumbers)
     }
 
     private func amount(_ value: Double) -> String {
@@ -373,27 +263,6 @@ struct StatsPage: View {
     /// "1 hand", "1,204 hands".
     private func counted(_ count: Int, _ noun: String) -> String {
         "\(CoinFormat.grouped(count)) \(noun)\(count == 1 ? "" : "s")"
-    }
-
-    /// A share as a whole percentage: "48%", or "<1%" for a sliver.
-    static func percentage(_ share: Double) -> String {
-        guard share.isFinite, share > 0 else { return "0%" }
-        if share < 0.01 { return "<1%" }
-        return "\(Int((min(share, 1e6) * 100).rounded()))%"
-    }
-
-    private func percentage(_ part: Int, of whole: Int) -> String {
-        whole > 0 ? Self.percentage(Double(part) / Double(whole)) : "–"
-    }
-
-    /// What came back for what was bet: "95%".
-    private func paidBack(_ paid: Double, of bet: Double) -> String {
-        bet > 0 ? Self.percentage(paid / bet) : "–"
-    }
-
-    /// "1.2M bet · 1.1M paid out", once anything's been bet.
-    private func betNote(_ bet: Double, paid: Double) -> String? {
-        bet > 0 ? "\(amount(bet)) bet · \(amount(paid)) paid out" : nil
     }
 
     private func row(_ title: String, _ value: String) -> some View {

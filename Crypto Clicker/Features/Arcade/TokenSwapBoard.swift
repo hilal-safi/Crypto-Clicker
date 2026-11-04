@@ -248,6 +248,8 @@ struct TokenSwapTileView: View {
     var isHinted = false
     var isRefused = false
     var reduceMotion = false
+    /// The tiles picked in Style.
+    @Environment(\.swapTiles) private var look
 
     var body: some View {
         piece
@@ -279,8 +281,7 @@ struct TokenSwapTileView: View {
         } else {
             let tint = TokenSwapPalette.tint(tile.kind)
             ZStack {
-                RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
-                    .fill(tint.opacity(tile.power == nil ? 0.26 : 0.5))
+                backing(tint: tint)
                 switch tile.power {
                 case .bomb?:
                     BombView(tint: tint, size: size)
@@ -309,6 +310,30 @@ struct TokenSwapTileView: View {
         }
     }
 
+    /// What the token sits on, in the look picked in Style: a rounded square, a glossy bubble, or
+    /// a cut gem.
+    @ViewBuilder
+    private func backing(tint: Color) -> some View {
+        let strength = tile.power == nil ? 0.26 : 0.5
+        switch look {
+        case .swapBubbles:
+            Circle()
+                .fill(RadialGradient(colors: [tint.mix(with: .white, by: 0.35).opacity(strength + 0.25), tint.opacity(strength)],
+                                     center: UnitPoint(x: 0.35, y: 0.3), startRadius: 0, endRadius: size * 0.55))
+                .overlay { Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1) }
+                .padding(size * 0.02)
+        case .swapGems:
+            GemShape()
+                .fill(LinearGradient(colors: [tint.mix(with: .white, by: 0.3).opacity(strength + 0.3), tint.opacity(strength + 0.1),
+                                              tint.mix(with: .black, by: 0.3).opacity(strength + 0.2)],
+                                     startPoint: .top, endPoint: .bottom))
+                .overlay { GemShape().stroke(.white.opacity(0.35), lineWidth: 1) }
+        default:
+            RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
+                .fill(tint.opacity(strength))
+        }
+    }
+
     /// Stripes along the rocket's line, so its direction reads at a glance.
     private func rocketStripes(tint: Color, across: Bool) -> some View {
         Canvas { context, canvasSize in
@@ -334,6 +359,24 @@ struct TokenSwapTileView: View {
 }
 
 /// A round bomb in the token's color, with a lit fuse.
+/// A cut gem: an octagon, wider than tall at the crown.
+private struct GemShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let inset = rect.width * 0.22
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + inset, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - inset, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + inset))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - inset))
+        path.addLine(to: CGPoint(x: rect.maxX - inset, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX + inset, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - inset))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + inset))
+        path.closeSubpath()
+        return path
+    }
+}
+
 private struct BombView: View {
     let tint: Color
     let size: CGFloat

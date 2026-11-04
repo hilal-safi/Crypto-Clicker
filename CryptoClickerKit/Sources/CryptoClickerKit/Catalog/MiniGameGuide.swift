@@ -29,24 +29,21 @@ public struct MiniGameGuide: Sendable {
 }
 
 extension MiniGame {
-    /// How to play the game in the edition on screen.
-    public var guide: MiniGameGuide { guide(in: .current) }
-
-    /// How to play the game in an edition: its crypto names, pieces and rules, or the classic ones.
-    public func guide(in edition: ArcadeEdition) -> MiniGameGuide {
+    /// How to play the game: its goal, controls, scoring, pieces, ending and tips.
+    public var guide: MiniGameGuide {
         switch self {
-        case .blackjack: Self.blackjackGuide(edition)
+        case .blackjack: Self.blackjackGuide
         case .slots: Self.slotsGuide
         case .moon: Self.moonGuide
-        case .videoPoker: Self.videoPokerGuide(edition)
-        case .tetris: Self.tetrisGuide(edition)
-        case .merge2048: Self.merge2048Guide(edition)
-        case .snake: Self.snakeGuide(edition)
-        case .brickBreaker: Self.brickBreakerGuide(edition)
-        case .bubbleBlaster: Self.bubbleBlasterGuide(edition)
-        case .pumpDump: Self.pumpDumpGuide(edition)
+        case .videoPoker: Self.videoPokerGuide
+        case .tetris: Self.tetrisGuide
+        case .merge2048: Self.merge2048Guide
+        case .snake: Self.snakeGuide
+        case .brickBreaker: Self.brickBreakerGuide
+        case .bubbleBlaster: Self.bubbleBlasterGuide
+        case .pumpDump: Self.pumpDumpGuide
         case .tokenSwap: Self.tokenSwapGuide
-        case .invaders: Self.invadersGuide(edition)
+        case .invaders: Self.invadersGuide
         }
     }
 
@@ -57,7 +54,7 @@ extension MiniGame {
 
     // MARK: Casino
 
-    private static func blackjackGuide(_ edition: ArcadeEdition) -> MiniGameGuide {
+    private static var blackjackGuide: MiniGameGuide {
         MiniGameGuide(
             objective: localized("Finish closer to 21 than the dealer without going over."),
             controls: [
@@ -67,14 +64,12 @@ extension MiniGame {
             ],
             scoring: [
                 localized("A win pays your bet back twice; a tie (push) returns it."),
-                edition.pick(localized("A natural 21 (an ace and a ten-value card as your first two) pays 3 to 2, and its coin bonus is half as much again."),
-                             classic: localized("Blackjack (an ace and a ten-value card as your first two) pays 3 to 2, and its coin bonus is half as much again.")),
+                localized("A natural 21 (an ace and a ten-value card as your first two) pays 3 to 2, and its coin bonus is half as much again."),
                 tokenBets,
             ],
             items: [
                 .init(id: "blackjack.dealer", symbol: "person.fill", name: localized("The Classic table"),
-                      detail: edition.pick(localized("The dealer plays from one deck, checks for a natural 21 first, and stands on every 17."),
-                                           classic: localized("The dealer plays from one deck, checks for blackjack first, and stands on every 17."))),
+                      detail: localized("The dealer plays from one deck, checks for a natural 21 first, and stands on every 17.")),
                 .init(id: "blackjack.tough", symbol: "person.fill.badge.plus", name: localized("The Tough table"),
                       detail: localized("The dealer hits a soft 17 (a 17 counting an ace as 11), which suits the house a little better, so wins pay \(Int(((Tuning.blackjackToughTableBonus - 1) * 100).rounded()))% more coin bonus.")),
                 .init(id: "blackjack.ace", symbol: "suit.spade.fill", name: localized("Aces"),
@@ -147,15 +142,13 @@ extension MiniGame {
             controlHint: localized("Launch · Cash Out"))
     }
 
-    private static func videoPokerGuide(_ edition: ArcadeEdition) -> MiniGameGuide {
+    private static var videoPokerGuide: MiniGameGuide {
         let table = PokerHand.paying.map { "\($0.name) \($0.payout)" }.joined(separator: ", ")
         return MiniGameGuide(
-            objective: edition.pick(localized("Make the best five-card poker hand you can: HODL the cards you believe in, and swap the rest once."),
-                                    classic: localized("Make the best five-card poker hand you can, with one chance to swap cards.")),
+            objective: localized("Make the best five-card poker hand you can: HODL the cards you believe in, and swap the rest once."),
             controls: [
                 localized("Pick a token and a bet, then Deal. ") + practice,
-                edition.pick(localized("Tap cards to HODL them (they lift, marked HODL), then Draw to replace the rest. Hint HODLs what a strong player would."),
-                             classic: localized("Tap cards to hold them (they lift, marked HELD), then Draw to replace the rest. Hint holds what a strong player would.")),
+                localized("Tap cards to HODL them (they lift, marked HODL), then Draw to replace the rest. Hint HODLs what a strong player would."),
             ],
             scoring: [
                 localized("Pays per token bet: \(table)."),
@@ -171,14 +164,14 @@ extension MiniGame {
                 localized("A low pair is worth more than unpaired high cards."),
                 localized("Played well, the table returns about 97%."),
             ],
-            controlHint: edition.pick(localized("Tap cards to HODL · Draw"), classic: localized("Tap cards to hold · Draw")))
+            controlHint: localized("Tap cards to HODL · Draw"))
     }
 
     // MARK: Arcade
 
-    private static func tetrisGuide(_ edition: ArcadeEdition) -> MiniGameGuide {
+    private static var tetrisGuide: MiniGameGuide {
         typealias Game = TetrisGame
-        let rows = Game.Rules.edition(edition).rows
+        let rows = Game.Rules.blockChain.rows
         let common = (
             hold: MiniGameGuide.Item(id: "tetris.hold", symbol: "tray.and.arrow.down", name: localized("Hold"),
                                      detail: localized("Sets the piece aside to use later, or swaps it with the one held. Once per piece.")),
@@ -190,27 +183,6 @@ extension MiniGame {
             gestures: localized("Or on the well: tap to rotate, drag sideways to move, swipe down to drop at once, and swipe up to hold."),
             settings: localized("The start screen picks the mode, and Settings there the speed: Slow, Normal or Fast pieces.")
         )
-        guard edition == .crypto else {
-            return MiniGameGuide(
-                objective: localized("Fit the falling pieces together to fill whole rows, which clear for points. Play Endless until the stack tops out, Sprint: \(Game.sprintLines) lines against the clock, or Today's Pieces: Endless with today's pieces, the same for everyone."),
-                controls: [common.buttons, common.gestures, common.settings],
-                scoring: [
-                    localized("One to four rows at once score 100, 300, 500 or 800, times the level."),
-                    common.combo, common.levels,
-                ],
-                items: [
-                    .init(id: "tetris.ghost", symbol: "square.dashed", name: localized("Ghost piece"),
-                          detail: localized("The outline at the bottom shows where the piece will land.")),
-                    common.hold, common.next,
-                ],
-                ending: localized("Endless ends when a new piece has no room at the top. Sprint ends when its lines are cleared, and its record is your time."),
-                tips: [
-                    localized("Keep the stack flat and leave one column open for a long piece: four rows at once scores the most."),
-                    localized("Hold a long piece for the gap it fits."),
-                    localized("Small clears one after another build a combo."),
-                ],
-                controlHint: localized("Tap rotate · Drag move · Swipe ↓ drop, ↑ hold"))
-        }
         return MiniGameGuide(
             objective: localized("Stack the falling coin blocks into full rows, which are mined for points, in a well \(rows) rows deep. Play Endless until the stack tops out, Block Rush: \(Game.sprintLines) rows against the clock, or Today's Pieces: Endless with today's pieces, the same for everyone."),
             controls: [common.buttons, common.gestures, common.settings],
@@ -235,212 +207,118 @@ extension MiniGame {
             controlHint: localized("Tap rotate · Drag move · Swipe ↓ drop, ↑ hold"))
     }
 
-    private static func merge2048Guide(_ edition: ArcadeEdition) -> MiniGameGuide {
+    private static var merge2048Guide: MiniGameGuide {
         typealias Game = Merge2048Game
         let stars = Game.dailyStarScores.map { CoinFormat.grouped($0) }
         let daily = localized("The Daily Puzzle earns stars at \(stars[0]), \(stars[1]) and \(stars[2]) points. Each star pays \(Int(Tuning.merge2048DailyStarSeconds / 60)) minutes of income the first time you earn it that day.")
-        let undo = localized("Undo takes back your last slide and its points, \(Game.undosPerGame) times a game. The same slide then brings the same new tile, so Undo can't reroll your luck.")
-        if edition == .crypto {
-            func miner(_ value: Int) -> String { "\(Game.miner(for: value).name) (\(CoinFormat.grouped(value)))" }
-            let ladder = (1...11).map { 1 << $0 }.map(miner).joined(separator: ", ")
-            return MiniGameGuide(
-                objective: localized("Slide miners together to upgrade them, up the Shop's ladder from a Chromebook to the Lunar Base (2,048) and beyond. Play Classic, or the Daily Puzzle: the same start and miners for everyone today, in \(Game.dailyMoves) moves."),
-                controls: [
-                    localized("Swipe up, down, left or right to slide every miner that way."),
-                    undo.replacingOccurrences(of: localized("new tile"), with: localized("new miner")),
-                ],
-                scoring: [
-                    localized("Two equal miners that meet merge into the next one up, worth their sum, which is added to your score. A miner merges once per slide."),
-                    localized("Classic sets goals one after another: the \(miner(128)), then the \(miner(256)), and on. Building the Lunar Base reaches the Moon: a bonus of \(Int(Tuning.merge2048WinSeconds / 60)) minutes of income, and you can keep going."),
-                    daily,
-                ],
-                items: [
-                    .init(id: "2048.new", symbol: "plus.square", name: localized("New miners"),
-                          detail: localized("After every slide a Chromebook (2) appears in an empty cell, or now and then a Desktop (4).")),
-                    .init(id: "2048.ladder", symbol: "arrow.up.forward.square", name: localized("The ladder"),
-                          detail: ladder + localized(", then the Asteroid Harvester and the Galactic Hashnet.")),
-                    .init(id: "2048.undo", symbol: "arrow.uturn.backward", name: localized("Undo"),
-                          detail: localized("\(Game.undosPerGame) a game, one slide back at a time. Not once the game is over.")),
-                ],
-                ending: localized("The game ends when no slide can change the board, when the Daily Puzzle's moves run out, or when you tap End Game to collect."),
-                tips: [
-                    localized("Keep your best miner in a corner and build along one edge."),
-                    localized("Avoid the direction that pulls the best miner out of its corner."),
-                    localized("In the Daily Puzzle every move counts: favor slides that merge."),
-                ],
-                controlHint: localized("Swipe to slide"))
-        }
+        func miner(_ value: Int) -> String { "\(Game.miner(for: value).name) (\(CoinFormat.grouped(value)))" }
+        let ladder = (1...11).map { 1 << $0 }.map(miner).joined(separator: ", ")
         return MiniGameGuide(
-            objective: localized("Slide numbered tiles together to build bigger ones, up to \(Game.winningValue) and beyond. Play Classic, or the Daily Puzzle: the same start and tiles for everyone today, in \(Game.dailyMoves) moves."),
+            objective: localized("Slide miners together to upgrade them, up the Shop's ladder from a Chromebook to the Lunar Base (2,048) and beyond. Play Classic, or the Daily Puzzle: the same start and miners for everyone today, in \(Game.dailyMoves) moves."),
             controls: [
-                localized("Swipe up, down, left or right to slide every tile that way."),
-                undo,
+                localized("Swipe up, down, left or right to slide every miner that way."),
+                localized("Undo takes back your last slide and its points, \(Game.undosPerGame) times a game. The same slide then brings the same new miner, so Undo can't reroll your luck."),
             ],
             scoring: [
-                localized("Two equal tiles that meet merge into one with their sum, which is added to your score. A tile merges once per slide."),
-                localized("Classic sets tile goals one after another: 128, then 256, 512 and on. Making a \(Game.winningValue) tile pays a bonus of \(Int(Tuning.merge2048WinSeconds / 60)) minutes of income, and you can keep going."),
+                localized("Two equal miners that meet merge into the next one up, worth their sum, which is added to your score. A miner merges once per slide."),
+                localized("Classic sets goals one after another: the \(miner(128)), then the \(miner(256)), and on. Building the Lunar Base reaches the Moon: a bonus of \(Int(Tuning.merge2048WinSeconds / 60)) minutes of income, and you can keep going."),
                 daily,
             ],
             items: [
-                .init(id: "2048.new", symbol: "plus.square", name: localized("New tiles"),
-                      detail: localized("After every slide a 2 appears in an empty cell, or now and then a 4.")),
+                .init(id: "2048.new", symbol: "plus.square", name: localized("New miners"),
+                      detail: localized("After every slide a Chromebook (2) appears in an empty cell, or now and then a Desktop (4).")),
+                .init(id: "2048.ladder", symbol: "arrow.up.forward.square", name: localized("The ladder"),
+                      detail: ladder + localized(", then the Asteroid Harvester and the Galactic Hashnet.")),
                 .init(id: "2048.undo", symbol: "arrow.uturn.backward", name: localized("Undo"),
                       detail: localized("\(Game.undosPerGame) a game, one slide back at a time. Not once the game is over.")),
             ],
             ending: localized("The game ends when no slide can change the board, when the Daily Puzzle's moves run out, or when you tap End Game to collect."),
             tips: [
-                localized("Keep your biggest tile in a corner and build along one edge."),
-                localized("Avoid the direction that pulls the big tile out of its corner."),
+                localized("Keep your best miner in a corner and build along one edge."),
+                localized("Avoid the direction that pulls the best miner out of its corner."),
                 localized("In the Daily Puzzle every move counts: favor slides that merge."),
             ],
             controlHint: localized("Swipe to slide"))
     }
 
-    private static func snakeGuide(_ edition: ArcadeEdition) -> MiniGameGuide {
+    private static var snakeGuide: MiniGameGuide {
         typealias PowerUp = SnakeGame.PowerUp
         func seconds(_ powerUp: PowerUp) -> Int { Int(powerUp.duration ?? 0) }
-        let arenas = [SnakeGame.Arena.pillars, .rooms, .cross].map { $0.name(in: edition) }
+        let arenas = [SnakeGame.Arena.pillars, .rooms, .cross].map { $0.name }
         let steer = localized("Swipe anywhere to turn up, down, left or right. Quick swipes queue up two turns, and turning straight back is ignored.")
-        if edition == .crypto {
-            return MiniGameGuide(
-                objective: localized("Steer the chain to mine coins: every coin adds a block, so keep it growing as long as you can. Play Classic in one of four arenas, or Coin Rush: one minute with three coins out at once."),
-                controls: [steer, localized("The start screen picks the mode and arena, and Settings there the chain's speed: Slow, Normal or Fast.")],
-                scoring: [
-                    localized("Every coin is worth \(SnakeGame.pointsPerCoin) points and adds a block to the chain. The chain speeds up as it grows."),
-                    localized("Every \(SnakeGame.coinsPerPowerUp) coins a power-up appears for \(Int(SnakeGame.powerUpLifetime)) seconds: steer onto it to pick it up."),
-                ],
-                items: [
-                    .init(id: "snake.speedBoost", symbol: "bolt.fill", name: PowerUp.speedBoost.name(in: edition),
-                          detail: localized("\(seconds(.speedBoost)) seconds faster, like a payment on the Lightning Network, and every coin counts double.")),
-                    .init(id: "snake.slowMotion", symbol: "snowflake", name: PowerUp.slowMotion.name(in: edition),
-                          detail: localized("\(seconds(.slowMotion)) seconds slower, for tight spots. It replaces Lightning, and the other way round.")),
-                    .init(id: "snake.shield", symbol: "lock.shield.fill", name: PowerUp.shield.name(in: edition),
-                          detail: localized("Keeps you safe from one crash: the chain stops for a moment so you can turn away. You can carry one at a time.")),
-                    .init(id: "snake.magnet", symbol: "dot.radiowaves.left.and.right", name: PowerUp.magnet.name(in: edition),
-                          detail: localized("For \(seconds(.magnet)) seconds, coins within \(SnakeGame.magnetReach) steps of the head drop straight into the chain.")),
-                    .init(id: "snake.walls", symbol: "square.grid.3x3.middle.filled", name: localized("Arenas"),
-                          detail: localized("\(arenas.dropLast().joined(separator: ", ")) and \(arenas.last ?? "") add walls to steer around. Hitting one ends the game.")),
-                ],
-                ending: localized("The game ends when the chain hits a wall or crosses its own blocks, or when Coin Rush's minute is up."),
-                tips: [
-                    localized("Stay near the middle early and keep the edges for a long chain."),
-                    localized("Save a Hardware Wallet for the late game, when the chain is long."),
-                    localized("Catch Lightning when coins are close: they count double."),
-                ],
-                controlHint: localized("Swipe to steer"))
-        }
         return MiniGameGuide(
-            objective: localized("Steer the snake to eat coins and grow as long as you can. Play Classic in one of four arenas, or Coin Rush: one minute with three coins out at once."),
-            controls: [steer, localized("The start screen picks the mode and arena, and Settings there the snake's speed: Slow, Normal or Fast.")],
+            objective: localized("Steer the chain to mine coins: every coin adds a block, so keep it growing as long as you can. Play Classic in one of four arenas, or Coin Rush: one minute with three coins out at once."),
+            controls: [steer, localized("The start screen picks the mode and arena, and Settings there the chain's speed: Slow, Normal or Fast.")],
             scoring: [
-                localized("Every coin is worth \(SnakeGame.pointsPerCoin) points and makes the snake one longer. The snake speeds up as it eats."),
+                localized("Every coin is worth \(SnakeGame.pointsPerCoin) points and adds a block to the chain. The chain speeds up as it grows."),
                 localized("Every \(SnakeGame.coinsPerPowerUp) coins a power-up appears for \(Int(SnakeGame.powerUpLifetime)) seconds: steer onto it to pick it up."),
             ],
             items: [
-                .init(id: "snake.speedBoost", symbol: "hare.fill", name: PowerUp.speedBoost.name(in: edition),
-                      detail: localized("\(seconds(.speedBoost)) seconds faster, and every coin counts double.")),
-                .init(id: "snake.slowMotion", symbol: "tortoise.fill", name: PowerUp.slowMotion.name(in: edition),
-                      detail: localized("\(seconds(.slowMotion)) seconds slower, for tight spots. It replaces a Speed Boost, and the other way round.")),
-                .init(id: "snake.shield", symbol: "shield.fill", name: PowerUp.shield.name(in: edition),
-                      detail: localized("Forgives one crash: the snake stops for a moment so you can turn away. You can carry one at a time.")),
-                .init(id: "snake.magnet", symbol: "dot.radiowaves.left.and.right", name: PowerUp.magnet.name(in: edition),
-                      detail: localized("For \(seconds(.magnet)) seconds, coins within \(SnakeGame.magnetReach) steps of the head are pulled in.")),
+                .init(id: "snake.speedBoost", symbol: "bolt.fill", name: PowerUp.speedBoost.name,
+                      detail: localized("\(seconds(.speedBoost)) seconds faster, like a payment on the Lightning Network, and every coin counts double.")),
+                .init(id: "snake.slowMotion", symbol: "snowflake", name: PowerUp.slowMotion.name,
+                      detail: localized("\(seconds(.slowMotion)) seconds slower, for tight spots. It replaces Lightning, and the other way round.")),
+                .init(id: "snake.shield", symbol: "lock.shield.fill", name: PowerUp.shield.name,
+                      detail: localized("Keeps you safe from one crash: the chain stops for a moment so you can turn away. You can carry one at a time.")),
+                .init(id: "snake.magnet", symbol: "dot.radiowaves.left.and.right", name: PowerUp.magnet.name,
+                      detail: localized("For \(seconds(.magnet)) seconds, coins within \(SnakeGame.magnetReach) steps of the head drop straight into the chain.")),
                 .init(id: "snake.walls", symbol: "square.grid.3x3.middle.filled", name: localized("Arenas"),
                       detail: localized("\(arenas.dropLast().joined(separator: ", ")) and \(arenas.last ?? "") add walls to steer around. Hitting one ends the game.")),
             ],
-            ending: localized("The game ends when the snake hits a wall or its own body, or when Coin Rush's minute is up."),
+            ending: localized("The game ends when the chain hits a wall or crosses its own blocks, or when Coin Rush's minute is up."),
             tips: [
-                localized("Stay near the middle early and keep the edges for a long snake."),
-                localized("Save a Shield for the late game, when the snake is long."),
-                localized("Grab a Speed Boost when coins are close: they count double."),
+                localized("Stay near the middle early and keep the edges for a long chain."),
+                localized("Save a Hardware Wallet for the late game, when the chain is long."),
+                localized("Catch Lightning when coins are close: they count double."),
             ],
             controlHint: localized("Swipe to steer"))
     }
 
-    private static func brickBreakerGuide(_ edition: ArcadeEdition) -> MiniGameGuide {
+    private static var brickBreakerGuide: MiniGameGuide {
         typealias PowerUp = BrickBreakerGame.PowerUp
         func seconds(_ powerUp: PowerUp) -> Int { Int(powerUp.duration ?? 0) }
         let startScreen = localized("On the start screen, Levels starts at level 1, Random Walls makes up a new wall for every level (never the same twice), and Settings sets the ball's speed.")
         let lives = localized("You have \(BrickBreakerGame.startingLives) lives. You lose one when the last ball falls past the paddle, along with any power-ups running; the game ends with the last life.")
-        if edition == .crypto {
-            return MiniGameGuide(
-                objective: localized("Bounce the coin ball off your paddle to smash every hash block and reach the next, faster level. Every \(BrickBreakerGame.bossEvery)th level the whale comes to dump on you."),
-                controls: [localized("Drag anywhere to move the paddle, and lift your finger to launch the ball."), startScreen],
-                scoring: [
-                    localized("Each block scores 10 points per hit it takes; clearing a level adds 100 times the level, and beating the whale 500 more."),
-                    localized("Where the ball meets the paddle sets its angle: the edges send it off sideways."),
-                ],
-                items: [
-                    .init(id: "brick.armored", symbol: "square.fill.on.square.fill", name: localized("Cold storage blocks"),
-                          detail: localized("Steel bands show the hits left: two from level 2, three from level 6.")),
-                    .init(id: "brick.explosive", symbol: "chart.line.downtrend.xyaxis", name: localized("Liquidation blocks"),
-                          detail: localized("Liquidate every block around them when they go, and can set each other off in a cascade.")),
-                    .init(id: "brick.bonus", symbol: "gift.fill", name: localized("Airdrop blocks"),
-                          detail: localized("Drop a power-up: catch it with the paddle.")),
-                    .init(id: "brick.multiBall", symbol: "arrow.triangle.branch", name: PowerUp.multiBall.name(in: edition),
-                          detail: localized("Every ball forks into three. You only lose a life when the last one falls.")),
-                    .init(id: "brick.wide", symbol: "drop.fill", name: PowerUp.widePaddle.name(in: edition),
-                          detail: localized("A paddle half as wide again for \(seconds(.widePaddle)) seconds.")),
-                    .init(id: "brick.slow", symbol: "gauge.with.dots.needle.33percent", name: PowerUp.slowBall.name(in: edition),
-                          detail: localized("The ball slows down for \(seconds(.slowBall)) seconds.")),
-                    .init(id: "brick.laser", symbol: "bolt.fill", name: PowerUp.laser.name(in: edition),
-                          detail: localized("For \(seconds(.laser)) seconds the paddle fires bolts that smash blocks by themselves.")),
-                    .init(id: "brick.boss", symbol: "fish.fill", name: localized("The whale"),
-                          detail: localized("A whale swimming along the top, with a health bar. It dumps as it goes: a dump that lands on your paddle shrinks it for a few seconds.")),
-                ],
-                ending: lives,
-                tips: [
-                    localized("Catch the ball near the paddle's edge to aim it into gaps."),
-                    localized("Aim for liquidation blocks in the thick of a wall."),
-                    localized("Watch the dumps under the whale and slide out of their way."),
-                ],
-                controlHint: localized("Drag paddle · Lift to launch"))
-        }
         return MiniGameGuide(
-            objective: localized("Bounce the ball off your paddle to break every brick and reach the next, faster level. Every \(BrickBreakerGame.bossEvery)th level is a boss."),
-            controls: [
-                localized("Drag anywhere to move the paddle, and lift your finger to launch the ball."),
-                startScreen,
-            ],
+            objective: localized("Bounce the coin ball off your paddle to smash every hash block and reach the next, faster level. Every \(BrickBreakerGame.bossEvery)th level the whale comes to dump on you."),
+            controls: [localized("Drag anywhere to move the paddle, and lift your finger to launch the ball."), startScreen],
             scoring: [
-                localized("Each brick scores 10 points per hit it takes; clearing a level adds 100 times the level, and beating a boss 500 more."),
+                localized("Each block scores 10 points per hit it takes; clearing a level adds 100 times the level, and beating the whale 500 more."),
                 localized("Where the ball meets the paddle sets its angle: the edges send it off sideways."),
             ],
             items: [
-                .init(id: "brick.armored", symbol: "square.fill.on.square.fill", name: localized("Armored bricks"),
+                .init(id: "brick.armored", symbol: "square.fill.on.square.fill", name: localized("Cold storage blocks"),
                       detail: localized("Steel bands show the hits left: two from level 2, three from level 6.")),
-                .init(id: "brick.explosive", symbol: "flame.fill", name: localized("Explosive bricks"),
-                      detail: localized("Break every brick around them when they go, and can set each other off.")),
-                .init(id: "brick.bonus", symbol: "gift.fill", name: localized("Bonus bricks"),
+                .init(id: "brick.explosive", symbol: "chart.line.downtrend.xyaxis", name: localized("Liquidation blocks"),
+                      detail: localized("Liquidate every block around them when they go, and can set each other off in a cascade.")),
+                .init(id: "brick.bonus", symbol: "gift.fill", name: localized("Airdrop blocks"),
                       detail: localized("Drop a power-up: catch it with the paddle.")),
-                .init(id: "brick.multiBall", symbol: "circle.grid.2x1.fill", name: PowerUp.multiBall.name(in: edition),
-                      detail: localized("Every ball splits into three. You only lose a life when the last one falls.")),
-                .init(id: "brick.wide", symbol: "arrow.left.and.right", name: PowerUp.widePaddle.name(in: edition),
+                .init(id: "brick.multiBall", symbol: "arrow.triangle.branch", name: PowerUp.multiBall.name,
+                      detail: localized("Every ball forks into three. You only lose a life when the last one falls.")),
+                .init(id: "brick.wide", symbol: "drop.fill", name: PowerUp.widePaddle.name,
                       detail: localized("A paddle half as wide again for \(seconds(.widePaddle)) seconds.")),
-                .init(id: "brick.slow", symbol: "tortoise.fill", name: PowerUp.slowBall.name(in: edition),
+                .init(id: "brick.slow", symbol: "gauge.with.dots.needle.33percent", name: PowerUp.slowBall.name,
                       detail: localized("The ball slows down for \(seconds(.slowBall)) seconds.")),
-                .init(id: "brick.laser", symbol: "bolt.fill", name: PowerUp.laser.name(in: edition),
-                      detail: localized("For \(seconds(.laser)) seconds the paddle fires bolts that break bricks by themselves.")),
-                .init(id: "brick.boss", symbol: "exclamationmark.octagon.fill", name: localized("Bosses"),
-                      detail: localized("A big block sliding along the top, with a health bar. It drops debris: a hit shrinks your paddle for a few seconds.")),
+                .init(id: "brick.laser", symbol: "bolt.fill", name: PowerUp.laser.name,
+                      detail: localized("For \(seconds(.laser)) seconds the paddle fires bolts that smash blocks by themselves.")),
+                .init(id: "brick.boss", symbol: "fish.fill", name: localized("The whale"),
+                      detail: localized("A whale swimming along the top, with a health bar. It dumps as it goes: a dump that lands on your paddle shrinks it for a few seconds.")),
             ],
             ending: lives,
             tips: [
                 localized("Catch the ball near the paddle's edge to aim it into gaps."),
-                localized("Aim for explosive bricks in the thick of a wall."),
-                localized("Watch the debris under a boss and slide out of its way."),
+                localized("Aim for liquidation blocks in the thick of a wall."),
+                localized("Watch the dumps under the whale and slide out of their way."),
             ],
             controlHint: localized("Drag paddle · Lift to launch"))
     }
 
-    private static func bubbleBlasterGuide(_ edition: ArcadeEdition) -> MiniGameGuide {
+    private static var bubbleBlasterGuide: MiniGameGuide {
         typealias Game = BubbleShooterGame
         let every = Game.streakPerSpecial
-        let crypto = edition == .crypto
-        let rainbow = Game.Special.rainbow.name(in: edition), bomb = Game.Special.bomb.name(in: edition)
+        let rainbow = Game.Special.rainbow.name, bomb = Game.Special.bomb.name
         return MiniGameGuide(
-            objective: crypto ? localized("Fire token bubbles to make groups of three or more of a kind, and clear the market to start the next wave.")
-                              : localized("Fire bubbles to make groups of three or more of a color, and clear the field to start the next wave."),
+            objective: localized("Fire token bubbles to make groups of three or more of a kind, and clear the market to start the next wave."),
             controls: [
                 localized("Drag to aim and lift to fire. The guide shows the path, bounces included, and a ring marks where the bubble will stick."),
                 localized("Tap the loaded bubble or the next one to swap them."),
@@ -454,17 +332,14 @@ extension MiniGame {
             items: [
                 .init(id: "bubble.row", symbol: "arrow.down.to.line", name: localized("New rows"),
                       detail: localized("Every \(Game.missesPerRow) shots that pop nothing push a new row down. From wave 3 the waves start deeper and rows come sooner, down to every \(Game.fewestMissesPerRow) misses.")),
-                .init(id: "bubble.rainbow", symbol: crypto ? "dollarsign.circle.fill" : "rainbow", name: rainbow,
-                      detail: crypto ? localized("Pegged to anything: it takes the kind that makes the biggest group among the bubbles it touches.")
-                                     : localized("Matches anything: it takes the color that makes the biggest group among the bubbles it touches.")),
-                .init(id: "bubble.bomb", symbol: crypto ? "chart.line.downtrend.xyaxis" : "flame.fill", name: bomb,
-                      detail: crypto ? localized("Wipes out every bubble within two of where it lands, any kind, and anything left hanging falls.")
-                                     : localized("Blows up every bubble within two of where it lands, any color, and anything left hanging falls.")),
-                .init(id: "bubble.bonus", symbol: crypto ? "star.circle.fill" : "bitcoinsign", name: crypto ? localized("Blue chip") : localized("Gold bubble"),
+                .init(id: "bubble.rainbow", symbol: "dollarsign.circle.fill", name: rainbow,
+                      detail: localized("Pegged to anything: it takes the kind that makes the biggest group among the bubbles it touches.")),
+                .init(id: "bubble.bomb", symbol: "chart.line.downtrend.xyaxis", name: bomb,
+                      detail: localized("Wipes out every bubble within two of where it lands, any kind, and anything left hanging falls.")),
+                .init(id: "bubble.bonus", symbol: "star.circle.fill", name: localized("Blue chip"),
                       detail: localized("Pays \(Game.bonusPoints) extra however it's cleared: popped, dropped or blown up.")),
             ],
-            ending: crypto ? localized("The game ends when a bubble sinks to the crash line at the bottom.")
-                           : localized("The game ends when a bubble reaches the line at the bottom."),
+            ending: localized("The game ends when a bubble sinks to the crash line at the bottom."),
             tips: [
                 localized("Pop the bubbles holding up big clusters: falling bubbles pay double."),
                 localized("Keep the streak alive: swap to the bubble that can pop something before you fire."),
@@ -473,9 +348,8 @@ extension MiniGame {
             controlHint: localized("Drag to aim · Lift to fire · Tap to swap"))
     }
 
-    private static func invadersGuide(_ edition: ArcadeEdition) -> MiniGameGuide {
+    private static var invadersGuide: MiniGameGuide {
         typealias Game = InvadersGame
-        let racks = edition == .crypto
         typealias PowerUp = Game.PowerUp
         let kinds = Game.InvaderKind.self
         return MiniGameGuide(
@@ -487,8 +361,7 @@ extension MiniGame {
             ],
             scoring: [
                 localized("Meme coins score \(kinds.memeCoin.points), pump bots \(kinds.pumpBot.points) and rug pullers \(kinds.rugPuller.points)."),
-                racks ? localized("Hits in a row build a streak: each hit scores 10% more than the last, up to double. A volley that hits nothing, or only a server rack, ends it.")
-                      : localized("Hits in a row build a streak: each hit scores 10% more than the last, up to double. A volley that hits nothing, or only a firewall, ends it."),
+                localized("Hits in a row build a streak: each hit scores 10% more than the last, up to double. A volley that hits nothing, or only a server rack, ends it."),
                 localized("Clearing a wave scores 100 times the wave, and 50 times more if you didn't lose a ship on it."),
             ],
             items: [
@@ -502,11 +375,8 @@ extension MiniGame {
                       detail: localized("From wave 2 (wave 1 in Random Waves), one invader a wave glows gold: it's worth double and drops a power-up.")),
                 .init(id: "invaders.whale", symbol: "fish.fill", name: localized("Whale"),
                       detail: localized("Swims across the top now and then: shoot it for 50 to 300 points and a power-up.")),
-                racks
-                    ? .init(id: "invaders.firewall", symbol: "server.rack", name: localized("Server racks"),
-                            detail: localized("Four racks that stop shots, yours and theirs: every hit knocks out a piece of a server, and invaders crush what they touch."))
-                    : .init(id: "invaders.firewall", symbol: "square.grid.3x3.fill", name: localized("Firewalls"),
-                            detail: localized("Four walls that stop shots, yours and theirs: every hit chips a block away, and invaders crush what they touch.")),
+                .init(id: "invaders.firewall", symbol: "server.rack", name: localized("Server racks"),
+                            detail: localized("Four racks that stop shots, yours and theirs: every hit knocks out a piece of a server, and invaders crush what they touch.")),
                 .init(id: "invaders.rapidFire", symbol: "bolt.fill", name: PowerUp.rapidFire.name,
                       detail: localized("Fires twice as fast, with up to four volleys at once, for \(Int(PowerUp.rapidFire.duration ?? 0)) seconds.")),
                 .init(id: "invaders.spreadShot", symbol: "arrow.up.left.and.arrow.down.right", name: PowerUp.spreadShot.name,
@@ -521,25 +391,25 @@ extension MiniGame {
             ending: localized("You have \(Game.startingLives) ships. An invader's shot costs one, along with any power-ups running; the game ends with the last ship, or the moment an invader reaches your ship's line."),
             tips: [
                 localized("Thin out the edge columns: the formation turns at the edges, so a narrow one takes longer to come down."),
-                racks ? localized("Lift your finger under a server rack: your own shots wear it down too.")
-                      : localized("Lift your finger under a firewall: your own shots wear it down too."),
+                localized("Lift your finger under a server rack: your own shots wear it down too."),
                 localized("The formation speeds up as it shrinks. Leave the last few until you're lined up."),
             ],
             controlHint: localized("Drag to move · Hold to fire"))
     }
 
-    private static func pumpDumpGuide(_ edition: ArcadeEdition) -> MiniGameGuide {
+    private static var pumpDumpGuide: MiniGameGuide {
         let golden = PumpDumpGame.goldenPoints / PumpDumpGame.coinPoints
-        let crypto = edition == .crypto
         return MiniGameGuide(
-            objective: crypto ? localized("Tap coins as they list on the board, reach each round's goal, and see how many rounds you can last.")
-                              : localized("Tap coins as they pop up, reach each round's goal, and see how many rounds you can last."),
-            controls: [crypto ? localized("Tap a coin the moment it lists, before it's delisted. A tap counts as soon as your finger touches.")
-                              : localized("Tap a coin the moment it appears. A tap counts as soon as your finger touches.")],
+            objective: localized("Tap coins as they list on the board, reach each round's goal, and see how many rounds you can last."),
+            controls: [
+                localized("Tap a coin the moment it lists, before it's delisted. A tap counts as soon as your finger touches."),
+                localized("The start screen picks the board, 3×3, 4×4 or 5×5, and Settings there the speed: Slow, Normal or Fast."),
+            ],
             scoring: [
                 localized("A coin scores \(PumpDumpGame.coinPoints). Hits in a row build a combo worth up to ×\(Int(PumpDumpGame.maxComboMultiplier))."),
                 localized("Each round lasts \(Int(PumpDumpGame.roundLength)) seconds. Reach its goal to go on; each round is quicker, with more scams."),
                 localized("Every round has a bonus objective worth extra points toward the goal."),
+                localized("Bigger boards list coins faster and more at once, with bigger goals. Their points pay a little less each, so every board pays about the same, and each keeps its own best."),
             ],
             items: [
                 .init(id: "pump.golden", symbol: "star.circle.fill", name: localized("Golden coin"),
@@ -551,8 +421,7 @@ extension MiniGame {
             ],
             ending: localized("A run ends when a round finishes short of its goal."),
             tips: [
-                crypto ? localized("Tapping an empty slot or letting a coin get delisted also ends your combo.")
-                       : localized("Tapping an empty hole or letting a coin get away also ends your combo."),
+                localized("Tapping an empty slot or letting a coin get delisted also ends your combo."),
                 localized("Watch the red rims: a rug pull tapped before it shakes is a normal coin."),
             ],
             controlHint: localized("Tap coins · Avoid scams and shaking coins"))

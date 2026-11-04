@@ -7,8 +7,9 @@ import Foundation
 ///
 /// The ship follows the finger and fires while it's down (`isFiring`), with at most two volleys in
 /// the air at once. Every hit adds 10% to what the next is worth, up to double, and a volley that
-/// hits nothing ends the streak, so aimed fire pays. Four firewalls shield the ship: any shot chips
-/// a block away (an invader's chips two), and invaders marching through them crush what they touch.
+/// hits nothing ends the streak, so aimed fire pays. Four firewalls (server racks) shield the ship:
+/// any shot chips a block away (an invader's chips two), and invaders marching through them crush
+/// what they touch.
 /// A whale crosses the top now and then: shoot it for bonus points and a power-up. From the second
 /// wave one invader in each glows gold and carries a power-up too. Every fifth wave is a boss.
 ///
@@ -129,17 +130,6 @@ public struct InvadersGame: Sendable {
         public let velocity: Vector2
         /// Who fired it, for its look; `nil` for the boss.
         public let shooter: InvaderKind?
-    }
-
-    /// How the four walls stand: the classic arch, or the crypto edition's server racks, solid
-    /// from top to bottom.
-    public enum FirewallStyle: String, CaseIterable, Codable, Sendable {
-        case arch, rack
-
-        /// The style an edition plays.
-        public static func edition(_ edition: ArcadeEdition) -> FirewallStyle {
-            edition.pick(.rack, classic: .arch)
-        }
     }
 
     /// A wall of blocks between the ship and the invaders.
@@ -288,8 +278,6 @@ public struct InvadersGame: Sendable {
     public let gameSpeed: GameSpeed
     /// Classic formations or ones made up for every wave.
     public let waveStyle: WaveStyle
-    /// Arched firewalls, or the crypto edition's server racks.
-    public let firewallStyle: FirewallStyle
 
     private var direction = 1.0
     private var marchClock: TimeInterval = 0
@@ -304,11 +292,9 @@ public struct InvadersGame: Sendable {
     private var nextID = 0
     private var rng: SeededGenerator
 
-    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal, waves: WaveStyle = .classic,
-                firewalls: FirewallStyle = .arch) {
+    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal, waves: WaveStyle = .classic) {
         gameSpeed = speed
         waveStyle = waves
-        firewallStyle = firewalls
         rng = SeededGenerator(seed: seed)
         whaleClock = Double.random(in: 16...24, using: &rng)
         layOutWave()
@@ -641,20 +627,13 @@ public struct InvadersGame: Sendable {
         }
     }
 
-    /// Four walls, each a block of 5 by 8: arches have their top corners rounded off and an arch
-    /// underneath; server racks are solid, one server to a row.
-    static func freshFirewalls(startingID: Int, style: FirewallStyle = .arch) -> [Firewall] {
+    /// Four server racks, each a solid block of 5 by 8: one server to a row.
+    static func freshFirewalls(startingID: Int) -> [Firewall] {
         let gap = (width - 4 * firewallSize.width) / 5
         return (0..<4).map { index in
             let frame = Box(minX: gap + Double(index) * (firewallSize.width + gap), minY: firewallTop,
                             width: firewallSize.width, height: firewallSize.height)
-            var blocks = Array(repeating: true, count: Firewall.rows * Firewall.columns)
-            if style == .arch {
-                for (row, column) in [(0, 0), (0, Firewall.columns - 1)] { blocks[row * Firewall.columns + column] = false }
-                for row in (Firewall.rows - 2)..<Firewall.rows {
-                    for column in 3...4 { blocks[row * Firewall.columns + column] = false }
-                }
-            }
+            let blocks = Array(repeating: true, count: Firewall.rows * Firewall.columns)
             return Firewall(id: startingID + index, frame: frame, blocks: blocks)
         }
     }
@@ -864,7 +843,7 @@ public struct InvadersGame: Sendable {
         formationSize = invaders.count
         // The first step comes one beat after the march begins.
         marchClock = marchInterval
-        firewalls = Self.freshFirewalls(startingID: newID(), style: firewallStyle)
+        firewalls = Self.freshFirewalls(startingID: newID())
         nextID += 4
     }
 

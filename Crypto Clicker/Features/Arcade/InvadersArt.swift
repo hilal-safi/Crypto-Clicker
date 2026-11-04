@@ -328,15 +328,7 @@ enum InvadersArt {
 
     // MARK: Firewalls
 
-    /// One firewall block: a glowing brick, orange to red.
-    static func drawBlock(in rect: CGRect, context: inout GraphicsContext) {
-        context.fill(Path(roundedRect: rect.insetBy(dx: 0.3, dy: 0.3), cornerRadius: min(rect.width, rect.height) * 0.2),
-                     with: .linearGradient(Gradient(colors: [Color(red: 1, green: 0.62, blue: 0.2), Color(red: 0.85, green: 0.18, blue: 0.1)]),
-                                           startPoint: CGPoint(x: rect.midX, y: rect.minY), endPoint: CGPoint(x: rect.midX, y: rect.maxY)))
-    }
-
-    /// One block of a server rack (the crypto edition's firewalls): a slice of a server, each row
-    /// one machine. The rack's posts are darker, and two status lights per server blink.
+    /// One block of a server rack (the firewalls): a slice of a server, each row one machine. The rack's posts are darker, and two status lights per server blink.
     static func drawServerBlock(in rect: CGRect, row: Int, column: Int, columns: Int, context: inout GraphicsContext, time: Double) {
         let isPost = column == 0 || column == columns - 1
         let top = isPost ? Color(white: 0.3) : Color(red: 0.36, green: 0.4, blue: 0.48)
@@ -396,21 +388,13 @@ struct InvadersGuideIcon: View {
                 InvadersArt.drawInvader(kind, golden: golden, pose: 0, in: inner, context: &context, time: 1)
             case .whale:
                 InvadersArt.drawWhale(in: frame.insetBy(dx: side * 0.1, dy: side * 0.26), facingRight: true, context: &context, time: 1)
-            case .firewall where ArcadeEdition.current == .crypto:
+            case .firewall:
                 let block = inner.width / 5
                 for row in 0..<4 {
                     for column in 0..<5 {
                         InvadersArt.drawServerBlock(in: CGRect(x: inner.minX + CGFloat(column) * block, y: inner.minY + inner.height * 0.1 + CGFloat(row) * block * 0.8,
                                                                width: block, height: block * 0.8),
                                                     row: row, column: column, columns: 5, context: &context, time: 0)
-                    }
-                }
-            case .firewall:
-                let block = inner.width / 4
-                for row in 0..<3 {
-                    for column in 0..<4 where !(row == 0 && (column == 0 || column == 3)) && !(row == 2 && (1...2).contains(column)) {
-                        InvadersArt.drawBlock(in: CGRect(x: inner.minX + CGFloat(column) * block, y: inner.minY + inner.height * 0.2 + CGFloat(row) * block,
-                                                         width: block, height: block), context: &context)
                     }
                 }
             case .boss:

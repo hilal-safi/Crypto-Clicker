@@ -50,22 +50,17 @@ struct MinerRow: View {
                     .font(.headline)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                if isBestValue {
-                    Label("Best value", systemImage: "star.fill")
-                        .font(.footnote.weight(.heavy))
-                        .textCase(.uppercase)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color(red: 0.06, green: 0.46, blue: 0.22).gradient, in: .capsule)
-                        .accessibilityLabel("Best value: the next one adds the most per coin")
-                }
-                if owned > 0 || mkLevel > 0 {
+                if isBestValue || mkLevel > 0 {
                     HStack(spacing: 6) {
-                        if owned > 0 {
-                            Text("Owned \(CoinFormat.grouped(owned))")
-                                .font(.subheadline.weight(.semibold).monospacedDigit())
-                                .foregroundStyle(.subtext)
+                        if isBestValue {
+                            Label("Best value", systemImage: "star.fill")
+                                .font(.footnote.weight(.heavy))
+                                .textCase(.uppercase)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(red: 0.06, green: 0.46, blue: 0.22).gradient, in: .capsule)
+                                .accessibilityLabel("Best value: the next one adds the most per coin")
                         }
                         if mkLevel > 0 {
                             Text("Mk \(MinerID.markName(level: mkLevel - 1))")
@@ -90,22 +85,31 @@ struct MinerRow: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Button {
-                if store.buy(miner, quantity: buyCount) { purchases += 1 } else { refusals += 1 }
-            } label: {
-                VStack(spacing: 2) {
-                    Text("Buy \(CoinFormat.grouped(buyCount))")
-                        .font(.footnote.weight(.bold))
-                    Text(CoinFormat.cost(price))
-                        .font(.subheadline.weight(.bold).monospacedDigit())
+            // How many are owned sits over the buy button, where the row has room to spare.
+            VStack(spacing: 6) {
+                if owned > 0 {
+                    Text("Owned \(CoinFormat.grouped(owned))")
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(.subtext)
+                        .lineLimit(1)
                 }
-                .frame(minWidth: 72)
+                Button {
+                    if store.buy(miner, quantity: buyCount) { purchases += 1 } else { refusals += 1 }
+                } label: {
+                    VStack(spacing: 2) {
+                        Text("Buy \(CoinFormat.grouped(buyCount))")
+                            .font(.footnote.weight(.bold))
+                        Text(CoinFormat.cost(price))
+                            .font(.subheadline.weight(.bold).monospacedDigit())
+                    }
+                    .frame(minWidth: 72)
+                }
+                .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
+                .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
+                .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
+                .accessibilityLabel("Buy \(buyCount) \(miner.name) for \(CoinFormat.cost(price)) coins")
             }
-            .priceButtonStyle(canAfford: canAfford, tint: Theme.accent)
             .fixedSize()
-            .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
-            .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
-            .accessibilityLabel("Buy \(buyCount) \(miner.name) for \(CoinFormat.cost(price)) coins")
         }
     }
 }

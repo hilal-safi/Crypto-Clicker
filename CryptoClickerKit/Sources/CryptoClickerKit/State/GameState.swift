@@ -69,10 +69,13 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
         /// Scam Invaders: volleys fired, and those that hit something.
         public var volleys: Int
         public var volleysHit: Int
+        /// Pump and Dump: the board's side (3, 4 or 5; 0 in runs held before the bigger boards,
+        /// which were all 3×3).
+        public var board: Int
 
         public init(level: Int = 0, bestCombo: Int = 0, tetrises: Int = 0, coins: Int = 0, seconds: Double = 0,
                     powerUps: Int = 0, bosses: Int = 0, bestStreak: Int = 0, bonuses: Int = 0, scamsHit: Int = 0,
-                    specials: Int = 0, volleys: Int = 0, volleysHit: Int = 0) {
+                    specials: Int = 0, volleys: Int = 0, volleysHit: Int = 0, board: Int = 0) {
             self.level = level
             self.bestCombo = bestCombo
             self.tetrises = tetrises
@@ -86,11 +89,12 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
             self.specials = specials
             self.volleys = volleys
             self.volleysHit = volleysHit
+            self.board = board
         }
 
         private enum CodingKeys: String, CodingKey {
             case level, bestCombo, tetrises, coins, seconds, powerUps, bosses, bestStreak, bonuses, scamsHit, specials
-            case volleys, volleysHit
+            case volleys, volleysHit, board
         }
 
         public init(from decoder: Decoder) throws {
@@ -108,6 +112,7 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
             specials = c.value(.specials, default: 0)
             volleys = c.value(.volleys, default: 0)
             volleysHit = c.value(.volleysHit, default: 0)
+            board = c.value(.board, default: 0)
         }
 
         public func encode(to encoder: Encoder) throws {
@@ -125,6 +130,7 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
             if specials != 0 { try c.encode(specials, forKey: .specials) }
             if volleys != 0 { try c.encode(volleys, forKey: .volleys) }
             if volleysHit != 0 { try c.encode(volleysHit, forKey: .volleysHit) }
+            if board != 0 { try c.encode(board, forKey: .board) }
         }
     }
 

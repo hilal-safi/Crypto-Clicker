@@ -60,10 +60,10 @@ struct InvadersView: View {
             .frame(maxWidth: 600)
             .frame(maxWidth: .infinity)
         }
-        .background { AppBackground(tint: tint) }
         .navigationTitle("Scam Invaders")
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.invaders, isPresented: $showingHelp)
+        .gameBackdrop(.invaders)
     }
 }
 
@@ -105,11 +105,12 @@ struct InvadersPlayView: View {
         self.waves = waves
         let seed = UInt64.random(in: 0...UInt64.max)
         _seed = State(initialValue: seed)
-        _game = State(initialValue: InvadersGame(seed: seed, waves: waves, firewalls: .edition(.current)))
+        _game = State(initialValue: InvadersGame(seed: seed, waves: waves))
     }
 
     var body: some View {
         withLifecycle(withFeedback(layout))
+            .gameBackdrop(.invaders)
     }
 
     private var layout: some View {
@@ -141,7 +142,6 @@ struct InvadersPlayView: View {
         .padding(12)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
-        .background { AppBackground(tint: MiniGame.invaders.color) }
         .overlay {
             if isPaused {
                 PausedCard(game: .invaders, resume: { isPaused = false }, showHelp: { showingHelp = true })
@@ -387,7 +387,7 @@ struct InvadersPlayView: View {
     }
 
     private func start() {
-        game = InvadersGame(seed: seed, speed: speed, waves: waves, firewalls: .edition(store.arcadeEdition))
+        game = InvadersGame(seed: seed, speed: speed, waves: waves)
         seed = .random(in: 0...UInt64.max)
         result = nil
         isPaused = false
@@ -533,16 +533,11 @@ private struct InvadersField: View {
             ground.addLine(to: CGPoint(x: size.width - 8, y: groundY))
             context.stroke(ground, with: .color(Color(red: 1, green: 0.3, blue: 0.3).opacity(0.5)), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
 
-            let racks = game.firewallStyle == .rack
             for wall in game.firewalls {
                 for row in 0..<InvadersGame.Firewall.rows {
                     for column in 0..<InvadersGame.Firewall.columns where wall.isStanding(row: row, column: column) {
-                        if racks {
-                            InvadersArt.drawServerBlock(in: rect(wall.blockFrame(row: row, column: column)), row: row, column: column,
-                                                        columns: InvadersGame.Firewall.columns, context: &context, time: seconds)
-                        } else {
-                            InvadersArt.drawBlock(in: rect(wall.blockFrame(row: row, column: column)), context: &context)
-                        }
+                        InvadersArt.drawServerBlock(in: rect(wall.blockFrame(row: row, column: column)), row: row, column: column,
+                                                    columns: InvadersGame.Firewall.columns, context: &context, time: seconds)
                     }
                 }
             }
