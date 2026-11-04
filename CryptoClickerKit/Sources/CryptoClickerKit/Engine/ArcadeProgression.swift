@@ -169,9 +169,9 @@ extension GameState {
     public func unlockText(_ cosmetic: Cosmetic) -> String {
         switch cosmetic.unlock {
         case .free:
-            return "Free"
+            return localized("Free")
         case .rank(let rank):
-            return "Arcade Rank \(rank)"
+            return localized("Arcade Rank \(rank)")
         case .achievement(let id, let tier):
             let name = AchievementCatalog.all.first { $0.id == id }?.name ?? id
             return "\(name) · \(AchievementCatalog.tierNames[min(max(0, tier), AchievementCatalog.tierNames.count - 1)])"

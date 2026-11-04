@@ -1,11 +1,6 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Opens Tetris with today's pieces: the same for everyone, all day.
-struct TodaysPieces: Hashable {
-    let day: String
-}
-
 struct ArcadeView: View {
     /// Goes up by one each time the Daily page asks to open today's challenge.
     var challengeRequests = 0
@@ -61,11 +56,16 @@ struct ArcadeView: View {
         return store.game.isUnlocked(game) && !challenge.isComplete
     }
 
-    /// Opens the challenge's game; on Block Day, Tetris deals today's pieces.
+    /// Opens the challenge's game, straight into a game where it has a start screen; on Block Day,
+    /// Tetris deals today's pieces.
     private func open(_ challenge: DailyChallenge) {
         guard let game = challenge.kind.game, store.game.isUnlocked(game) else { return }
         if game == .tetris {
-            path.append(TodaysPieces(day: challenge.day))
+            path.append(TetrisRoute.todaysPieces(day: challenge.day))
+        } else if game == .snake {
+            path.append(SnakeRoute.play(.classic))
+        } else if game == .merge2048 {
+            path.append(Merge2048Route.classic) // Puzzle Day asks for a tile in Classic.
         } else if game == .tokenSwap {
             path.append(TokenSwapRoute.classic) // Match Day asks for a Classic score.
         } else if game == .brickBreaker {
@@ -111,8 +111,16 @@ private struct ArcadeDestinations: ViewModifier {
                 case .invaders: InvadersView()
                 }
             }
-            .navigationDestination(for: TodaysPieces.self) { pieces in
-                TetrisView(challengeDay: pieces.day)
+            .navigationDestination(for: TetrisRoute.self) { route in
+                TetrisPlayView(route: route)
+            }
+            .navigationDestination(for: SnakeRoute.self) { route in
+                switch route {
+                case .play(let mode): SnakePlayView(mode: mode)
+                }
+            }
+            .navigationDestination(for: Merge2048Route.self) { route in
+                Merge2048PlayView(route: route)
             }
             .navigationDestination(for: TokenSwapRoute.self) { route in
                 switch route {

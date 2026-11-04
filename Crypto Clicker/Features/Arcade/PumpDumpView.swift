@@ -9,7 +9,6 @@ import CryptoClickerKit
 /// player leaves).
 struct PumpDumpView: View {
     @Environment(GameStore.self) private var store
-    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var game = PumpDumpGame()
@@ -74,24 +73,15 @@ struct PumpDumpView: View {
         .sensoryFeedback(.error, trigger: mistakes) { _, _ in haptics }
         .sensoryFeedback(.success, trigger: roundsCleared) { _, _ in haptics }
         .task(id: isRunning) { await run() }
-        .onChange(of: scenePhase) { _, phase in
-            guard isPlaying else { return }
-            switch phase {
-            case .active:
-                store.releaseArcadeRun()
-            case .background:
-                if game.phase == .playing { isPaused = true }
-                store.holdArcadeRun(ArcadeRun(game: .pumpDump, score: game.score, detail: game.coinsHit,
-                                              extra: game.bestCombo, stage: game.round,
-                                              records: .init(scamsHit: game.scamsHit)))
-            default:
-                if game.phase == .playing { isPaused = true }
-            }
-        }
-        .onDisappear {
-            if isPlaying { endGame() }
-        }
-        .gameScreen(blocksSwipeBack: true)
+        // Between rounds there's nothing running to pause.
+        .arcadeLifecycle(isPlaying: isPlaying, pause: { if game.phase == .playing { isPaused = true } },
+                         heldRun: { heldRun }) { endGame() }
+    }
+
+    /// The game so far, held while the app is in the background.
+    private var heldRun: ArcadeRun {
+        ArcadeRun(game: .pumpDump, score: game.score, detail: game.coinsHit, extra: game.bestCombo, stage: game.round,
+                  records: .init(scamsHit: game.scamsHit))
     }
 
     // MARK: Board
@@ -225,7 +215,7 @@ struct PumpDumpView: View {
             let breaks = game.comboBreaks
             game.advance(by: min(now.timeIntervalSince(last), 0.1), using: &rng)
             last = now
-            for hole in game.escapedHoles { addMark(.escaped, at: hole, text: "Missed") }
+            for hole in game.escapedHoles { addMark(.escaped, at: hole, text: ArcadeEdition.pick("Delisted", classic: "Missed")) }
             noteLostCombo(since: breaks)
             marks.removeAll { game.time - $0.time > 0.8 }
             switch game.phase {
@@ -429,14 +419,18 @@ private struct HoleView: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
-                .fill(.black.opacity(0.35))
-            RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
-                .fill(Theme.loss.opacity(0.55 * flash))
-            Ellipse()
-                .fill(.black.opacity(0.45))
-                .frame(width: size * 0.7, height: size * 0.22)
-                .offset(y: size * 0.3)
+            if ArcadeEdition.current == .crypto {
+                listingSlot
+            } else {
+                RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
+                    .fill(.black.opacity(0.35))
+                RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
+                    .fill(Theme.loss.opacity(0.55 * flash))
+                Ellipse()
+                    .fill(.black.opacity(0.45))
+                    .frame(width: size * 0.7, height: size * 0.22)
+                    .offset(y: size * 0.3)
+            }
             if let target {
                 let warning = target.isWarning(at: time)
                 PumpPiece(look: look(of: target), size: size, isWarning: warning)
@@ -449,6 +443,27 @@ private struct HoleView: View {
             }
         }
         .animation(reduceMotion ? nil : .spring(duration: 0.18), value: target?.id)
+    }
+
+    /// The crypto edition's hole: a listing slot on an exchange board, lit while a coin is listed.
+    @ViewBuilder
+    private var listingSlot: some View {
+        let isListed = target != nil
+        RoundedRectangle(cornerRadius: size * 0.14, style: .continuous)
+            .fill(Color(red: 0.05, green: 0.09, blue: 0.16).opacity(0.85))
+        RoundedRectangle(cornerRadius: size * 0.14, style: .continuous)
+            .fill(Theme.loss.opacity(0.55 * flash))
+        RoundedRectangle(cornerRadius: size * 0.14, style: .continuous)
+            .strokeBorder(isListed ? Color.green.opacity(0.55) : .white.opacity(0.12), lineWidth: 1.5)
+        RoundedRectangle(cornerRadius: size * 0.05, style: .continuous)
+            .fill(.black.opacity(0.55))
+            .frame(width: size * 0.74, height: size * 0.14)
+            .offset(y: size * 0.32)
+        Text(isListed ? "LISTED" : "— — —")
+            .font(.system(size: max(8, size * 0.09), weight: .heavy, design: .monospaced))
+            .foregroundStyle(isListed ? Color.green : .white.opacity(0.3))
+            .offset(y: -size * 0.41)
+            .accessibilityHidden(true)
     }
 
     private func look(of target: PumpDumpGame.Target) -> PumpPiece.Look {

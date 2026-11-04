@@ -1,25 +1,114 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// 2048: swipe anywhere in the play area to slide every tile one way. Two tiles with the
-/// same number merge into their sum, which is added to the score. Points pay coins when the game
-/// ends, and making a 2048 tile pays a bonus on top. The player can end the game whenever they
-/// like to collect; leaving the screen ends it too.
-///
-/// Two modes: Classic goes on until the board locks up, with tile goals to climb and three undos;
-/// the Daily Puzzle gives everyone the same start and tiles for the day, in a fixed number of
-/// moves, with stars for the score.
+/// The screens inside 2048 (Merge Mining in the crypto edition), opened from its start screen.
+enum Merge2048Route: Hashable {
+    /// Goes on until the board locks up, with tile goals to climb and three undos.
+    case classic
+    /// The day's puzzle: the same start and tiles for everyone, in a fixed number of moves.
+    case daily(day: String)
+}
+
+/// Where 2048 opens, like Brick Breaker and Scam Invaders: Classic, the Daily Puzzle and the
+/// settings, each on a card.
 struct Merge2048View: View {
-    enum Kind: Hashable {
-        case classic, daily
+    @Environment(GameStore.self) private var store
+    @AppStorage(Preferences.mergeSlideSpeedKey) private var slideSpeed = GameSpeed.normal
+    @AppStorage(Preferences.mergeValuesKey) private var showsValues = true
+    @State private var showingHelp = false
+
+    var body: some View {
+        let game = store.game
+        let stats = game.stats
+        let tint = MiniGame.merge2048.color
+        let crypto = store.arcadeEdition == .crypto
+        let today = store.today
+        let stars = game.merge2048Daily.stars(on: today)
+        let winner = Merge2048Game.winningValue
+        ScrollView {
+            VStack(spacing: 14) {
+                ModeCard(tint: tint, icon: crypto ? "cpu" : "square.grid.3x3.fill", title: "Classic",
+                         status: stats.merge2048Games == 0
+                            ? (crypto ? "Start with a Chromebook or two" : "Start with two tiles")
+                            : "Best \(CoinFormat.grouped(stats.merge2048BestScore)) · " + (crypto
+                                ? "top miner: \(Merge2048Game.miner(for: stats.merge2048BestTile).name)"
+                                : "top tile \(stats.merge2048BestTile)"),
+                         detail: crypto
+                            ? "Merge miners as far as you can, with goals to climb and \(Merge2048Game.undosPerGame) undos. Building the Lunar Base (\(CoinFormat.grouped(winner))) reaches the Moon: a bonus of \(CoinFormat.short(game.merge2048TileBonus)) coins."
+                            : "Merge as far as you can, with tile goals to climb and \(Merge2048Game.undosPerGame) undos. A \(winner) tile pays a bonus of \(CoinFormat.short(game.merge2048TileBonus)) coins.",
+                         note: nil) {
+                    NavigationLink(value: Merge2048Route.classic) {
+                        Label("Play Classic", systemImage: "play.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glassProminent)
+                }
+                ModeCard(tint: tint, icon: "calendar", title: "Daily Puzzle",
+                         status: stars == 0 ? "No stars yet today" : "\(stars) of 3 stars today · best \(CoinFormat.grouped(game.merge2048Daily.bestScore(on: today)))",
+                         detail: crypto
+                            ? "The same start and miners for everyone today: \(Merge2048Game.dailyMoves) moves, stars at \(starScores). Each star pays \(CoinFormat.short(game.merge2048DailyStarReward)) coins the first time today."
+                            : "The same start and tiles for everyone today: \(Merge2048Game.dailyMoves) moves, stars at \(starScores). Each star pays \(CoinFormat.short(game.merge2048DailyStarReward)) coins the first time today.",
+                         note: nil) {
+                    VStack(spacing: 12) {
+                        StarRow(stars: stars, size: 22)
+                        NavigationLink(value: Merge2048Route.daily(day: today)) {
+                            Label("Play Today's Puzzle", systemImage: "play.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.glassProminent)
+                    }
+                }
+                ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Settings", status: "\(slideSpeed.name) slides",
+                         detail: crypto
+                            ? "How quickly the miners slide, and whether each shows its number under its picture. Neither changes the score."
+                            : "How quickly the tiles slide. It doesn't change the score.",
+                         note: nil) {
+                    VStack(spacing: 12) {
+                        Picker("Slide speed", selection: $slideSpeed) {
+                            ForEach(GameSpeed.allCases) { speed in
+                                Text(speed.name).tag(speed)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        if crypto {
+                            Toggle("Show numbers on miners", isOn: $showsValues)
+                                .font(.body.weight(.semibold))
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+            .frame(maxWidth: 600)
+            .frame(maxWidth: .infinity)
+        }
+        .background { AppBackground(tint: Theme.gold) }
+        .navigationTitle(MiniGame.merge2048.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.merge2048, isPresented: $showingHelp)
     }
 
+    private var starScores: String {
+        Merge2048Game.dailyStarScores.map { CoinFormat.grouped($0) }.formatted(.list(type: .and))
+    }
+}
+
+/// 2048's game: swipe anywhere in the play area to slide every tile one way. Two tiles with the
+/// same number merge into their sum, which is added to the score (in Merge Mining the tiles are
+/// miners, merging up the Shop's ladder). Points pay coins when the game ends, and making a 2048
+/// tile pays a bonus on top. The player can end the game whenever they like to collect; leaving
+/// the screen ends it too.
+///
+/// Two modes, from the start screen: Classic goes on until the board locks up, with tile goals to
+/// climb and three undos; the Daily Puzzle gives everyone the same start and tiles for the day, in
+/// a fixed number of moves, with stars for the score.
+struct Merge2048PlayView: View {
+    let route: Merge2048Route
     @Environment(GameStore.self) private var store
-    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
-    @State private var kind: Kind = .classic
-    @State private var game = Merge2048Game.fresh()
+    @AppStorage(Preferences.mergeSlideSpeedKey) private var slideSpeed = GameSpeed.normal
+    @State private var game: Merge2048Game
     @State private var isPlaying = false
     @State private var result: Merge2048Result?
     @State private var effects = Effects()
@@ -35,6 +124,21 @@ struct Merge2048View: View {
     /// Points just scored, floating up from the score.
     @State private var gains: [ScoreGain] = []
 
+    init(route: Merge2048Route) {
+        self.route = route
+        _game = State(initialValue: Self.newGame(for: route))
+    }
+
+    static func newGame(for route: Merge2048Route) -> Merge2048Game {
+        switch route {
+        case .classic:
+            var rng = SystemRandomNumberGenerator()
+            return Merge2048Game(using: &rng)
+        case .daily(let day):
+            return .daily(day: day)
+        }
+    }
+
     struct GoalBanner: Equatable {
         let id: Int
         let tile: Int
@@ -45,6 +149,13 @@ struct Merge2048View: View {
         let points: Int
     }
 
+    private var crypto: Bool { store.arcadeEdition == .crypto }
+
+    /// The slide's animation, at the speed picked on the start screen.
+    private var slideAnimation: Animation {
+        .easeOut(duration: Merge2048Board.slideDuration(slideSpeed))
+    }
+
     var body: some View {
         withLifecycle(withFeedback(layout))
     }
@@ -52,9 +163,9 @@ struct Merge2048View: View {
     private var layout: some View {
         VStack(spacing: 12) {
             scoreBar
-            Merge2048Board(game: game)
+            Merge2048Board(game: game, slideSpeed: slideSpeed)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("2048 board")
+                .accessibilityLabel("\(MiniGame.merge2048.name) board")
                 .accessibilityValue(boardDescription)
                 .accessibilityAction(named: "Slide up") { slide(.up) }
                 .accessibilityAction(named: "Slide down") { slide(.down) }
@@ -82,7 +193,7 @@ struct Merge2048View: View {
         .overlay { EffectsLayer(effects: effects).ignoresSafeArea() }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
-        .navigationTitle(game.isDaily && isPlaying ? "Daily 2048" : "2048")
+        .navigationTitle(game.isDaily ? "Daily Puzzle" : MiniGame.merge2048.name)
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.merge2048, isPresented: $showingHelp)
         .confirmationDialog(game.isDaily ? "End this puzzle?" : "End this game?", isPresented: $isConfirmingEnd, titleVisibility: .visible) {
@@ -108,22 +219,13 @@ struct Merge2048View: View {
     /// ending it when the screen goes away.
     private func withLifecycle(_ view: some View) -> some View {
         view
-        .onChange(of: scenePhase) { _, phase in
-            guard isPlaying else { return }
-            switch phase {
-            case .active:
-                store.releaseArcadeRun()
-            case .background:
-                store.holdArcadeRun(ArcadeRun(game: .merge2048, score: game.score, detail: game.bestTile,
-                                              stage: game.isDaily ? ArcadeRun.dailyStage : 0))
-            default:
-                break
-            }
-        }
-        .onDisappear {
-            if isPlaying { endGame(byPlayer: true) }
-        }
-        .gameScreen(blocksSwipeBack: true)
+        // Nothing runs between moves, so there's nothing to pause.
+        .arcadeLifecycle(isPlaying: isPlaying, pause: {}, heldRun: { heldRun }) { endGame(byPlayer: true) }
+    }
+
+    /// The game so far, held while the app is in the background.
+    private var heldRun: ArcadeRun {
+        ArcadeRun(game: .merge2048, score: game.score, detail: game.bestTile, stage: game.isDaily ? ArcadeRun.dailyStage : 0)
     }
 
     // MARK: Pieces
@@ -143,7 +245,9 @@ struct Merge2048View: View {
             if let left = game.movesLeft {
                 GameStat(title: "Moves left", value: "\(left)")
             } else {
-                GameStat(title: "Top tile", value: String(game.bestTile))
+                GameStat(title: crypto ? "Top miner" : "Top tile",
+                         value: crypto ? Merge2048Game.miner(for: game.bestTile).emoji + " " + CoinFormat.grouped(game.bestTile)
+                                       : String(game.bestTile))
             }
             Spacer(minLength: 0)
             ArcadeButton(title: "Undo, \(game.undosLeft) left", systemImage: "arrow.uturn.backward", size: 40) {
@@ -179,11 +283,13 @@ struct Merge2048View: View {
             } else if let goal = game.nextGoal {
                 Image(systemName: "target")
                     .foregroundStyle(Theme.gold)
-                Text("Goal: make a")
+                Text(crypto ? "Goal: build the" : "Goal: make a")
                     .font(.subheadline.weight(.semibold))
-                Merge2048TileView(value: goal, side: 26, pops: false)
-                Text("tile")
+                Merge2048TileView(value: goal, side: crypto ? 30 : 26, pops: false)
+                Text(crypto ? Merge2048Game.miner(for: goal).name : "tile")
                     .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
         .foregroundStyle(.subtext)
@@ -207,24 +313,20 @@ struct Merge2048View: View {
                                         reward: result.payout.coins, details: result.details, challenge: result.payout.challenge)
                     }
                 }
-            } else {
-                GamePanel(title: kind == .daily ? "Daily 2048" : "2048", buttonTitle: "Start", action: start) {
+            } else if case .daily(let day) = route {
+                GamePanel(title: "Daily Puzzle", buttonTitle: "Start", action: start) {
                     VStack(spacing: 12) {
-                        Picker("Mode", selection: $kind) {
-                            Text("Classic").tag(Kind.classic)
-                            Text("Daily Puzzle").tag(Kind.daily)
-                        }
-                        .pickerStyle(.segmented)
-                        if kind == .daily {
-                            let today = store.today
-                            StarRow(stars: store.game.merge2048Daily.stars(on: today), size: 22)
-                            GameIntro(best: store.game.merge2048Daily.bestScore(on: today),
-                                      detail: "The same start and tiles for everyone today: \(Merge2048Game.dailyMoves) moves, stars at \(starScores). Each star pays \(CoinFormat.short(store.game.merge2048DailyStarReward)) coins the first time today.")
-                        } else {
-                            GameIntro(best: store.game.stats.merge2048BestScore,
-                                      detail: "A 2048 tile pays a bonus of \(CoinFormat.short(store.game.merge2048TileBonus)) coins.")
-                        }
+                        StarRow(stars: store.game.merge2048Daily.stars(on: day), size: 22)
+                        GameIntro(best: store.game.merge2048Daily.bestScore(on: day),
+                                  detail: "\(Merge2048Game.dailyMoves) moves, stars at \(starScores).")
                     }
+                }
+            } else {
+                GamePanel(title: crypto ? MiniGame.merge2048.name : "Classic", buttonTitle: "Start", action: start) {
+                    GameIntro(best: store.game.stats.merge2048BestScore,
+                              detail: crypto
+                                ? "Build the Lunar Base to reach the Moon: +\(CoinFormat.short(store.game.merge2048TileBonus)) coins."
+                                : "A \(Merge2048Game.winningValue) tile pays a bonus of \(CoinFormat.short(store.game.merge2048TileBonus)) coins.")
                 }
             }
         }
@@ -266,9 +368,10 @@ struct Merge2048View: View {
 
     private var winBanner: some View {
         VStack(spacing: 2) {
-            Text("2048!")
+            Text(crypto ? "🌕 Lunar Base built!" : "2048!")
                 .font(.title2.weight(.heavy))
-            Text("+\(CoinFormat.short(store.game.merge2048TileBonus)) coins when the game ends. Keep going!")
+            Text(crypto ? "You reached the Moon: +\(CoinFormat.short(store.game.merge2048TileBonus)) coins when the game ends. Keep going!"
+                        : "+\(CoinFormat.short(store.game.merge2048TileBonus)) coins when the game ends. Keep going!")
                 .font(.subheadline.weight(.semibold))
                 .multilineTextAlignment(.center)
         }
@@ -283,10 +386,10 @@ struct Merge2048View: View {
 
     private func goalBannerView(_ banner: GoalBanner) -> some View {
         VStack(spacing: 2) {
-            Text("\(banner.tile) made!")
+            Text(crypto ? "\(Merge2048Game.miner(for: banner.tile).name) built!" : "\(banner.tile) made!")
                 .font(.title3.weight(.heavy))
             if let next = Merge2048Game.goalTiles.first(where: { $0 > banner.tile }) {
-                Text("Next goal: \(next)")
+                Text(crypto ? "Next goal: the \(Merge2048Game.miner(for: next).name)" : "Next goal: \(next)")
                     .font(.subheadline.weight(.semibold))
             }
         }
@@ -302,7 +405,9 @@ struct Merge2048View: View {
     /// The board read out row by row, for VoiceOver.
     private var boardDescription: String {
         let rows = game.rows.enumerated().map { index, row in
-            "Row \(index + 1): " + row.map { $0 == 0 ? "empty" : String($0) }.joined(separator: ", ")
+            "Row \(index + 1): " + row.map { value in
+                value == 0 ? "empty" : crypto ? "\(Merge2048Game.miner(for: value).name) \(value)" : String(value)
+            }.joined(separator: ", ")
         }
         var lines = ["Score \(game.score)"]
         if let left = game.movesLeft { lines.append("\(left) moves left") }
@@ -327,7 +432,7 @@ struct Merge2048View: View {
 
     private func start() {
         withAnimation(.snappy(duration: 0.25)) {
-            game = kind == .daily ? .daily(day: store.today) : .fresh()
+            game = Self.newGame(for: route)
         }
         result = nil
         hasWon = false
@@ -344,7 +449,7 @@ struct Merge2048View: View {
         let goal = next.nextGoal
         let scoreBefore = next.score
         guard next.slide(direction) else { return }
-        withAnimation(Merge2048Board.slideAnimation) {
+        withAnimation(slideAnimation) {
             game = next
         }
         showGain(game.score - scoreBefore)
@@ -364,7 +469,7 @@ struct Merge2048View: View {
 
     private func undo() {
         guard isPlaying, game.canUndo else { return }
-        withAnimation(Merge2048Board.slideAnimation) {
+        withAnimation(slideAnimation) {
             _ = game.undo()
         }
     }
@@ -475,27 +580,30 @@ struct Merge2048Result: Equatable {
         return "Game Over"
     }
 
+    /// "top tile 512", or in Merge Mining "top miner: Quantum Computer".
+    private var topTile: String {
+        ArcadeEdition.current == .crypto ? "top miner: \(Merge2048Game.miner(for: bestTile).name)" : "top tile \(bestTile)"
+    }
+
     var details: [String] {
         var lines: [String] = []
         if isDaily {
-            lines.append("\(moves) of \(Merge2048Game.dailyMoves) moves · top tile \(bestTile)")
+            lines.append("\(moves) of \(Merge2048Game.dailyMoves) moves · " + topTile)
             if newStars > 0 {
                 lines.append("Includes \(CoinFormat.short(starCoins)) coins for \(newStars) new \(newStars == 1 ? "star" : "stars")")
             } else if stars > 0 {
                 lines.append("Stars already earned today")
             }
         } else {
-            lines.append("Top tile \(bestTile)" + (undosUsed > 0 ? " · \(undosUsed) \(undosUsed == 1 ? "undo" : "undos")" : ""))
-            if payout.tileBonus > 0 { lines.append("Includes \(CoinFormat.short(payout.tileBonus)) coins for the 2048 tile") }
+            lines.append(topTile.prefix(1).uppercased() + topTile.dropFirst()
+                         + (undosUsed > 0 ? " · \(undosUsed) \(undosUsed == 1 ? "undo" : "undos")" : ""))
+            if payout.tileBonus > 0 {
+                lines.append(ArcadeEdition.current == .crypto
+                             ? "Includes \(CoinFormat.short(payout.tileBonus)) coins for reaching the Moon"
+                             : "Includes \(CoinFormat.short(payout.tileBonus)) coins for the 2048 tile")
+            }
         }
         return lines
-    }
-}
-
-extension Merge2048Game {
-    static func fresh() -> Merge2048Game {
-        var rng = SystemRandomNumberGenerator()
-        return Merge2048Game(using: &rng)
     }
 }
 
@@ -503,9 +611,17 @@ extension Merge2048Game {
 /// slide, a merged tile pops, and a tile that merged away slides into its partner before it goes.
 struct Merge2048Board: View {
     let game: Merge2048Game
+    var slideSpeed = GameSpeed.normal
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    static let slideAnimation = Animation.easeOut(duration: 0.12)
+    /// How long a slide takes at each speed.
+    static func slideDuration(_ speed: GameSpeed) -> Double {
+        switch speed {
+        case .slow: 0.18
+        case .normal: 0.12
+        case .fast: 0.07
+        }
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -548,6 +664,8 @@ struct Merge2048TileView: View {
     let value: Int
     let side: CGFloat
     var pops = true
+    /// Merge Mining shows each miner's number under its picture, unless turned off.
+    @AppStorage(Preferences.mergeValuesKey) private var showsValues = true
 
     var body: some View {
         let style = Self.style(for: value)
@@ -558,12 +676,16 @@ struct Merge2048TileView: View {
                     .strokeBorder(.white.opacity(0.2), lineWidth: 1)
             }
             .overlay {
-                Text(verbatim: String(value))
-                    .font(.system(size: side * Self.fontScale(digits: String(value).count), weight: .heavy, design: .rounded))
-                    .foregroundStyle(style.foreground)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .padding(.horizontal, side * 0.06)
+                if ArcadeEdition.current == .crypto {
+                    miner(style: style)
+                } else {
+                    Text(verbatim: String(value))
+                        .font(.system(size: side * Self.fontScale(digits: String(value).count), weight: .heavy, design: .rounded))
+                        .foregroundStyle(style.foreground)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .padding(.horizontal, side * 0.06)
+                }
             }
             .shadow(color: value >= Merge2048Game.winningValue ? Theme.gold.opacity(0.75) : .clear, radius: side * 0.12)
             .frame(width: side, height: side)
@@ -576,6 +698,24 @@ struct Merge2048TileView: View {
                     SpringKeyframe(1.0, duration: 0.14)
                 }
             }
+    }
+
+    /// Merge Mining's tile: the miner's picture, with its number underneath on tiles big enough.
+    private func miner(style: (background: Color, foreground: Color)) -> some View {
+        let showsNumber = showsValues && side >= 44
+        return VStack(spacing: side * 0.01) {
+            Text(verbatim: Merge2048Game.miner(for: value).emoji)
+                .font(.system(size: side * (showsNumber ? 0.42 : 0.56)))
+                .shadow(color: .black.opacity(0.25), radius: side * 0.02, y: side * 0.01)
+            if showsNumber {
+                Text(verbatim: CoinFormat.grouped(value))
+                    .font(.system(size: side * 0.17, weight: .heavy, design: .rounded))
+                    .foregroundStyle(style.foreground)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .padding(.horizontal, side * 0.06)
+            }
+        }
     }
 
     static func fontScale(digits: Int) -> CGFloat {

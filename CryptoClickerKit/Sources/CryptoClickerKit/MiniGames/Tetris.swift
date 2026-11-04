@@ -69,12 +69,17 @@ public struct TetrisPiece: Equatable, Sendable {
     }
 }
 
-/// Guideline-style Tetris on a 10x20 board: 7-bag randomizer, SRS rotation with wall kicks,
+/// Guideline-style Tetris on a 10-wide board: 7-bag randomizer, SRS rotation with wall kicks,
 /// a ghost piece, a hold slot, one tick of lock delay, and 100/300/500/800 x level line scores.
 /// Clearing lines with piece after piece builds a combo worth 50 x combo x level more each time.
 ///
 /// Two modes: Endless goes on, faster every 10 lines, until the stack tops out; Sprint ends the
 /// moment 40 lines are cleared, as fast as the player can.
+///
+/// The rules come in two editions (`Rules`): the classic 10x20 well, or Block Chain's: a shorter
+/// 10x18 well where, in Endless, every `gasSpikeEvery` pieces a gas spike pushes the stack up a
+/// row from below. The gas row has one gap, under the stack's lowest column, and clearing a row
+/// with gas in it pays a fee on top of the line score.
 public struct TetrisGame: Sendable {
     public enum Mode: Hashable, Sendable {
         case endless
@@ -82,16 +87,47 @@ public struct TetrisGame: Sendable {
         case sprint(lines: Int)
     }
 
+    /// What differs between the classic game and Block Chain.
+    public struct Rules: Hashable, Sendable {
+        /// Rows in the well.
+        public let rows: Int
+        /// Endless games get gas spikes.
+        public let gasSpikes: Bool
+
+        public init(rows: Int, gasSpikes: Bool) {
+            self.rows = rows
+            self.gasSpikes = gasSpikes
+        }
+
+        /// The original rules: a 10x20 well and nothing rising from below.
+        public static let classic = Rules(rows: 20, gasSpikes: false)
+        /// Block Chain's: a 10x18 well, and gas spikes in Endless.
+        public static let blockChain = Rules(rows: 18, gasSpikes: true)
+
+        /// The rules an edition plays.
+        public static func edition(_ edition: ArcadeEdition) -> Rules {
+            edition.pick(.blockChain, classic: .classic)
+        }
+    }
+
     public static let width = 10
-    public static let height = 20
     public static let sprintLines = 40
     static let lineScores = [0, 100, 300, 500, 800]
     /// Points for each step of a combo, times the level.
     public static let comboPoints = 50
+    /// Pieces between gas spikes.
+    public static let gasSpikeEvery = 15
+    /// The fee a cleared row with gas in it pays on top of its line score, times the level.
+    public static let gasFee = 50
+    /// What a gas block holds on the board: not a piece.
+    static let gasCell = 8
 
     public let mode: Mode
     /// How fast pieces fall (the game's Speed option).
     public let speed: GameSpeed
+    public let rules: Rules
+    /// Rows in the well.
+    public var height: Int { rules.rows }
 
     /// Row-major cells; 0 is empty, otherwise the `Tetromino` raw value that settled there.
     public private(set) var board: [Int]
@@ -120,14 +156,32 @@ public struct TetrisGame: Sendable {
     public private(set) var clearedRows: [Int] = []
     /// Counts locked pieces, for effects.
     public private(set) var pieces = 0
+    /// Gas spikes so far, and rows with gas in them cleared.
+    public private(set) var gasSpikes = 0
+    public private(set) var gasRowsCleared = 0
+    /// Picks the gap in each gas row when columns tie: drawn once at the start, so the pieces are
+    /// the same whatever the player does (a daily game deals everyone the same).
+    private let gasSeed: UInt64
     private var groundedTicks = 0
 
-    public init<R: RandomNumberGenerator>(mode: Mode = .endless, speed: GameSpeed = .normal, using rng: inout R) {
+    public init<R: RandomNumberGenerator>(mode: Mode = .endless, speed: GameSpeed = .normal, rules: Rules = .classic,
+                                          using rng: inout R) {
         self.mode = mode
         self.speed = speed
-        board = Array(repeating: 0, count: Self.width * Self.height)
+        self.rules = rules
+        gasSeed = rules.gasSpikes ? rng.next() : 0
+        board = Array(repeating: 0, count: Self.width * rules.rows)
         refillQueue(using: &rng)
         spawn(using: &rng)
+    }
+
+    /// Gas spikes come in this game: Block Chain's Endless.
+    public var hasGasSpikes: Bool { rules.gasSpikes && mode == .endless }
+
+    /// Pieces until the next gas spike (`nil` without them).
+    public var piecesUntilGasSpike: Int? {
+        guard hasGasSpikes else { return nil }
+        return Self.gasSpikeEvery - pieces % Self.gasSpikeEvery
     }
 
     /// Lines still to clear in a Sprint (0 in Endless).
@@ -146,8 +200,13 @@ public struct TetrisGame: Sendable {
 
     /// The piece type settled at a cell, if any.
     public func block(x: Int, y: Int) -> Tetromino? {
-        guard (0..<Self.width).contains(x), (0..<Self.height).contains(y) else { return nil }
+        guard (0..<Self.width).contains(x), (0..<height).contains(y) else { return nil }
         return Tetromino(rawValue: board[y * Self.width + x])
+    }
+
+    /// A gas block from a gas spike sits at the cell.
+    public func isGas(x: Int, y: Int) -> Bool {
+        (0..<Self.width).contains(x) && (0..<height).contains(y) && board[y * Self.width + x] == Self.gasCell
     }
 
     /// Where the current piece would land with a hard drop.
@@ -245,7 +304,7 @@ public struct TetrisGame: Sendable {
 
     func isValid(_ candidate: TetrisPiece) -> Bool {
         candidate.cells.allSatisfy { cell in
-            guard (0..<Self.width).contains(cell.x), cell.y < Self.height else { return false }
+            guard (0..<Self.width).contains(cell.x), cell.y < height else { return false }
             return cell.y < 0 || board[cell.y * Self.width + cell.x] == 0
         }
     }
@@ -275,21 +334,51 @@ public struct TetrisGame: Sendable {
             isOver = true
             return
         }
+        if hasGasSpikes && pieces % Self.gasSpikeEvery == 0 {
+            spikeGas()
+            if isOver { return }
+        }
         spawn(using: &rng)
+    }
+
+    /// Pushes the stack up a row and fills the bottom with gas, leaving a gap under the lowest
+    /// column (the leftmost of the lowest, from a seeded pick, when several tie). A block pushed
+    /// out of the top ends the game.
+    private mutating func spikeGas() {
+        gasSpikes += 1
+        guard board[0..<Self.width].allSatisfy({ $0 == 0 }) else {
+            isOver = true
+            return
+        }
+        var depths: [Int] = []
+        for x in 0..<Self.width {
+            var depth = 0
+            while depth < height && board[depth * Self.width + x] == 0 { depth += 1 }
+            depths.append(depth)
+        }
+        let deepest = depths.max() ?? 0
+        let candidates = (0..<Self.width).filter { depths[$0] == deepest }
+        var mix = SeededGenerator(seed: gasSeed &+ UInt64(gasSpikes) &* 0x9E37_79B9_7F4A_7C15)
+        let gap = candidates[Int(mix.next() % UInt64(candidates.count))]
+        var row = Array(repeating: Self.gasCell, count: Self.width)
+        row[gap] = 0
+        board = Array(board.dropFirst(Self.width)) + row
     }
 
     private mutating func clearLines() {
         var kept: [[Int]] = []
+        var feeRows = 0
         clearedRows = []
-        for row in 0..<Self.height {
+        for row in 0..<height {
             let cells = Array(board[(row * Self.width)..<((row + 1) * Self.width)])
             if cells.contains(0) {
                 kept.append(cells)
             } else {
                 clearedRows.append(row)
+                if cells.contains(Self.gasCell) { feeRows += 1 }
             }
         }
-        let cleared = Self.height - kept.count
+        let cleared = height - kept.count
         guard cleared > 0 else {
             combo = -1
             return
@@ -302,8 +391,10 @@ public struct TetrisGame: Sendable {
         bestCombo = max(bestCombo, combo)
         if cleared >= 4 { tetrises += 1 }
         let comboBonus = Self.comboPoints * combo
-        score += (Self.lineScores[min(cleared, 4)] + comboBonus) * clearLevel
-        rewardPoints += Self.lineScores[min(cleared, 4)] + comboBonus
+        let fee = Self.gasFee * feeRows
+        score += (Self.lineScores[min(cleared, 4)] + comboBonus + fee) * clearLevel
+        rewardPoints += Self.lineScores[min(cleared, 4)] + comboBonus + fee
+        gasRowsCleared += feeRows
         lines += cleared
     }
 
@@ -354,9 +445,20 @@ public struct TetrisGame: Sendable {
     }
 
     #if DEBUG
+    /// Test hook: puts a specific piece in play, leaving the board as it is.
+    mutating func place(_ piece: TetrisPiece) {
+        self.piece = piece
+        groundedTicks = 0
+    }
+
+    /// Test hook: counts this many pieces as locked already.
+    mutating func setPieces(_ count: Int) {
+        pieces = count
+    }
+
     /// Test hook: places settled blocks and a specific piece. The combo starts over unless kept.
     mutating func load(blocks: [GridPoint], piece: TetrisPiece?, keepCombo: Bool = false) {
-        board = Array(repeating: 0, count: Self.width * Self.height)
+        board = Array(repeating: 0, count: Self.width * height)
         for block in blocks { board[block.y * Self.width + block.x] = Tetromino.o.rawValue }
         self.piece = piece
         isOver = false

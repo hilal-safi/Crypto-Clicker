@@ -76,13 +76,13 @@ struct BlackjackView: View {
         .environment(\.cardBack, game.equipped(.cardBack))
         .overlay { EffectsLayer(effects: effects).ignoresSafeArea() }
         .environment(\.colorScheme, .dark)
-        .navigationTitle("Blackjack")
+        .navigationTitle(MiniGame.blackjack.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .gameHelp(.blackjack, isPresented: $showingHelp)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                CoinAmount(amount: game.coins, font: .subheadline.weight(.semibold), iconSize: 16)
+                CoinAmount(amount: store.coins, font: .subheadline.weight(.semibold), iconSize: 16)
                     .padding(.horizontal, 6)
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -417,7 +417,7 @@ private struct HandView: View {
     }
 
     private var total: some View {
-        Text(hand.isBlackjack ? "Blackjack!" : hand.isBust ? "Bust" : "\(hand.isSoft ? "Soft " : "")\(hand.total)")
+        Text(hand.isBlackjack ? ArcadeEdition.pick("Natural 21!", classic: "Blackjack!") : hand.isBust ? "Bust" : "\(hand.isSoft ? "Soft " : "")\(hand.total)")
             .font(.headline.monospacedDigit())
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
@@ -559,7 +559,7 @@ private struct ResultBanner: View {
         let net = results.reduce(0) { $0 + $1.net }
         let isNatural = results.contains { $0.outcome == .blackjack }
         HStack(spacing: 14) {
-            Text(net > 0 ? (isNatural ? "BLACKJACK!" : "YOU WIN!") : net == 0 ? "Push" : "Dealer wins")
+            Text(net > 0 ? (isNatural ? ArcadeEdition.pick("NATURAL 21!", classic: "BLACKJACK!") : "YOU WIN!") : net == 0 ? "Push" : "Dealer wins")
                 .font(.system(size: net > 0 ? 26 : 20, weight: .heavy, design: .rounded))
                 .foregroundStyle(net > 0 ? AnyShapeStyle(Theme.gold.gradient) : AnyShapeStyle(.white))
                 .shadow(color: net > 0 ? Theme.gold.opacity(0.6) : .clear, radius: 10)
@@ -593,7 +593,7 @@ private struct ResultBanner: View {
 extension BlackjackOutcome {
     var title: String {
         switch self {
-        case .blackjack: "Blackjack"
+        case .blackjack: ArcadeEdition.pick("Natural 21", classic: "Blackjack")
         case .win: "Win"
         case .push: "Push"
         case .lose: "Lose"

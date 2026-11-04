@@ -72,13 +72,13 @@ struct VideoPokerView: View {
         .environment(\.cardBack, game.equipped(.cardBack))
         .overlay { EffectsLayer(effects: effects).ignoresSafeArea() }
         .environment(\.colorScheme, .dark)
-        .navigationTitle("Video Poker")
+        .navigationTitle(MiniGame.videoPoker.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .gameHelp(.videoPoker, isPresented: $showingHelp)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                CoinAmount(amount: store.heldCoins ?? game.coins, font: .subheadline.weight(.semibold), iconSize: 16)
+                CoinAmount(amount: store.heldCoins ?? store.coins, font: .subheadline.weight(.semibold), iconSize: 16)
                     .padding(.horizontal, 6)
             }
         }
@@ -223,7 +223,7 @@ struct VideoPokerView: View {
                             .padding(.vertical, 8)
                     }
                     .buttonStyle(.glass)
-                    .accessibilityHint("Holds the cards a strong player would keep")
+                    .accessibilityHint(ArcadeEdition.pick("HODLs the cards a strong player would keep", classic: "Holds the cards a strong player would keep"))
                     Button(action: draw) {
                         Text("DRAW")
                             .font(.title3.weight(.black))
@@ -428,7 +428,7 @@ private struct PokerCardSlot: View {
             }
             .buttonStyle(.plain)
             .allowsHitTesting(canHold) // Not disabled, which would dim the cards between hands.
-            Text("HELD")
+            Text(ArcadeEdition.pick("HODL", classic: "HELD"))
                 .font(.footnote.weight(.black))
                 .tracking(1)
                 .foregroundStyle(.black)
@@ -439,9 +439,9 @@ private struct PokerCardSlot: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(card.map { isFaceUp ? $0.accessibilityName : "Face-down card" } ?? "No card")
-        .accessibilityValue(isHeld ? "Held" : "")
+        .accessibilityValue(isHeld ? ArcadeEdition.pick("HODL", classic: "Held") : "")
         .accessibilityAddTraits(canHold ? .isButton : [])
-        .accessibilityHint(canHold ? (isHeld ? "Lets this card go" : "Holds this card") : "")
+        .accessibilityHint(canHold ? (isHeld ? "Lets this card go" : ArcadeEdition.pick("HODLs this card", classic: "Holds this card")) : "")
         .accessibilityAction {
             if canHold { toggle() }
         }

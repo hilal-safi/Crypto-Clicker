@@ -127,24 +127,30 @@ public enum Market {
             guard let event = newsEvent(token, startingAt: tick - Int64(age)), age < event.ticks else { continue }
             effect += event.strength * (1 - Double(age) / Double(event.ticks))
         }
-        return effect
+        return effect * token.newsWeight
     }
 
     static func headline(_ token: TokenID, isGood: Bool, hash: UInt64) -> String {
         let name = token.name
+        if token == .tether {
+            let stable = isGood
+                ? [localized("Tether holds its peg through a busy day"), localized("Tether reserves pass another audit"), localized("Traders park their gains in Tether")]
+                : [localized("Tether wobbles off its peg for a moment"), localized("Questions about Tether's reserves resurface"), localized("Tether dips a fraction of a cent")]
+            return stable[Int((hash >> 8) % UInt64(stable.count))]
+        }
         let good = [
-            "\(name) soars after a celebrity post",
-            "A major exchange lists \(name)",
-            "Whales are buying \(name)",
-            "\(name) network upgrade goes live",
-            "\(name) trends worldwide",
+            localized("\(name) soars after a celebrity post"),
+            localized("A major exchange lists \(name)"),
+            localized("Whales are buying \(name)"),
+            localized("\(name) network upgrade goes live"),
+            localized("\(name) trends worldwide"),
         ]
         let bad = [
-            "\(name) slips during an exchange outage",
-            "Regulators take a closer look at \(name)",
-            "Whales dump \(name)",
-            "\(name) network stalls for an hour",
-            "Rumours shake \(name) holders",
+            localized("\(name) slips during an exchange outage"),
+            localized("Regulators take a closer look at \(name)"),
+            localized("Whales dump \(name)"),
+            localized("\(name) network stalls for an hour"),
+            localized("Rumours shake \(name) holders"),
         ]
         let headlines = isGood ? good : bad
         return headlines[Int((hash >> 8) % UInt64(headlines.count))]
@@ -153,17 +159,26 @@ public enum Market {
 
 extension TokenID {
     /// How far the price swings, at most about this share either way before news: meme coins
-    /// swing a little more, Bitcoin least. Kept small so prices drift rather than jump.
+    /// swing a little more, Bitcoin least, and Tether, a stablecoin, hardly at all. Kept small so
+    /// prices drift rather than jump.
     var volatility: Double {
         switch self {
         case .shibaInu: 0.24
+        case .tether: 0.006
         case .dogecoin: 0.22
         case .xrp: 0.20
+        case .bnb: 0.17
+        case .monero: 0.19
         case .cardano: 0.20
         case .solana: 0.18
         case .ethereum: 0.15
         case .bitcoin: 0.12
         }
+    }
+
+    /// How hard news moves the price: a stablecoin holds its peg through almost anything.
+    var newsWeight: Double {
+        self == .tether ? 0.05 : 1
     }
 }
 

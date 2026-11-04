@@ -96,6 +96,20 @@ extension Tetromino {
         case .l: .orange
         }
     }
+
+    /// Block Chain's coin chips carry a currency sign in the piece's color: Tether's for the long
+    /// piece, then Dogecoin's, Ethereum's, Solana's, XRP's, Cardano's and Bitcoin's.
+    var coinGlyph: String {
+        switch self {
+        case .i: "₮"
+        case .o: "Ð"
+        case .t: "Ξ"
+        case .s: "◎"
+        case .z: "✕"
+        case .j: "₳"
+        case .l: "₿"
+        }
+    }
 }
 
 // MARK: - Backgrounds

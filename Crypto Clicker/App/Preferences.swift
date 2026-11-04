@@ -15,6 +15,9 @@ enum Preferences {
     static let tapHapticStrengthKey = "tapHapticStrength"
     /// The coin's finish on the Mine tab (a `CoinFinish` raw value).
     static let coinFinishKey = "coinFinish"
+    /// The coin's rim (a `CoinRim` raw value) and what a tap sets off (a `CoinTapEffect` raw value).
+    static let coinRimKey = "coinRim"
+    static let coinTapEffectKey = "coinTapEffect"
     /// Reminders the player turned on.
     static let notifyMinersKey = "notifyMinersStopped"
     static let notifyDailyKey = "notifyDailyReward"
@@ -25,6 +28,8 @@ enum Preferences {
     /// Each action game's Speed option.
     static let brickBreakerSpeedKey = "speed.brickBreaker"
     static let snakeSpeedKey = "speed.snake"
+    /// Snake's arena for Classic games (a `SnakeGame.Arena` raw value).
+    static let snakeArenaKey = "snakeArena"
     static let tetrisSpeedKey = "speed.tetris"
     static let invadersSpeedKey = "speed.invaders"
     /// The difficulty last picked for a random Token Swap level.
@@ -35,6 +40,13 @@ enum Preferences {
     static let incomeChartRangeKey = "incomeChartRange"
     /// The balance shows as a Live Activity on the Lock Screen and in the Dynamic Island.
     static let liveActivityKey = "showsLiveActivity"
+    /// The arcade edition picked in Testing Tools (an `ArcadeEdition` raw value). Only Debug builds
+    /// read it: App Store builds always play the crypto edition.
+    static let arcadeEditionKey = "arcadeEdition"
+    /// Merge Mining shows each miner's number under its picture.
+    static let mergeValuesKey = "merge2048.showsValues"
+    /// How quickly 2048's tiles slide (a `GameSpeed` raw value).
+    static let mergeSlideSpeedKey = "speed.merge2048"
 
     /// Whether the Live Activity is on (it is unless the player turned it off).
     static var showsLiveActivity: Bool {

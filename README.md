@@ -47,65 +47,84 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 - **Daily.** From the second day: a daily reward with a streak that builds to an hour of income on day
   7, and three new quests every day. The first day is for learning to mine, without big handouts.
 - **Daily challenge.** From the second day, each day picks a challenge in one of your games: a score in
-  Tetris (dealt the same pieces for everyone), a tile in 2048, coins in Snake, bricks, bubbles, a Pump
-  and Dump run, a Classic score in Token Swap, invaders shot in Scam Invaders, good hands at the casino
-  (or a natural at Blackjack), or points in three different arcade games.
+  Block Chain (dealt the same pieces for everyone), a miner in Merge Mining, coins in Hash Chain, blocks in
+  Hash Smash, bubbles, a Pump and Dump run, a Classic score in Token Swap, invaders shot in Scam Invaders,
+  good hands at the casino (or a natural 21 at 21 Million), or points in three different arcade games.
   It pays 15 minutes of income, and five in a week pay two hours more.
-- **Tokens.** The Shop's second page. Token prices drift every five minutes, within about a quarter of
-  their usual price, with news that nudges them up or down. Buy tokens (×1, ×10, ×100 or as many as you
-  can afford) to bet or to sell later (selling costs a 10% fee). Tokens reset when you prestige.
+- **Tokens.** The Shop's second page: ten tokens, from Shiba Inu up through Tether, Dogecoin, XRP, BNB,
+  Monero, Cardano, Solana and Ethereum to Bitcoin. Token prices drift every five minutes, within about a
+  quarter of their usual price, with news that nudges them up or down; Tether, a stablecoin, barely moves.
+  Buy tokens (×1, ×10, ×100 or as many as you can afford) to bet or to sell later (selling costs a 10%
+  fee). Tokens reset when you prestige. Each token's picture is a PNG in the app's asset catalog (see
+  [Token pictures](#token-pictures)).
 - **Steps.** After 2,000 taps, connect Apple Health and every step you take, on iPhone or Apple Watch,
   is paid out exactly once, as you walk, and counts toward quests and achievements. Only the game's
   first day waits: its steps are paid the next day, at the step value then, so walking can't skip the
   opening. A step is worth at least one coin and grows with your income.
 - **Apple Watch.** Tap to mine from your wrist, watch your balance tick up live, and see today's steps
   and what they're worth.
-- **Casino.** Bet tokens at Blackjack, Crypto Slots, Video Poker or To the Moon, or switch Blackjack,
-  Video Poker and To the Moon to Practice and play the same game for chips, with nothing at stake.
-  Blackjack has two tables (the Tough dealer hits soft 17, and wins there pay 10% more coins) and an
-  optional coach that outlines the basic-strategy move. Video Poker is Jacks or Better on the classic
-  8/5 table: hold the cards you want and draw once (Hint holds what a strong player would); played
-  well it returns about 97%, and a royal flush pays 800 to 1. Crypto Slots lights up the reels that
+- **Casino.** Bet tokens at 21 Million, Crypto Slots, Diamond Hands or To the Moon, or switch 21 Million,
+  Diamond Hands and To the Moon to Practice and play the same game for chips, with nothing at stake.
+  21 Million (blackjack, named for Bitcoin's 21 million coins) has two tables (the Tough dealer hits soft
+  17, and wins there pay 10% more coins) and an optional coach that outlines the basic-strategy move.
+  Diamond Hands is video poker, Jacks or Better on the classic 8/5 table: HODL the cards you believe in
+  and draw once (Hint HODLs what a strong player would); played well it returns about 97%, and a royal
+  flush pays 800 to 1. Crypto Slots lights up the reels that
   win and shows the bet, payout and net of every spin; a Cardano, a Solana and an Ethereum win three
   free spins, and every tenth Bitcoin on the line pays a collection prize (about 95.6% back over time,
   free spins included). In To the Moon the multiplier climbs up a price chart until the market
   crashes: cash out in time (or set an automatic cash-out), and every target returns 97% on average.
   Wins pay tokens plus a coin bonus, with confetti and a shower of coins. Every round is paid once.
-- **Unlocking games.** The twelve games unlock one at a time. Blackjack and Tetris cost a few thousand
+- **Unlocking games.** The twelve games unlock one at a time. 21 Million and Block Chain cost a few thousand
   coins, and each game after costs several times the one before, up to about one and a half trillion
   for Scam Invaders: a player who keeps playing gets the first two in the first quarter hour and about
   seven in three hours, and one who checks in four times a day gets a new one every half day or so,
   the last around day four, before the first prestige.
-- **Arcade.** Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Pump and Dump, Token Swap and Scam
-  Invaders pay coins for every point, and 50% more for a new best score. Each is tuned so a minute of
-  skilled play pays about two minutes of income.
-  - **Tetris:** Endless or a 40-line Sprint against the clock, with hold, a ghost piece and combos.
-  - **2048:** tile goals to climb (128, 256, 512 and on), three undos a game that can't reroll a
-    tile, and a Daily Puzzle with the same start and tiles for everyone, 150 moves and three stars
-    to earn. Making a 2048 tile pays ten minutes of income on top.
-  - **Snake:** Classic in four arenas or a one-minute Coin Rush, with Speed Boost (coins count
-    double), Slow Motion, Shield and Coin Magnet power-ups.
-  - **Brick Breaker:** armored, explosive and bonus bricks, Multi-ball, Wide Paddle, Slow Ball and
-    Laser power-ups, and a boss with a health bar every fifth level. Its start screen, like Token
-    Swap's, shows the level track (play starts at level 1), Random Walls made up for every game (about
-    as hard and paying about the same) and the ball's speed.
-  - **Bubble Blaster:** waves that add colors and grow deeper, a streak that adds 10% a pop (up to
-    double) and earns Rainbow and Bomb bubbles, gold bonus bubbles, and a ring where the shot will land.
+- **Arcade.** Block Chain, Merge Mining, Hash Chain, Hash Smash, Bubble Market, Pump and Dump, Token Swap
+  and Scam Invaders pay coins for every point, and 50% more for a new best score. Each is tuned so a
+  minute of skilled play pays about two minutes of income. Every action game opens on a start screen
+  of cards, one for each way to play and one for its settings, and the game starts from there.
+  - **Block Chain:** stack coin blocks (round chips in token colors, each with its token's sign) into
+    full rows in a well 18 rows deep. Endless gets faster every 10 rows, and every 15 pieces a gas spike
+    pushes the stack up a row from below, with one gap under your lowest column: clearing a row with gas
+    in it pays a fee on top. Four rows at once is a Full Block. Also Block Rush, 40 rows against the
+    clock, and Today's Pieces, Endless dealt the same for everyone. Hold, a dotted marker where the piece
+    will land, and combos.
+  - **Merge Mining:** slide miners together to upgrade them up the Shop's ladder, from a Chromebook (2)
+    to the Lunar Base (2,048), which reaches the Moon and pays ten minutes of income on top. Goals to
+    climb, three undos a game that can't reroll a miner, and a Daily Puzzle with the same start for
+    everyone, 150 moves and three stars to earn. Its settings pick how fast miners slide and whether
+    each shows its number.
+  - **Hash Chain:** steer a chain of blocks to mine coins, each adding a block. Classic in four arenas
+    (Open, Mining Farm, Exchange Floor and Node Network), shown in miniature on the start screen, or a
+    one-minute Coin Rush, with Lightning (coins count double), Cold Storage, Hardware Wallet and Airdrop
+    Magnet power-ups.
+  - **Hash Smash:** smash hash blocks with the coin ball: cold storage, liquidation (they set off a
+    cascade) and airdrop blocks, Fork, Deep Liquidity, Gas Limit and Hash Rate power-ups, and every fifth
+    level the whale, which dumps red candles that shrink your paddle. Levels from level 1, Random Walls
+    made up for every game (about as hard and paying about the same), and the ball's speed.
+  - **Bubble Market:** fire token bubbles (each color a token, with its sign) to pop three of a kind
+    before the market sinks to the crash line. Waves add tokens and grow deeper, a streak adds 10% a pop
+    (up to double) and earns Stablecoins (they match anything) and Flash Crashes (they wipe out everything
+    nearby), and blue chips pay extra.
   - **Scam Invaders:** rows of meme coins, pump bots and rug pullers march down; drag to move the ship,
-    which fires while your finger is down. Hits in a row add 10% each (up to double), four firewalls
-    crumble block by block, a whale crosses the top with bonus points and a power-up (Rapid Fire,
-    Spread Shot, Laser or Shield), one golden invader a wave pays double, and every fifth wave is the
-    Bear, a boss with a health bar that gives back a lost ship. Each wave starts lower and marches
-    faster. Its start screen, like Brick Breaker's, shows the wave track (play starts at wave 1),
-    Random Waves with a formation made up for every wave (diamonds, arrows, frames, skylines, even
-    one giant invader, with the kinds mixed up, paying about the same) and the speed.
-  - Snake and 2048 are played with swipes anywhere on the screen.
-  - Tetris and Snake have Options for their speed, and Brick Breaker and Scam Invaders set it on their
-    start screens (Slow, Normal or Fast): a point is worth the same at every speed, so Fast scores
-    sooner and Slow is relaxed. Every action game pauses, and a swipe in from the left edge leaves it.
-- **Pump and Dump.** Whack the coins as they pop up, round after round: each 30-second round has a
-  score goal to reach and a bonus objective (a combo, golden coins, or no mistakes), and each is
-  quicker than the last, with more scam tokens and rug pulls (coins with a red rim that shake, then turn).
+    which fires while your finger is down. Hits in a row add 10% each (up to double), four server racks
+    shield you and crumble server by server, a whale crosses the top with bonus points and a power-up
+    (Rapid Fire, Spread Shot, Laser or Shield), one golden invader a wave pays double, and every fifth
+    wave is the Bear, a boss with a health bar that gives back a lost ship. Each wave starts lower and
+    marches faster. Waves from wave 1, Random Waves with a formation made up for every wave (diamonds,
+    arrows, frames, skylines, even one giant invader, paying about the same), and the speed.
+  - Hash Chain and Merge Mining are played with swipes anywhere on the screen.
+  - Block Chain, Hash Chain, Hash Smash and Scam Invaders set their speed on their start screens (Slow,
+    Normal or Fast): a point is worth the same at every speed, so Fast scores sooner and Slow is relaxed.
+    Every action game pauses, and a swipe in from the left edge leaves it.
+  - The games used to be close copies of Tetris, 2048, Snake, Brick Breaker, Bubble Blaster and their
+    casino cousins Blackjack and Video Poker. Debug builds can switch back to those versions in Testing
+    Tools to compare them (see [Testing tools](#testing-tools)); records and rewards are shared.
+- **Pump and Dump.** Tap the coins as they list on an exchange board of nine listing slots, before
+  they're delisted, round after round: each 30-second round has a score goal to reach and a bonus
+  objective (a combo, golden coins, or no mistakes), and each is quicker than the last, with more scam
+  tokens and rug pulls (coins with a red rim that shake, then turn).
 - **Token Swap.** Match-three with crypto tokens, with four specials: a 2×2 square makes a Propeller
   (it flies to what you need), four in a row a Rocket (its row or column), an L or T a Bomb (a 5×5
   blast) and five in a row a Color Clear (a whole color). Swap two specials together to combine them.
@@ -121,12 +140,17 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 - **Arcade Rank.** Finishing games earns XP, with more for a new best, the first game of each kind
   each day, the daily challenge, stars and game achievements (casino rounds earn a little, up to a
   daily cap). Ranks carry titles and, with achievements, unlock looks in Style: card backs, the
-  Blackjack felt, slot reels, Tetris blocks, snake skins and the Scam Invaders ship. XP never pays
-  coins. Playing six different games in a week pays 30 minutes of income once a week, and quests
-  include winning Token Swap levels, clearing Pump and Dump rounds, reaching 2048 tile goals and
-  shooting invaders.
-- **Trophies.** 62 achievements with bronze, silver, gold and mythic tiers, each card glinting in the
-  metal it has earned. Each star adds 1% production forever, and stars unlock new finishes for the coin.
+  21 Million table, slot reels, Block Chain coins, Hash Chain blocks and the Scam Invaders ship. XP
+  never pays coins. Playing six different games in a week pays 30 minutes of income once a week, and
+  quests include winning Token Swap levels, clearing Pump and Dump rounds, reaching Merge Mining goals
+  and shooting invaders.
+- **Trophies.** 65 achievements with bronze, silver, gold and mythic tiers, each card glinting in the
+  metal it has earned. Each star adds 1% production forever, and stars unlock new looks for the coin.
+- **The coin's looks.** In Settings › Appearance, achievement stars unlock three looks for the coin:
+  eight finishes (gold to holographic), eight rims (a glow, neon, a beating pulse, orbiting sparks, a
+  ring of fire, a turning rainbow and glinting diamond facets) and seven tap effects (a ripple, sparks,
+  a burst of little coins, rockets lifting off, lightning and a swirl of hashes), each with a big
+  preview to try it. With Reduce Motion on, the rims hold still and taps set off nothing extra.
   The Goals page lists what to aim for next, each with how close it is: the next miner, the nearest
   milestone, the cheapest upgrade and game, the star closest to done, the next Arcade Rank and Token
   Swap level, and the next prestige.
@@ -153,6 +177,10 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   automatic taps, multipliers and what makes up a tap.
 - **Siri and Shortcuts.** "How many coins do I have in Crypto Clicker?" answers with your balance and
   income, brought up to now, without opening the game.
+- **Languages.** Every piece of text players see sits in String Catalogs, ready to translate: one for the
+  app, the watch and the widgets each (Xcode adds the text from the screens as it builds), and one in
+  CryptoClickerKit for the game's own text (names, rules, quests, achievements), which the kit reads
+  through `localized(…)`. English is the only language so far.
 - **Widgets and the Live Activity.** The Balance widget shows the coin (in your finish) and your balance on
   the Home Screen (small and medium) or the Lock Screen (rectangular, circular or inline), the number
   growing as your miners earn, until they stop. A Live Activity shows the same on the Lock Screen and in
@@ -174,7 +202,8 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
 Crypto Clicker/                 iPhone and iPad app
   App/                          Entry point, GameStore (state, clock, saving), preferences
   Services/                     StepTracker (HealthKit), WatchBridge (WatchConnectivity), notifications, tap sound
-  Design/                       Theme, backgrounds, coin finishes, Liquid Glass cards, shared components
+  Design/                       Theme, backgrounds, coin finishes, rims and tap effects, Liquid Glass
+                                cards, shared components
   Features/                     Mine (with Statistics, the income chart and the journey), Shop (miners,
                                 power-ups, prestige and perks), Exchange (the Shop's Tokens page),
                                 Arcade (twelve games), Trophies (goals, daily and achievements), Settings
@@ -184,14 +213,18 @@ Shared/                         Compiled into the app and the widgets: the Live 
                                 the app group hand-off and the coin's look
 CryptoClickerKit/               Swift package with all game rules, shared by the apps and widgets
   Sources/CryptoClickerKit/
-    Catalog/                    Miners, upgrades, perks, tokens, achievements, coin finishes, and every
-                                balance number (Tuning)
+    Catalog/                    Miners, upgrades, perks, tokens, achievements, coin finishes, rims and
+                                tap effects, the arcade editions, and every balance number (Tuning)
     State/                      GameState, statistics, daily progress and the step ledger (one Codable value)
     Engine/                     Economy, prestige, market, dailies, player actions and achievements
-    MiniGames/                  Blackjack, Slots, Video Poker, To the Moon, Tetris, 2048, Snake, Brick
-                                Breaker, Bubble Blaster, Pump and Dump, Token Swap and Scam Invaders engines
+    MiniGames/                  Engines for 21 Million (blackjack), Slots, Diamond Hands (video poker), To
+                                the Moon, Block Chain, Merge Mining, Hash Chain, Hash Smash, Bubble Market,
+                                Pump and Dump, Token Swap and Scam Invaders
+    Storage/                    The save file: loading, setting aside one that can't be read, saving
+    Resources/                  The kit's String Catalog
     Sync/                       Watch snapshot, tap batches, the widgets' balance snapshot, payload coding
-    Support/                    Number formatting, geometry, forgiving decoding, seedable RNG, stable hashing
+    Support/                    Number formatting, text from the String Catalog, geometry, forgiving
+                                decoding, seedable RNG, stable hashing
   Tests/                        Swift Testing suite (rules, edge cases, simulated-player pacing)
 Config/                         Entitlements (the app and the widgets share an app group)
 ```
@@ -203,7 +236,12 @@ Config/                         Entitlements (the app and the widgets share an a
 - **GameStore** is the app's single `@Observable` model. It credits income on a 5 Hz clock, saves the
   game as an atomic JSON file in Application Support, schedules airdrops, refreshes the market and the
   day's quests, schedules reminders, and connects Apple Health and the watch. Views read `store.game`
-  and call store actions.
+  and call store actions. The game itself only republishes about once a second as the clock ticks (and
+  at once for anything the player does), while the live balance, `store.coins`, changes every tick, so
+  only the screens showing the balance redraw five times a second. It's split by area into
+  `GameStore+Actions`, `+Games`, `+Progress`, `+Services` and `+Debug`; the rules it used to hold (the
+  save file and its recovery, the airdrop schedule, how a returning player is greeted) live in the kit,
+  where they're tested.
 - **Time.** The live clock and returning from the background use the same `advance(to:)` path. No time is
   paid twice or lost. The clock only runs while the app is on screen, so the Offline Mining limit applies
   to the whole absence even when the watch wakes the phone in the background.
@@ -212,6 +250,10 @@ Config/                         Entitlements (the app and the widgets share an a
   challenge and Block Day's Tetris pieces are seeded the same way.
 - **One place per game.** Each mini-game's name, icon, color, price, pitch and pay rate live in
   `MiniGame.info`; its records come from the statistics in one place, so adding a game starts there.
+  Names and pictures follow `ArcadeEdition.current` (the crypto games, or the classic ones in Testing
+  Tools), while each engine is handed its rules (`TetrisGame.Rules`, `InvadersGame.FirewallStyle`), so
+  tests play both editions side by side. Every action game's screen shares one lifecycle helper for
+  pausing, holding a run in the background and paying out on the way out.
 - **Saves move forward.** Prestige values keep the names they were saved under when prestiging was called
   a Hard Fork, and each new save version carries older prestige progress over to the current scale, so
   earlier saves load unchanged.
@@ -286,5 +328,24 @@ Builds run from Xcode (the Debug configuration) include a Testing Tools screen, 
 bottom of the Settings tab. It adds coins (up to 1 sextillion at a time), tokens, miners, upgrades,
 Offline Mining levels, every combo power-up and prestige points, unlocks every mini-game and steps, completes the day's quests or starts a new day (which also brings the dailies forward on the
 first day), starts a Bull Run, drops an airdrop or a whale, and pretends you were away for an hour or
-eight. The screen and its code are compiled out of Release builds, so they never
-reach the App Store.
+eight. Its Arcade Versions switch flips the arcade between the crypto games and the classic versions
+they replaced (Tetris, 2048, Snake, Brick Breaker, Bubble Blaster, Blackjack and Video Poker, with arched
+firewalls and whack-a-mole holes), to compare how they look and play; the choice is remembered in Debug
+builds only. The screen and its code are compiled out of Release builds, so they never reach the App
+Store, which always plays the crypto games.
+
+## Token pictures
+
+Each token's picture is a PNG in `Crypto Clicker/Assets.xcassets`, in an image set named after the
+token. To change one, replace the PNG inside its folder and keep the file name (or drag the new picture
+onto the image set in Xcode):
+
+| Token | Image set | File |
+| --- | --- | --- |
+| Tether | `tether_image.imageset` | `Tether.png` |
+| BNB | `bnb_image.imageset` | `BNB.png` |
+| Monero | `monero_image.imageset` | `Monero.png` |
+
+Tether, BNB and Monero ship with simple placeholder coins until their real pictures go in. A square
+PNG of at least 256 × 256 with a transparent background looks best; the other tokens' sets show the
+same layout.

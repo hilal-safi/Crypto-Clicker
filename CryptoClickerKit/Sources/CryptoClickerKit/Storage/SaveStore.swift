@@ -1,10 +1,10 @@
 import Foundation
-import CryptoClickerKit
 
-/// Reads and writes the game as one small JSON file in Application Support.
-/// Writes are atomic, so a crash mid-save can never leave a half-written file.
-struct SaveStore {
-    enum LoadResult {
+/// Reads and writes the game as one small JSON file. Writes are atomic, so a crash mid-save can
+/// never leave a half-written file. The app keeps it in Application Support; tests use a folder of
+/// their own.
+public struct SaveStore: Sendable {
+    public enum LoadResult: Equatable, Sendable {
         case loaded(GameState)
         /// First launch: there is no save yet.
         case missing
@@ -16,28 +16,27 @@ struct SaveStore {
         case unreadable(backup: URL)
     }
 
-    let url: URL
+    public let url: URL
 
-    init() {
-        let base = URL.applicationSupportDirectory.appending(path: "CryptoClicker", directoryHint: .isDirectory)
-        url = base.appending(path: "game.json", directoryHint: .notDirectory)
+    public init(url: URL) {
+        self.url = url
     }
 
     /// Reads the save. A damaged one is moved aside (never deleted) unless `setsAsideUnreadable` is
     /// false, for a quick look from outside the app (Siri) that must change nothing.
-    func load(setsAsideUnreadable: Bool = true) -> LoadResult {
+    public func load(setsAsideUnreadable: Bool = true, now: Date = .now) -> LoadResult {
         guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else { return .missing }
         guard let data = try? Data(contentsOf: url) else { return .unavailable }
         if let state = try? GameCoding.decoder().decode(GameState.self, from: data) { return .loaded(state) }
         guard setsAsideUnreadable else { return .unreadable(backup: url) }
         // Not a game this version can read: set it aside, never deleted, and let the player decide.
-        let backup = url.deletingPathExtension().appendingPathExtension("unreadable-\(Int(Date.now.timeIntervalSince1970)).json")
+        let backup = url.deletingPathExtension().appendingPathExtension("unreadable-\(Int(now.timeIntervalSince1970)).json")
         guard (try? FileManager.default.moveItem(at: url, to: backup)) != nil else { return .unavailable }
         return .unreadable(backup: backup)
     }
 
     /// Tries a set-aside save again: if it reads now, it goes back into place and is returned.
-    func restore(from backup: URL) -> GameState? {
+    public func restore(from backup: URL) -> GameState? {
         guard let data = try? Data(contentsOf: backup),
               let state = try? GameCoding.decoder().decode(GameState.self, from: data) else { return nil }
         try? FileManager.default.removeItem(at: url)
@@ -45,7 +44,7 @@ struct SaveStore {
         return state
     }
 
-    func save(_ state: GameState) throws {
+    public func save(_ state: GameState) throws {
         let data = try GameCoding.encoder().encode(state)
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try data.write(to: url, options: .atomic)

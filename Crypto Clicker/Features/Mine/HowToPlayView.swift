@@ -68,7 +68,8 @@ private struct HowToChapter: Identifiable {
     let topics: [HowToTopic]
     var id: String { title }
 
-    static let all: [HowToChapter] = [mining, rewards, games, progress, beyondTheApp]
+    /// Worked out each time, since game names follow the arcade edition.
+    static var all: [HowToChapter] { [mining, rewards, games, progress, beyondTheApp] }
 
     private static let mining = HowToChapter(title: "Mining", topics: [
         HowToTopic("hand.tap.fill", "Tap to mine", "Tap the coin to earn coins.", [
@@ -109,7 +110,7 @@ private struct HowToChapter: Identifiable {
         ]),
     ])
 
-    private static let rewards = HowToChapter(title: "Rewards", topics: [
+    private static var rewards: HowToChapter { HowToChapter(title: "Rewards", topics: [
         HowToTopic("shippingbox.fill", "Airdrops", "Every few minutes an airdrop falls: tap it to catch it.", [
             "It holds a pile of coins, or a Bull Run that multiplies production by 7 for a minute.",
             "Now and then a whale swims by instead: up to an hour of income at once.",
@@ -120,9 +121,9 @@ private struct HowToChapter: Identifiable {
             "Three new quests arrive each day.",
         ]),
         HowToTopic("target", "Daily challenge", "From your second day, a challenge a day in one of your games.", [
-            "A Tetris score, a 2048 tile, a Pump and Dump run, a Token Swap score, invaders shot, good casino hands, or points in three arcade games.",
+            "A \(MiniGame.tetris.name) score, a \(MiniGame.merge2048.name) \(ArcadeEdition.pick("miner", classic: "tile")), a Pump and Dump run, a Token Swap score, invaders shot, good casino hands, or points in three arcade games.",
             "Each pays 15 minutes of income, and five in a week (Monday to Sunday) pay two hours more.",
-            "On Block Day, Tetris deals everyone the same pieces.",
+            "On Block Day, \(MiniGame.tetris.name) deals everyone the same pieces.",
         ]),
         HowToTopic("figure.walk", "Steps", "After \(CoinFormat.grouped(Tuning.stepsUnlockTaps)) taps, your steps turn into coins.", [
             "Steps are paid as you walk, and count toward quests and achievements.",
@@ -131,13 +132,14 @@ private struct HowToChapter: Identifiable {
         ]),
         HowToTopic("trophy.fill", "Achievements", "Bronze, silver, gold and mythic stars, in Trophies.", [
             "Every star adds 1% to production for good.",
-            "Stars unlock new finishes for the coin in Settings › Coin Finish.",
+            "Stars unlock finishes, rims and tap effects for the coin in Settings › Appearance.",
         ]),
-    ])
+    ]) }
 
-    private static let games = HowToChapter(title: "Tokens and Games", topics: [
+    private static var games: HowToChapter { HowToChapter(title: "Tokens and Games", topics: [
         HowToTopic("chart.line.uptrend.xyaxis", "Tokens", "Buy and sell crypto in Shop › Tokens.", [
             "Prices drift every five minutes, usually a few percent a day, and news nudges them.",
+            "Tether is a stablecoin: it barely moves, so it's a calm place to keep tokens.",
             "Bet tokens at the casino, or sell them later: selling costs a 10% fee.",
             "Pick ×1, ×10, ×100 or Max to buy and sell in bulk.",
             "Tokens reset when you prestige.",
@@ -148,20 +150,20 @@ private struct HowToChapter: Identifiable {
             "Playing earns XP for your Arcade Rank, and six different games in a week pay half an hour of income.",
             "Every game has a How to Play button with its full rules.",
         ]),
-        HowToTopic("suit.spade.fill", "Casino", "Blackjack, Crypto Slots, Video Poker and To the Moon: bet your tokens.", [
+        HowToTopic("suit.spade.fill", "Casino", "\(MiniGame.blackjack.name), Crypto Slots, \(MiniGame.videoPoker.name) and To the Moon: bet your tokens.", [
             "Wins pay tokens, plus a coin bonus.",
-            "Video Poker: hold the cards you want and draw once. Hint holds what a strong player would.",
+            ArcadeEdition.pick("Diamond Hands: HODL the cards you believe in and draw once. Hint HODLs what a strong player would.",
+                               classic: "Video Poker: hold the cards you want and draw once. Hint holds what a strong player would."),
             "To the Moon: cash out before the market crashes, or set an automatic cash-out.",
         ]),
-        HowToTopic("square.grid.3x3.fill", "More ways to play", "Some games have levels, puzzles and options.", [
-            "Making the 2048 tile pays ten minutes of income on top.",
+        HowToTopic("square.grid.3x3.fill", "More ways to play", "Every action game opens on a start screen of its ways to play and its settings.", [
+            "\(MiniGame.tetris.name): Endless, \(ArcadeEdition.pick("Block Rush", classic: "Sprint")) and today's pieces. \(MiniGame.snake.name): Classic in four arenas, and Coin Rush.",
+            "\(MiniGame.merge2048.name): Classic and the Daily Puzzle. \(ArcadeEdition.pick("Building the Lunar Base", classic: "Making the 2048 tile")) pays ten minutes of income on top.",
             "Token Swap has levels whose stars each pay once, a daily puzzle and random levels.",
-            "Brick Breaker's start screen has its levels, random walls and speed.",
-            "Scam Invaders' start screen has its waves, random formations and speed.",
-            "Snake and Tetris have Options for their speed.",
+            "\(MiniGame.brickBreaker.name) and Scam Invaders have their levels or waves, random ones, and speed.",
             "Swipe in from the left edge to leave a game.",
         ]),
-    ])
+    ]) }
 
     private static let progress = HowToChapter(title: "Progress", topics: [
         HowToTopic("flag.fill", "Goals", "Trophies › Goals shows what to aim for next.", [

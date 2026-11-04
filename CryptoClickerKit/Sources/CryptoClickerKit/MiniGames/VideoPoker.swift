@@ -8,16 +8,16 @@ public enum PokerHand: Int, CaseIterable, Comparable, Codable, Sendable {
 
     public var name: String {
         switch self {
-        case .nothing: "No Win"
-        case .jacksOrBetter: "Jacks or Better"
-        case .twoPair: "Two Pair"
-        case .threeOfAKind: "Three of a Kind"
-        case .straight: "Straight"
-        case .flush: "Flush"
-        case .fullHouse: "Full House"
-        case .fourOfAKind: "Four of a Kind"
-        case .straightFlush: "Straight Flush"
-        case .royalFlush: "Royal Flush"
+        case .nothing: localized("No Win")
+        case .jacksOrBetter: localized("Jacks or Better")
+        case .twoPair: localized("Two Pair")
+        case .threeOfAKind: localized("Three of a Kind")
+        case .straight: localized("Straight")
+        case .flush: localized("Flush")
+        case .fullHouse: localized("Full House")
+        case .fourOfAKind: localized("Four of a Kind")
+        case .straightFlush: localized("Straight Flush")
+        case .royalFlush: localized("Royal Flush")
         }
     }
 

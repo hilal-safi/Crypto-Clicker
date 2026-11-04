@@ -27,18 +27,23 @@ struct RootView: View {
                     howToPlayRequests += 1
                     tab = .settings
                 })
+                // Game names and pictures follow the arcade edition (switched in Testing Tools), so
+                // the tabs that show them start afresh when it changes.
+                .id(store.arcadeEdition)
             }
             Tab("Shop", systemImage: "cart.fill", value: AppTab.shop) {
                 ShopView(powerUpRequests: powerUpRequests, tokenRequests: tokenRequests)
             }
             Tab("Arcade", systemImage: "gamecontroller.fill", value: AppTab.arcade) {
                 ArcadeView(challengeRequests: challengeRequests)
+                    .id(store.arcadeEdition)
             }
             Tab("Trophies", systemImage: "trophy.fill", value: AppTab.trophies) {
                 TrophiesView(dailyRequests: dailyRequests, openChallenge: {
                     challengeRequests += 1
                     tab = .arcade
                 })
+                .id(store.arcadeEdition)
             }
             .badge(store.dailyBadgeCount)
             Tab("Settings", systemImage: "gearshape.fill", value: AppTab.settings) {
@@ -142,13 +147,13 @@ struct BalanceAccessory: View {
         .font(.subheadline.weight(.semibold).monospacedDigit())
         .lineLimit(1)
         .padding(.horizontal, 16)
-        .animation(.snappy, value: game.coins)
+        .animation(.snappy, value: store.coins)
     }
 
     private func figures(_ game: GameState, at now: Date) -> some View {
         let income = game.idleIncome(at: now)
         let rate = exactNumbers ? CoinFormat.exactRate(income) : CoinFormat.rate(income)
-        let balance = store.heldCoins ?? game.coins
+        let balance = store.heldCoins ?? store.coins
         return HStack(spacing: 12) {
             Button {
                 withAnimation(.snappy) { exactNumbers.toggle() }

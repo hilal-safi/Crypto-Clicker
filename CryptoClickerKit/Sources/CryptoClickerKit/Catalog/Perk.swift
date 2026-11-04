@@ -7,6 +7,15 @@ public enum PerkBranch: String, CaseIterable, Sendable, Identifiable {
     case fortune = "Fortune"
 
     public var id: String { rawValue }
+
+    /// The branch's name in the player's language.
+    public var name: String {
+        switch self {
+        case .mining: localized("Mining")
+        case .tapping: localized("Tapping")
+        case .fortune: localized("Fortune")
+        }
+    }
 }
 
 /// Permanent perks bought with prestige points. Spending points never lowers the production
@@ -20,43 +29,43 @@ public enum PerkID: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var name: String {
         switch self {
-        case .headStart: "Head Start"
-        case .blueprints: "Blueprints"
-        case .bulkDiscount: "Bulk Discount"
-        case .engineeringTeam: "Engineering Team"
-        case .compoundInterest: "Compound Interest"
-        case .strongFingers: "Strong Fingers"
-        case .muscleMemory: "Muscle Memory"
-        case .comboMaster: "Combo Master"
-        case .autoClickerPro: "Auto Clicker Pro"
-        case .airdropRadar: "Airdrop Radar"
-        case .bullMarket: "Bull Market"
-        case .whaleWatcher: "Whale Watcher"
-        case .marketInsider: "Market Insider"
-        case .arcadeChampion: "Arcade Champion"
-        case .marathon: "Marathon"
-        case .luckyStreak: "Lucky Streak"
+        case .headStart: localized("Head Start")
+        case .blueprints: localized("Blueprints")
+        case .bulkDiscount: localized("Bulk Discount")
+        case .engineeringTeam: localized("Engineering Team")
+        case .compoundInterest: localized("Compound Interest")
+        case .strongFingers: localized("Strong Fingers")
+        case .muscleMemory: localized("Muscle Memory")
+        case .comboMaster: localized("Combo Master")
+        case .autoClickerPro: localized("Auto Clicker Pro")
+        case .airdropRadar: localized("Airdrop Radar")
+        case .bullMarket: localized("Bull Market")
+        case .whaleWatcher: localized("Whale Watcher")
+        case .marketInsider: localized("Market Insider")
+        case .arcadeChampion: localized("Arcade Champion")
+        case .marathon: localized("Marathon")
+        case .luckyStreak: localized("Lucky Streak")
         }
     }
 
     public var summary: String {
         switch self {
-        case .headStart: "Start every run with 10 Chromebooks, 10 Desktops and 5 GPU Rigs"
-        case .blueprints: "Keep production upgrades when you prestige"
-        case .bulkDiscount: "Miners cost 10% less"
-        case .engineeringTeam: "Keep miner Mk upgrades when you prestige"
-        case .compoundInterest: "Every achievement star adds 2% production instead of 1%"
-        case .strongFingers: "Taps earn 50% more"
-        case .muscleMemory: "Keep tapping upgrades when you prestige"
-        case .comboMaster: "Combos build twice as fast and reach at least ×3"
-        case .autoClickerPro: "Automatic taps are worth 50% of a tap"
-        case .airdropRadar: "Airdrops come every 2–4 minutes and stay for 30 seconds"
-        case .bullMarket: "Bull Runs last 2 minutes"
-        case .whaleWatcher: "Whale airdrops are three times as likely"
-        case .marketInsider: "Sell tokens with no fee"
-        case .arcadeChampion: "Mini-game and casino coin rewards ×1.5"
-        case .marathon: "Steps earn ×2"
-        case .luckyStreak: "Daily quest and streak rewards ×2"
+        case .headStart: localized("Start every run with 10 Chromebooks, 10 Desktops and 5 GPU Rigs")
+        case .blueprints: localized("Keep production upgrades when you prestige")
+        case .bulkDiscount: localized("Miners cost 10% less")
+        case .engineeringTeam: localized("Keep miner Mk upgrades when you prestige")
+        case .compoundInterest: localized("Every achievement star adds 2% production instead of 1%")
+        case .strongFingers: localized("Taps earn 50% more")
+        case .muscleMemory: localized("Keep tapping upgrades when you prestige")
+        case .comboMaster: localized("Combos build twice as fast and reach at least ×3")
+        case .autoClickerPro: localized("Automatic taps are worth 50% of a tap")
+        case .airdropRadar: localized("Airdrops come every 2–4 minutes and stay for 30 seconds")
+        case .bullMarket: localized("Bull Runs last 2 minutes")
+        case .whaleWatcher: localized("Whale airdrops are three times as likely")
+        case .marketInsider: localized("Sell tokens with no fee")
+        case .arcadeChampion: localized("Mini-game and casino coin rewards ×1.5")
+        case .marathon: localized("Steps earn ×2")
+        case .luckyStreak: localized("Daily quest and streak rewards ×2")
         }
     }
 

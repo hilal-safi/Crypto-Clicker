@@ -39,12 +39,12 @@ extension GameState {
         guard let miner = MinerID.allCases.first(where: { owned($0) == 0 }) else { return nil }
         if isRevealed(miner) {
             let price = price(of: miner, quantity: 1)
-            return Goal(.miner, "Buy \(miner.article) \(miner.name)",
-                        "Mines \(CoinFormat.rate(rate(ofOneMore: miner))) a second · \(CoinFormat.short(price)) coins",
+            return Goal(.miner, localized("Buy \(miner.article) \(miner.name)"),
+                        localized("Mines \(CoinFormat.rate(rate(ofOneMore: miner))) a second · \(CoinFormat.short(price)) coins"),
                         progress: coins / price)
         }
         if miner.needsPrestige && stats.prestiges == 0 {
-            return Goal(.miner, "Prestige to reveal the \(miner.name)", "Three new miners appear after the first prestige",
+            return Goal(.miner, localized("Prestige to reveal the \(miner.name)"), localized("Three new miners appear after the first prestige"),
                         progress: Double(claimablePrestigePoints) / Double(prestigePointsToRecommend))
         }
         return nil
@@ -60,8 +60,8 @@ extension GameState {
         guard let best = candidates.min(by: { $0.left < $1.left }) else { return nil }
         let count = owned(best.miner)
         let previous = Tuning.milestones.last { $0 <= count } ?? 0
-        return Goal(.milestone, "Own \(CoinFormat.grouped(best.next)) \(best.miner.pluralName)",
-                    "\(CoinFormat.grouped(best.left)) more doubles what they mine",
+        return Goal(.milestone, localized("Own \(CoinFormat.grouped(best.next)) \(best.miner.pluralName)"),
+                    localized("\(CoinFormat.grouped(best.left)) more doubles what they mine"),
                     progress: Double(count - previous) / Double(max(1, best.next - previous)))
     }
 
@@ -69,7 +69,7 @@ extension GameState {
     private var upgradeGoal: Goal? {
         let offered = UpgradeID.allCases.filter { !upgrades.contains($0) && isRevealed($0) && $0.category != .steps }
         guard let upgrade = offered.min(by: { $0.cost < $1.cost }) else { return nil }
-        return Goal(.upgrade, "Buy \(upgrade.name)", "\(CoinFormat.short(upgrade.cost)) coins in the Shop",
+        return Goal(.upgrade, localized("Buy \(upgrade.name)"), localized("\(CoinFormat.short(upgrade.cost)) coins in the Shop"),
                     progress: coins / upgrade.cost)
     }
 
@@ -78,7 +78,7 @@ extension GameState {
         guard let game = MiniGame.allCases.filter({ !isUnlocked($0) }).min(by: { $0.unlockCost < $1.unlockCost }) else {
             return nil
         }
-        return Goal(.game, "Unlock \(game.name)", "\(CoinFormat.short(game.unlockCost)) coins in the Arcade",
+        return Goal(.game, localized("Unlock \(game.name)"), localized("\(CoinFormat.short(game.unlockCost)) coins in the Arcade"),
                     progress: coins / game.unlockCost)
     }
 
@@ -97,7 +97,7 @@ extension GameState {
         let tier = AchievementCatalog.tierNames[min(tiersEarned(achievement), AchievementCatalog.tierNames.count - 1)]
         let next = nextThreshold(achievement) ?? closest.value
         return Goal(.achievement, "\(tier) star: \(achievement.name)",
-                    "\(achievement.detail): \(CoinFormat.short(closest.value)) of \(CoinFormat.short(next))",
+                    localized("\(achievement.detail): \(CoinFormat.short(closest.value)) of \(CoinFormat.short(next))"),
                     progress: closest.share)
     }
 
@@ -105,8 +105,8 @@ extension GameState {
     private var arcadeRankGoal: Goal? {
         guard !unlockedGames.isEmpty else { return nil }
         let progress = arcadeRankProgress
-        return Goal(.arcadeRank, "Arcade Rank \(arcadeRank + 1)",
-                    "\(CoinFormat.grouped(max(0, progress.needed - progress.xp))) XP to go · playing games earns XP",
+        return Goal(.arcadeRank, localized("Arcade Rank \(arcadeRank + 1)"),
+                    localized("\(CoinFormat.grouped(max(0, progress.needed - progress.xp))) XP to go · playing games earns XP"),
                     progress: Double(progress.xp) / Double(max(1, progress.needed)))
     }
 
@@ -114,23 +114,23 @@ extension GameState {
     private var tokenSwapGoal: Goal? {
         guard isUnlocked(.tokenSwap), tokenSwap.levelsWon < TokenSwapLevel.all.count,
               let level = TokenSwapLevel.number(tokenSwap.nextLevel) else { return nil }
-        return Goal(.tokenSwap, "Win Token Swap level \(level.id)", "\(level.name): its first star pays coins",
+        return Goal(.tokenSwap, localized("Win Token Swap level \(level.id)"), localized("\(level.name): its first star pays coins"),
                     progress: Double(tokenSwap.levelsWon) / Double(TokenSwapLevel.all.count))
     }
 
     /// Prestige points: the first one, then the prestige the Shop suggests.
     private var prestigeGoal: Goal? {
         if isPrestigeRecommended {
-            return Goal(.prestige, "Prestige for \(CoinFormat.grouped(claimablePrestigePoints)) points",
-                        "Production \(CoinFormat.multiplier(prestigeSpeedUp)) as fast afterwards", progress: 1)
+            return Goal(.prestige, localized("Prestige for \(CoinFormat.grouped(claimablePrestigePoints)) points"),
+                        localized("Production \(CoinFormat.multiplier(prestigeSpeedUp)) as fast afterwards"), progress: 1)
         }
         if claimablePrestigePoints == 0 {
-            return Goal(.prestige, prestigePoints == 0 ? "Your first prestige point" : "Your next prestige point",
-                        "At \(CoinFormat.short(nextPrestigePointAt)) coins mined in all",
+            return Goal(.prestige, prestigePoints == 0 ? localized("Your first prestige point") : localized("Your next prestige point"),
+                        localized("At \(CoinFormat.short(nextPrestigePointAt)) coins mined in all"),
                         progress: stats.lifetimeCoins / nextPrestigePointAt)
         }
-        return Goal(.prestige, "A prestige worth \(CoinFormat.grouped(prestigePointsToRecommend)) points",
-                    "\(CoinFormat.grouped(claimablePrestigePoints)) ready now; the Shop suggests prestiging at \(CoinFormat.grouped(prestigePointsToRecommend))",
+        return Goal(.prestige, localized("A prestige worth \(CoinFormat.grouped(prestigePointsToRecommend)) points"),
+                    localized("\(CoinFormat.grouped(claimablePrestigePoints)) ready now; the Shop suggests prestiging at \(CoinFormat.grouped(prestigePointsToRecommend))"),
                     progress: Double(claimablePrestigePoints) / Double(prestigePointsToRecommend))
     }
 

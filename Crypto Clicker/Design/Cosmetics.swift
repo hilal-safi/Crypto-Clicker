@@ -56,6 +56,41 @@ extension Cosmetic {
         }
     }
 
+    /// Block Chain's coin chips, the crypto edition's look for the Classic skin: a coin in the
+    /// piece's token color on a tinted square, with a rim, a shine and the token's sign.
+    static func drawCoinChip(_ color: Color, in frame: CGRect, cell: CGFloat, glyph: GraphicsContext.ResolvedText?,
+                             context: inout GraphicsContext) {
+        context.fill(Path(roundedRect: frame.insetBy(dx: 0.5, dy: 0.5), cornerRadius: cell * 0.14), with: .color(color.opacity(0.28)))
+        let coin = frame.insetBy(dx: cell * 0.06, dy: cell * 0.06)
+        let disc = Path(ellipseIn: coin)
+        context.fill(disc, with: .color(color))
+        context.stroke(Path(ellipseIn: coin.insetBy(dx: cell * 0.13, dy: cell * 0.13)), with: .color(.white.opacity(0.5)),
+                       lineWidth: max(0.8, cell * 0.05))
+        context.stroke(disc, with: .color(.black.opacity(0.35)), lineWidth: max(0.8, cell * 0.05))
+        let shine = CGRect(x: coin.minX + coin.width * 0.2, y: coin.minY + coin.height * 0.12,
+                           width: coin.width * 0.36, height: coin.height * 0.18)
+        context.fill(Path(ellipseIn: shine), with: .color(.white.opacity(0.35)))
+        if let glyph, cell >= 14 {
+            context.draw(glyph, at: CGPoint(x: coin.midX, y: coin.midY + cell * 0.02))
+        }
+    }
+
+    /// The sign drawn on a coin chip, sized for `cell`.
+    static func coinGlyph(_ kind: Tetromino, cell: CGFloat, context: GraphicsContext) -> GraphicsContext.ResolvedText {
+        context.resolve(Text(kind.coinGlyph).font(.system(size: cell * 0.42, weight: .heavy, design: .rounded))
+            .foregroundStyle(.white.opacity(0.92)))
+    }
+
+    /// Draws one piece's block in this skin, or as a coin chip where Block Chain uses them (its
+    /// Classic skin, in the crypto edition).
+    func drawPiece(_ kind: Tetromino, in frame: CGRect, cell: CGFloat, edition: ArcadeEdition, context: inout GraphicsContext) {
+        if edition == .crypto && self == .tetrisClassic {
+            Self.drawCoinChip(kind.color, in: frame, cell: cell, glyph: Self.coinGlyph(kind, cell: cell, context: context), context: &context)
+        } else {
+            drawBlock(kind.color, in: frame, cell: cell, context: &context)
+        }
+    }
+
     /// Draws one Tetris block in `frame`, in this skin: classic rounded tiles, flat pixel squares
     /// with a bevel, or see-through glass with a shine.
     func drawBlock(_ color: Color, in frame: CGRect, cell: CGFloat, context: inout GraphicsContext) {
@@ -124,10 +159,10 @@ struct CosmeticPreview: View {
             case .tetris:
                 Canvas { context, size in
                     let cell = size.width / 3
-                    let colors: [Color] = [.cyan, .purple, .orange, .yellow]
+                    let kinds: [Tetromino] = [.i, .t, .l, .o]
                     for (index, spot) in [(0, 1), (1, 1), (2, 1), (1, 0)].enumerated() {
                         let frame = CGRect(x: CGFloat(spot.0) * cell, y: CGFloat(spot.1) * cell + cell / 2, width: cell, height: cell)
-                        cosmetic.drawBlock(colors[index], in: frame, cell: cell, context: &context)
+                        cosmetic.drawPiece(kinds[index], in: frame, cell: cell, edition: .current, context: &context)
                     }
                 }
                 .frame(width: 48, height: 48)

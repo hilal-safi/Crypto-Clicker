@@ -208,7 +208,7 @@ struct DailyChallengeTests {
         let challenge = try #require(game.dailyChallenge(today: "2026-10-26"))
         #expect(challenge.kind == .snake)
         #expect(DailyChallengeKind.snake.targets.contains(challenge.target))
-        #expect(challenge.goal == "Eat \(challenge.target) coins in one Snake game")
+        #expect(challenge.goal == "Mine \(challenge.target) coins in one Hash Chain game")
         // Asking again the same day changes nothing, even with more games unlocked.
         game.unlockedGames.insert(.tetris)
         #expect(!game.needsDailyRefresh(today: "2026-10-26"))
@@ -289,7 +289,7 @@ struct DailyChallengeTests {
         game.settleBlackjack([BlackjackResult(outcome: .blackjack, bet: 1, payout: 3)], token: .dogecoin)
         #expect(game.daily.challenge?.isComplete == true)
         #expect(DailyChallengeKind.blackjackNatural.game == .blackjack)
-        #expect(DailyChallengeKind.blackjackNatural.goal(target: 1) == "Deal yourself a natural blackjack today")
+        #expect(DailyChallengeKind.blackjackNatural.goal(target: 1) == "Deal yourself a natural 21 today")
     }
 
     @Test func blackjackDaysAskForWinsOrANaturalButNoMoreOftenThanOtherGames() {

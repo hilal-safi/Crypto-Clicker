@@ -56,12 +56,16 @@ public struct BrickBreakerGame: Sendable {
     public enum PowerUp: String, CaseIterable, Sendable {
         case multiBall, widePaddle, slowBall, laser
 
-        public var name: String {
+        public var name: String { name(in: .current) }
+
+        /// Hash Smash's power-ups: a Fork splits the ball, Deep Liquidity widens the paddle, a Gas
+        /// Limit slows the ball and Hash Rate fires bolts.
+        public func name(in edition: ArcadeEdition) -> String {
             switch self {
-            case .multiBall: "Multi-ball"
-            case .widePaddle: "Wide Paddle"
-            case .slowBall: "Slow Ball"
-            case .laser: "Laser"
+            case .multiBall: edition.pick(localized("Fork"), classic: localized("Multi-ball"))
+            case .widePaddle: edition.pick(localized("Deep Liquidity"), classic: localized("Wide Paddle"))
+            case .slowBall: edition.pick(localized("Gas Limit"), classic: localized("Slow Ball"))
+            case .laser: edition.pick(localized("Hash Rate"), classic: localized("Laser"))
             }
         }
 
@@ -100,15 +104,15 @@ public struct BrickBreakerGame: Sendable {
 
         public var name: String {
             switch self {
-            case .classic: "Classic"
-            case .generated: "Random"
+            case .classic: localized("Classic")
+            case .generated: localized("Random")
             }
         }
 
         public var summary: String {
             switch self {
-            case .classic: "A plain wall first, then eight familiar shapes."
-            case .generated: "A new wall made up for every level: blobs, waves, rings, skylines and more, never the same twice."
+            case .classic: localized("A plain wall first, then eight familiar shapes.")
+            case .generated: localized("A new wall made up for every level: blobs, waves, rings, skylines and more, never the same twice.")
             }
         }
     }

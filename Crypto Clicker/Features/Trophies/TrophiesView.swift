@@ -17,6 +17,15 @@ struct TrophiesView: View {
         case achievements = "Achievements"
 
         var id: Self { self }
+
+        /// The page's name, from the String Catalog.
+        var title: LocalizedStringResource {
+            switch self {
+            case .goals: "Goals"
+            case .daily: "Daily"
+            case .achievements: "Achievements"
+            }
+        }
     }
 
     private let columns = [GridItem(.adaptive(minimum: 160), spacing: 12)]
@@ -28,9 +37,14 @@ struct TrophiesView: View {
                 VStack(spacing: 12) {
                     Picker("Page", selection: $page) {
                         ForEach(Page.allCases) { page in
-                            Text(page == .daily && store.dailyBadgeCount > 0
-                                 ? "\(page.rawValue) (\(store.dailyBadgeCount))" : page.rawValue)
-                                .tag(page)
+                            Group {
+                                if page == .daily && store.dailyBadgeCount > 0 {
+                                    Text("\(Text(page.title)) (\(store.dailyBadgeCount))")
+                                } else {
+                                    Text(page.title)
+                                }
+                            }
+                            .tag(page)
                         }
                     }
                     .pickerStyle(.segmented)

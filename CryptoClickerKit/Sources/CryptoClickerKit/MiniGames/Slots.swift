@@ -34,6 +34,7 @@ public enum SlotMachine {
         case .solana: 40
         case .ethereum: 100
         case .bitcoin: 500
+        case .tether, .bnb, .monero: 0 // Not on the reels.
         }
     }
 

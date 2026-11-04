@@ -1,13 +1,13 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Bubble Blaster: drag on the field to aim (a guide shows the bounce and a ring marks where the
-/// bubble will stick), lift to fire. Tap the loaded bubble to swap it with the next one.
+/// Bubble Blaster (Bubble Market in the crypto edition, with token bubbles and a crash line): drag
+/// on the field to aim (a guide shows the bounce and a ring marks where the bubble will stick),
+/// lift to fire. Tap the loaded bubble to swap it with the next one.
 struct BubbleBlasterView: View {
     typealias Special = BubbleShooterGame.Special
 
     @Environment(GameStore.self) private var store
-    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var game = BubbleShooterGame.fresh()
@@ -79,7 +79,7 @@ struct BubbleBlasterView: View {
         }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
-        .navigationTitle("Bubble Blaster")
+        .navigationTitle(MiniGame.bubbleBlaster.name)
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.bubbleBlaster, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
@@ -108,30 +108,19 @@ struct BubbleBlasterView: View {
     /// the game when the screen goes away.
     private func withLifecycle(_ view: some View) -> some View {
         view
-            .onChange(of: scenePhase) { _, phase in
-                guard isPlaying else { return }
-                switch phase {
-                case .active:
-                    store.releaseArcadeRun()
-                case .background:
-                    isPaused = true
-                    store.holdArcadeRun(ArcadeRun(game: .bubbleBlaster, score: game.score, detail: game.popped,
-                                                  extra: game.bestClear, stage: game.wave,
-                                                  records: .init(bestStreak: game.bestStreak, bonuses: game.bonusesCollected)))
-                default:
-                    isPaused = true
-                }
-            }
             .onChange(of: isRunning) { _, _ in lastFrame = nil }
-            .onDisappear {
-                if isPlaying { endGame() }
-            }
-            .gameScreen(blocksSwipeBack: true)
+            .arcadeLifecycle(isPlaying: isPlaying, pause: { isPaused = true }, heldRun: { heldRun }) { endGame() }
+    }
+
+    /// The game so far, held while the app is in the background.
+    private var heldRun: ArcadeRun {
+        ArcadeRun(game: .bubbleBlaster, score: game.score, detail: game.popped, extra: game.bestClear, stage: game.wave,
+                  records: .init(bestStreak: game.bestStreak, bonuses: game.bonusesCollected))
     }
 
     private var field: some View {
         TimelineView(.animation(minimumInterval: nil, paused: !isRunning || game.shot == nil)) { timeline in
-            BubbleField(game: game, guide: game.shot == nil ? aim.map(aimGuide) : nil)
+            BubbleField(game: game, guide: game.shot == nil ? aim.map(aimGuide) : nil, edition: store.arcadeEdition)
                 .onChange(of: timeline.date) { _, date in advance(to: date) }
         }
         .aspectRatio(BubbleShooterGame.width / BubbleShooterGame.height, contentMode: .fit)
@@ -146,7 +135,8 @@ struct BubbleBlasterView: View {
             GeometryReader { proxy in
                 if let blast {
                     let scale = proxy.size.width / BubbleShooterGame.width
-                    BlastRing(diameter: (BubbleShooterGame.bombRadius * 2 + 1) * scale, reduceMotion: reduceMotion)
+                    BlastRing(diameter: (BubbleShooterGame.bombRadius * 2 + 1) * scale, reduceMotion: reduceMotion,
+                              color: blastColor)
                         .position(x: blast.position.x * scale, y: blast.position.y * scale)
                         .id(blast.id)
                 }
@@ -155,8 +145,17 @@ struct BubbleBlasterView: View {
         }
         .overlay { EffectsLayer(effects: effects) }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Bubble field")
+        .accessibilityLabel(fieldLabel)
         .accessibilityValue(accessibilityValue)
+    }
+
+    private var fieldLabel: String {
+        store.arcadeEdition == .crypto ? "Bubble market" : "Bubble field"
+    }
+
+    /// A Bomb's shock wave is orange; a Flash Crash's red.
+    private var blastColor: Color {
+        store.arcadeEdition == .crypto ? Theme.loss : .orange
     }
 
     private var accessibilityValue: String {
@@ -233,7 +232,7 @@ struct BubbleBlasterView: View {
                                     details: summary(result), challenge: result.game.challenge)
                 }
             } else {
-                GamePanel(title: "Bubble Blaster", buttonTitle: "Start", action: start) {
+                GamePanel(title: MiniGame.bubbleBlaster.name, buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.bubbleBestScore)
                 }
             }
@@ -243,7 +242,11 @@ struct BubbleBlasterView: View {
     private func summary(_ result: BubbleResult) -> [String] {
         var lines = ["\(CoinFormat.grouped(result.game.detail)) bubbles popped · wave \(result.wave)"]
         if result.bestStreak > 1 { lines.append("Best streak: \(result.bestStreak) pops in a row") }
-        if result.bonuses > 0 { lines.append("\(result.bonuses) gold \(result.bonuses == 1 ? "bubble" : "bubbles")") }
+        if result.bonuses > 0 {
+            lines.append(store.arcadeEdition == .crypto
+                         ? "\(result.bonuses) blue \(result.bonuses == 1 ? "chip" : "chips")"
+                         : "\(result.bonuses) gold \(result.bonuses == 1 ? "bubble" : "bubbles")")
+        }
         return lines
     }
 
@@ -348,16 +351,17 @@ private struct StreakLine: View {
     }
 }
 
-/// A Bomb's shock wave: a ring that grows to the blast's reach and fades.
+/// A Bomb's shock wave (a Flash Crash's): a ring that grows to the blast's reach and fades.
 private struct BlastRing: View {
     let diameter: CGFloat
     let reduceMotion: Bool
+    var color = Color.orange
     @State private var isOpen = false
 
     var body: some View {
         Circle()
-            .strokeBorder(Color.orange, lineWidth: 6)
-            .background(Circle().fill(Color.yellow.opacity(0.25)))
+            .strokeBorder(color, lineWidth: 6)
+            .background(Circle().fill(color.mix(with: .yellow, by: 0.5).opacity(0.25)))
             .frame(width: diameter, height: diameter)
             .scaleEffect(isOpen || reduceMotion ? 1 : 0.2)
             .opacity(isOpen ? 0 : 1)
@@ -367,7 +371,8 @@ private struct BlastRing: View {
     }
 }
 
-/// A Rainbow, Bomb or gold bubble, for the streak line and the help sheet.
+/// A Rainbow, Bomb or gold bubble, for the streak line and the help sheet: in Bubble Market a
+/// Stablecoin, a Flash Crash or a blue chip.
 struct BubbleSpecialBadge: View {
     enum Look {
         case rainbow, bomb, gold
@@ -397,22 +402,10 @@ struct BubbleSpecialBadge: View {
         GeometryReader { proxy in
             let size = min(proxy.size.width, proxy.size.height)
             ZStack {
-                switch look {
-                case .rainbow:
-                    Circle().fill(AngularGradient(colors: BubbleField.rainbowColors, center: .center))
-                case .bomb:
-                    Circle().fill(RadialGradient(colors: [Color(white: 0.45), Color(white: 0.08)],
-                                                 center: UnitPoint(x: 0.35, y: 0.35), startRadius: 0, endRadius: size * 0.7))
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: size * 0.48, weight: .bold))
-                        .foregroundStyle(.orange)
-                case .gold:
-                    Circle().fill(RadialGradient(colors: [Theme.bubble(4).mix(with: .white, by: 0.55), Theme.bubble(4)],
-                                                 center: UnitPoint(x: 0.35, y: 0.35), startRadius: 0, endRadius: size * 0.7))
-                    Circle().strokeBorder(Theme.gold, lineWidth: max(1.5, size * 0.08))
-                    Image(systemName: "bitcoinsign")
-                        .font(.system(size: size * 0.42, weight: .heavy))
-                        .foregroundStyle(.white)
+                if ArcadeEdition.current == .crypto {
+                    marketLook(size: size)
+                } else {
+                    classicLook(size: size)
                 }
                 // A highlight, so it reads as a bubble.
                 Circle()
@@ -421,6 +414,52 @@ struct BubbleSpecialBadge: View {
             }
             .frame(width: size, height: size)
             .frame(width: proxy.size.width, height: proxy.size.height)
+        }
+    }
+
+    @ViewBuilder
+    private func marketLook(size: CGFloat) -> some View {
+        switch look {
+        case .rainbow:
+            Circle().fill(RadialGradient(colors: [.white, Color(white: 0.72)], center: UnitPoint(x: 0.35, y: 0.35),
+                                         startRadius: 0, endRadius: size * 0.7))
+            Text("$")
+                .font(.system(size: size * 0.55, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.gain)
+        case .bomb:
+            Circle().fill(RadialGradient(colors: [Color(red: 0.75, green: 0.15, blue: 0.2), Color(red: 0.3, green: 0.02, blue: 0.06)],
+                                         center: UnitPoint(x: 0.35, y: 0.35), startRadius: 0, endRadius: size * 0.7))
+            Image(systemName: "chart.line.downtrend.xyaxis")
+                .font(.system(size: size * 0.4, weight: .bold))
+                .foregroundStyle(.white)
+        case .gold:
+            Circle().fill(RadialGradient(colors: [Theme.bubble(4).mix(with: .white, by: 0.55), Theme.bubble(4)],
+                                         center: UnitPoint(x: 0.35, y: 0.35), startRadius: 0, endRadius: size * 0.7))
+            Circle().strokeBorder(.white, lineWidth: max(1.5, size * 0.08))
+            Image(systemName: "star.fill")
+                .font(.system(size: size * 0.4, weight: .heavy))
+                .foregroundStyle(.white)
+        }
+    }
+
+    @ViewBuilder
+    private func classicLook(size: CGFloat) -> some View {
+        switch look {
+        case .rainbow:
+            Circle().fill(AngularGradient(colors: BubbleField.rainbowColors, center: .center))
+        case .bomb:
+            Circle().fill(RadialGradient(colors: [Color(white: 0.45), Color(white: 0.08)],
+                                         center: UnitPoint(x: 0.35, y: 0.35), startRadius: 0, endRadius: size * 0.7))
+            Image(systemName: "flame.fill")
+                .font(.system(size: size * 0.48, weight: .bold))
+                .foregroundStyle(.orange)
+        case .gold:
+            Circle().fill(RadialGradient(colors: [Theme.bubble(4).mix(with: .white, by: 0.55), Theme.bubble(4)],
+                                         center: UnitPoint(x: 0.35, y: 0.35), startRadius: 0, endRadius: size * 0.7))
+            Circle().strokeBorder(Theme.gold, lineWidth: max(1.5, size * 0.08))
+            Image(systemName: "bitcoinsign")
+                .font(.system(size: size * 0.42, weight: .heavy))
+                .foregroundStyle(.white)
         }
     }
 }
@@ -437,19 +476,26 @@ private struct BubbleField: View {
 
     let game: BubbleShooterGame
     let guide: Guide?
+    var edition = ArcadeEdition.crypto
     /// Where the next bubble waits, left of the launcher.
     static let nextPosition = Vector2(x: 1.1, y: BubbleShooterGame.launcher.y)
     static let rainbowColors: [Color] = (1...6).map { Theme.bubble($0) } + [Theme.bubble(1)]
 
+    /// Bubble Market's bubbles are tokens, each color with its sign.
+    static let tokenSigns = ["✕", "Ð", "₮", "₳", "Ξ", "₿"]
+
     var body: some View {
         Canvas { context, size in
             let scale = size.width / BubbleShooterGame.width
+            if edition == .crypto { drawChart(in: &context, size: size) }
             drawLine(in: &context, size: size, scale: scale)
+            // The signs, resolved once for all the bubbles in the field.
+            let signs = edition == .crypto ? Self.tokenSigns.map { sign(for: $0, radius: 0.48 * scale, context: context) } : []
             for row in 0...BubbleShooterGame.deadRow {
                 for column in 0..<BubbleShooterGame.columns {
                     if let color = game.color(row: row, column: column) {
                         drawBubble(color, at: game.center(row: row, column: column), isBonus: game.isBonus(row: row, column: column),
-                                   in: &context, scale: scale)
+                                   signs: signs, in: &context, scale: scale)
                     }
                 }
             }
@@ -471,7 +517,8 @@ private struct BubbleField: View {
         }
     }
 
-    /// The line bubbles must not cross: just below the last safe row.
+    /// The line bubbles must not cross: just below the last safe row. In Bubble Market it's the
+    /// crash line, and says so.
     private func drawLine(in context: inout GraphicsContext, size: CGSize, scale: Double) {
         let lastSafeRow = Double(BubbleShooterGame.deadRow - 1)
         let lineY = (0.5 + lastSafeRow * BubbleShooterGame.rowHeight + 0.52) * scale
@@ -479,6 +526,22 @@ private struct BubbleField: View {
         line.move(to: CGPoint(x: 0, y: lineY))
         line.addLine(to: CGPoint(x: size.width, y: lineY))
         context.stroke(line, with: .color(.red.opacity(0.55)), style: StrokeStyle(lineWidth: 2, dash: [6, 6]))
+        if edition == .crypto {
+            let label = context.resolve(Text("CRASH LINE").font(.system(size: max(8, scale * 0.26), weight: .heavy, design: .rounded))
+                .foregroundStyle(.red.opacity(0.8)))
+            context.draw(label, at: CGPoint(x: size.width - 6, y: lineY + 3), anchor: .topTrailing)
+        }
+    }
+
+    /// A faint price chart behind the market: a jagged line drifting down toward the crash line.
+    private func drawChart(in context: inout GraphicsContext, size: CGSize) {
+        let points: [Double] = [0.18, 0.26, 0.2, 0.34, 0.3, 0.42, 0.38, 0.5, 0.46, 0.58, 0.55, 0.66]
+        var chart = Path()
+        for (index, share) in points.enumerated() {
+            let point = CGPoint(x: size.width * Double(index) / Double(points.count - 1), y: size.height * share)
+            if index == 0 { chart.move(to: point) } else { chart.addLine(to: point) }
+        }
+        context.stroke(chart, with: .color(.cyan.opacity(0.08)), style: StrokeStyle(lineWidth: 3, lineJoin: .round))
     }
 
     private func drawGuide(_ guide: Guide, in context: inout GraphicsContext, scale: Double) {
@@ -502,17 +565,29 @@ private struct BubbleField: View {
     }
 
     private func drawBubble(_ color: Int, at center: Vector2, diameter: Double = 0.96, special: Special? = nil,
-                            isBonus: Bool = false, in context: inout GraphicsContext, scale: Double) {
+                            isBonus: Bool = false, signs: [GraphicsContext.ResolvedText] = [],
+                            in context: inout GraphicsContext, scale: Double) {
         let radius = diameter / 2 * scale
         let middle = point(center, scale)
         let rect = CGRect(x: middle.x - radius, y: middle.y - radius, width: radius * 2, height: radius * 2)
         let circle = Path(ellipseIn: rect)
         let highlight = CGPoint(x: middle.x - radius * 0.35, y: middle.y - radius * 0.35)
+        let crypto = edition == .crypto
         switch special {
+        case .rainbow where crypto:
+            // A Stablecoin: silver, with a dollar sign.
+            context.fill(circle, with: .radialGradient(Gradient(colors: [.white, Color(white: 0.75), Color(white: 0.5)]),
+                                                       center: highlight, startRadius: 0, endRadius: radius * 1.5))
+            context.draw(sign(for: "$", radius: radius, color: Theme.gain, context: context), at: CGPoint(x: middle.x, y: middle.y + radius * 0.04))
         case .rainbow:
             context.fill(circle, with: .conicGradient(Gradient(colors: Self.rainbowColors), center: middle))
             context.fill(circle, with: .radialGradient(Gradient(colors: [.white.opacity(0.55), .clear]),
                                                        center: highlight, startRadius: 0, endRadius: radius))
+        case .bomb where crypto:
+            // A Flash Crash: deep red, with a falling chart.
+            context.fill(circle, with: .radialGradient(Gradient(colors: [Color(red: 0.8, green: 0.2, blue: 0.25), Color(red: 0.35, green: 0.02, blue: 0.06)]),
+                                                       center: highlight, startRadius: 0, endRadius: radius * 1.5))
+            drawSymbol("chart.line.downtrend.xyaxis", color: .white, in: rect.insetBy(dx: radius * 0.42, dy: radius * 0.45), context: &context)
         case .bomb:
             context.fill(circle, with: .radialGradient(Gradient(colors: [Color(white: 0.5), Color(white: 0.12), .black]),
                                                        center: highlight, startRadius: 0, endRadius: radius * 1.5))
@@ -523,10 +598,22 @@ private struct BubbleField: View {
                 Gradient(colors: [base.mix(with: .white, by: 0.55), base, base.mix(with: .black, by: 0.25)]),
                 center: highlight, startRadius: 0, endRadius: radius * 1.5))
             if isBonus {
-                context.stroke(Path(ellipseIn: rect.insetBy(dx: 1.2, dy: 1.2)), with: .color(Theme.gold), lineWidth: max(2, radius * 0.16))
-                drawSymbol("bitcoinsign", color: .white, in: rect.insetBy(dx: radius * 0.55, dy: radius * 0.5), context: &context)
+                context.stroke(Path(ellipseIn: rect.insetBy(dx: 1.2, dy: 1.2)), with: .color(crypto ? .white : Theme.gold),
+                               lineWidth: max(2, radius * 0.16))
+                drawSymbol(crypto ? "star.fill" : "bitcoinsign", color: .white, in: rect.insetBy(dx: radius * 0.55, dy: radius * 0.5),
+                           context: &context)
+            } else if crypto {
+                let index = (max(1, color) - 1) % Self.tokenSigns.count
+                let text = signs.indices.contains(index) && diameter == 0.96
+                    ? signs[index] : sign(for: Self.tokenSigns[index], radius: radius, context: context)
+                context.draw(text, at: CGPoint(x: middle.x, y: middle.y + radius * 0.04))
             }
         }
+    }
+
+    /// A token's sign, sized for a bubble of `radius`.
+    private func sign(for sign: String, radius: Double, color: Color = .white.opacity(0.9), context: GraphicsContext) -> GraphicsContext.ResolvedText {
+        context.resolve(Text(sign).font(.system(size: radius * 0.95, weight: .heavy, design: .rounded)).foregroundStyle(color))
     }
 
     private func drawSymbol(_ name: String, color: Color, in rect: CGRect, context: inout GraphicsContext) {

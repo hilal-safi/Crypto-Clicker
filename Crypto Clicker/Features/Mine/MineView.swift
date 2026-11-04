@@ -21,6 +21,8 @@ struct MineView: View {
     /// Every digit or the short form, for the balance and tap values. Tapping the balance switches.
     @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
     @AppStorage(Preferences.coinFinishKey) private var finish = CoinFinish.gold
+    @AppStorage(Preferences.coinRimKey) private var rim = CoinRim.plain
+    @AppStorage(Preferences.coinTapEffectKey) private var tapEffect = CoinTapEffect.none
     @AppStorage(Preferences.stepsInviteDismissedKey) private var stepsInviteDismissed = false
 
     var body: some View {
@@ -63,16 +65,21 @@ struct MineView: View {
         let hasCards = InventoryStrip.hasContent(game)
             || StepsCard.isShown(game, canTrackSteps: store.canTrackSteps, inviteDismissed: stepsInviteDismissed)
         return VStack(spacing: 10) {
-            // The rates under the balance get 10% less room around them than the other items have.
-            VStack(spacing: 9) {
-                BalanceHeader(coins: game.coins, boost: game.activeBoost(at: now), showsExact: exactNumbers,
-                              income: game.idleIncome(at: now), tapValue: game.tapValue(at: now), openIncome: openIncome) {
+            // The rates under the balance, and the coin, get less room around them than the other
+            // items have (10% less, then 10% less again).
+            VStack(spacing: 8) {
+                LiveBalanceHeader(boost: game.activeBoost(at: now), showsExact: exactNumbers,
+                                  income: game.idleIncome(at: now), tapValue: game.tapValue(at: now), openIncome: openIncome) {
                     withAnimation(.snappy) { exactNumbers.toggle() }
                 }
                 GeometryReader { proxy in
                     let cap = hasCards ? CoinButton.maximumSize : CoinButton.freshMaximumSize
+                    // Looks locked again (after a reset) fall back to the plain coin.
+                    let stars = game.earnedAchievementTiers
                     CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers,
-                               finish: finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold,
+                               finish: finish.isUnlocked(stars: stars) ? finish : .gold,
+                               rim: rim.isUnlocked(stars: stars) ? rim : .plain,
+                               tapEffect: tapEffect.isUnlocked(stars: stars) ? tapEffect : .none,
                                maxSize: CoinButton.size(in: proxy.size, cap: cap)) {
                         effects.rainCoins()
                         return store.tap()
@@ -101,6 +108,23 @@ struct MineView: View {
         .frame(maxWidth: .infinity)
         .animation(.smooth, value: game.areStepsUnlocked)
         .animation(.smooth, value: game.steps.isConnected)
+    }
+}
+
+/// The balance header with the live balance: it reads the store's coins itself, so the balance
+/// redraws on every tick without taking the rest of the Mine screen with it.
+private struct LiveBalanceHeader: View {
+    let boost: Boost?
+    let showsExact: Bool
+    let income: Double
+    let tapValue: Double
+    let openIncome: () -> Void
+    let toggleExact: () -> Void
+    @Environment(GameStore.self) private var store
+
+    var body: some View {
+        BalanceHeader(coins: store.coins, boost: boost, showsExact: showsExact, income: income, tapValue: tapValue,
+                      openIncome: openIncome, toggleExact: toggleExact)
     }
 }
 
@@ -234,8 +258,8 @@ struct CoinButton: View {
     /// ...and the largest on a new game, with nothing under it yet (width allowing).
     static let freshMaximumSize: CGFloat = 420
     /// Share of the room above and below the coin that the coin grows into, so it isn't lost in
-    /// space: 15% less padding around it, then 10% less again (23.5% of the room in all).
-    static let spareRoomTaken: CGFloat = 1 - 0.85 * 0.9
+    /// space: 15% less padding around it, then 10% less twice more (about 31% of the room in all).
+    static let spareRoomTaken: CGFloat = 1 - 0.85 * 0.9 * 0.9
 
     /// The coin's size in an area: as big as `cap` allows, then grown into a share of the room
     /// left above and below it (`spareRoomTaken`), never wider than the area.
@@ -249,6 +273,8 @@ struct CoinButton: View {
     let tapValue: Double
     let exactNumbers: Bool
     var finish = CoinFinish.gold
+    var rim = CoinRim.plain
+    var tapEffect = CoinTapEffect.none
     var maxSize = CoinButton.maximumSize
     /// Taps the coin and returns what that tap earned.
     let onTap: () -> Double
@@ -258,6 +284,8 @@ struct CoinButton: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var taps = 0
     @State private var floaters: [Floater] = []
+    /// Tap effects still playing.
+    @State private var bursts: [TapBurst] = []
 
     struct Floater: Identifiable {
         let id: Int
@@ -270,15 +298,28 @@ struct CoinButton: View {
             taps += 1
             let earned = onTap()
             if sounds { TapSound.play() }
-            if !reduceMotion { spawnFloater(earned) }
+            if !reduceMotion {
+                spawnFloater(earned)
+                spawnBurst()
+            }
         } label: {
             CoinArt(finish: finish)
+                .overlay { CoinRimView(rim: rim, color: finish.glow) }
                 .frame(maxWidth: maxSize, maxHeight: maxSize)
                 .shadow(color: finish.glow.opacity(0.45), radius: 28)
                 .shadow(color: .black.opacity(0.3), radius: 14, y: 10)
                 .contentShape(.circle)
         }
         .buttonStyle(CoinPressStyle())
+        .overlay {
+            GeometryReader { proxy in
+                let coin = min(proxy.size.width, proxy.size.height)
+                TapEffectsLayer(bursts: bursts, coin: coin)
+                    .frame(width: coin * 2.2, height: coin * 2.2)
+                    .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+            }
+            .allowsHitTesting(false)
+        }
         .overlay {
             ZStack {
                 ForEach(floaters) { floater in
@@ -297,6 +338,18 @@ struct CoinButton: View {
 
     private func text(_ value: Double) -> String {
         exactNumbers ? CoinFormat.exact(value) : CoinFormat.short(value)
+    }
+
+    /// Sets off the tap effect picked in Settings; a few play at once at most.
+    private func spawnBurst() {
+        guard tapEffect != .none else { return }
+        let burst = TapBurst(id: taps, effect: tapEffect, start: .now, seed: .random(in: 0...UInt64.max))
+        bursts.append(burst)
+        if bursts.count > 8 { bursts.removeFirst(bursts.count - 8) }
+        Task {
+            try? await Task.sleep(for: .seconds(burst.lifetime + 0.1))
+            bursts.removeAll { $0.id == burst.id }
+        }
     }
 
     private func spawnFloater(_ earned: Double) {

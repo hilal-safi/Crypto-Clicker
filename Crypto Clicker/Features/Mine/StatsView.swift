@@ -294,23 +294,26 @@ struct StatsPage: View {
                                          StatItem("Paid back", paidBack(s.pokerPaidOut, of: s.pokerWagered))],
                                  note: betNote(s.pokerWagered, paid: s.pokerPaidOut))
         case .tetris:
+            let crypto = ArcadeEdition.current == .crypto
             var items = [StatItem("Best level", CoinFormat.grouped(s.tetrisBestLevel)),
                          StatItem("Best combo", CoinFormat.grouped(s.tetrisBestCombo)),
-                         StatItem("Tetrises", CoinFormat.grouped(s.tetrisTetrises)),
-                         StatItem("Lines", CoinFormat.grouped(s.tetrisLines))]
+                         StatItem(crypto ? "Full Blocks" : "Tetrises", CoinFormat.grouped(s.tetrisTetrises)),
+                         StatItem(crypto ? "Rows" : "Lines", CoinFormat.grouped(s.tetrisLines))]
             if s.tetrisBestSprint > 0 {
-                items.append(StatItem("Best Sprint", CoinFormat.stopwatch(s.tetrisBestSprint)))
+                items.append(StatItem(crypto ? "Best Rush" : "Best Sprint", CoinFormat.stopwatch(s.tetrisBestSprint)))
             }
             return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best, items: items)
         case .merge2048:
             return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
-                                 items: [StatItem("Top tile", CoinFormat.grouped(s.merge2048BestTile)),
+                                 items: [ArcadeEdition.current == .crypto
+                                            ? StatItem("Top miner", Merge2048Game.miner(for: s.merge2048BestTile).name)
+                                            : StatItem("Top tile", CoinFormat.grouped(s.merge2048BestTile)),
                                          StatItem("Daily wins", CoinFormat.grouped(game.merge2048Daily.wins)),
                                          StatItem("Daily stars", CoinFormat.grouped(game.merge2048Daily.totalStars))])
         case .snake:
             return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
                                  items: [StatItem("Coin Rush", CoinFormat.grouped(s.snakeRushBestScore)),
-                                         StatItem("Longest snake", CoinFormat.grouped(s.snakeLongest)),
+                                         StatItem(ArcadeEdition.pick("Longest chain", classic: "Longest snake"), CoinFormat.grouped(s.snakeLongest)),
                                          StatItem("Most coins", CoinFormat.grouped(s.snakeBestCoins)),
                                          StatItem("Longest game", CoinFormat.stopwatch(s.snakeLongestTime)),
                                          StatItem("Power-ups", CoinFormat.grouped(s.snakePowerUps))])
@@ -319,16 +322,16 @@ struct StatsPage: View {
                                  items: [StatItem("Best level", CoinFormat.grouped(s.brickBreakerBestLevel)),
                                          StatItem("Levels cleared", CoinFormat.grouped(s.brickBreakerLevelsCleared)),
                                          StatItem("Best streak", CoinFormat.grouped(s.brickBreakerBestStreak)),
-                                         StatItem("Bosses", CoinFormat.grouped(s.brickBreakerBosses)),
+                                         StatItem(ArcadeEdition.pick("Whales", classic: "Bosses"), CoinFormat.grouped(s.brickBreakerBosses)),
                                          StatItem("Power-ups", CoinFormat.grouped(s.brickBreakerPowerUps)),
-                                         StatItem("Bricks", CoinFormat.grouped(s.bricksBroken))])
+                                         StatItem(ArcadeEdition.pick("Blocks", classic: "Bricks"), CoinFormat.grouped(s.bricksBroken))])
         case .bubbleBlaster:
             return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
                                  items: [StatItem("Best wave", CoinFormat.grouped(s.bubbleBestWave)),
                                          StatItem("Best shot", CoinFormat.grouped(s.bubbleBestShot)),
                                          StatItem("Best streak", CoinFormat.grouped(s.bubbleBestStreak)),
                                          StatItem("Popped", CoinFormat.grouped(s.bubblesPopped)),
-                                         StatItem("Gold bubbles", CoinFormat.grouped(s.bubbleBonuses))])
+                                         StatItem(ArcadeEdition.pick("Blue chips", classic: "Gold bubbles"), CoinFormat.grouped(s.bubbleBonuses))])
         case .pumpDump:
             return GameStatsCard(game: miniGame, plays: counted(plays, "run"), headline: best,
                                  items: [StatItem("Best round", CoinFormat.grouped(s.pumpDumpBestRound)),

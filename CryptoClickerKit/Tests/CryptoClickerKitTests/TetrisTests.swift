@@ -148,7 +148,7 @@ struct TetrisTests {
     @Test func rotationFailsWhenEveryKickIsBlocked() {
         var (game, _) = newGame()
         var blocks: [GridPoint] = []
-        for y in 0..<TetrisGame.height {
+        for y in 0..<game.height {
             for x in 0..<TetrisGame.width where !(y == 19 && (0...3).contains(x)) { blocks.append(GridPoint(x: x, y: y)) }
         }
         game.load(blocks: blocks, piece: piece(.i, x: 0, y: 18))
@@ -402,8 +402,103 @@ struct TetrisTests {
         #expect(game.stats.tetrisBestCombo == 3)
         #expect(game.stats.tetrisTetrises == 2)
         #expect(game.stats.tetrisGames == 4)
-        #expect(game.record(for: .tetris) == "Best 5,000 · Sprint 2:01.4")
+        #expect(game.record(for: .tetris) == "Best 5,000 · Rush 2:01.4")
         #expect(CoinFormat.stopwatch(59.96) == "0:59.9")
         #expect(CoinFormat.stopwatch(3_725) == "62:05.0")
+    }
+}
+
+/// Block Chain, the crypto edition's Tetris: a shorter well, and gas spikes in Endless.
+@Suite("Block Chain")
+struct BlockChainTests {
+    func newGame(_ mode: TetrisGame.Mode = .endless, rules: TetrisGame.Rules = .blockChain, seed: UInt64 = 1) -> (TetrisGame, SeededGenerator) {
+        var rng = SeededGenerator(seed: seed)
+        let game = TetrisGame(mode: mode, rules: rules, using: &rng)
+        return (game, rng)
+    }
+
+    func piece(_ kind: Tetromino, rotation: Int = 0, x: Int, y: Int) -> TetrisPiece {
+        TetrisPiece(kind: kind, rotation: rotation, x: x, y: y)
+    }
+
+    func row(_ y: Int, columns: some Sequence<Int>) -> [GridPoint] {
+        columns.map { GridPoint(x: $0, y: y) }
+    }
+
+    @Test func theEditionsPlayTheirOwnWells() {
+        let (chain, _) = newGame()
+        #expect(chain.height == 18 && chain.board.count == 180 && chain.hasGasSpikes)
+        let (classic, _) = newGame(rules: .classic)
+        #expect(classic.height == 20 && classic.board.count == 200 && !classic.hasGasSpikes)
+        #expect(classic.piecesUntilGasSpike == nil)
+        #expect(TetrisGame.Rules.edition(.crypto) == .blockChain && TetrisGame.Rules.edition(.classic) == .classic)
+        // Block Rush, Block Chain's Sprint, has no gas spikes.
+        let (rush, _) = newGame(.sprint(lines: TetrisGame.sprintLines))
+        #expect(rush.height == 18 && !rush.hasGasSpikes)
+    }
+
+    @Test func everyFifteenthPieceAGasRowRisesWithItsGapUnderTheLowestColumn() throws {
+        var (game, rng) = newGame()
+        #expect(game.piecesUntilGasSpike == TetrisGame.gasSpikeEvery)
+        // The bottom row is full but for the last column, which stays open all the way up.
+        game.load(blocks: row(17, columns: 0...8) + [GridPoint(x: 0, y: 16)], piece: piece(.o, x: 4, y: 0))
+        game.setPieces(TetrisGame.gasSpikeEvery - 2)
+        game.hardDrop(using: &rng)
+        #expect(game.gasSpikes == 0 && game.piecesUntilGasSpike == 1)
+        game.place(piece(.o, x: 1, y: 0))
+        game.hardDrop(using: &rng)
+        #expect(game.gasSpikes == 1 && !game.isOver)
+        #expect(game.piecesUntilGasSpike == TetrisGame.gasSpikeEvery)
+        // The stack moved up a row, and gas fills the bottom but for the open column.
+        #expect((0...8).allSatisfy { game.isGas(x: $0, y: 17) })
+        #expect(!game.isGas(x: 9, y: 17) && game.block(x: 9, y: 17) == nil)
+        #expect((0...8).allSatisfy { game.block(x: $0, y: 16) == .o })
+        #expect(game.block(x: 0, y: 15) == .o && game.block(x: 4, y: 15) == .o && game.block(x: 4, y: 14) == .o)
+        #expect(game.block(x: 4, y: 13) == nil)
+        // A long piece down the open column clears the gas row with the row above, and the gas pays its fee.
+        let before = (reward: game.rewardPoints, lines: game.lines)
+        game.place(piece(.i, rotation: 1, x: 7, y: 0))
+        let landing = try #require(game.ghost)
+        let drop = 2 * landing.y
+        game.hardDrop(using: &rng)
+        #expect(game.lines - before.lines == 2 && game.gasRowsCleared == 1)
+        #expect(game.rewardPoints - before.reward == TetrisGame.lineScores[2] + TetrisGame.gasFee + drop)
+        #expect(!(0..<TetrisGame.width).contains { game.isGas(x: $0, y: 17) })
+    }
+
+    @Test func gasPushingTheStackOutOfTheWellEndsTheGame() {
+        var (game, rng) = newGame()
+        game.load(blocks: [GridPoint(x: 0, y: 0)] + (1..<18).map { GridPoint(x: 0, y: $0) }, piece: piece(.o, x: 4, y: 0))
+        game.setPieces(TetrisGame.gasSpikeEvery - 1)
+        game.hardDrop(using: &rng)
+        #expect(game.gasSpikes == 1 && game.isOver)
+    }
+
+    @Test func theClassicWellAndBlockRushNeverSpike() {
+        for (mode, rules) in [(TetrisGame.Mode.endless, TetrisGame.Rules.classic), (.sprint(lines: 40), .blockChain)] {
+            var (game, rng) = newGame(mode, rules: rules)
+            game.setPieces(TetrisGame.gasSpikeEvery - 1)
+            game.hardDrop(using: &rng)
+            #expect(game.gasSpikes == 0 && game.pieces == TetrisGame.gasSpikeEvery)
+            #expect(!(0..<TetrisGame.width).contains { game.isGas(x: $0, y: game.height - 1) })
+        }
+    }
+
+    /// Spikes never draw from the piece generator, so a daily game deals everyone the same pieces
+    /// whether or not their gas came yet.
+    @Test func gasSpikesLeaveThePiecesAlone() {
+        var (spiking, a) = newGame(seed: 9)
+        var (calm, b) = newGame(.sprint(lines: 999), seed: 9) // Same seed and rules, no spikes.
+        func play(_ game: inout TetrisGame, shift: Int, using rng: inout SeededGenerator) {
+            for _ in 0..<abs(shift) { _ = shift < 0 ? game.moveLeft() : game.moveRight() }
+            game.hardDrop(using: &rng)
+        }
+        for index in 0..<TetrisGame.gasSpikeEvery + 3 {
+            let shift = [-3, 0, 3][index % 3]
+            play(&spiking, shift: shift, using: &a)
+            play(&calm, shift: shift, using: &b)
+        }
+        #expect(spiking.gasSpikes == 1 && calm.gasSpikes == 0)
+        #expect(spiking.queue == calm.queue && spiking.piece?.kind == calm.piece?.kind)
     }
 }

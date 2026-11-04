@@ -5,13 +5,20 @@ import CryptoClickerKit
 // miners. Plain figures stay as label-and-value rows in StatsView.
 
 /// One figure: a value over its name.
-struct StatItem: Identifiable {
-    let title: String
+struct StatItem {
+    /// What the figure is: looked up in the String Catalog when written out, shown as it is
+    /// when worked out in code.
+    let title: Text
     let value: String
-    var id: String { title }
 
-    init(_ title: String, _ value: String) {
-        self.title = title
+    init(_ title: LocalizedStringKey, _ value: String) {
+        self.title = Text(title)
+        self.value = value
+    }
+
+    @_disfavoredOverload
+    init<Title: StringProtocol>(_ title: Title, _ value: String) {
+        self.title = Text(title)
         self.value = value
     }
 }
@@ -29,13 +36,15 @@ struct StatGrid: View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .leading),
                                  count: max(1, min(perRow, items.count))),
                   alignment: .leading, spacing: 8) {
-            ForEach(items) { item in
+            // A grid's figures never move about, so their places are their identity.
+            ForEach(items.indices, id: \.self) { index in
+                let item = items[index]
                 VStack(alignment: .leading, spacing: 1) {
                     Text(item.value)
                         .font(.headline.monospacedDigit())
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
-                    Text(item.title)
+                    item.title
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.subtext)
                         .lineLimit(1)
@@ -101,7 +110,7 @@ struct GameStatsCard: View {
                     Spacer(minLength: 8)
                 }
                 VStack(alignment: stacked ? .leading : .trailing, spacing: 1) {
-                    Text(headline.title)
+                    headline.title
                         .font(.footnote.weight(.heavy))
                         .textCase(.uppercase)
                         .foregroundStyle(game.textColor(in: colorScheme))

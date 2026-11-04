@@ -74,7 +74,7 @@ struct MoonView: View {
         .gameHelp(.moon, isPresented: $showingHelp, isEnabled: !isFlying)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                CoinAmount(amount: game.coins, font: .subheadline.weight(.semibold), iconSize: 16)
+                CoinAmount(amount: store.coins, font: .subheadline.weight(.semibold), iconSize: 16)
                     .padding(.horizontal, 6)
             }
         }

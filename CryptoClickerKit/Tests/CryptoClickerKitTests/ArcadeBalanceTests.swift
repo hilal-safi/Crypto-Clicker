@@ -78,10 +78,11 @@ struct ArcadeBalanceTests {
     }
 
     /// Scam Invaders' random waves pay about what the classic ones do, and the Speed option moves
-    /// the pay a little either way, like Brick Breaker's.
+    /// the pay a little either way, like Brick Breaker's. A game swings a lot with its formations,
+    /// so this takes a dozen games of each.
     @Test func invadersOptionsPayAboutTheSame() {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
-        let seeds: [UInt64] = [11, 22, 33, 44, 55, 66]
+        let seeds: [UInt64] = [11, 22, 33, 44, 55, 66, 77, 88, 99, 110, 121, 132]
         func income(_ speed: GameSpeed, _ waves: InvadersGame.WaveStyle = .classic) -> Double {
             let points = seeds.map { InvadersBot.pointsPerMinute(seed: $0, speed: speed, waves: waves) }.reduce(0, +) / Double(seeds.count)
             return points * MiniGame.invaders.secondsPerPoint
@@ -92,6 +93,23 @@ struct ArcadeBalanceTests {
         #expect(abs(random - normal) <= 0.15 * normal)
         #expect(slow < normal && fast > normal * 0.9)
         #expect(fast <= 1.6 * normal)
+    }
+
+    /// Block Chain (shorter well, gas spikes and their fees) pays about what classic Tetris does,
+    /// and Scam Invaders' server racks about what its arches do.
+    @Test func theEditionsPayAboutTheSame() {
+        guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
+        let seeds: [UInt64] = [11, 22, 33, 44, 55, 66]
+        func average(_ rate: (UInt64) -> Double) -> Double { seeds.map(rate).reduce(0, +) / Double(seeds.count) }
+        let chain = average { TetrisBot.pointsPerMinute(seed: $0, rules: .blockChain) } * MiniGame.tetris.secondsPerPoint
+        let tetris = average { TetrisBot.pointsPerMinute(seed: $0, rules: .classic) } * MiniGame.tetris.secondsPerPoint
+        print("Balance: Block Chain", Int(chain), "| Tetris", Int(tetris))
+        #expect((90...160).contains(chain) && (90...160).contains(tetris))
+        #expect(abs(chain - tetris) <= 0.15 * tetris)
+        let racks = average { InvadersBot.pointsPerMinute(seed: $0, firewalls: .rack) } * MiniGame.invaders.secondsPerPoint
+        let arches = average { InvadersBot.pointsPerMinute(seed: $0, firewalls: .arch) } * MiniGame.invaders.secondsPerPoint
+        print("Balance: Scam Invaders racks", Int(racks), "| arches", Int(arches))
+        #expect(abs(racks - arches) <= 0.1 * arches)
     }
 
     @Test(arguments: [MiniGame.tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap, .invaders])
@@ -112,9 +130,9 @@ struct ArcadeBalanceTests {
 enum TetrisBot {
     static let secondsPerPiece = 1.0
 
-    static func pointsPerMinute(seed: UInt64, minutes: Double = 4) -> Double {
+    static func pointsPerMinute(seed: UInt64, minutes: Double = 4, rules: TetrisGame.Rules = .blockChain) -> Double {
         var rng = SeededGenerator(seed: seed)
-        var game = TetrisGame(using: &rng)
+        var game = TetrisGame(rules: rules, using: &rng)
         var placed = 0
         while !game.isOver, Double(placed) * secondsPerPiece < minutes * 60 {
             guard let plan = bestPlacement(in: game) else { break }
@@ -152,7 +170,7 @@ enum TetrisBot {
     }
 
     static func evaluate(_ board: [Int], lines: Int) -> Double {
-        let width = TetrisGame.width, height = TetrisGame.height
+        let width = TetrisGame.width, height = board.count / width
         var heights = Array(repeating: 0, count: width)
         var holes = 0
         for x in 0..<width {
@@ -557,8 +575,8 @@ enum InvadersBot {
     static let dodgeTime = 0.45
 
     static func pointsPerMinute(seed: UInt64, minutes: Double = 3, speed: GameSpeed = .normal,
-                                waves: InvadersGame.WaveStyle = .classic) -> Double {
-        var game = InvadersGame(seed: seed, speed: speed, waves: waves)
+                                waves: InvadersGame.WaveStyle = .classic, firewalls: InvadersGame.FirewallStyle = .rack) -> Double {
+        var game = InvadersGame(seed: seed, speed: speed, waves: waves, firewalls: firewalls)
         let time = play(&game, seconds: minutes * 60)
         return Double(game.score) / (time / 60)
     }

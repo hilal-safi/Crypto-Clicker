@@ -25,63 +25,16 @@ struct CoinFinishPicker: View {
     @AppStorage(Preferences.coinFinishKey) private var selected = CoinFinish.gold
     @AppStorage(Preferences.hapticsKey) private var haptics = true
 
-    private let columns = [GridItem(.adaptive(minimum: 96), spacing: 14)]
-
     var body: some View {
         let stars = store.game.earnedAchievementTiers
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Earn achievement stars to unlock new finishes for the coin. You have \(stars) \(stars == 1 ? "star" : "stars").")
-                    .font(.subheadline)
-                    .foregroundStyle(.subtext)
-                LazyVGrid(columns: columns, spacing: 14) {
-                    ForEach(CoinFinish.allCases) { finish in
-                        let unlocked = finish.isUnlocked(stars: stars)
-                        Button {
-                            if unlocked { selected = finish }
-                        } label: {
-                            VStack(spacing: 8) {
-                                CoinArt(finish: finish)
-                                    .frame(width: 72, height: 72)
-                                    .shadow(color: finish.glow.opacity(unlocked ? 0.5 : 0), radius: 10)
-                                    .opacity(unlocked ? 1 : 0.35)
-                                    .overlay {
-                                        if !unlocked {
-                                            Image(systemName: "lock.fill")
-                                                .font(.title3.weight(.bold))
-                                                .foregroundStyle(.primary)
-                                        }
-                                    }
-                                Text(finish.name)
-                                    .font(.subheadline.weight(.semibold))
-                                Text(unlocked ? (selected == finish ? "Selected" : "Unlocked") : "\(finish.starsNeeded) stars")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(selected == finish ? Theme.accent : Theme.subtext)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background {
-                                CardSurface(cornerRadius: 18)
-                                    .overlay {
-                                        if selected == finish {
-                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                                .strokeBorder(Theme.accent, lineWidth: 2.5)
-                                        }
-                                    }
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .sensoryFeedback(.selection, trigger: selected) { _, _ in haptics }
-                        .accessibilityLabel(finish.name)
-                        .accessibilityValue(unlocked ? (selected == finish ? "Selected" : "Unlocked")
-                                                     : "Locked, needs \(finish.starsNeeded) stars")
-                        .accessibilityAddTraits(selected == finish ? .isSelected : [])
-                    }
-                }
-            }
-            .padding(16)
+        CoinStyleGrid(intro: "Earn achievement stars to unlock new finishes for the coin. You have \(stars) \(stars == 1 ? "star" : "stars").",
+                      items: CoinFinish.allCases, selected: $selected, stars: stars, tint: selected.glow,
+                      name: \.name, starsNeeded: \.starsNeeded) { finish, size in
+            CoinArt(finish: finish)
+                .frame(width: size, height: size)
+                .shadow(color: finish.glow.opacity(0.5), radius: size * 0.14)
         }
-        .background { AppBackground(tint: selected.glow) }
+        .sensoryFeedback(.selection, trigger: selected) { _, _ in haptics }
         .navigationTitle("Coin Finish")
         .navigationBarTitleDisplayMode(.inline)
     }

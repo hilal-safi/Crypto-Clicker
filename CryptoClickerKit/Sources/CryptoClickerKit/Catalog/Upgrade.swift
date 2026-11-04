@@ -40,28 +40,28 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var name: String {
         switch self {
-        case .coinClicker: "Coin Clicker"
-        case .upgradedClicker: "Upgraded Clicker"
-        case .automatedClicker: "Automated Clicker"
-        case .mechanicalKeyboard: "Mechanical Keyboard"
-        case .roboticFinger: "Robotic Finger"
-        case .neuralInterface: "Neural Interface"
-        case .hapticEngine: "Haptic Engine"
-        case .satoshisTouch: "Satoshi's Touch"
-        case .overclocking: "Overclocking"
-        case .liquidCooling: "Liquid Cooling"
-        case .fiberUplink: "Fiber Uplink"
-        case .asicChips: "ASIC Chips"
-        case .solarFarm: "Solar Farm"
-        case .fusionReactor: "Fusion Reactor"
-        case .geothermalPlant: "Geothermal Plant"
-        case .dysonSwarm: "Dyson Swarm"
-        case .stepBooster: "Step Booster"
-        case .upgradedStepBooster: "Upgraded Step Booster"
-        case .ultimateStepBooster: "Ultimate Step Booster"
-        case .bonusReward1: "Bonus Reward I"
-        case .bonusReward2: "Bonus Reward II"
-        case .bonusReward3: "Bonus Reward III"
+        case .coinClicker: localized("Coin Clicker")
+        case .upgradedClicker: localized("Upgraded Clicker")
+        case .automatedClicker: localized("Automated Clicker")
+        case .mechanicalKeyboard: localized("Mechanical Keyboard")
+        case .roboticFinger: localized("Robotic Finger")
+        case .neuralInterface: localized("Neural Interface")
+        case .hapticEngine: localized("Haptic Engine")
+        case .satoshisTouch: localized("Satoshi's Touch")
+        case .overclocking: localized("Overclocking")
+        case .liquidCooling: localized("Liquid Cooling")
+        case .fiberUplink: localized("Fiber Uplink")
+        case .asicChips: localized("ASIC Chips")
+        case .solarFarm: localized("Solar Farm")
+        case .fusionReactor: localized("Fusion Reactor")
+        case .geothermalPlant: localized("Geothermal Plant")
+        case .dysonSwarm: localized("Dyson Swarm")
+        case .stepBooster: localized("Step Booster")
+        case .upgradedStepBooster: localized("Upgraded Step Booster")
+        case .ultimateStepBooster: localized("Ultimate Step Booster")
+        case .bonusReward1: localized("Bonus Reward I")
+        case .bonusReward2: localized("Bonus Reward II")
+        case .bonusReward3: localized("Bonus Reward III")
         }
     }
 
@@ -157,14 +157,15 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var summary: String {
         switch effect {
-        case .tapFlat(let value): "Taps earn +\(CoinFormat.short(value)) coin"
-        case .tapPercent(let share): "Every tap also earns \(CoinFormat.percent(share)) of a second's production"
+        case .tapFlat(let value): localized("Taps earn +\(CoinFormat.short(value)) coin")
+        case .tapPercent(let share): localized("Every tap also earns \(CoinFormat.percent(share)) of a second's production")
         case .autoTaps(let rate):
-            "+\(CoinFormat.short(rate)) automatic tap\(rate == 1 ? "" : "s") per second, "
-                + "worth \(CoinFormat.percent(Tuning.autoTapStrength)) of a tap"
-        case .production(let factor): "All miners produce \(CoinFormat.multiplier(factor))"
-        case .steps(let factor): "Steps earn \(CoinFormat.multiplier(factor))"
-        case .miniGames(let factor): "Mini-game rewards \(CoinFormat.multiplier(factor))"
+            rate == 1
+                ? localized("+1 automatic tap per second, worth \(CoinFormat.percent(Tuning.autoTapStrength)) of a tap")
+                : localized("+\(CoinFormat.short(rate)) automatic taps per second, worth \(CoinFormat.percent(Tuning.autoTapStrength)) of a tap")
+        case .production(let factor): localized("All miners produce \(CoinFormat.multiplier(factor))")
+        case .steps(let factor): localized("Steps earn \(CoinFormat.multiplier(factor))")
+        case .miniGames(let factor): localized("Mini-game rewards \(CoinFormat.multiplier(factor))")
         }
     }
 

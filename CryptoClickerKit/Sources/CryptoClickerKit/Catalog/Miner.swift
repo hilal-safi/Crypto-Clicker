@@ -16,26 +16,26 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var name: String {
         switch self {
-        case .chromebook: "Chromebook"
-        case .desktop: "Desktop"
-        case .gpuRig: "GPU Rig"
-        case .server: "Server"
-        case .dataCenter: "Data Center"
-        case .mineCenter: "Mine Center"
-        case .robotAssistant: "Robot Assistant"
-        case .aiMiner: "AI Miner"
-        case .quantumComputer: "Quantum Computer"
-        case .spaceColony: "Space Mining Colony"
-        case .lunarBase: "Lunar Base"
-        case .asteroidHarvester: "Asteroid Harvester"
-        case .galacticHashnet: "Galactic Hashnet"
+        case .chromebook: localized("Chromebook")
+        case .desktop: localized("Desktop")
+        case .gpuRig: localized("GPU Rig")
+        case .server: localized("Server")
+        case .dataCenter: localized("Data Center")
+        case .mineCenter: localized("Mine Center")
+        case .robotAssistant: localized("Robot Assistant")
+        case .aiMiner: localized("AI Miner")
+        case .quantumComputer: localized("Quantum Computer")
+        case .spaceColony: localized("Space Mining Colony")
+        case .lunarBase: localized("Lunar Base")
+        case .asteroidHarvester: localized("Asteroid Harvester")
+        case .galacticHashnet: localized("Galactic Hashnet")
         }
     }
 
     /// The name for several units: "Chromebooks", "Space Mining Colonies".
     public var pluralName: String {
         switch self {
-        case .spaceColony: "Space Mining Colonies"
+        case .spaceColony: localized("Space Mining Colonies")
         default: name + "s"
         }
     }
@@ -60,19 +60,19 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var blurb: String {
         switch self {
-        case .chromebook: "A trusty laptop for light-duty mining."
-        case .desktop: "More cores, more coins."
-        case .gpuRig: "Six graphics cards and a lot of fans."
-        case .server: "Rack-mounted hashing around the clock."
-        case .dataCenter: "A warehouse of humming servers."
-        case .mineCenter: "An industrial mining operation."
-        case .robotAssistant: "Tireless robots that never stop mining."
-        case .aiMiner: "Machine learning finds blocks faster."
-        case .quantumComputer: "Qubits crack hashes in parallel."
-        case .spaceColony: "Mining at a cosmic scale, off-world."
-        case .lunarBase: "Low gravity, high hash rate."
-        case .asteroidHarvester: "Crunches space rocks into blocks."
-        case .galacticHashnet: "A mining network across the galaxy."
+        case .chromebook: localized("A trusty laptop for light-duty mining.")
+        case .desktop: localized("More cores, more coins.")
+        case .gpuRig: localized("Six graphics cards and a lot of fans.")
+        case .server: localized("Rack-mounted hashing around the clock.")
+        case .dataCenter: localized("A warehouse of humming servers.")
+        case .mineCenter: localized("An industrial mining operation.")
+        case .robotAssistant: localized("Tireless robots that never stop mining.")
+        case .aiMiner: localized("Machine learning finds blocks faster.")
+        case .quantumComputer: localized("Qubits crack hashes in parallel.")
+        case .spaceColony: localized("Mining at a cosmic scale, off-world.")
+        case .lunarBase: localized("Low gravity, high hash rate.")
+        case .asteroidHarvester: localized("Crunches space rocks into blocks.")
+        case .galacticHashnet: localized("A mining network across the galaxy.")
         }
     }
 
@@ -129,7 +129,7 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
 
     /// The name of the Mk upgrade at `level` (0 is Mk II): "GPU Rig Mk II".
     public func upgradeName(level: Int) -> String {
-        "\(name) Mk \(Self.markName(level: level))"
+        localized("\(name) Mk \(Self.markName(level: level))")
     }
 
     /// The mark an upgrade level gives: "II" for level 0, up to "VI".

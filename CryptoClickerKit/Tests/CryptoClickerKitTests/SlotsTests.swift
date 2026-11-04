@@ -4,15 +4,18 @@ import Testing
 
 @Suite("Crypto Slots")
 struct SlotsTests {
-    @Test func theStripHoldsEveryTokenWithBitcoinRarest() {
+    @Test func theStripHoldsTheOriginalSevenWithBitcoinRarest() {
         let strip = SlotMachine.strip
         #expect(strip.count == 24)
         let counts = Dictionary(strip.map { ($0, 1) }, uniquingKeysWith: +)
         #expect(counts[.shibaInu] == 6)
         #expect(counts[.bitcoin] == 1)
-        #expect(Set(strip) == Set(TokenID.allCases))
+        // Tether, BNB and Monero are traded and bet, but aren't on the reels (and pay nothing there).
+        let offReels: Set<TokenID> = [.tether, .bnb, .monero]
+        #expect(Set(strip) == Set(TokenID.allCases).subtracting(offReels))
+        #expect(offReels.allSatisfy { SlotMachine.threeOfAKind($0) == 0 })
         // Rarer tokens pay more.
-        let pays = TokenID.allCases.map(SlotMachine.threeOfAKind)
+        let pays = TokenID.allCases.filter(strip.contains).map(SlotMachine.threeOfAKind)
         #expect(pays == pays.sorted())
         // Neighbouring stops always differ, so a spinning reel never seems to stand still.
         for index in strip.indices {

@@ -31,6 +31,52 @@ private struct GameScreen: ViewModifier {
     }
 }
 
+extension View {
+    /// What every action game does around a game in progress: it pauses when the app leaves the
+    /// screen, holds the run as the app goes to the background (so it's paid even if iOS closes the
+    /// app), lets go of it on the way back, and ends the game, paying what it scored, when the
+    /// screen goes away. Swipe-back from anywhere is off, so drags on the board stay in the game.
+    ///
+    /// - Parameters:
+    ///   - pause: Pauses the game (2048, with nothing running, doesn't need to).
+    ///   - heldRun: The run to hold in the background, or `nil` when there's nothing to pay for
+    ///     (a Token Swap level, say).
+    ///   - leave: Ends the game as the screen goes away.
+    func arcadeLifecycle(isPlaying: Bool, pause: @escaping () -> Void, heldRun: @escaping () -> ArcadeRun?,
+                         leave: @escaping () -> Void) -> some View {
+        modifier(ArcadeLifecycle(isPlaying: isPlaying, pause: pause, heldRun: heldRun, leave: leave))
+    }
+}
+
+private struct ArcadeLifecycle: ViewModifier {
+    let isPlaying: Bool
+    let pause: () -> Void
+    let heldRun: () -> ArcadeRun?
+    let leave: () -> Void
+    @Environment(GameStore.self) private var store
+    @Environment(\.scenePhase) private var scenePhase
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: scenePhase) { _, phase in
+                guard isPlaying else { return }
+                switch phase {
+                case .active:
+                    store.releaseArcadeRun()
+                case .background:
+                    pause()
+                    if let run = heldRun() { store.holdArcadeRun(run) }
+                default:
+                    pause()
+                }
+            }
+            .onDisappear {
+                if isPlaying { leave() }
+            }
+            .gameScreen(blocksSwipeBack: true)
+    }
+}
+
 /// Switches off iOS 26's swipe-back from anywhere while a game is on screen, so a drag across the
 /// board is never taken as "back". The swipe from the left edge still goes back (the game ends
 /// and pays what it scored, as with the back button), and everything is restored when the game
@@ -59,14 +105,26 @@ private struct SwipeBackBlocker: UIViewControllerRepresentable {
     }
 }
 
-/// A labelled number in a game's score bar.
+/// A labelled number in a game's score bar. A literal title is looked up in the String Catalog;
+/// text worked out in code shows as it is.
 struct GameStat: View {
-    let title: String
+    let title: Text
     let value: String
+
+    init(title: LocalizedStringKey, value: String) {
+        self.title = Text(title)
+        self.value = value
+    }
+
+    @_disfavoredOverload
+    init<Title: StringProtocol>(title: Title, value: String) {
+        self.title = Text(title)
+        self.value = value
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(title)
+            title
                 .font(.footnote.weight(.heavy))
                 .foregroundStyle(Theme.accent)
                 .textCase(.uppercase)
@@ -118,10 +176,28 @@ struct ArcadeButton: View {
 /// The start and game-over card for arcade games: wide, over a dimmed screen. On a screen too
 /// short for it (a small phone, or large text), the card scrolls.
 struct GamePanel<Content: View>: View {
-    let title: String
-    let buttonTitle: String
+    let title: Text
+    let buttonTitle: Text
     let action: () -> Void
-    @ViewBuilder let content: Content
+    let content: Content
+
+    init(title: LocalizedStringKey, buttonTitle: LocalizedStringKey, action: @escaping () -> Void,
+         @ViewBuilder content: () -> Content) {
+        self.title = Text(title)
+        self.buttonTitle = Text(buttonTitle)
+        self.action = action
+        self.content = content()
+    }
+
+    /// A title worked out in code, shown as it is.
+    @_disfavoredOverload
+    init<Title: StringProtocol>(title: Title, buttonTitle: LocalizedStringKey, action: @escaping () -> Void,
+                                @ViewBuilder content: () -> Content) {
+        self.title = Text(title)
+        self.buttonTitle = Text(buttonTitle)
+        self.action = action
+        self.content = content()
+    }
 
     var body: some View {
         ZStack {
@@ -143,13 +219,13 @@ struct GamePanel<Content: View>: View {
 
     private var card: some View {
         VStack(spacing: 16) {
-            Text(title)
+            title
                 .font(.largeTitle.bold())
                 .minimumScaleFactor(0.6)
                 .lineLimit(2)
             content
             Button(action: action) {
-                Label(buttonTitle, systemImage: "play.fill")
+                Label { buttonTitle } icon: { Image(systemName: "play.fill") }
                     .font(.title3.bold())
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
@@ -167,16 +243,41 @@ struct GamePanel<Content: View>: View {
     }
 }
 
-/// One way to play on a game's start screen (Token Swap's, Brick Breaker's and Scam Invaders'): an
-/// icon, a title with a status line, what it is, an optional note, and its buttons.
+/// One way to play on a game's start screen (every action game has one): an icon, a title with a
+/// status line, what it is, an optional note, and its buttons.
 struct ModeCard<Buttons: View>: View {
     let tint: Color
     let icon: String
-    let title: String
+    let title: Text
     let status: String
-    let detail: String
+    let detail: Text
     let note: String?
-    @ViewBuilder let buttons: Buttons
+    let buttons: Buttons
+
+    /// A title and detail written out, looked up in the String Catalog.
+    init(tint: Color, icon: String, title: LocalizedStringKey, status: String, detail: LocalizedStringKey, note: String?,
+         @ViewBuilder buttons: () -> Buttons) {
+        self.tint = tint
+        self.icon = icon
+        self.title = Text(title)
+        self.status = status
+        self.detail = Text(detail)
+        self.note = note
+        self.buttons = buttons()
+    }
+
+    /// A title and detail worked out in code, shown as they are.
+    @_disfavoredOverload
+    init<Title: StringProtocol, Detail: StringProtocol>(tint: Color, icon: String, title: Title, status: String, detail: Detail,
+                                                        note: String?, @ViewBuilder buttons: () -> Buttons) {
+        self.tint = tint
+        self.icon = icon
+        self.title = Text(title)
+        self.status = status
+        self.detail = Text(detail)
+        self.note = note
+        self.buttons = buttons()
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -188,14 +289,14 @@ struct ModeCard<Buttons: View>: View {
                     .background(tint.gradient, in: .rect(cornerRadius: 12))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
+                    title
                         .font(.title3.bold())
                     Text(status)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.accent)
                 }
             }
-            Text(detail)
+            detail
                 .font(.body)
                 .fixedSize(horizontal: false, vertical: true)
             if let note {
@@ -354,82 +455,6 @@ struct GameIntro: View {
                 Text(detail)
                     .font(.body.weight(.medium))
             }
-        }
-    }
-}
-
-/// A game's options (Snake's and Tetris's): its speed. Changed between games.
-struct GameOptionsSheet: View {
-    let game: MiniGame
-    @Binding var speed: GameSpeed
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Picker("Speed", selection: $speed) {
-                        ForEach(GameSpeed.allCases) { speed in
-                            Label(speed.name, systemImage: speed.icon).tag(speed)
-                        }
-                    }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
-                } header: {
-                    Text("Speed")
-                } footer: {
-                    SettingsNote(speedFooter)
-                }
-            }
-            .navigationTitle("Options")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
-    }
-
-    private var speedFooter: String {
-        let what = switch game {
-        case .snake: "How fast the snake moves."
-        case .tetris: "How fast pieces fall."
-        default: "How fast the game moves."
-        }
-        return what + " Points are worth the same at every speed: Fast scores quicker but is harder to keep up with, and Slow is relaxed but scores more slowly."
-    }
-}
-
-/// The options on a game's start card, as a button that opens them.
-struct GameOptionsChip: View {
-    let speed: GameSpeed
-    let change: () -> Void
-
-    var body: some View {
-        Button(action: change) {
-            Label("\(speed.name) speed", systemImage: speed.icon)
-                .font(.subheadline.weight(.semibold))
-        }
-        .buttonStyle(.glass)
-        .accessibilityLabel("Options: \(speed.name) speed")
-        .accessibilityHint("Changes the speed")
-    }
-}
-
-extension View {
-    /// The Options button in a game's navigation bar, and the sheet it opens. The options apply to
-    /// the next game, so the button waits while a game is on.
-    func gameOptions(_ game: MiniGame, isPresented: Binding<Bool>, isEnabled: Bool, speed: Binding<GameSpeed>) -> some View {
-        toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Options", systemImage: "slider.horizontal.3") { isPresented.wrappedValue = true }
-                    .disabled(!isEnabled)
-            }
-        }
-        .sheet(isPresented: isPresented) {
-            GameOptionsSheet(game: game, speed: speed)
         }
     }
 }

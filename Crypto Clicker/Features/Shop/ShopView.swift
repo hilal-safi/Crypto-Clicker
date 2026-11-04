@@ -43,6 +43,14 @@ struct ShopView: View {
         case tokens = "Tokens"
 
         var id: Self { self }
+
+        /// The page's name, from the String Catalog.
+        var title: LocalizedStringResource {
+            switch self {
+            case .powerUps: "Power-ups"
+            case .tokens: "Tokens"
+            }
+        }
     }
 
     private static let topID = "top"
@@ -55,7 +63,7 @@ struct ShopView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         Picker("Page", selection: $page) {
-                            ForEach(ShopPage.allCases) { Text($0.rawValue).tag($0) }
+                            ForEach(ShopPage.allCases) { Text($0.title).tag($0) }
                         }
                         .pickerStyle(.segmented)
                         .id(Self.topID)

@@ -76,7 +76,6 @@ struct InvadersPlayView: View {
     /// Classic formations or random ones.
     let waves: InvadersGame.WaveStyle
     @Environment(GameStore.self) private var store
-    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @AppStorage(Preferences.invadersSpeedKey) private var speed = GameSpeed.normal
@@ -106,7 +105,7 @@ struct InvadersPlayView: View {
         self.waves = waves
         let seed = UInt64.random(in: 0...UInt64.max)
         _seed = State(initialValue: seed)
-        _game = State(initialValue: InvadersGame(seed: seed, waves: waves))
+        _game = State(initialValue: InvadersGame(seed: seed, waves: waves, firewalls: .edition(.current)))
     }
 
     var body: some View {
@@ -178,31 +177,21 @@ struct InvadersPlayView: View {
     /// the game when the screen goes away.
     private func withLifecycle(_ view: some View) -> some View {
         view
-        .onChange(of: scenePhase) { _, phase in
-            guard isPlaying else { return }
-            switch phase {
-            case .active:
-                store.releaseArcadeRun()
-            case .background:
-                isPaused = true
-                game.isFiring = false
-                store.holdArcadeRun(ArcadeRun(game: .invaders, score: game.score, detail: game.invadersDestroyed, extra: game.wave,
-                                              records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated,
-                                                             bestStreak: game.bestStreak, bonuses: game.whalesHit,
-                                                             volleys: game.volleysFired, volleysHit: game.volleysHit)))
-            default:
-                isPaused = true
-                game.isFiring = false
-            }
-        }
         .onChange(of: isRunning) { _, running in
             lastFrame = nil
             if !running { game.isFiring = false }
         }
-        .onDisappear {
-            if isPlaying { endGame() }
-        }
-        .gameScreen(blocksSwipeBack: true)
+        .arcadeLifecycle(isPlaying: isPlaying, pause: {
+            isPaused = true
+            game.isFiring = false
+        }, heldRun: { heldRun }) { endGame() }
+    }
+
+    /// The game so far, held while the app is in the background.
+    private var heldRun: ArcadeRun {
+        ArcadeRun(game: .invaders, score: game.score, detail: game.invadersDestroyed, extra: game.wave,
+                  records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated, bestStreak: game.bestStreak,
+                                 bonuses: game.whalesHit, volleys: game.volleysFired, volleysHit: game.volleysHit))
     }
 
     private var field: some View {
@@ -398,7 +387,7 @@ struct InvadersPlayView: View {
     }
 
     private func start() {
-        game = InvadersGame(seed: seed, speed: speed, waves: waves)
+        game = InvadersGame(seed: seed, speed: speed, waves: waves, firewalls: .edition(store.arcadeEdition))
         seed = .random(in: 0...UInt64.max)
         result = nil
         isPaused = false
@@ -544,10 +533,16 @@ private struct InvadersField: View {
             ground.addLine(to: CGPoint(x: size.width - 8, y: groundY))
             context.stroke(ground, with: .color(Color(red: 1, green: 0.3, blue: 0.3).opacity(0.5)), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
 
+            let racks = game.firewallStyle == .rack
             for wall in game.firewalls {
                 for row in 0..<InvadersGame.Firewall.rows {
                     for column in 0..<InvadersGame.Firewall.columns where wall.isStanding(row: row, column: column) {
-                        InvadersArt.drawBlock(in: rect(wall.blockFrame(row: row, column: column)), context: &context)
+                        if racks {
+                            InvadersArt.drawServerBlock(in: rect(wall.blockFrame(row: row, column: column)), row: row, column: column,
+                                                        columns: InvadersGame.Firewall.columns, context: &context, time: seconds)
+                        } else {
+                            InvadersArt.drawBlock(in: rect(wall.blockFrame(row: row, column: column)), context: &context)
+                        }
                     }
                 }
             }

@@ -11,28 +11,30 @@ public enum QuestKind: String, Codable, CaseIterable, Sendable {
     /// The instruction, with the target filled in: "Tap the coin 500 times".
     public func title(target: Double) -> String {
         let amount = CoinFormat.short(target)
+        let crypto = ArcadeEdition.current == .crypto
         return switch self {
-        case .tapCoin: "Tap the coin \(amount) times"
-        case .buyMiners: "Buy \(amount) miners"
-        case .earnCoins: "Earn \(amount) coins"
-        case .catchAirdrops: "Catch \(amount) airdrops"
-        case .walkSteps: "Walk \(amount) steps"
-        case .winBlackjack: "Win \(amount) Blackjack hands"
-        case .spinSlots: "Spin Crypto Slots \(amount) times"
-        case .clearLines: "Clear \(amount) Tetris lines"
-        case .eatSnakeCoins: "Eat \(amount) coins in Snake"
-        case .breakBricks: "Break \(amount) bricks"
-        case .popBubbles: "Pop \(amount) bubbles"
-        case .sellTokens: "Sell \(amount) tokens on the market"
-        case .score2048: "Score \(amount) points in 2048"
-        case .cashOutMoon: "Cash out \(amount) times in To the Moon"
-        case .hitPumpCoins: "Hit \(amount) coins in Pump and Dump"
-        case .winPoker: "Win \(amount) Video Poker hands"
-        case .matchTokens: "Match \(amount) tokens in Token Swap"
-        case .winTokenSwapLevels: target == 1 ? "Win a Token Swap level" : "Win \(amount) Token Swap levels"
-        case .clearPumpRounds: "Clear \(amount) rounds in Pump and Dump"
-        case .reach2048Goals: "Reach \(amount) tile goals in 2048"
-        case .shootInvaders: "Shoot \(amount) invaders in Scam Invaders"
+        case .tapCoin: localized("Tap the coin \(amount) times")
+        case .buyMiners: localized("Buy \(amount) miners")
+        case .earnCoins: localized("Earn \(amount) coins")
+        case .catchAirdrops: localized("Catch \(amount) airdrops")
+        case .walkSteps: localized("Walk \(amount) steps")
+        case .winBlackjack: localized("Win \(amount) \(MiniGame.blackjack.name) hands")
+        case .spinSlots: localized("Spin Crypto Slots \(amount) times")
+        case .clearLines: localized("Clear \(amount) lines in \(MiniGame.tetris.name)")
+        case .eatSnakeCoins: crypto ? localized("Mine \(amount) coins in \(MiniGame.snake.name)") : localized("Eat \(amount) coins in \(MiniGame.snake.name)")
+        case .breakBricks: crypto ? localized("Smash \(amount) hash blocks") : localized("Break \(amount) bricks")
+        case .popBubbles: localized("Pop \(amount) bubbles")
+        case .sellTokens: localized("Sell \(amount) tokens on the market")
+        case .score2048: localized("Score \(amount) points in \(MiniGame.merge2048.name)")
+        case .cashOutMoon: localized("Cash out \(amount) times in To the Moon")
+        case .hitPumpCoins: localized("Hit \(amount) coins in Pump and Dump")
+        case .winPoker: localized("Win \(amount) \(MiniGame.videoPoker.name) hands")
+        case .matchTokens: localized("Match \(amount) tokens in Token Swap")
+        case .winTokenSwapLevels: target == 1 ? localized("Win a Token Swap level") : localized("Win \(amount) Token Swap levels")
+        case .clearPumpRounds: localized("Clear \(amount) rounds in Pump and Dump")
+        case .reach2048Goals: crypto ? localized("Reach \(amount) miner goals in \(MiniGame.merge2048.name)")
+                                     : localized("Reach \(amount) tile goals in \(MiniGame.merge2048.name)")
+        case .shootInvaders: localized("Shoot \(amount) invaders in Scam Invaders")
         }
     }
 
@@ -126,37 +128,43 @@ public enum DailyChallengeKind: String, Codable, CaseIterable, Sendable {
     /// The day's theme, shown above the goal.
     public var dayName: String {
         switch self {
-        case .tetris: "Block Day"
-        case .merge2048: "Puzzle Day"
-        case .snake: "Survival Day"
-        case .brickBreaker: "Precision Day"
-        case .bubbleBlaster: "Pop Day"
-        case .pumpDump: "Reflex Day"
-        case .tokenSwap: "Match Day"
-        case .invaders: "Defense Day"
-        case .blackjack, .slots, .moon, .videoPoker, .blackjackNatural: "Casino Day"
-        case .arcadeMix: "Arcade Day"
+        case .tetris: localized("Block Day")
+        case .merge2048: localized("Puzzle Day")
+        case .snake: localized("Survival Day")
+        case .brickBreaker: localized("Precision Day")
+        case .bubbleBlaster: localized("Pop Day")
+        case .pumpDump: localized("Reflex Day")
+        case .tokenSwap: localized("Match Day")
+        case .invaders: localized("Defense Day")
+        case .blackjack, .slots, .moon, .videoPoker, .blackjackNatural: localized("Casino Day")
+        case .arcadeMix: localized("Arcade Day")
         }
     }
 
     /// The goal, with the target filled in: "Eat 15 coins in one Snake game".
     public func goal(target: Int) -> String {
         let amount = CoinFormat.grouped(target)
+        let crypto = ArcadeEdition.current == .crypto
         return switch self {
-        case .tetris: "Score \(amount) in one Tetris game"
-        case .merge2048: "Make a \(target) tile in 2048"
-        case .snake: "Eat \(amount) coins in one Snake game"
-        case .brickBreaker: "Break \(amount) bricks in one Brick Breaker game"
-        case .bubbleBlaster: "Pop \(amount) bubbles in one Bubble Blaster game"
-        case .pumpDump: "Score \(amount) in one Pump and Dump run"
-        case .tokenSwap: "Score \(amount) in one round of Token Swap Classic"
-        case .invaders: "Shoot \(amount) invaders in one Scam Invaders game"
-        case .blackjack: "Win \(amount) Blackjack hands today"
-        case .slots: "Win \(amount) spins at Crypto Slots today"
-        case .moon: "Cash out at 2× or more \(amount) times in To the Moon today"
-        case .videoPoker: "Make two pair or better \(amount) times in Video Poker today"
-        case .arcadeMix: "Score in \(amount) different arcade games today"
-        case .blackjackNatural: target == 1 ? "Deal yourself a natural blackjack today" : "Deal yourself \(amount) natural blackjacks today"
+        case .tetris: localized("Score \(amount) in one \(MiniGame.tetris.name) game")
+        case .merge2048: crypto ? localized("Merge your way to the \(Merge2048Game.miner(for: target).name) (\(target)) in \(MiniGame.merge2048.name)")
+                                : localized("Make a \(target) tile in 2048")
+        case .snake: crypto ? localized("Mine \(amount) coins in one \(MiniGame.snake.name) game")
+                            : localized("Eat \(amount) coins in one \(MiniGame.snake.name) game")
+        case .brickBreaker: crypto ? localized("Smash \(amount) blocks in one \(MiniGame.brickBreaker.name) game")
+                                   : localized("Break \(amount) bricks in one Brick Breaker game")
+        case .bubbleBlaster: localized("Pop \(amount) bubbles in one \(MiniGame.bubbleBlaster.name) game")
+        case .pumpDump: localized("Score \(amount) in one Pump and Dump run")
+        case .tokenSwap: localized("Score \(amount) in one round of Token Swap Classic")
+        case .invaders: localized("Shoot \(amount) invaders in one Scam Invaders game")
+        case .blackjack: localized("Win \(amount) \(MiniGame.blackjack.name) hands today")
+        case .slots: localized("Win \(amount) spins at Crypto Slots today")
+        case .moon: localized("Cash out at 2× or more \(amount) times in To the Moon today")
+        case .videoPoker: localized("Make two pair or better \(amount) times in \(MiniGame.videoPoker.name) today")
+        case .arcadeMix: localized("Score in \(amount) different arcade games today")
+        case .blackjackNatural: crypto
+            ? (target == 1 ? localized("Deal yourself a natural 21 today") : localized("Deal yourself \(amount) natural 21s today"))
+            : (target == 1 ? localized("Deal yourself a natural blackjack today") : localized("Deal yourself \(amount) natural blackjacks today"))
         }
     }
 

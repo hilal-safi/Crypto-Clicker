@@ -12,62 +12,80 @@ public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var id: String { rawValue }
 
-    public var info: MiniGameInfo {
+    /// The game as the edition on screen shows it.
+    public var info: MiniGameInfo { info(in: .current) }
+
+    /// The game in an edition: the crypto edition's names, pictures and pitches, or the classic
+    /// ones. Prices, colors and pay are the same in both.
+    public func info(in edition: ArcadeEdition) -> MiniGameInfo {
         switch self {
         case .blackjack:
-            MiniGameInfo(name: "Blackjack", icon: "🃏", category: .casino, listCost: 1_000,
-                         pitch: "Beat the dealer with tokens. Wins pay a coin bonus that grows with your bet.",
+            MiniGameInfo(name: edition.pick(localized("21 Million"), classic: localized("Blackjack")), icon: "🃏", category: .casino, listCost: 1_000,
+                         pitch: edition.pick(localized("Get closer to 21 than the dealer, betting tokens. Wins pay a coin bonus that grows with your bet."),
+                                             classic: localized("Beat the dealer with tokens. Wins pay a coin bonus that grows with your bet.")),
                          color: .init(red: 0.05, green: 0.47, blue: 0.25))
         case .slots:
-            MiniGameInfo(name: "Crypto Slots", icon: "🎰", category: .casino, listCost: 45e6,
-                         pitch: "Spin three reels of crypto. Three Bitcoins pay 500 times your bet.",
+            MiniGameInfo(name: localized("Crypto Slots"), icon: "🎰", category: .casino, listCost: 45e6,
+                         pitch: localized("Spin three reels of crypto. Three Bitcoins pay 500 times your bet."),
                          color: .init(red: 0.60, green: 0.20, blue: 0.75))
         case .moon:
-            MiniGameInfo(name: "To the Moon", icon: "🚀", category: .casino, listCost: 10e9,
-                         pitch: "Ride the chart as the multiplier climbs. Cash out before the market crashes.",
+            MiniGameInfo(name: localized("To the Moon"), icon: "🚀", category: .casino, listCost: 10e9,
+                         pitch: localized("Ride the chart as the multiplier climbs. Cash out before the market crashes."),
                          color: .init(red: 0.24, green: 0.22, blue: 0.62))
         case .tetris:
-            MiniGameInfo(name: "Tetris", icon: "🧱", category: .arcade, listCost: 4_000,
-                         pitch: "Clear lines for points. Every point pays coins.",
+            MiniGameInfo(name: edition.pick(localized("Block Chain"), classic: localized("Tetris")), icon: edition.pick("⛓️", classic: "🧱"),
+                         category: .arcade, listCost: 4_000,
+                         pitch: edition.pick(localized("Stack coin blocks into full rows to mine them, before the gas spikes push the stack up."),
+                                             classic: localized("Clear lines for points. Every point pays coins.")),
                          color: .init(red: 0.00, green: 0.46, blue: 0.62),
                          secondsPerPoint: Tuning.tetrisSecondsPerPoint)
         case .merge2048:
-            MiniGameInfo(name: "2048", icon: "🔢", category: .arcade, listCost: 1.2e9,
-                         pitch: "Slide numbered tiles and merge matching pairs. Make 2048 for a bonus.",
+            MiniGameInfo(name: edition.pick(localized("Merge Mining"), classic: "2048"), icon: edition.pick("⛏️", classic: "🔢"),
+                         category: .arcade, listCost: 1.2e9,
+                         pitch: edition.pick(localized("Slide miners together to upgrade them, from a Chromebook up. Build a Lunar Base for a bonus."),
+                                             classic: localized("Slide numbered tiles and merge matching pairs. Make 2048 for a bonus.")),
                          color: .init(red: 0.75, green: 0.13, blue: 0.42),
                          secondsPerPoint: Tuning.merge2048SecondsPerPoint)
         case .snake:
-            MiniGameInfo(name: "Snake", icon: "🐍", category: .arcade, listCost: 35_000,
-                         pitch: "Eat coins and grow longer, but don't bite your own tail.",
+            MiniGameInfo(name: edition.pick(localized("Hash Chain"), classic: localized("Snake")), icon: edition.pick("🔗", classic: "🐍"),
+                         category: .arcade, listCost: 35_000,
+                         pitch: edition.pick(localized("Mine coins to add blocks to your chain, but never cross your own blocks."),
+                                             classic: localized("Eat coins and grow longer, but don't bite your own tail.")),
                          color: .init(red: 0.22, green: 0.50, blue: 0.08),
                          secondsPerPoint: Tuning.snakeSecondsPerPoint)
         case .brickBreaker:
-            MiniGameInfo(name: "Brick Breaker", icon: "💥", category: .arcade, listCost: 80e9,
-                         pitch: "Smash every brick with the coin ball. Each level is faster.",
+            MiniGameInfo(name: edition.pick(localized("Hash Smash"), classic: localized("Brick Breaker")), icon: "💥", category: .arcade, listCost: 80e9,
+                         pitch: edition.pick(localized("Smash every hash block with the coin ball. Each level is faster, and the whale comes every fifth."),
+                                             classic: localized("Smash every brick with the coin ball. Each level is faster.")),
                          color: .init(red: 0.75, green: 0.33, blue: 0.00),
                          secondsPerPoint: Tuning.brickBreakerSecondsPerPoint)
         case .bubbleBlaster:
-            MiniGameInfo(name: "Bubble Blaster", icon: "🫧", category: .arcade, listCost: 250e9,
-                         pitch: "Match three bubbles to pop them. Cut-off clusters fall for double points.",
+            MiniGameInfo(name: edition.pick(localized("Bubble Market"), classic: localized("Bubble Blaster")), icon: "🫧", category: .arcade, listCost: 250e9,
+                         pitch: edition.pick(localized("Pop three token bubbles of a kind before the market sinks to the crash line."),
+                                             classic: localized("Match three bubbles to pop them. Cut-off clusters fall for double points.")),
                          color: .init(red: 0.00, green: 0.40, blue: 0.90),
                          secondsPerPoint: Tuning.bubbleSecondsPerPoint)
         case .videoPoker:
-            MiniGameInfo(name: "Video Poker", icon: "♦️", category: .casino, listCost: 300_000,
-                         pitch: "Jacks or Better: hold the cards you want and draw once. A royal flush pays 800 to 1.",
+            MiniGameInfo(name: edition.pick(localized("Diamond Hands"), classic: localized("Video Poker")), icon: edition.pick("💎", classic: "♦️"),
+                         category: .casino, listCost: 300_000,
+                         pitch: edition.pick(localized("HODL the cards you believe in and draw once. A royal flush pays 800 to 1."),
+                                             classic: localized("Jacks or Better: hold the cards you want and draw once. A royal flush pays 800 to 1.")),
                          color: .init(red: 0.55, green: 0.38, blue: 0.04))
         case .tokenSwap:
-            MiniGameInfo(name: "Token Swap", icon: "💎", category: .arcade, listCost: 6e6,
-                         pitch: "Swap neighboring tokens to line up three or more. Big matches leave Blasts behind.",
+            MiniGameInfo(name: localized("Token Swap"), icon: edition.pick("🪙", classic: "💎"), category: .arcade, listCost: 6e6,
+                         pitch: localized("Swap neighboring tokens to line up three or more. Big matches leave Blasts behind."),
                          color: .init(red: 0.00, green: 0.46, blue: 0.38),
                          secondsPerPoint: Tuning.tokenSwapSecondsPerPoint)
         case .invaders:
-            MiniGameInfo(name: "Scam Invaders", icon: "👾", category: .arcade, listCost: 1e12,
-                         pitch: "Shoot down the scam tokens before they land. Hide behind the firewalls.",
+            MiniGameInfo(name: localized("Scam Invaders"), icon: "👾", category: .arcade, listCost: 1e12,
+                         pitch: edition.pick(localized("Shoot down the scam tokens before they land. Hide behind the server racks."),
+                                             classic: localized("Shoot down the scam tokens before they land. Hide behind the firewalls.")),
                          color: .init(red: 0.32, green: 0.16, blue: 0.92),
                          secondsPerPoint: Tuning.invadersSecondsPerPoint)
         case .pumpDump:
-            MiniGameInfo(name: "Pump and Dump", icon: "🔨", category: .arcade, listCost: 150e6,
-                         pitch: "Tap the coins before they vanish. Dodge scam tokens and rug pulls.",
+            MiniGameInfo(name: localized("Pump and Dump"), icon: edition.pick("📈", classic: "🔨"), category: .arcade, listCost: 150e6,
+                         pitch: edition.pick(localized("Tap the coins as they list before they're delisted. Dodge scam tokens and rug pulls."),
+                                             classic: localized("Tap the coins before they vanish. Dodge scam tokens and rug pulls.")),
                          color: .init(red: 0.72, green: 0.10, blue: 0.16),
                          secondsPerPoint: Tuning.pumpDumpSecondsPerPoint)
         }

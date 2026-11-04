@@ -12,6 +12,8 @@ struct SettingsView: View {
     @AppStorage(Preferences.tapHapticStrengthKey) private var tapStrength = TapHapticStrength.strong
     @AppStorage(Preferences.soundsKey) private var sounds = false
     @AppStorage(Preferences.coinFinishKey) private var finish = CoinFinish.gold
+    @AppStorage(Preferences.coinRimKey) private var rim = CoinRim.plain
+    @AppStorage(Preferences.coinTapEffectKey) private var tapEffect = CoinTapEffect.none
     @AppStorage(Preferences.notifyMinersKey) private var notifyMiners = false
     @AppStorage(Preferences.notifyDailyKey) private var notifyDaily = false
     @AppStorage(Preferences.liveActivityKey) private var liveActivity = true
@@ -58,6 +60,16 @@ struct SettingsView: View {
                                     .frame(width: 24, height: 24)
                             }
                         }
+                    }
+                    NavigationLink {
+                        CoinRimPicker()
+                    } label: {
+                        LabeledContent("Coin Rim", value: (rim.isUnlocked(stars: game.earnedAchievementTiers) ? rim : .plain).name)
+                    }
+                    NavigationLink {
+                        CoinTapEffectPicker()
+                    } label: {
+                        LabeledContent("Tap Effect", value: (tapEffect.isUnlocked(stars: game.earnedAchievementTiers) ? tapEffect : .none).name)
                     }
                 }
 
@@ -258,14 +270,19 @@ extension WatchBridge.Status {
 
 /// A Settings footnote in full-size text with strong contrast, instead of the system's small grey.
 struct SettingsNote: View {
-    let text: String
+    let text: Text
 
-    init(_ text: String) {
-        self.text = text
+    init(_ text: LocalizedStringKey) {
+        self.text = Text(text)
+    }
+
+    @_disfavoredOverload
+    init<Content: StringProtocol>(_ text: Content) {
+        self.text = Text(text)
     }
 
     var body: some View {
-        Text(text)
+        text
             .font(.subheadline)
             .foregroundStyle(Theme.subtext)
             .textCase(nil)
@@ -361,18 +378,24 @@ private struct DifficultyRow: View {
 /// A section header with an ⓘ at its end that explains the section in a popover, so the page
 /// doesn't carry paragraphs.
 struct SettingsHeader: View {
-    let title: String
-    let info: String
+    let title: Text
+    let info: Text
     @State private var isShowingInfo = false
 
-    init(_ title: String, info: String) {
-        self.title = title
-        self.info = info
+    init(_ title: LocalizedStringKey, info: LocalizedStringKey) {
+        self.title = Text(title)
+        self.info = Text(info)
+    }
+
+    @_disfavoredOverload
+    init<Title: StringProtocol, Info: StringProtocol>(_ title: Title, info: Info) {
+        self.title = Text(title)
+        self.info = Text(info)
     }
 
     var body: some View {
         HStack {
-            Text(title)
+            title
             Spacer()
             Button {
                 isShowingInfo = true
@@ -385,12 +408,12 @@ struct SettingsHeader: View {
             }
             .buttonStyle(.plain)
             .textCase(nil)
-            .accessibilityLabel("About \(title)")
+            .accessibilityLabel(Text("About \(title)"))
             .popover(isPresented: $isShowingInfo) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(title)
+                    title
                         .font(.headline)
-                    Text(info)
+                    info
                         .font(.subheadline)
                         .fixedSize(horizontal: false, vertical: true)
                 }

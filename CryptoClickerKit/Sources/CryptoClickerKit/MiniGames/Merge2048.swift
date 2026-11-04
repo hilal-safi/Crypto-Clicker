@@ -270,3 +270,13 @@ public struct Merge2048Game: Sendable {
 extension SlideDirection {
     var isVertical: Bool { self == .up || self == .down }
 }
+
+extension Merge2048Game {
+    /// Merge Mining's picture for a tile: the miner it stands for, climbing the Shop's ladder from a
+    /// Chromebook (2) to the Lunar Base (2048, the Moon), and the Galactic Hashnet from 8192 up.
+    public static func miner(for value: Int) -> MinerID {
+        let ladder = MinerID.allCases
+        let step = max(0, max(value, 2).trailingZeroBitCount - 1) // 2 is the first rung, 4 the next…
+        return ladder[min(step, ladder.count - 1)]
+    }
+}

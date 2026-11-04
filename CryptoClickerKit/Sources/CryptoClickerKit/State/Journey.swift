@@ -92,12 +92,12 @@ public struct JourneyEntry: Equatable, Sendable, Identifiable {
 
     public var title: String {
         switch kind {
-        case .started: "Started mining"
-        case .miner(let miner): "First \(miner.name)"
-        case .offlineMining: "Offline Mining"
-        case .game(let game): "Unlocked \(game.name)"
-        case .coins(let power): "\(CoinFormat.short(pow(1_000, Double(power)))) coins mined"
-        case .prestige: "First prestige"
+        case .started: localized("Started mining")
+        case .miner(let miner): localized("First \(miner.name)")
+        case .offlineMining: localized("Offline Mining")
+        case .game(let game): localized("Unlocked \(game.name)")
+        case .coins(let power): localized("\(CoinFormat.short(pow(1_000, Double(power)))) coins mined")
+        case .prestige: localized("First prestige")
         }
     }
 

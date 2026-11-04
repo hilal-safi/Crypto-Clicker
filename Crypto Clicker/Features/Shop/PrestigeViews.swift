@@ -205,7 +205,7 @@ struct PerkTreeView: View {
                                     canBuy: game.canBuy(perk), color: branch.color)
                         }
                     } header: {
-                        Label(branch.rawValue, systemImage: branch.symbol)
+                        Label(branch.name, systemImage: branch.symbol)
                     }
                 }
             }

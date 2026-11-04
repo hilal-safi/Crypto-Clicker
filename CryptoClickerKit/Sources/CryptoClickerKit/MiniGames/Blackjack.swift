@@ -15,10 +15,10 @@ public struct Card: Hashable, Codable, Sendable, Identifiable {
 
         public var name: String {
             switch self {
-            case .spades: "Spades"
-            case .hearts: "Hearts"
-            case .diamonds: "Diamonds"
-            case .clubs: "Clubs"
+            case .spades: localized("Spades")
+            case .hearts: localized("Hearts")
+            case .diamonds: localized("Diamonds")
+            case .clubs: localized("Clubs")
             }
         }
 
@@ -54,10 +54,10 @@ public struct Card: Hashable, Codable, Sendable, Identifiable {
 
     public var accessibilityName: String {
         let rankName: String = switch rank {
-        case 1: "Ace"
-        case 11: "Jack"
-        case 12: "Queen"
-        case 13: "King"
+        case 1: localized("Ace")
+        case 11: localized("Jack")
+        case 12: localized("Queen")
+        case 13: localized("King")
         default: "\(rank)"
         }
         return "\(rankName) of \(suit.name)"
@@ -100,16 +100,16 @@ public enum BlackjackRules: String, CaseIterable, Codable, Sendable, Identifiabl
 
     public var name: String {
         switch self {
-        case .standsOnSoft17: "Classic"
-        case .hitsSoft17: "Tough"
+        case .standsOnSoft17: localized("Classic")
+        case .hitsSoft17: localized("Tough")
         }
     }
 
     /// The rule as the felt prints it.
     public var dealerRule: String {
         switch self {
-        case .standsOnSoft17: "Dealer stands on all 17s"
-        case .hitsSoft17: "Dealer hits soft 17"
+        case .standsOnSoft17: localized("Dealer stands on all 17s")
+        case .hitsSoft17: localized("Dealer hits soft 17")
         }
     }
 }
@@ -120,10 +120,10 @@ public enum BlackjackMove: String, CaseIterable, Sendable {
 
     public var name: String {
         switch self {
-        case .hit: "Hit"
-        case .stand: "Stand"
-        case .double: "Double"
-        case .split: "Split"
+        case .hit: localized("Hit")
+        case .stand: localized("Stand")
+        case .double: localized("Double")
+        case .split: localized("Split")
         }
     }
 }

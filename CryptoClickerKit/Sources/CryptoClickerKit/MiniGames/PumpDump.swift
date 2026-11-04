@@ -69,9 +69,9 @@ public struct PumpDumpGame: Sendable {
 
         public var description: String {
             switch self {
-            case .goldenCoins(let count): "Catch \(count) golden coin\(count == 1 ? "" : "s")"
-            case .combo(let hits): "Reach a combo of \(hits)"
-            case .noMistakes: "No mistakes: no scams, no empty taps"
+            case .goldenCoins(let count): count == 1 ? localized("Catch 1 golden coin") : localized("Catch \(count) golden coins")
+            case .combo(let hits): localized("Reach a combo of \(hits)")
+            case .noMistakes: localized("No mistakes: no scams, no empty taps")
             }
         }
     }

@@ -206,21 +206,21 @@ struct WelcomeBackView: View {
         }
     }
 
+    /// The greeting, how long the player was away and what the miners earned, in large type.
     private var summary: some View {
-        VStack(spacing: 10) {
-            CoinIcon(size: 52)
-            VStack(spacing: 4) {
+        VStack(spacing: 14) {
+            VStack(spacing: 6) {
                 Text("Welcome back!")
-                    .font(.title2.bold())
+                    .font(.largeTitle.bold())
                 Text("You were away for \(CoinFormat.duration(report.elapsed)).")
-                    .font(.subheadline)
+                    .font(.title3)
                     .foregroundStyle(.subtext)
             }
-            VStack(spacing: 2) {
+            VStack(spacing: 4) {
                 Text("Your miners earned")
-                    .font(.subheadline.weight(.medium))
+                    .font(.title3.weight(.medium))
                     .foregroundStyle(.subtext)
-                CoinAmount(amount: report.earned, font: .system(size: 36, weight: .bold, design: .rounded), iconSize: 30)
+                CoinAmount(amount: report.earned, font: .system(size: 42, weight: .bold, design: .rounded), iconSize: 34)
             }
         }
         .multilineTextAlignment(.center)

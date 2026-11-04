@@ -9,7 +9,6 @@ struct TokenSwapPlayView: View {
     typealias Position = TokenSwapGame.Position
 
     @Environment(GameStore.self) private var store
-    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dismiss) private var dismiss
     @AppStorage(Preferences.hapticsKey) private var haptics = true
@@ -114,24 +113,9 @@ struct TokenSwapPlayView: View {
             return outcome.won ? .success : .error
         }
         .task(id: isRunning) { await run() }
-        .onChange(of: scenePhase) { _, phase in
-            guard isPlaying else { return }
-            switch phase {
-            case .active:
-                if game.isClassic { store.releaseArcadeRun() }
-            case .background:
-                isPaused = true
-                if game.isClassic {
-                    store.holdArcadeRun(ArcadeRun(game: .tokenSwap, score: game.score, detail: game.tokensCleared,
-                                                  extra: game.bestChain, records: .init(specials: game.specialsSetOff)))
-                }
-            default:
-                isPaused = true
-            }
-        }
-        .onDisappear {
-            resolveTask?.cancel()
-            guard isPlaying else { return }
+        .onDisappear { resolveTask?.cancel() }
+        // Only Classic rounds pay for their points, so only they are held in the background.
+        .arcadeLifecycle(isPlaying: isPlaying, pause: { isPaused = true }, heldRun: { game.isClassic ? heldRun : nil }) {
             if game.isClassic {
                 endClassic() // A Classic round pays what it scored.
             } else {
@@ -141,7 +125,12 @@ struct TokenSwapPlayView: View {
                 if game.phase != .playing { finishLevel() }
             }
         }
-        .gameScreen(blocksSwipeBack: true)
+    }
+
+    /// The Classic round so far, held while the app is in the background.
+    private var heldRun: ArcadeRun {
+        ArcadeRun(game: .tokenSwap, score: game.score, detail: game.tokensCleared, extra: game.bestChain,
+                  records: .init(specials: game.specialsSetOff))
     }
 
     private var title: String {

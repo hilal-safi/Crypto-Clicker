@@ -1,20 +1,152 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Snake: swipe anywhere in the play area to steer toward the coins; there are no buttons to
-/// reach for. A long swipe that bends (up, then left) turns twice. Classic is played in a choice
-/// of arenas until the snake crashes; Coin Rush is a minute with three coins out at once. Power-ups
-/// appear every few coins. Points pay coins when the game ends, including when the player leaves.
+/// The screens inside Snake (Hash Chain in the crypto edition), opened from its start screen.
+enum SnakeRoute: Hashable {
+    /// A game in this mode: Classic in the arena picked on the start screen, or Coin Rush.
+    case play(SnakeGame.Mode)
+}
+
+/// Where Snake opens, like Brick Breaker and Scam Invaders: Classic with its four arenas, Coin
+/// Rush, and the speed setting, each on a card.
 struct SnakeView: View {
     @Environment(GameStore.self) private var store
-    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(Preferences.snakeArenaKey) private var arena = SnakeGame.Arena.open
+    @AppStorage(Preferences.snakeSpeedKey) private var speed = GameSpeed.normal
+    @State private var showingHelp = false
+
+    var body: some View {
+        let stats = store.game.stats
+        let tint = MiniGame.snake.color
+        let crypto = store.arcadeEdition == .crypto
+        ScrollView {
+            VStack(spacing: 14) {
+                ModeCard(tint: tint, icon: crypto ? "link" : "point.topleft.down.to.point.bottomright.curvepath.fill",
+                         title: "Classic",
+                         status: stats.snakeGames == 0
+                            ? "Pick an arena and play"
+                            : "Best \(CoinFormat.grouped(stats.snakeBestScore)) · longest \(CoinFormat.grouped(stats.snakeLongest))",
+                         detail: crypto
+                            ? "Grow the chain until it crashes: every coin adds a block, and the chain speeds up as it grows. Every arena but Open adds walls to steer around."
+                            : "Grow until you crash: every coin makes the snake longer, and faster. Every arena but Open adds walls to steer around.",
+                         note: nil) {
+                    VStack(spacing: 12) {
+                        ArenaPicker(selection: $arena, tint: tint, edition: store.arcadeEdition)
+                        NavigationLink(value: SnakeRoute.play(.classic)) {
+                            Label(arena == .open ? "Play Classic" : "Play \(arena.name)", systemImage: "play.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.glassProminent)
+                    }
+                }
+                ModeCard(tint: tint, icon: "timer", title: "Coin Rush",
+                         status: stats.snakeRushes == 0
+                            ? "One minute, three coins out"
+                            : "Best \(CoinFormat.grouped(stats.snakeRushBestScore)) · \(CoinFormat.grouped(stats.snakeRushes)) played",
+                         detail: "One minute in the open arena with three coins out at once: grab as many as you can before the clock runs out. It pays about what Classic does.",
+                         note: nil) {
+                    NavigationLink(value: SnakeRoute.play(.coinRush)) {
+                        Label("Play Coin Rush", systemImage: "play.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glassProminent)
+                }
+                ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Settings", status: "\(speed.name) speed",
+                         detail: crypto
+                            ? "How fast the chain moves. A coin is worth the same at every speed: Fast scores sooner, Slow is relaxed."
+                            : "How fast the snake moves. A coin is worth the same at every speed: Fast scores sooner, Slow is relaxed.",
+                         note: nil) {
+                    Picker("Speed", selection: $speed) {
+                        ForEach(GameSpeed.allCases) { speed in
+                            Text(speed.name).tag(speed)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+            .frame(maxWidth: 600)
+            .frame(maxWidth: .infinity)
+        }
+        .background { AppBackground(tint: .green) }
+        .navigationTitle(MiniGame.snake.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.snake, isPresented: $showingHelp)
+    }
+}
+
+/// The four arenas as small pictures of their walls, two by two: tap one to play it.
+private struct ArenaPicker: View {
+    @Binding var selection: SnakeGame.Arena
+    let tint: Color
+    let edition: ArcadeEdition
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+            ForEach(SnakeGame.Arena.allCases) { arena in
+                let isSelected = arena == selection
+                Button {
+                    selection = arena
+                } label: {
+                    HStack(spacing: 10) {
+                        ArenaPreview(arena: arena, edition: edition)
+                            .frame(width: 36, height: 48)
+                        Text(arena.name)
+                            .font(.subheadline.weight(.bold))
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(8)
+                    .frame(maxWidth: .infinity, minHeight: 64)
+                    .background(isSelected ? tint.opacity(0.22) : Color.primary.opacity(0.05), in: .rect(cornerRadius: 14))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(isSelected ? tint : .clear, lineWidth: 2)
+                    }
+                    .contentShape(.rect(cornerRadius: 14))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(arena.name)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+    }
+}
+
+/// An arena's walls in miniature.
+private struct ArenaPreview: View {
+    let arena: SnakeGame.Arena
+    let edition: ArcadeEdition
+
+    var body: some View {
+        Canvas { context, size in
+            let cell = min(size.width / CGFloat(SnakeGame.width), size.height / CGFloat(SnakeGame.height))
+            for wall in arena.walls {
+                let frame = CGRect(x: CGFloat(wall.x) * cell, y: CGFloat(wall.y) * cell, width: cell, height: cell)
+                context.fill(Path(frame), with: .color(SnakeBoard.wallColor(edition)))
+            }
+        }
+        .padding(2)
+        .background(SnakeBoard.boardColor(edition), in: .rect(cornerRadius: 5))
+        .accessibilityHidden(true)
+    }
+}
+
+/// Snake's game: swipe anywhere in the play area to steer toward the coins; there are no buttons to
+/// reach for. A long swipe that bends (up, then left) turns twice. Classic is played in the arena
+/// picked on the start screen until the snake crashes; Coin Rush is a minute with three coins out
+/// at once. Power-ups appear every few coins. Points pay coins when the game ends, including when
+/// the player leaves.
+struct SnakePlayView: View {
+    let mode: SnakeGame.Mode
+    @Environment(GameStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
-    @AppStorage("snakeArena") private var arena = SnakeGame.Arena.open
+    @AppStorage(Preferences.snakeArenaKey) private var arena = SnakeGame.Arena.open
     @AppStorage(Preferences.snakeSpeedKey) private var speed = GameSpeed.normal
-    @State private var showingOptions = false
-    @State private var mode = SnakeGame.Mode.classic
-    @State private var game = SnakeGame.fresh()
+    @State private var game: SnakeGame
     @State private var isPlaying = false
     @State private var isPaused = false
     @State private var showingHelp = false
@@ -29,30 +161,41 @@ struct SnakeView: View {
 
     private var isRunning: Bool { isPlaying && !isPaused }
 
+    init(mode: SnakeGame.Mode) {
+        self.mode = mode
+        var rng = SystemRandomNumberGenerator()
+        let arena = SnakeGame.Arena(rawValue: UserDefaults.standard.string(forKey: Preferences.snakeArenaKey) ?? "") ?? .open
+        _game = State(initialValue: SnakeGame(mode: mode, arena: arena, using: &rng))
+    }
+
     var body: some View {
-        VStack(spacing: 10) {
+        withLifecycle(withFeedback(layout))
+    }
+
+    private var layout: some View {
+        let edition = store.arcadeEdition
+        return VStack(spacing: 10) {
             HStack(spacing: 16) {
                 GameStat(title: "Score", value: CoinFormat.grouped(game.score))
                 if game.mode == .coinRush {
                     GameStat(title: "Time", value: "\(Int(game.timeLeft.rounded(.up)))s")
                 } else {
-                    GameStat(title: "Length", value: "\(game.body.count)")
+                    GameStat(title: edition == .crypto ? "Blocks" : "Length", value: "\(game.body.count)")
                 }
                 Spacer(minLength: 0)
-                GameStat(title: "Best", value: CoinFormat.grouped(game.mode == .coinRush ? store.game.stats.snakeRushBestScore
-                                                                                         : store.game.stats.snakeBestScore))
+                GameStat(title: "Best", value: CoinFormat.grouped(best))
                 ArcadeButton(title: isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill", size: 40) {
                     if isPlaying { isPaused.toggle() }
                 }
                 .disabled(!isPlaying)
             }
             .scoreBar()
-            PowerUpStrip(game: game)
-            SnakeBoard(game: game, reduceMotion: reduceMotion, skin: store.game.equipped(.snake))
+            PowerUpStrip(game: game, edition: edition)
+            SnakeBoard(game: game, reduceMotion: reduceMotion, skin: store.game.equipped(.snake), edition: edition)
                 .overlay(alignment: .top) { pickupBanner }
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Snake board")
-                .accessibilityValue("Score \(game.score), length \(game.body.count)")
+                .accessibilityLabel("\(MiniGame.snake.name) board")
+                .accessibilityValue("Score \(game.score), \(edition == .crypto ? "blocks" : "length") \(game.body.count)")
                 .accessibilityAction(named: "Turn up") { turn(.up) }
                 .accessibilityAction(named: "Turn down") { turn(.down) }
                 .accessibilityAction(named: "Turn left") { turn(.left) }
@@ -74,35 +217,41 @@ struct SnakeView: View {
         }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
-        .navigationTitle(game.mode == .coinRush && isPlaying ? "Coin Rush" : "Snake")
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.snake, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
         }
-        .gameOptions(.snake, isPresented: $showingOptions, isEnabled: !isPlaying, speed: $speed)
-        .sensoryFeedback(.impact(weight: .light), trigger: game.eaten) { (old: Int, new: Int) in haptics && new > old }
-        .sensoryFeedback(.success, trigger: pickups) { _, _ in haptics }
-        .sensoryFeedback(.warning, trigger: game.graceTicks) { (old: Int, new: Int) in haptics && new > old }
-        .sensoryFeedback(.error, trigger: result) { _, new in haptics && new != nil }
-        .task(id: isRunning) { await run() }
-        .onChange(of: scenePhase) { _, phase in
-            guard isPlaying else { return }
-            switch phase {
-            case .active:
-                store.releaseArcadeRun()
-            case .background:
-                isPaused = true
-                store.holdArcadeRun(ArcadeRun(game: .snake, score: game.score, detail: game.body.count,
-                                              stage: game.mode == .coinRush ? ArcadeRun.coinRushStage : 0,
-                                              records: .init(coins: game.eaten, seconds: game.time, powerUps: game.powerUpsCollected)))
-            default:
-                isPaused = true
-            }
-        }
-        .onDisappear {
-            if isPlaying { endGame() }
-        }
-        .gameScreen(blocksSwipeBack: true)
+    }
+
+    private func withFeedback(_ view: some View) -> some View {
+        view
+            .sensoryFeedback(.impact(weight: .light), trigger: game.eaten) { (old: Int, new: Int) in haptics && new > old }
+            .sensoryFeedback(.success, trigger: pickups) { _, _ in haptics }
+            .sensoryFeedback(.warning, trigger: game.graceTicks) { (old: Int, new: Int) in haptics && new > old }
+            .sensoryFeedback(.error, trigger: result) { _, new in haptics && new != nil }
+    }
+
+    /// The clock while the game runs, pausing in the background, and paying out on the way out.
+    private func withLifecycle(_ view: some View) -> some View {
+        view
+            .task(id: isRunning) { await run() }
+            .arcadeLifecycle(isPlaying: isPlaying, pause: { isPaused = true }, heldRun: { heldRun }) { endGame() }
+    }
+
+    private var title: String {
+        mode == .coinRush ? "Coin Rush" : arena == .open ? MiniGame.snake.name : arena.name
+    }
+
+    private var best: Int {
+        mode == .coinRush ? store.game.stats.snakeRushBestScore : store.game.stats.snakeBestScore
+    }
+
+    /// The game so far, held while the app is in the background.
+    private var heldRun: ArcadeRun {
+        ArcadeRun(game: .snake, score: game.score, detail: game.body.count,
+                  stage: game.mode == .coinRush ? ArcadeRun.coinRushStage : 0,
+                  records: .init(coins: game.eaten, seconds: game.time, powerUps: game.powerUpsCollected))
     }
 
     @ViewBuilder
@@ -124,39 +273,19 @@ struct SnakeView: View {
     private var panel: some View {
         if !isPlaying {
             if let result {
+                let crypto = store.arcadeEdition == .crypto
                 GamePanel(title: game.mode == .coinRush && game.timeLeft == 0 ? "Time's Up" : "Game Over",
                           buttonTitle: "Play Again", action: start) {
-                    VStack(spacing: 14) {
-                        GameOverSummary(score: result.score, isNewBest: result.isNewBest,
-                                        best: game.mode == .coinRush ? store.game.stats.snakeRushBestScore : store.game.stats.snakeBestScore,
-                                        reward: result.reward,
-                                        details: ["\(game.eaten) coins · \(game.body.count) long · \(CoinFormat.stopwatch(game.time))",
-                                                  "\(game.powerUpsCollected) power-up\(game.powerUpsCollected == 1 ? "" : "s")"
-                                                    + (game.mode == .classic ? " · \(game.arena.name)" : " · Coin Rush")],
-                                        challenge: result.challenge)
-                        GameOptionsChip(speed: speed) { showingOptions = true }
-                    }
+                    GameOverSummary(score: result.score, isNewBest: result.isNewBest, best: best, reward: result.reward,
+                                    details: ["\(game.eaten) coins · \(game.body.count) \(crypto ? "blocks" : "long") · \(CoinFormat.stopwatch(game.time))",
+                                              "\(game.powerUpsCollected) power-up\(game.powerUpsCollected == 1 ? "" : "s")"
+                                                + (game.mode == .classic ? " · \(game.arena.name)" : " · Coin Rush")],
+                                    challenge: result.challenge)
                 }
             } else {
-                GamePanel(title: "Snake", buttonTitle: "Start", action: start) {
-                    VStack(spacing: 12) {
-                        Picker("Mode", selection: $mode) {
-                            Text("Classic").tag(SnakeGame.Mode.classic)
-                            Text("Coin Rush").tag(SnakeGame.Mode.coinRush)
-                        }
-                        .pickerStyle(.segmented)
-                        if mode == .classic {
-                            Picker("Arena", selection: $arena) {
-                                ForEach(SnakeGame.Arena.allCases) { arena in
-                                    Text(arena.name).tag(arena)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                        }
-                        GameIntro(best: mode == .classic ? store.game.stats.snakeBestScore : store.game.stats.snakeRushBestScore,
-                                  detail: mode == .classic ? nil : "One minute, three coins out at once.")
-                        GameOptionsChip(speed: speed) { showingOptions = true }
-                    }
+                GamePanel(title: mode == .coinRush ? "Coin Rush" : arena.name, buttonTitle: "Start", action: start) {
+                    GameIntro(best: best,
+                              detail: (mode == .coinRush ? "One minute, three coins out at once" : "Classic") + " · \(speed.name) speed")
                 }
             }
         }
@@ -245,26 +374,22 @@ struct SnakeView: View {
     }
 }
 
-extension SnakeGame {
-    static func fresh() -> SnakeGame {
-        var rng = SystemRandomNumberGenerator()
-        return SnakeGame(using: &rng)
-    }
-}
-
 extension SnakeGame.PowerUp {
+    /// In Hash Chain: Lightning, Cold Storage, a Hardware Wallet and the Airdrop Magnet.
     var symbol: String {
-        switch self {
-        case .speedBoost: "hare.fill"
-        case .slowMotion: "tortoise.fill"
-        case .shield: "shield.fill"
+        let crypto = ArcadeEdition.current == .crypto
+        return switch self {
+        case .speedBoost: crypto ? "bolt.fill" : "hare.fill"
+        case .slowMotion: crypto ? "snowflake" : "tortoise.fill"
+        case .shield: crypto ? "lock.shield.fill" : "shield.fill"
         case .magnet: "dot.radiowaves.left.and.right"
         }
     }
 
     var color: Color {
-        switch self {
-        case .speedBoost: .orange
+        let crypto = ArcadeEdition.current == .crypto
+        return switch self {
+        case .speedBoost: crypto ? Color(red: 0.98, green: 0.72, blue: 0.0) : .orange
         case .slowMotion: .cyan
         case .shield: Color(red: 0.4, green: 0.6, blue: 1)
         case .magnet: .pink
@@ -275,6 +400,7 @@ extension SnakeGame.PowerUp {
 /// The power-ups running, each with the time it has left.
 private struct PowerUpStrip: View {
     let game: SnakeGame
+    let edition: ArcadeEdition
 
     var body: some View {
         HStack(spacing: 8) {
@@ -296,7 +422,7 @@ private struct PowerUpStrip: View {
                     .padding(.vertical, 5)
                     .glassEffect(.regular, in: .capsule)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(kind.name)
+                    .accessibilityLabel(kind.name(in: edition))
                     .accessibilityValue(game.effects[kind].map { "\(Int($0.rounded(.up))) seconds left" } ?? "Ready")
                 }
             }
@@ -311,12 +437,23 @@ private struct PowerUpStrip: View {
     }
 }
 
-/// The board: a soft checkerboard, the walls, the coins, a power-up, and the snake from tail to head.
+/// The board, tail to head. Classic: a soft checkerboard, brick walls and a snake with eyes. Hash
+/// Chain: a ledger grid, server walls, and a chain of blocks linked one to the next, a hash mark on
+/// the head block.
 struct SnakeBoard: View {
     let game: SnakeGame
     var reduceMotion = false
     /// The skin picked in Style.
     var skin: Cosmetic = .snakeGreen
+    var edition = ArcadeEdition.crypto
+
+    static func boardColor(_ edition: ArcadeEdition) -> Color {
+        edition == .crypto ? Color(red: 0.03, green: 0.09, blue: 0.13).opacity(0.9) : Color(red: 0.03, green: 0.16, blue: 0.08).opacity(0.85)
+    }
+
+    static func wallColor(_ edition: ArcadeEdition) -> Color {
+        edition == .crypto ? Color(red: 0.32, green: 0.36, blue: 0.44) : Color(red: 0.45, green: 0.38, blue: 0.3)
+    }
 
     var body: some View {
         Canvas { context, size in
@@ -325,14 +462,21 @@ struct SnakeBoard: View {
                 CGRect(x: CGFloat(point.x) * cell, y: CGFloat(point.y) * cell, width: cell, height: cell)
                     .insetBy(dx: inset, dy: inset)
             }
-            for y in 0..<SnakeGame.height {
-                for x in 0..<SnakeGame.width where (x + y) % 2 == 0 {
-                    context.fill(Path(frame(GridPoint(x: x, y: y))), with: .color(.white.opacity(0.04)))
+            if edition == .crypto {
+                drawLedger(in: &context, size: size, cell: cell)
+                for wall in game.walls {
+                    drawServer(in: &context, frame: frame(wall, inset: 1), cell: cell, lit: (wall.x + wall.y) % 3 == 0)
                 }
-            }
-            for wall in game.walls {
-                context.fill(Path(roundedRect: frame(wall, inset: 1), cornerRadius: cell * 0.18),
-                             with: .color(Color(red: 0.45, green: 0.38, blue: 0.3)))
+            } else {
+                for y in 0..<SnakeGame.height {
+                    for x in 0..<SnakeGame.width where (x + y) % 2 == 0 {
+                        context.fill(Path(frame(GridPoint(x: x, y: y))), with: .color(.white.opacity(0.04)))
+                    }
+                }
+                for wall in game.walls {
+                    context.fill(Path(roundedRect: frame(wall, inset: 1), cornerRadius: cell * 0.18),
+                                 with: .color(Self.wallColor(edition)))
+                }
             }
             for coin in game.coins {
                 context.draw(context.resolve(Image("CoinSmall")), in: frame(coin, inset: cell * 0.08))
@@ -346,31 +490,97 @@ struct SnakeBoard: View {
                 let ring = CGRect(x: center.x - reach * cell, y: center.y - reach * cell, width: reach * cell * 2, height: reach * cell * 2)
                 context.stroke(Path(ellipseIn: ring), with: .color(.pink.opacity(0.5)), style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
             }
-            let count = game.body.count
-            let boosted = game.isActive(.speedBoost)
-            for (index, segment) in game.body.enumerated().reversed() {
-                // Bright at the head, deeper toward the tail, in the skin's colors; orange while boosted.
-                let shade = count > 1 ? Double(index) / Double(count - 1) : 0
-                let color = boosted
-                    ? Color(red: 1.0 - 0.3 * shade, green: 0.65 - 0.3 * shade, blue: 0.2)
-                    : skin.snakeColor(shade: shade, index: index)
-                let inset = index == 0 ? cell * 0.04 : cell * 0.1
-                context.fill(Path(roundedRect: frame(segment, inset: inset), cornerRadius: cell * 0.32), with: .color(color))
+            if edition == .crypto {
+                drawChain(in: &context, cell: cell, frame: { frame($0) })
+            } else {
+                drawSnake(in: &context, cell: cell, frame: { frame($0, inset: $1) })
             }
             if game.hasShield || game.graceTicks > 0 {
                 let bubble = frame(game.head, inset: -cell * 0.18)
                 context.stroke(Path(ellipseIn: bubble), with: .color(Color(red: 0.5, green: 0.7, blue: 1).opacity(game.hasShield ? 0.9 : 0.5)),
                                lineWidth: 2.5)
             }
-            drawEyes(in: &context, cell: cell, frame: frame(game.head))
         }
         .aspectRatio(CGFloat(SnakeGame.width) / CGFloat(SnakeGame.height), contentMode: .fit)
         .padding(4)
-        .background(Color(red: 0.03, green: 0.16, blue: 0.08).opacity(0.85), in: .rect(cornerRadius: 16))
+        .background(Self.boardColor(edition), in: .rect(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(.green.opacity(0.35), lineWidth: 1)
+                .strokeBorder(edition == .crypto ? Color.cyan.opacity(0.3) : .green.opacity(0.35), lineWidth: 1)
         }
+    }
+
+    /// The segment's color: bright at the head, deeper toward the tail, in the skin's colors, and
+    /// gold or orange while sped up.
+    private func color(at index: Int, count: Int) -> Color {
+        let shade = count > 1 ? Double(index) / Double(count - 1) : 0
+        guard game.isActive(.speedBoost) else { return skin.snakeColor(shade: shade, index: index) }
+        return edition == .crypto
+            ? Color(red: 1.0 - 0.2 * shade, green: 0.82 - 0.3 * shade, blue: 0.15)
+            : Color(red: 1.0 - 0.3 * shade, green: 0.65 - 0.3 * shade, blue: 0.2)
+    }
+
+    private func drawSnake(in context: inout GraphicsContext, cell: CGFloat, frame: (GridPoint, CGFloat) -> CGRect) {
+        let count = game.body.count
+        for (index, segment) in game.body.enumerated().reversed() {
+            let inset = index == 0 ? cell * 0.04 : cell * 0.1
+            context.fill(Path(roundedRect: frame(segment, inset), cornerRadius: cell * 0.32), with: .color(color(at: index, count: count)))
+        }
+        drawEyes(in: &context, cell: cell, frame: frame(game.head, 0))
+    }
+
+    /// Hash Chain: square blocks, each tied to the next by a short link, the head marked with a hash.
+    private func drawChain(in context: inout GraphicsContext, cell: CGFloat, frame: (GridPoint) -> CGRect) {
+        let count = game.body.count
+        let body = game.body
+        for index in body.indices.dropLast().reversed() {
+            let a = frame(body[index]), b = frame(body[index + 1])
+            var link = Path()
+            link.move(to: CGPoint(x: a.midX, y: a.midY))
+            link.addLine(to: CGPoint(x: b.midX, y: b.midY))
+            context.stroke(link, with: .color(.white.opacity(0.55)), style: StrokeStyle(lineWidth: max(1.5, cell * 0.16), lineCap: .round))
+        }
+        for (index, segment) in body.enumerated().reversed() {
+            let block = frame(segment).insetBy(dx: cell * (index == 0 ? 0.06 : 0.15), dy: cell * (index == 0 ? 0.06 : 0.15))
+            let shape = Path(roundedRect: block, cornerRadius: cell * 0.12)
+            context.fill(shape, with: .color(color(at: index, count: count)))
+            context.stroke(shape, with: .color(.black.opacity(0.35)), lineWidth: max(1, cell * 0.06))
+            // A lighter top edge, so each block reads as a block.
+            var shine = Path()
+            shine.move(to: CGPoint(x: block.minX + cell * 0.12, y: block.minY + cell * 0.1))
+            shine.addLine(to: CGPoint(x: block.maxX - cell * 0.12, y: block.minY + cell * 0.1))
+            context.stroke(shine, with: .color(.white.opacity(0.45)), style: StrokeStyle(lineWidth: max(1, cell * 0.07), lineCap: .round))
+        }
+        let head = frame(game.head)
+        context.draw(Text("#").font(.system(size: cell * 0.62, weight: .black, design: .monospaced)).foregroundStyle(.black.opacity(0.65)),
+                     at: CGPoint(x: head.midX, y: head.midY))
+    }
+
+    /// Faint ledger lines across the board.
+    private func drawLedger(in context: inout GraphicsContext, size: CGSize, cell: CGFloat) {
+        var grid = Path()
+        for x in 1..<SnakeGame.width {
+            grid.move(to: CGPoint(x: CGFloat(x) * cell, y: 0))
+            grid.addLine(to: CGPoint(x: CGFloat(x) * cell, y: size.height))
+        }
+        for y in 1..<SnakeGame.height {
+            grid.move(to: CGPoint(x: 0, y: CGFloat(y) * cell))
+            grid.addLine(to: CGPoint(x: size.width, y: CGFloat(y) * cell))
+        }
+        context.stroke(grid, with: .color(.cyan.opacity(0.07)), lineWidth: 0.5)
+    }
+
+    /// A wall cell as a server: a dark unit with a vent line and a status light.
+    private func drawServer(in context: inout GraphicsContext, frame: CGRect, cell: CGFloat, lit: Bool) {
+        let unit = Path(roundedRect: frame, cornerRadius: cell * 0.1)
+        context.fill(unit, with: .color(Self.wallColor(.crypto)))
+        context.stroke(unit, with: .color(.black.opacity(0.4)), lineWidth: 1)
+        var vent = Path()
+        vent.move(to: CGPoint(x: frame.minX + cell * 0.15, y: frame.midY))
+        vent.addLine(to: CGPoint(x: frame.maxX - cell * 0.4, y: frame.midY))
+        context.stroke(vent, with: .color(.black.opacity(0.45)), lineWidth: max(1, cell * 0.08))
+        let light = CGRect(x: frame.maxX - cell * 0.3, y: frame.midY - cell * 0.08, width: cell * 0.16, height: cell * 0.16)
+        context.fill(Path(ellipseIn: light), with: .color(lit ? .green : .cyan.opacity(0.7)))
     }
 
     /// A power-up: its symbol in a colored disc, with a ring that empties as its time runs out.

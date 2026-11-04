@@ -11,9 +11,9 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var name: String {
         switch self {
-        case .comboBooster: "Combo Booster"
-        case .comboOverdrive: "Combo Overdrive"
-        case .quickCombos: "Quick Combos"
+        case .comboBooster: localized("Combo Booster")
+        case .comboOverdrive: localized("Combo Overdrive")
+        case .quickCombos: localized("Quick Combos")
         }
     }
 
@@ -29,11 +29,11 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
     public var summary: String {
         switch self {
         case .comboBooster:
-            "Raises the biggest combo by ×\(CoinFormat.compact(Tuning.comboBoosterStep)) a level, from ×\(CoinFormat.compact(Tuning.comboMaxMultiplier)) up to ×\(CoinFormat.compact(Self.boosterTop))."
+            localized("Raises the biggest combo by ×\(CoinFormat.compact(Tuning.comboBoosterStep)) a level, from ×\(CoinFormat.compact(Tuning.comboMaxMultiplier)) up to ×\(CoinFormat.compact(Self.boosterTop)).")
         case .comboOverdrive:
-            "Raises the biggest combo by ×\(CoinFormat.compact(Tuning.comboOverdriveStep)) a level, from ×\(CoinFormat.compact(Self.boosterTop)) up to ×\(CoinFormat.compact(Tuning.comboTopMultiplier))."
+            localized("Raises the biggest combo by ×\(CoinFormat.compact(Tuning.comboOverdriveStep)) a level, from ×\(CoinFormat.compact(Self.boosterTop)) up to ×\(CoinFormat.compact(Tuning.comboTopMultiplier)).")
         case .quickCombos:
-            "Each +0.1 of a combo comes sooner: \(CoinFormat.percent(Tuning.quickComboStep)) faster a level, up to \(CoinFormat.compact(Self.quickTop))× as fast."
+            localized("Each +0.1 of a combo comes sooner: \(CoinFormat.percent(Tuning.quickComboStep)) faster a level, up to \(CoinFormat.compact(Self.quickTop))× as fast.")
         }
     }
 
@@ -67,11 +67,11 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         let level = Double(min(max(0, level), maxLevel))
         return switch self {
         case .comboBooster:
-            "Biggest combo ×\(CoinFormat.compact(Tuning.comboMaxMultiplier + level * Tuning.comboBoosterStep))"
+            localized("Biggest combo ×\(CoinFormat.compact(Tuning.comboMaxMultiplier + level * Tuning.comboBoosterStep))")
         case .comboOverdrive:
-            "Biggest combo ×\(CoinFormat.compact(Self.boosterTop + level * Tuning.comboOverdriveStep))"
+            localized("Biggest combo ×\(CoinFormat.compact(Self.boosterTop + level * Tuning.comboOverdriveStep))")
         case .quickCombos:
-            "Combos build \(CoinFormat.compact(1 + level * Tuning.quickComboStep))× as fast"
+            localized("Combos build \(CoinFormat.compact(1 + level * Tuning.quickComboStep))× as fast")
         }
     }
 

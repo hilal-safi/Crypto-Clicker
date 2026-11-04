@@ -11,9 +11,9 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
 
         public var name: String {
             switch self {
-            case .easy: "Easy"
-            case .medium: "Medium"
-            case .hard: "Hard"
+            case .easy: localized("Easy")
+            case .medium: localized("Medium")
+            case .hard: localized("Hard")
             }
         }
 
@@ -87,19 +87,19 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
 
     /// The levels, in order: each brings in one new idea, then they mix.
     public static let all: [TokenSwapLevel] = [
-        TokenSwapLevel(id: 1, name: "First Swaps", difficulty: .easy, seed: 101, kinds: 5, moves: 15,
+        TokenSwapLevel(id: 1, name: localized("First Swaps"), difficulty: .easy, seed: 101, kinds: 5, moves: 15,
                        goals: [.tokens(kind: 0, count: 20)], starScores: [2_100, 2_900],
-                       tip: "Drag a token onto its neighbor to swap them. Line up three of a kind to clear them."),
-        TokenSwapLevel(id: 2, name: "Falling Into Place", difficulty: .easy, seed: 202, kinds: 5, moves: 16,
+                       tip: localized("Drag a token onto its neighbor to swap them. Line up three of a kind to clear them.")),
+        TokenSwapLevel(id: 2, name: localized("Falling Into Place"), difficulty: .easy, seed: 202, kinds: 5, moves: 16,
                        goals: [.tokens(kind: 1, count: 18), .tokens(kind: 2, count: 18)], starScores: [2_400, 3_600],
-                       tip: "Tokens that fall into new matches count, and each wave scores more than the last."),
-        TokenSwapLevel(id: 3, name: "Rocket Science", difficulty: .easy, seed: 303, kinds: 5, moves: 15,
+                       tip: localized("Tokens that fall into new matches count, and each wave scores more than the last.")),
+        TokenSwapLevel(id: 3, name: localized("Rocket Science"), difficulty: .easy, seed: 303, kinds: 5, moves: 15,
                        goals: [.specials(.rocket, 3)], starScores: [2_300, 3_400],
-                       tip: "Line up four to make a Rocket: four across clears its row, four down its column. Match it or swap it to set it off."),
-        TokenSwapLevel(id: 4, name: "Square Deal", difficulty: .easy, seed: 404, kinds: 5, moves: 20,
+                       tip: localized("Line up four to make a Rocket: four across clears its row, four down its column. Match it or swap it to set it off.")),
+        TokenSwapLevel(id: 4, name: localized("Square Deal"), difficulty: .easy, seed: 404, kinds: 5, moves: 20,
                        goals: [.specials(.propeller, 2), .tokens(kind: 3, count: 15)], starScores: [3_800, 6_000],
-                       tip: "A 2×2 square makes a Propeller. It clears the tokens beside it, then flies off to one you need."),
-        TokenSwapLevel(id: 5, name: "Thin Ice", difficulty: .easy, seed: 505, kinds: 5, moves: 16,
+                       tip: localized("A 2×2 square makes a Propeller. It clears the tokens beside it, then flies off to one you need.")),
+        TokenSwapLevel(id: 5, name: localized("Thin Ice"), difficulty: .easy, seed: 505, kinds: 5, moves: 16,
                        goals: [.ice(8)],
                        layout: ["........",
                                 "........",
@@ -110,11 +110,11 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "........",
                                 "........"],
                        starScores: [2_300, 3_300],
-                       tip: "Frozen tokens can't move or match. A match right beside one, or a blast, cracks its ice."),
-        TokenSwapLevel(id: 6, name: "Boom Town", difficulty: .medium, seed: 606, kinds: 5, moves: 24,
+                       tip: localized("Frozen tokens can't move or match. A match right beside one, or a blast, cracks its ice.")),
+        TokenSwapLevel(id: 6, name: localized("Boom Town"), difficulty: .medium, seed: 606, kinds: 5, moves: 24,
                        goals: [.specials(.bomb, 1), .score(4_000)], starScores: [5_300, 6_700],
-                       tip: "Match five in an L or T shape to make a Bomb. It clears the 5×5 square around it."),
-        TokenSwapLevel(id: 7, name: "Gold Rush", difficulty: .medium, seed: 707, kinds: 5, moves: 22,
+                       tip: localized("Match five in an L or T shape to make a Bomb. It clears the 5×5 square around it.")),
+        TokenSwapLevel(id: 7, name: localized("Gold Rush"), difficulty: .medium, seed: 707, kinds: 5, moves: 22,
                        goals: [.gold(2)],
                        layout: ["..g..g..",
                                 "........",
@@ -125,8 +125,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "........",
                                 "........"],
                        starScores: [4_500, 5_700],
-                       tip: "Gold bars can't be matched. Clear the tokens under one to bring it down: it's collected on the bottom row."),
-        TokenSwapLevel(id: 8, name: "In Chains", difficulty: .medium, seed: 808, kinds: 5, moves: 16,
+                       tip: localized("Gold bars can't be matched. Clear the tokens under one to bring it down: it's collected on the bottom row.")),
+        TokenSwapLevel(id: 8, name: localized("In Chains"), difficulty: .medium, seed: 808, kinds: 5, moves: 16,
                        goals: [.chains(8)],
                        layout: ["........",
                                 "........",
@@ -137,8 +137,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "........",
                                 "........"],
                        starScores: [3_300, 4_700],
-                       tip: "Chained tokens can't be swapped and don't fall, but they still match: matching one breaks its chain."),
-        TokenSwapLevel(id: 9, name: "Five Alive", difficulty: .medium, seed: 909, kinds: 5, moves: 20,
+                       tip: localized("Chained tokens can't be swapped and don't fall, but they still match: matching one breaks its chain.")),
+        TokenSwapLevel(id: 9, name: localized("Five Alive"), difficulty: .medium, seed: 909, kinds: 5, moves: 20,
                        goals: [.specials(.colorClear, 1), .tokens(kind: 2, count: 40)],
                        layout: ["........",
                                 "........",
@@ -149,8 +149,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "........",
                                 "........"],
                        starScores: [4_000, 5_400],
-                       tip: "Five in a row makes a Color Clear, and here's one to try. Swap it with any token to clear every token of that color."),
-        TokenSwapLevel(id: 10, name: "Crate Expectations", difficulty: .medium, seed: 1_010, kinds: 5, moves: 22,
+                       tip: localized("Five in a row makes a Color Clear, and here's one to try. Swap it with any token to clear every token of that color.")),
+        TokenSwapLevel(id: 10, name: localized("Crate Expectations"), difficulty: .medium, seed: 1_010, kinds: 5, moves: 22,
                        goals: [.crates(10)],
                        layout: ["........",
                                 "........",
@@ -161,8 +161,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "xx....xx",
                                 "xx....xx"],
                        starScores: [4_500, 6_300],
-                       tip: "Crates take a hit from every match beside them and every blast that reaches them."),
-        TokenSwapLevel(id: 11, name: "Double Trouble", difficulty: .medium, seed: 1_111, kinds: 5, moves: 21,
+                       tip: localized("Crates take a hit from every match beside them and every blast that reaches them.")),
+        TokenSwapLevel(id: 11, name: localized("Double Trouble"), difficulty: .medium, seed: 1_111, kinds: 5, moves: 21,
                        goals: [.ice(10)],
                        layout: ["........",
                                 "I......I",
@@ -173,11 +173,11 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "........",
                                 "........"],
                        starScores: [3_400, 4_800],
-                       tip: "Thick ice takes two hits to break."),
-        TokenSwapLevel(id: 12, name: "Combo Lab", difficulty: .medium, seed: 1_212, kinds: 5, moves: 20,
+                       tip: localized("Thick ice takes two hits to break.")),
+        TokenSwapLevel(id: 12, name: localized("Combo Lab"), difficulty: .medium, seed: 1_212, kinds: 5, moves: 20,
                        goals: [.specials(.any, 9)], starScores: [3_400, 6_000],
-                       tip: "Swap two specials together for a combination: two Rockets clear a row and a column, two Bombs a 7×7 square."),
-        TokenSwapLevel(id: 13, name: "Deep Mine", difficulty: .hard, seed: 1_313, kinds: 5, moves: 30,
+                       tip: localized("Swap two specials together for a combination: two Rockets clear a row and a column, two Bombs a 7×7 square.")),
+        TokenSwapLevel(id: 13, name: localized("Deep Mine"), difficulty: .hard, seed: 1_313, kinds: 5, moves: 30,
                        goals: [.gold(3), .crates(6)],
                        layout: ["...g....",
                                 "........",
@@ -188,8 +188,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "xx....xx",
                                 "x......x"],
                        goldToDrop: 2, starScores: [5_600, 7_700],
-                       tip: "More gold bars drop in from the top as you collect them. Crates under a bar hold it up."),
-        TokenSwapLevel(id: 14, name: "Locked Vault", difficulty: .hard, seed: 1_414, kinds: 6, moves: 24,
+                       tip: localized("More gold bars drop in from the top as you collect them. Crates under a bar hold it up.")),
+        TokenSwapLevel(id: 14, name: localized("Locked Vault"), difficulty: .hard, seed: 1_414, kinds: 6, moves: 24,
                        goals: [.chains(10), .tokens(kind: 0, count: 25)],
                        layout: ["........",
                                 "........",
@@ -200,8 +200,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "cc....cc",
                                 "........"],
                        starScores: [3_300, 4_100],
-                       tip: "Rockets and Bombs break every chain they reach."),
-        TokenSwapLevel(id: 15, name: "Strongbox", difficulty: .hard, seed: 1_515, kinds: 6, moves: 25,
+                       tip: localized("Rockets and Bombs break every chain they reach.")),
+        TokenSwapLevel(id: 15, name: localized("Strongbox"), difficulty: .hard, seed: 1_515, kinds: 6, moves: 25,
                        goals: [.crates(14)],
                        layout: ["........",
                                 "........",
@@ -212,8 +212,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "xx....xx",
                                 "xx....xx"],
                        starScores: [3_100, 3_700],
-                       tip: "Six colors make matches harder to find: look for specials to do the heavy lifting."),
-        TokenSwapLevel(id: 16, name: "Frozen Gold", difficulty: .hard, seed: 1_616, kinds: 5, moves: 27,
+                       tip: localized("Six colors make matches harder to find: look for specials to do the heavy lifting.")),
+        TokenSwapLevel(id: 16, name: localized("Frozen Gold"), difficulty: .hard, seed: 1_616, kinds: 5, moves: 27,
                        goals: [.gold(3), .ice(8)],
                        layout: ["..g..g..",
                                 "........",
@@ -224,8 +224,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "........",
                                 "........"],
                        goldToDrop: 1, starScores: [5_500, 6_800],
-                       tip: "Propellers fly to the ice you still need to crack."),
-        TokenSwapLevel(id: 17, name: "Full Toolkit", difficulty: .hard, seed: 1_717, kinds: 5, moves: 27,
+                       tip: localized("Propellers fly to the ice you still need to crack.")),
+        TokenSwapLevel(id: 17, name: localized("Full Toolkit"), difficulty: .hard, seed: 1_717, kinds: 5, moves: 27,
                        goals: [.crates(8), .ice(8), .chains(6)],
                        layout: ["........",
                                 "c......c",
@@ -236,8 +236,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "xxx..xxx",
                                 "x......x"],
                        starScores: [5_300, 7_500],
-                       tip: "Everything at once. Plan for combinations."),
-        TokenSwapLevel(id: 18, name: "Market Crash", difficulty: .hard, seed: 1_818, kinds: 5, moves: 34,
+                       tip: localized("Everything at once. Plan for combinations.")),
+        TokenSwapLevel(id: 18, name: localized("Market Crash"), difficulty: .hard, seed: 1_818, kinds: 5, moves: 34,
                        goals: [.gold(3), .crates(8)],
                        layout: [".g....g.",
                                 "........",
@@ -248,7 +248,7 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "X......X",
                                 "xx....xx"],
                        goldToDrop: 1, starScores: [7_000, 9_700],
-                       tip: "The crates in the corners hold up the gold above them. Break them first."),
+                       tip: localized("The crates in the corners hold up the gold above them. Break them first.")),
     ]
 
     /// The level with a number, if there is one.
@@ -279,10 +279,10 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
     }
 
     static let dailyTemplates: [TokenSwapLevel] = [
-        TokenSwapLevel(id: 0, name: "Collector", difficulty: .medium, seed: 0, kinds: 5, moves: 18,
+        TokenSwapLevel(id: 0, name: localized("Collector"), difficulty: .medium, seed: 0, kinds: 5, moves: 18,
                        goals: [.tokens(kind: 0, count: 30), .specials(.any, 2)], starScores: [3_800, 6_100],
-                       tip: "Clear the tokens the goal asks for, and set off two specials."),
-        TokenSwapLevel(id: 0, name: "Cold Snap", difficulty: .medium, seed: 0, kinds: 5, moves: 20,
+                       tip: localized("Clear the tokens the goal asks for, and set off two specials.")),
+        TokenSwapLevel(id: 0, name: localized("Cold Snap"), difficulty: .medium, seed: 0, kinds: 5, moves: 20,
                        goals: [.ice(12)],
                        layout: ["........",
                                 "........",
@@ -293,8 +293,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "........",
                                 "........"],
                        starScores: [3_100, 4_000],
-                       tip: "Crack all the ice: matches beside a frozen token crack it."),
-        TokenSwapLevel(id: 0, name: "Warehouse", difficulty: .medium, seed: 0, kinds: 5, moves: 24,
+                       tip: localized("Crack all the ice: matches beside a frozen token crack it.")),
+        TokenSwapLevel(id: 0, name: localized("Warehouse"), difficulty: .medium, seed: 0, kinds: 5, moves: 24,
                        goals: [.crates(12)],
                        layout: ["........",
                                 "........",
@@ -305,8 +305,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "xx....xx",
                                 "........"],
                        starScores: [4_200, 6_200],
-                       tip: "Break the crates with matches beside them and with blasts."),
-        TokenSwapLevel(id: 0, name: "Gold Fever", difficulty: .medium, seed: 0, kinds: 5, moves: 24,
+                       tip: localized("Break the crates with matches beside them and with blasts.")),
+        TokenSwapLevel(id: 0, name: localized("Gold Fever"), difficulty: .medium, seed: 0, kinds: 5, moves: 24,
                        goals: [.gold(3)],
                        layout: ["...gg...",
                                 "........",
@@ -317,8 +317,8 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "........",
                                 "........"],
                        goldToDrop: 1, starScores: [3_800, 5_300],
-                       tip: "Bring the gold bars down to the bottom row."),
-        TokenSwapLevel(id: 0, name: "Chain Gang", difficulty: .medium, seed: 0, kinds: 5, moves: 19,
+                       tip: localized("Bring the gold bars down to the bottom row.")),
+        TokenSwapLevel(id: 0, name: localized("Chain Gang"), difficulty: .medium, seed: 0, kinds: 5, moves: 19,
                        goals: [.chains(10)],
                        layout: ["........",
                                 "c......c",
@@ -329,10 +329,10 @@ public struct TokenSwapLevel: Sendable, Identifiable, Equatable {
                                 "...cc...",
                                 "........"],
                        starScores: [4_300, 5_200],
-                       tip: "Match chained tokens, or blast them, to break their chains."),
-        TokenSwapLevel(id: 0, name: "Big Score", difficulty: .medium, seed: 0, kinds: 5, moves: 20,
+                       tip: localized("Match chained tokens, or blast them, to break their chains.")),
+        TokenSwapLevel(id: 0, name: localized("Big Score"), difficulty: .medium, seed: 0, kinds: 5, moves: 20,
                        goals: [.score(3_800)], starScores: [4_500, 5_800],
-                       tip: "Make specials and swap them together for the big points."),
+                       tip: localized("Make specials and swap them together for the big points.")),
     ]
 }
 
@@ -366,7 +366,7 @@ extension TokenSwapLevel {
         let perMove = kinds == 6 ? 130.0 : 175.0
         let second = Int((Double(moves) * perMove / 100).rounded()) * 100
         let third = Int((Double(moves) * perMove * 1.4 / 100).rounded()) * 100
-        let names = plan.themes.first?.names ?? ["Mystery"]
+        let names = plan.themes.first?.names ?? [localized("Mystery")]
         let name = names[Int(seed % UInt64(names.count))] + " #\(seed % 10_000)"
         return TokenSwapLevel(id: 0, name: name, difficulty: difficulty, seed: seed, kinds: kinds, moves: moves,
                               goals: plan.goals, layout: plan.layout, goldToDrop: plan.goldToDrop,
@@ -381,25 +381,25 @@ private struct RandomPlan {
 
         var names: [String] {
             switch self {
-            case .tokens: ["Token Hunt", "Collector", "Harvest", "Shopping Spree"]
-            case .ice: ["Cold Snap", "Frozen Vault", "Permafrost", "Ice Floe"]
-            case .chains: ["Locked Ledger", "Chain Reaction", "Shackled", "Key Holder"]
-            case .crates: ["Warehouse", "Cargo Hold", "Stack Attack", "Loading Dock"]
-            case .gold: ["Gold Rush", "Bullion Drop", "Treasure Fall", "Mother Lode"]
-            case .specials: ["Rocket Lab", "Blast Zone", "Fireworks", "Demolition"]
-            case .score: ["High Roller", "Big Score", "Jackpot Run", "Bull Market"]
+            case .tokens: [localized("Token Hunt"), localized("Collector"), localized("Harvest"), localized("Shopping Spree")]
+            case .ice: [localized("Cold Snap"), localized("Frozen Vault"), localized("Permafrost"), localized("Ice Floe")]
+            case .chains: [localized("Locked Ledger"), localized("Chain Reaction"), localized("Shackled"), localized("Key Holder")]
+            case .crates: [localized("Warehouse"), localized("Cargo Hold"), localized("Stack Attack"), localized("Loading Dock")]
+            case .gold: [localized("Gold Rush"), localized("Bullion Drop"), localized("Treasure Fall"), localized("Mother Lode")]
+            case .specials: [localized("Rocket Lab"), localized("Blast Zone"), localized("Fireworks"), localized("Demolition")]
+            case .score: [localized("High Roller"), localized("Big Score"), localized("Jackpot Run"), localized("Bull Market")]
             }
         }
 
         var tip: String {
             switch self {
-            case .tokens: "Big matches and specials clear the most tokens of the color you need."
-            case .ice: "A match right beside a frozen token cracks its ice, and so does a blast."
-            case .chains: "Match chained tokens, or blast them, to break their chains."
-            case .crates: "Crates take a hit from every match beside them and every blast that reaches them."
-            case .gold: "Clear the tokens under a gold bar to bring it down: it's collected on the bottom row."
-            case .specials: "Four in a row makes a Rocket, a 2×2 square a Propeller, an L or T a Bomb."
-            case .score: "Waves that fall into new matches score more each time, and specials score big."
+            case .tokens: localized("Big matches and specials clear the most tokens of the color you need.")
+            case .ice: localized("A match right beside a frozen token cracks its ice, and so does a blast.")
+            case .chains: localized("Match chained tokens, or blast them, to break their chains.")
+            case .crates: localized("Crates take a hit from every match beside them and every blast that reaches them.")
+            case .gold: localized("Clear the tokens under a gold bar to bring it down: it's collected on the bottom row.")
+            case .specials: localized("Four in a row makes a Rocket, a 2×2 square a Propeller, an L or T a Bomb.")
+            case .score: localized("Waves that fall into new matches score more each time, and specials score big.")
             }
         }
 

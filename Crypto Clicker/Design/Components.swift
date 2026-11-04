@@ -81,16 +81,27 @@ struct TokenImage: View {
 
 /// A section heading drawn over the background.
 struct SectionHeader: View {
-    let title: String
-    var detail: String? = nil
+    let title: Text
+    var detail: Text? = nil
+
+    init(title: LocalizedStringKey, detail: LocalizedStringKey? = nil) {
+        self.title = Text(title)
+        self.detail = detail.map { Text($0) }
+    }
+
+    @_disfavoredOverload
+    init<Title: StringProtocol>(title: Title, detail: String? = nil) {
+        self.title = Text(title)
+        self.detail = detail.map { Text($0) }
+    }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(title)
+            title
                 .font(.title3.bold())
             Spacer()
             if let detail {
-                Text(detail)
+                detail
                     .font(.subheadline)
                     .foregroundStyle(.subtext)
             }
@@ -141,7 +152,7 @@ private struct BalanceToolbar: ViewModifier {
         content.toolbar {
             if sizeClass == .regular {
                 ToolbarItem(placement: .topBarTrailing) {
-                    CoinAmount(amount: store.game.coins, font: .headline, iconSize: 18)
+                    CoinAmount(amount: store.coins, font: .headline, iconSize: 18)
                         .padding(.horizontal, 6)
                 }
             }

@@ -10,9 +10,9 @@ public enum GameSpeed: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var name: String {
         switch self {
-        case .slow: "Slow"
-        case .normal: "Normal"
-        case .fast: "Fast"
+        case .slow: localized("Slow")
+        case .normal: localized("Normal")
+        case .fast: localized("Fast")
         }
     }
 

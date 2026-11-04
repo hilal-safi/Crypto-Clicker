@@ -18,7 +18,12 @@ struct MarketTests {
                 lowest = min(lowest, factor)
                 highest = max(highest, factor)
             }
-            // Over ten days every token moves, by at least a tenth, but no token runs away.
+            if token == .tether {
+                // A stablecoin holds its peg: within a few percent, news and all.
+                #expect(highest / lowest < 1.05, "Tether swung \(highest / lowest)")
+                continue
+            }
+            // Over ten days every other token moves, by at least a tenth, but no token runs away.
             #expect(highest / lowest > 1.1, "\(token) barely moved")
             #expect(highest / lowest < 1.8, "\(token) swung too far")
         }
@@ -101,5 +106,16 @@ struct MarketTests {
         game.perks = [.marketInsider]
         #expect(game.sellTokens(.dogecoin, quantity: 6, at: noon) == price * 6)
         #expect(game.tokenCount(.dogecoin) == 0)
+    }
+
+    @Test func theLadderClimbsFromShibaToBitcoin() {
+        let ladder: [TokenID] = [.shibaInu, .tether, .dogecoin, .xrp, .bnb, .monero, .cardano, .solana, .ethereum, .bitcoin]
+        #expect(TokenID.allCases == ladder)
+        #expect(zip(ladder, ladder.dropFirst()).allSatisfy { $0.price < $1.price })
+        // The original seven keep their prices, so tokens already owned keep their value.
+        #expect([TokenID.shibaInu, .dogecoin, .xrp, .cardano, .solana, .ethereum, .bitcoin].map(\.price)
+                == [1e3, 1e5, 1e7, 1e9, 1e11, 1e13, 1e15])
+        #expect(Set(TokenID.allCases.map(\.ticker)).count == ladder.count)
+        #expect(Set(TokenID.allCases.map(\.imageName)).count == ladder.count)
     }
 }

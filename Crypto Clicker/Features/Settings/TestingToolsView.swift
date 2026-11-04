@@ -20,7 +20,7 @@ struct TestingToolsView: View {
             Form {
                 Section {
                     LabeledContent("Balance") {
-                        CoinAmount(amount: game.coins, font: .body.weight(.semibold))
+                        CoinAmount(amount: store.coins, font: .body.weight(.semibold))
                     }
                     LabeledContent("Income", value: "\(CoinFormat.rate(income)) per second")
                     LabeledContent("Each tap", value: CoinFormat.short(game.tapValue(at: now)))
@@ -108,6 +108,20 @@ struct TestingToolsView: View {
                     Text("Offline Mining")
                 } footer: {
                     SettingsNote("Without it, miners stop a minute after the app closes. Use Pretend I Was Away below to see the welcome-back screen.")
+                }
+
+                Section {
+                    Picker("Game versions", selection: Binding(get: { store.arcadeEdition },
+                                                               set: { store.debugSetArcadeEdition($0) })) {
+                        Text("Crypto (new)").tag(ArcadeEdition.crypto)
+                        Text("Classic (before)").tag(ArcadeEdition.classic)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.vertical, 2)
+                } header: {
+                    Text("Arcade Versions")
+                } footer: {
+                    SettingsNote("Crypto plays Block Chain, Merge Mining, Hash Chain, Hash Smash, Bubble Market, 21 Million and Diamond Hands, with server racks in Scam Invaders and listing slots in Pump and Dump. Classic brings back the games as they were, to compare how they look and play. Records, quests and rewards are shared. App Store builds always play Crypto.")
                 }
 
                 Section("Arcade") {

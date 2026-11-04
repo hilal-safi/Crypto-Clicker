@@ -8,50 +8,52 @@ extension GameState {
         let s = stats
         return switch game {
         case .blackjack:
-            "\(CoinFormat.grouped(s.blackjackWins)) hands won · best streak \(CoinFormat.grouped(s.blackjackBestStreak))"
+            localized("\(CoinFormat.grouped(s.blackjackWins)) hands won · best streak \(CoinFormat.grouped(s.blackjackBestStreak))")
         case .slots:
-            "\(CoinFormat.grouped(s.slotsWins)) wins · \(CoinFormat.grouped(s.slotsJackpots)) jackpots"
+            localized("\(CoinFormat.grouped(s.slotsWins)) wins · \(CoinFormat.grouped(s.slotsJackpots)) jackpots")
         case .moon:
-            s.moonCashOuts > 0 ? "Best cash-out \(CoinFormat.flight(s.moonBestMultiplier))" : "No cash-outs yet"
+            s.moonCashOuts > 0 ? localized("Best cash-out \(CoinFormat.flight(s.moonBestMultiplier))") : localized("No cash-outs yet")
         case .videoPoker:
             s.pokerHands > 0
-                ? "\(CoinFormat.grouped(s.pokerWins)) hands won · best \((PokerHand(rawValue: s.pokerBestHand) ?? .nothing).name.lowercased())"
-                : "No hands yet"
+                ? localized("\(CoinFormat.grouped(s.pokerWins)) hands won · best \((PokerHand(rawValue: s.pokerBestHand) ?? .nothing).name.lowercased())")
+                : localized("No hands yet")
         case .tetris:
             s.tetrisBestSprint > 0
-                ? "Best \(CoinFormat.grouped(s.tetrisBestScore)) · Sprint \(CoinFormat.stopwatch(s.tetrisBestSprint))"
-                : "Best \(CoinFormat.grouped(s.tetrisBestScore))"
+                ? ArcadeEdition.pick(localized("Best \(CoinFormat.grouped(s.tetrisBestScore)) · Rush \(CoinFormat.stopwatch(s.tetrisBestSprint))"),
+                                     classic: localized("Best \(CoinFormat.grouped(s.tetrisBestScore)) · Sprint \(CoinFormat.stopwatch(s.tetrisBestSprint))"))
+                : localized("Best \(CoinFormat.grouped(s.tetrisBestScore))")
         case .merge2048:
             s.merge2048BestTile > 0
-                ? "Best \(CoinFormat.grouped(s.merge2048BestScore)) · top tile \(s.merge2048BestTile)"
-                : "Best 0"
+                ? localized("Best \(CoinFormat.grouped(s.merge2048BestScore)) · ") + ArcadeEdition.pick(
+                    localized("top miner: \(Merge2048Game.miner(for: s.merge2048BestTile).name)"), classic: localized("top tile \(s.merge2048BestTile)"))
+                : localized("Best 0")
         case .snake:
             s.snakeLongest > 0
-                ? "Best \(CoinFormat.grouped(s.snakeBestScore)) · longest \(CoinFormat.grouped(s.snakeLongest))"
-                : "Best \(CoinFormat.grouped(s.snakeBestScore))"
+                ? localized("Best \(CoinFormat.grouped(s.snakeBestScore)) · longest \(CoinFormat.grouped(s.snakeLongest))")
+                : localized("Best \(CoinFormat.grouped(s.snakeBestScore))")
         case .brickBreaker:
             s.brickBreakerBestLevel > 0
-                ? "Best \(CoinFormat.grouped(s.brickBreakerBestScore)) · level \(CoinFormat.grouped(s.brickBreakerBestLevel))"
-                : "Best \(CoinFormat.grouped(s.brickBreakerBestScore))"
+                ? localized("Best \(CoinFormat.grouped(s.brickBreakerBestScore)) · level \(CoinFormat.grouped(s.brickBreakerBestLevel))")
+                : localized("Best \(CoinFormat.grouped(s.brickBreakerBestScore))")
         case .bubbleBlaster:
             s.bubbleBestWave > 0
-                ? "Best \(CoinFormat.grouped(s.bubbleBestScore)) · wave \(CoinFormat.grouped(s.bubbleBestWave))"
-                : "Best \(CoinFormat.grouped(s.bubbleBestScore))"
+                ? localized("Best \(CoinFormat.grouped(s.bubbleBestScore)) · wave \(CoinFormat.grouped(s.bubbleBestWave))")
+                : localized("Best \(CoinFormat.grouped(s.bubbleBestScore))")
         case .pumpDump:
             s.pumpDumpBestRound > 0
-                ? "Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · round \(s.pumpDumpBestRound) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))"
+                ? localized("Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · round \(s.pumpDumpBestRound) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))")
                 : s.pumpDumpBestCombo > 0
-                    ? "Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))"
-                    : "Best \(CoinFormat.grouped(s.pumpDumpBestScore))"
+                    ? localized("Best \(CoinFormat.grouped(s.pumpDumpBestScore)) · combo \(CoinFormat.grouped(s.pumpDumpBestCombo))")
+                    : localized("Best \(CoinFormat.grouped(s.pumpDumpBestScore))")
         case .invaders:
             s.invadersBestWave > 0
-                ? "Best \(CoinFormat.grouped(s.invadersBestScore)) · wave \(CoinFormat.grouped(s.invadersBestWave))"
-                : "Best \(CoinFormat.grouped(s.invadersBestScore))"
+                ? localized("Best \(CoinFormat.grouped(s.invadersBestScore)) · wave \(CoinFormat.grouped(s.invadersBestWave))")
+                : localized("Best \(CoinFormat.grouped(s.invadersBestScore))")
         case .tokenSwap:
-            (tokenSwap.totalStars > 0 ? "\(tokenSwap.totalStars) stars · " : "")
+            (tokenSwap.totalStars > 0 ? localized("\(tokenSwap.totalStars) stars · ") : "")
                 + (s.tokenSwapBestChain > 1
-                    ? "Best \(CoinFormat.grouped(s.tokenSwapBestScore)) · chain of \(CoinFormat.grouped(s.tokenSwapBestChain))"
-                    : "Best \(CoinFormat.grouped(s.tokenSwapBestScore))")
+                    ? localized("Best \(CoinFormat.grouped(s.tokenSwapBestScore)) · chain of \(CoinFormat.grouped(s.tokenSwapBestChain))")
+                    : localized("Best \(CoinFormat.grouped(s.tokenSwapBestScore))"))
         }
     }
 

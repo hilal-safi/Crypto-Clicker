@@ -10,9 +10,9 @@ public enum Difficulty: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var name: String {
         switch self {
-        case .easy: "Easy"
-        case .normal: "Normal"
-        case .hard: "Hard"
+        case .easy: localized("Easy")
+        case .normal: localized("Normal")
+        case .hard: localized("Hard")
         }
     }
 
@@ -34,9 +34,9 @@ public enum Difficulty: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var summary: String {
         switch self {
-        case .easy: "Miners produce 50% more; prestiges earn half the points."
-        case .normal: "The standard balance."
-        case .hard: "Miners produce 40% less; prestiges earn 50% more points."
+        case .easy: localized("Miners produce 50% more; prestiges earn half the points.")
+        case .normal: localized("The standard balance.")
+        case .hard: localized("Miners produce 40% less; prestiges earn 50% more points.")
         }
     }
 }

@@ -85,12 +85,12 @@ public enum ArcadeRank {
     /// The title a rank carries.
     public static func title(forRank rank: Int) -> String {
         switch rank {
-        case ..<5: "Rookie"
-        case 5..<10: "Player"
-        case 10..<15: "Pro"
-        case 15..<20: "Expert"
-        case 20..<30: "Master"
-        default: "Legend"
+        case ..<5: localized("Rookie")
+        case 5..<10: localized("Player")
+        case 10..<15: localized("Pro")
+        case 15..<20: localized("Expert")
+        case 20..<30: localized("Master")
+        default: localized("Legend")
         }
     }
 }
@@ -103,12 +103,12 @@ public enum CosmeticSlot: String, CaseIterable, Codable, Sendable, Identifiable 
 
     public var name: String {
         switch self {
-        case .cardBack: "Card Backs"
-        case .felt: "Blackjack Table"
-        case .reels: "Slot Reels"
-        case .tetris: "Tetris Blocks"
-        case .snake: "Snake Skin"
-        case .ship: "Invaders Ship"
+        case .cardBack: localized("Card Backs")
+        case .felt: localized("\(MiniGame.blackjack.name) Table")
+        case .reels: localized("Slot Reels")
+        case .tetris: ArcadeEdition.pick(localized("Block Chain Coins"), classic: localized("Tetris Blocks"))
+        case .snake: ArcadeEdition.pick(localized("Hash Chain Blocks"), classic: localized("Snake Skin"))
+        case .ship: localized("Invaders Ship")
         }
     }
 
@@ -160,25 +160,25 @@ public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
 
     public var name: String {
         switch self {
-        case .cardBackClassic: "Classic Red"
-        case .cardBackMidnight: "Midnight"
-        case .cardBackEmerald: "Emerald"
-        case .cardBackGold: "Gold Foil"
-        case .feltGreen: "Casino Green"
-        case .feltCrimson: "Crimson"
-        case .feltBlue: "Royal Blue"
-        case .reelsClassic: "Classic"
-        case .reelsNeon: "Neon"
-        case .reelsGold: "Gold"
-        case .tetrisClassic: "Classic"
-        case .tetrisPixel: "Pixel"
-        case .tetrisGlass: "Glass"
-        case .snakeGreen: "Green"
-        case .snakeRainbow: "Rainbow"
-        case .snakeGold: "Gold"
-        case .shipClassic: "Classic"
-        case .shipNeon: "Neon"
-        case .shipGold: "Gold"
+        case .cardBackClassic: localized("Classic Red")
+        case .cardBackMidnight: localized("Midnight")
+        case .cardBackEmerald: localized("Emerald")
+        case .cardBackGold: localized("Gold Foil")
+        case .feltGreen: localized("Casino Green")
+        case .feltCrimson: localized("Crimson")
+        case .feltBlue: localized("Royal Blue")
+        case .reelsClassic: localized("Classic")
+        case .reelsNeon: localized("Neon")
+        case .reelsGold: localized("Gold")
+        case .tetrisClassic: ArcadeEdition.pick(localized("Coin Chips"), classic: localized("Classic"))
+        case .tetrisPixel: localized("Pixel")
+        case .tetrisGlass: localized("Glass")
+        case .snakeGreen: localized("Green")
+        case .snakeRainbow: localized("Rainbow")
+        case .snakeGold: localized("Gold")
+        case .shipClassic: localized("Classic")
+        case .shipNeon: localized("Neon")
+        case .shipGold: localized("Gold")
         }
     }
 

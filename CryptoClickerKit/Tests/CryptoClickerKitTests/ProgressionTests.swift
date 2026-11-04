@@ -550,9 +550,9 @@ struct AirdropTests {
 struct AchievementTests {
     @Test func catalogIsWellFormed() {
         let all = AchievementCatalog.all
-        #expect(all.count == 62)
+        #expect(all.count == 65)
         #expect(Set(all.map(\.id)).count == all.count)
-        #expect(AchievementCatalog.tierCount == 248)
+        #expect(AchievementCatalog.tierCount == 260)
         for achievement in all {
             #expect(achievement.thresholds.count == 4)
             #expect(achievement.thresholds == achievement.thresholds.sorted())
@@ -564,6 +564,22 @@ struct AchievementTests {
         #expect(all.first { $0.id == "own-spaceColony" }?.detail == "Own Space Mining Colonies at once")
         // Every coin finish can be unlocked.
         #expect(CoinFinish.allCases.allSatisfy { $0.starsNeeded <= AchievementCatalog.tierCount })
+    }
+
+    /// Rims and tap effects unlock one after another with achievement stars, the first from the
+    /// start and the last well within reach.
+    @Test func coinRimsAndTapEffectsUnlockWithStars() {
+        let rims = CoinRim.allCases.map(\.starsNeeded)
+        let effects = CoinTapEffect.allCases.map(\.starsNeeded)
+        for stars in [rims, effects] {
+            #expect(stars.first == 0)
+            #expect(zip(stars, stars.dropFirst()).allSatisfy { $0 < $1 })
+            #expect((stars.last ?? .max) <= AchievementCatalog.tierCount / 2)
+        }
+        #expect(Set(CoinRim.allCases.map(\.name)).count == CoinRim.allCases.count)
+        #expect(Set(CoinTapEffect.allCases.map(\.name)).count == CoinTapEffect.allCases.count)
+        #expect(CoinRim.plain.isUnlocked(stars: 0) && !CoinRim.glow.isUnlocked(stars: 2) && CoinRim.glow.isUnlocked(stars: 3))
+        #expect(CoinTapEffect.none.isUnlocked(stars: 0) && !CoinTapEffect.hashStorm.isUnlocked(stars: 79))
     }
 
     @Test func aNewGameHasNoAchievements() {

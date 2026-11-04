@@ -87,10 +87,10 @@ public struct TokenSwapGame: Sendable {
 
         public var name: String {
             switch self {
-            case .rocketAcross, .rocketDown: "Rocket"
-            case .bomb: "Bomb"
-            case .propeller: "Propeller"
-            case .colorClear: "Color Clear"
+            case .rocketAcross, .rocketDown: localized("Rocket")
+            case .bomb: localized("Bomb")
+            case .propeller: localized("Propeller")
+            case .colorClear: localized("Color Clear")
             }
         }
 
@@ -187,20 +187,20 @@ public struct TokenSwapGame: Sendable {
 
         public var description: String {
             switch self {
-            case .tokens(let kind, let count): "Clear \(count) \(TokenSwapGame.tokenName(kind))"
-            case .ice(let count): "Free \(count) frozen token\(count == 1 ? "" : "s")"
-            case .chains(let count): "Break \(count) chain\(count == 1 ? "" : "s")"
-            case .crates(let count): "Break \(count) crate\(count == 1 ? "" : "s")"
-            case .gold(let count): "Bring down \(count) gold bar\(count == 1 ? "" : "s")"
+            case .tokens(let kind, let count): localized("Clear \(count) \(TokenSwapGame.tokenName(kind))")
+            case .ice(let count): count == 1 ? localized("Free 1 frozen token") : localized("Free \(count) frozen tokens")
+            case .chains(let count): count == 1 ? localized("Break 1 chain") : localized("Break \(count) chains")
+            case .crates(let count): count == 1 ? localized("Break 1 crate") : localized("Break \(count) crates")
+            case .gold(let count): count == 1 ? localized("Bring down 1 gold bar") : localized("Bring down \(count) gold bars")
             case .specials(let kind, let count):
                 switch kind {
-                case .any: "Set off \(count) special\(count == 1 ? "" : "s")"
-                case .rocket: "Set off \(count) Rocket\(count == 1 ? "" : "s")"
-                case .bomb: "Set off \(count) Bomb\(count == 1 ? "" : "s")"
-                case .propeller: "Set off \(count) Propeller\(count == 1 ? "" : "s")"
-                case .colorClear: "Set off \(count) Color Clear\(count == 1 ? "" : "s")"
+                case .any: count == 1 ? localized("Set off 1 special") : localized("Set off \(count) specials")
+                case .rocket: count == 1 ? localized("Set off 1 Rocket") : localized("Set off \(count) Rockets")
+                case .bomb: count == 1 ? localized("Set off 1 Bomb") : localized("Set off \(count) Bombs")
+                case .propeller: count == 1 ? localized("Set off 1 Propeller") : localized("Set off \(count) Propellers")
+                case .colorClear: count == 1 ? localized("Set off 1 Color Clear") : localized("Set off \(count) Color Clears")
                 }
-            case .score(let points): "Score \(CoinFormat.grouped(points))"
+            case .score(let points): localized("Score \(CoinFormat.grouped(points))")
             }
         }
     }

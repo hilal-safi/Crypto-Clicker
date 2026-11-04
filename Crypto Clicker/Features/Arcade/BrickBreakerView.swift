@@ -1,7 +1,7 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// The screens inside Brick Breaker, opened from its start screen.
+/// The screens inside Brick Breaker (Hash Smash in the crypto edition), opened from its start screen.
 enum BrickBreakerRoute: Hashable {
     /// A game from level 1 with these walls.
     case play(BrickBreakerGame.LevelStyle)
@@ -17,17 +17,23 @@ struct BrickBreakerView: View {
     var body: some View {
         let stats = store.game.stats
         let tint = MiniGame.brickBreaker.color
+        let crypto = store.arcadeEdition == .crypto
+        let bosses = stats.brickBreakerBosses
         ScrollView {
             VStack(spacing: 14) {
                 ModeCard(tint: tint, icon: "square.grid.3x2.fill", title: "Levels",
                          status: stats.brickBreakerGames == 0
                             ? "Start at level 1"
-                            : "Best: level \(CoinFormat.grouped(stats.brickBreakerBestLevel)) · \(CoinFormat.grouped(stats.brickBreakerBosses)) boss\(stats.brickBreakerBosses == 1 ? "" : "es") beaten",
-                         detail: "The classic walls from level 1 up: armored, explosive and bonus bricks, and a boss every fifth level.",
+                            : "Best: level \(CoinFormat.grouped(stats.brickBreakerBestLevel)) · \(CoinFormat.grouped(bosses)) "
+                                + (crypto ? "whale\(bosses == 1 ? "" : "s")" : "boss\(bosses == 1 ? "" : "es")") + " beaten",
+                         detail: crypto
+                            ? "The classic walls from level 1 up: cold storage, liquidation and airdrop blocks, and the whale every fifth level."
+                            : "The classic walls from level 1 up: armored, explosive and bonus bricks, and a boss every fifth level.",
                          note: nil) {
                     VStack(spacing: 12) {
                         LevelTrack(best: stats.brickBreakerBestLevel, bossEvery: BrickBreakerGame.bossEvery, tint: tint,
-                                   bossSymbol: "crown.fill", noun: "level", bossNote: "A boss every fifth level.")
+                                   bossSymbol: crypto ? "fish.fill" : "crown.fill", noun: "level",
+                                   bossNote: crypto ? "The whale every fifth level." : "A boss every fifth level.")
                         NavigationLink(value: BrickBreakerRoute.play(.classic)) {
                             Label("Play Level 1", systemImage: "play.fill")
                                 .frame(maxWidth: .infinity)
@@ -36,7 +42,9 @@ struct BrickBreakerView: View {
                     }
                 }
                 ModeCard(tint: tint, icon: "dice.fill", title: "Random Walls", status: "A new wall every level",
-                         detail: "Walls made up for every level, never the same twice. They take about as many hits and pay about the same, and a boss still comes every fifth level.",
+                         detail: crypto
+                            ? "Walls made up for every level, never the same twice. They take about as many hits and pay about the same, and the whale still comes every fifth level."
+                            : "Walls made up for every level, never the same twice. They take about as many hits and pay about the same, and a boss still comes every fifth level.",
                          note: nil) {
                     NavigationLink(value: BrickBreakerRoute.play(.generated)) {
                         Label("Play Random Walls", systemImage: "play.fill")
@@ -61,7 +69,7 @@ struct BrickBreakerView: View {
             .frame(maxWidth: .infinity)
         }
         .background { AppBackground(tint: .orange) }
-        .navigationTitle("Brick Breaker")
+        .navigationTitle(MiniGame.brickBreaker.name)
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.brickBreaker, isPresented: $showingHelp)
     }
@@ -75,7 +83,6 @@ struct BrickBreakerPlayView: View {
     /// Classic walls or random ones.
     let levels: BrickBreakerGame.LevelStyle
     @Environment(GameStore.self) private var store
-    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @AppStorage(Preferences.brickBreakerSpeedKey) private var speed = GameSpeed.normal
@@ -101,7 +108,7 @@ struct BrickBreakerPlayView: View {
         VStack(spacing: 10) {
             HStack(spacing: 16) {
                 GameStat(title: "Score", value: CoinFormat.grouped(game.score))
-                GameStat(title: "Level", value: game.isBossLevel ? "\(game.level) · Boss" : "\(game.level)")
+                GameStat(title: "Level", value: game.isBossLevel ? "\(game.level) · \(crypto ? "Whale" : "Boss")" : "\(game.level)")
                 Spacer(minLength: 0)
                 HStack(spacing: 3) {
                     ForEach(0..<BrickBreakerGame.startingLives, id: \.self) { life in
@@ -137,7 +144,7 @@ struct BrickBreakerPlayView: View {
         }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
-        .navigationTitle(levels == .generated ? "Random Walls" : "Brick Breaker")
+        .navigationTitle(levels == .generated ? "Random Walls" : MiniGame.brickBreaker.name)
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.brickBreaker, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
@@ -165,31 +172,23 @@ struct BrickBreakerPlayView: View {
     /// the game when the screen goes away.
     private func withLifecycle(_ view: some View) -> some View {
         view
-        .onChange(of: scenePhase) { _, phase in
-            guard isPlaying else { return }
-            switch phase {
-            case .active:
-                store.releaseArcadeRun()
-            case .background:
-                isPaused = true
-                store.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: game.score, detail: game.bricksBroken, extra: game.level,
-                                              records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated,
-                                                             bestStreak: game.bestLevelStreak)))
-            default:
-                isPaused = true
-            }
-        }
         .onChange(of: isRunning) { _, _ in lastFrame = nil }
         .onChange(of: game.phase) { _, _ in lastFrame = nil }
-        .onDisappear {
-            if isPlaying { endGame() }
-        }
-        .gameScreen(blocksSwipeBack: true)
+        .arcadeLifecycle(isPlaying: isPlaying, pause: { isPaused = true }, heldRun: { heldRun }) { endGame() }
+    }
+
+    /// The game so far, held while the app is in the background.
+    private var crypto: Bool { store.arcadeEdition == .crypto }
+
+    private var heldRun: ArcadeRun {
+        ArcadeRun(game: .brickBreaker, score: game.score, detail: game.bricksBroken, extra: game.level,
+                  records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated, bestStreak: game.bestLevelStreak))
     }
 
     private var field: some View {
         TimelineView(.animation(minimumInterval: nil, paused: !isRunning || game.phase != .playing)) { timeline in
-            BrickField(game: game, time: timeline.date.timeIntervalSinceReferenceDate, reduceMotion: reduceMotion)
+            BrickField(game: game, time: timeline.date.timeIntervalSinceReferenceDate, reduceMotion: reduceMotion,
+                       edition: store.arcadeEdition)
                 .onChange(of: timeline.date) { _, date in advance(to: date) }
         }
         .aspectRatio(BrickBreakerGame.width / BrickBreakerGame.height, contentMode: .fit)
@@ -202,13 +201,13 @@ struct BrickBreakerPlayView: View {
         }
         .overlay { EffectsLayer(effects: effects) }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Brick Breaker field")
+        .accessibilityLabel("\(MiniGame.brickBreaker.name) field")
         .accessibilityValue(accessibilityValue)
     }
 
     private var accessibilityValue: String {
-        var parts = ["\(game.bricks.count) bricks left", "\(game.lives) lives"]
-        if let boss = game.boss { parts.append("boss \(boss.hitsLeft) of \(boss.maxHits)") }
+        var parts = ["\(game.bricks.count) \(crypto ? "blocks" : "bricks") left", "\(game.lives) lives"]
+        if let boss = game.boss { parts.append("\(crypto ? "whale" : "boss") \(boss.hitsLeft) of \(boss.maxHits)") }
         if !game.capsules.isEmpty { parts.append("a power-up falling") }
         return parts.joined(separator: ", ")
     }
@@ -237,9 +236,12 @@ struct BrickBreakerPlayView: View {
                 GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.isNewBest,
                                     best: store.game.stats.brickBreakerBestScore, reward: result.reward,
-                                    details: ["\(CoinFormat.grouped(result.detail)) bricks · reached level \(game.level)",
+                                    details: ["\(CoinFormat.grouped(result.detail)) \(crypto ? "blocks" : "bricks") · reached level \(game.level)",
                                               "\(game.powerUpsCaught) power-up\(game.powerUpsCaught == 1 ? "" : "s")"
-                                                + (game.bossesDefeated > 0 ? " · \(game.bossesDefeated) boss\(game.bossesDefeated == 1 ? "" : "es") beaten" : "")
+                                                + (game.bossesDefeated > 0
+                                                   ? " · \(game.bossesDefeated) " + (crypto ? "whale\(game.bossesDefeated == 1 ? "" : "s")"
+                                                                                        : "boss\(game.bossesDefeated == 1 ? "" : "es")") + " beaten"
+                                                   : "")
                                                 + " · best streak \(game.bestLevelStreak)"],
                                     challenge: result.challenge)
                 }
@@ -285,11 +287,13 @@ struct BrickBreakerPlayView: View {
 }
 
 extension BrickBreakerGame.PowerUp {
+    /// In Hash Smash: a Fork, Deep Liquidity, a Gas Limit and Hash Rate.
     var symbol: String {
-        switch self {
-        case .multiBall: "circle.grid.2x1.fill"
-        case .widePaddle: "arrow.left.and.right"
-        case .slowBall: "tortoise.fill"
+        let crypto = ArcadeEdition.current == .crypto
+        return switch self {
+        case .multiBall: crypto ? "arrow.triangle.branch" : "circle.grid.2x1.fill"
+        case .widePaddle: crypto ? "drop.fill" : "arrow.left.and.right"
+        case .slowBall: crypto ? "gauge.with.dots.needle.33percent" : "tortoise.fill"
         case .laser: "bolt.fill"
         }
     }
@@ -344,10 +348,12 @@ private struct BrickPowerUpStrip: View {
 }
 
 /// The bricks, the boss, falling power-ups and debris, laser bolts, the paddle and the coin balls.
+/// Hash Smash draws hash blocks with their hashes, liquidation blocks, the whale and its dumps.
 private struct BrickField: View {
     let game: BrickBreakerGame
     let time: TimeInterval
     let reduceMotion: Bool
+    var edition = ArcadeEdition.crypto
     static let rowColors: [Color] = [.red, .orange, .yellow, .green, .mint, .cyan, .blue, .purple]
 
     var body: some View {
@@ -356,8 +362,21 @@ private struct BrickField: View {
             func rect(_ box: Box) -> CGRect {
                 CGRect(x: box.minX * scale, y: box.minY * scale, width: box.width * scale, height: box.height * scale)
             }
-            for brick in game.bricks { drawBrick(brick, frame: rect(brick.frame), in: &context) }
-            if let boss = game.boss { drawBoss(boss, frame: rect(boss.frame), in: &context) }
+            let hashes = edition == .crypto ? Self.hashLabels(height: 0.045 * scale, context: context) : []
+            for brick in game.bricks {
+                drawBrick(brick, frame: rect(brick.frame), in: &context)
+                if !hashes.isEmpty && (brick.kind == .normal || brick.kind == .armored) {
+                    let frame = rect(brick.frame)
+                    context.draw(hashes[brick.id % hashes.count], at: CGPoint(x: frame.midX, y: frame.midY))
+                }
+            }
+            if let boss = game.boss {
+                if edition == .crypto {
+                    drawWhale(boss, frame: rect(boss.frame), in: &context)
+                } else {
+                    drawBoss(boss, frame: rect(boss.frame), in: &context)
+                }
+            }
             for capsule in game.capsules {
                 let size = BrickBreakerGame.capsuleSize
                 let frame = rect(Box(minX: capsule.position.x - size.width / 2, minY: capsule.position.y - size.height / 2,
@@ -378,8 +397,18 @@ private struct BrickField: View {
             for piece in game.debris {
                 let center = CGPoint(x: piece.position.x * scale, y: piece.position.y * scale)
                 let radius = 0.02 * scale
-                context.fill(Path(roundedRect: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2),
-                                  cornerRadius: radius * 0.4), with: .color(Color(white: 0.55)))
+                if edition == .crypto {
+                    // A dump: a red candle falling, wick and all.
+                    var wick = Path()
+                    wick.move(to: CGPoint(x: center.x, y: center.y - radius * 1.5))
+                    wick.addLine(to: CGPoint(x: center.x, y: center.y + radius * 1.5))
+                    context.stroke(wick, with: .color(Theme.loss), lineWidth: max(1, radius * 0.25))
+                    context.fill(Path(roundedRect: CGRect(x: center.x - radius * 0.7, y: center.y - radius, width: radius * 1.4, height: radius * 2),
+                                      cornerRadius: radius * 0.2), with: .color(Theme.loss))
+                } else {
+                    context.fill(Path(roundedRect: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2),
+                                      cornerRadius: radius * 0.4), with: .color(Color(white: 0.55)))
+                }
             }
             drawPaddle(rect(game.paddle), in: &context)
             if game.phase != .over {
@@ -422,12 +451,14 @@ private struct BrickField: View {
                 }
             }
         case .explosive:
+            let crypto = edition == .crypto
             context.fill(shape, with: .linearGradient(
-                Gradient(colors: [Color(red: 1, green: 0.55, blue: 0.1), Color(red: 0.75, green: 0.1, blue: 0.05)]),
+                Gradient(colors: crypto ? [Color(red: 0.95, green: 0.25, blue: 0.3), Color(red: 0.45, green: 0.02, blue: 0.08)]
+                                        : [Color(red: 1, green: 0.55, blue: 0.1), Color(red: 0.75, green: 0.1, blue: 0.05)]),
                 startPoint: CGPoint(x: frame.midX, y: frame.minY), endPoint: CGPoint(x: frame.midX, y: frame.maxY)))
-            var symbol = context.resolve(Image(systemName: "flame.fill"))
-            symbol.shading = .color(.yellow)
-            context.draw(symbol, in: frame.insetBy(dx: frame.width * 0.36, dy: frame.height * 0.12))
+            var symbol = context.resolve(Image(systemName: crypto ? "chart.line.downtrend.xyaxis" : "flame.fill"))
+            symbol.shading = .color(crypto ? .white : .yellow)
+            context.draw(symbol, in: frame.insetBy(dx: frame.width * 0.34, dy: frame.height * 0.12))
         case .bonus:
             let pulse = reduceMotion ? 0.8 : 0.65 + 0.35 * (sin(time * 5) + 1) / 2
             context.fill(shape, with: .linearGradient(
@@ -437,6 +468,57 @@ private struct BrickField: View {
             symbol.shading = .color(.white)
             context.draw(symbol, in: frame.insetBy(dx: frame.width * 0.36, dy: frame.height * 0.12))
         }
+    }
+
+    /// Short hashes for the blocks to wear, sized to fit one: "#3fa9" and the like.
+    static func hashLabels(height: CGFloat, context: GraphicsContext) -> [GraphicsContext.ResolvedText] {
+        ["#3fa9", "#0c7e", "#b41d", "#9e02", "#d7c5", "#61af", "#e8b3", "#27d0"].map { hash in
+            context.resolve(Text(hash).font(.system(size: max(6, height * 0.5), weight: .heavy, design: .monospaced))
+                .foregroundStyle(.black.opacity(0.4)))
+        }
+    }
+
+    /// Hash Smash's boss: a whale swimming along the top, spouting, with its health bar.
+    private func drawWhale(_ boss: BrickBreakerGame.Boss, frame: CGRect, in context: inout GraphicsContext) {
+        let body = CGRect(x: frame.minX, y: frame.minY + frame.height * 0.12, width: frame.width * 0.84, height: frame.height * 0.82)
+        let blue = Gradient(colors: [Color(red: 0.3, green: 0.55, blue: 0.95), Color(red: 0.08, green: 0.2, blue: 0.55)])
+        // The tail, at the back (the right).
+        var tail = Path()
+        tail.move(to: CGPoint(x: body.maxX - body.width * 0.06, y: body.midY))
+        tail.addLine(to: CGPoint(x: frame.maxX, y: frame.minY + frame.height * 0.08))
+        tail.addLine(to: CGPoint(x: frame.maxX - frame.width * 0.05, y: body.midY))
+        tail.addLine(to: CGPoint(x: frame.maxX, y: frame.maxY - frame.height * 0.08))
+        tail.closeSubpath()
+        context.fill(tail, with: .linearGradient(blue, startPoint: CGPoint(x: frame.midX, y: frame.minY),
+                                                 endPoint: CGPoint(x: frame.midX, y: frame.maxY)))
+        context.fill(Path(ellipseIn: body), with: .linearGradient(blue, startPoint: CGPoint(x: body.midX, y: body.minY),
+                                                                   endPoint: CGPoint(x: body.midX, y: body.maxY)))
+        // A paler belly, and an eye toward the front.
+        let belly = CGRect(x: body.minX + body.width * 0.12, y: body.midY + body.height * 0.08,
+                           width: body.width * 0.62, height: body.height * 0.36)
+        context.fill(Path(ellipseIn: belly), with: .color(Color(red: 0.75, green: 0.86, blue: 1).opacity(0.7)))
+        let eye = CGPoint(x: body.minX + body.width * 0.2, y: body.minY + body.height * 0.34)
+        context.fill(Path(ellipseIn: CGRect(x: eye.x - 4, y: eye.y - 4, width: 8, height: 8)), with: .color(.white))
+        context.fill(Path(ellipseIn: CGRect(x: eye.x - 2, y: eye.y - 1.5, width: 4, height: 4)), with: .color(.black))
+        // The spout, swaying.
+        let sway = reduceMotion ? 0 : sin(time * 4) * 3
+        let spoutX = body.minX + body.width * 0.35
+        for offset in [-6.0, 0, 6] {
+            var jet = Path()
+            jet.move(to: CGPoint(x: spoutX, y: body.minY + 2))
+            jet.addQuadCurve(to: CGPoint(x: spoutX + offset * 1.6 + sway, y: frame.minY - 6),
+                             control: CGPoint(x: spoutX + offset * 0.4, y: frame.minY))
+            context.stroke(jet, with: .color(.cyan.opacity(0.8)), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+        }
+        drawHealth(boss, over: frame, in: &context)
+    }
+
+    private func drawHealth(_ boss: BrickBreakerGame.Boss, over frame: CGRect, in context: inout GraphicsContext) {
+        let bar = CGRect(x: frame.minX, y: frame.minY - 9, width: frame.width, height: 5)
+        context.fill(Path(roundedRect: bar, cornerRadius: 2.5), with: .color(.white.opacity(0.25)))
+        let share = CGFloat(boss.hitsLeft) / CGFloat(max(1, boss.maxHits))
+        context.fill(Path(roundedRect: CGRect(x: bar.minX, y: bar.minY, width: bar.width * share, height: bar.height), cornerRadius: 2.5),
+                     with: .color(share > 0.3 ? .green : .red))
     }
 
     private func drawBoss(_ boss: BrickBreakerGame.Boss, frame: CGRect, in context: inout GraphicsContext) {
@@ -449,12 +531,7 @@ private struct BrickField: View {
             let eye = CGRect(x: frame.midX + side * frame.width * 0.18 - 5, y: frame.minY + frame.height * 0.3, width: 10, height: 8)
             context.fill(Path(ellipseIn: eye), with: .color(.yellow))
         }
-        // Health bar above it.
-        let bar = CGRect(x: frame.minX, y: frame.minY - 9, width: frame.width, height: 5)
-        context.fill(Path(roundedRect: bar, cornerRadius: 2.5), with: .color(.white.opacity(0.25)))
-        let share = CGFloat(boss.hitsLeft) / CGFloat(max(1, boss.maxHits))
-        context.fill(Path(roundedRect: CGRect(x: bar.minX, y: bar.minY, width: bar.width * share, height: bar.height), cornerRadius: 2.5),
-                     with: .color(share > 0.3 ? .green : .red))
+        drawHealth(boss, over: frame, in: &context)
     }
 
     private func drawPaddle(_ paddle: CGRect, in context: inout GraphicsContext) {

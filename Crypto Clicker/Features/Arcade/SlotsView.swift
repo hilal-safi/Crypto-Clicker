@@ -69,7 +69,7 @@ struct SlotsView: View {
         .gameHelp(.slots, isPresented: $showingHelp)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                CoinAmount(amount: store.heldCoins ?? game.coins, font: .subheadline.weight(.semibold), iconSize: 16)
+                CoinAmount(amount: store.heldCoins ?? store.coins, font: .subheadline.weight(.semibold), iconSize: 16)
                     .padding(.horizontal, 6)
             }
             ToolbarItem(placement: .topBarTrailing) {
