@@ -1,10 +1,14 @@
 import Foundation
 
-/// Bubble Blaster: aim, fire, and touch three or more bubbles of one color to pop them. Bubbles
+/// Bubble Market: aim, fire, and touch three or more bubbles of one color to pop them. Bubbles
 /// left hanging from nothing fall for double points. Shots that pop nothing count as misses; every
 /// few misses push a new row down from the top, and the game ends when a bubble reaches the bottom
 /// row. Clearing the whole field starts the next wave, with more colors and, later, deeper fields
 /// and rows that come sooner.
+///
+/// Flash Market (`Mode.flash`) is two minutes on the clock instead: a new row drops every few
+/// seconds whatever you shoot (sooner in later waves), and misses only end the streak. The clock
+/// runs through `tick(by:using:)`. The Speed option sets how fast a shot flies; its path is the same.
 ///
 /// Popping shots in a row build a streak: each one scores 10% more than the last, up to double,
 /// and every third earns a special bubble for the launcher (a Rainbow, then a Bomb, and so on).
@@ -13,6 +17,13 @@ import Foundation
 /// Bubbles sit on a hexagonal grid, one unit across. Rows alternate between eight bubbles and
 /// seven bubbles shifted half a bubble right. Positions use bubble units with y pointing down.
 public struct BubbleShooterGame: Sendable {
+    public enum Mode: String, CaseIterable, Codable, Sendable {
+        /// Wave after wave until the market crashes; misses bring new rows.
+        case waves
+        /// Two minutes, with a new row on the clock.
+        case flash
+    }
+
     /// A special bubble, earned with a streak of popping shots.
     public enum Special: String, CaseIterable, Codable, Sendable {
         /// Takes the color that makes the biggest group among the bubbles it touches.
@@ -73,6 +84,12 @@ public struct BubbleShooterGame: Sendable {
     public static let bonusPercent = 4
     /// Clearing the field pays this times the wave.
     public static let wavePoints = 500
+    /// How long a Flash Market game lasts.
+    public static let flashLength: TimeInterval = 120
+    /// Seconds between Flash Market's rows in the first wave; a second less each wave after, down to
+    /// `fastestFlashRow`.
+    public static let flashRowEvery: TimeInterval = 9
+    public static let fastestFlashRow: TimeInterval = 5
     /// Every this many popping shots in a row earn a special bubble.
     public static let streakPerSpecial = 3
     /// The streak at which the multiplier stops growing: x2 from the eleventh popping shot in a row.
@@ -86,6 +103,14 @@ public struct BubbleShooterGame: Sendable {
     /// so a shot always lands exactly where the guide said it would, at any frame rate.
     static let stepLength = 0.05
 
+    public let mode: Mode
+    /// How fast shots fly (the game's Speed option).
+    public let speed: GameSpeed
+    /// Flash Market's clock: seconds left, and seconds until the next row drops.
+    public private(set) var timeLeft: TimeInterval = 0
+    public private(set) var rowClock: TimeInterval = 0
+    /// Flash Market's time ran out (rather than the market crashing).
+    public private(set) var isTimeUp = false
     /// Row-major colors: 0 is empty, otherwise 1 through `colorCount`.
     public private(set) var cells: [Int]
     /// Cells holding gold bonus bubbles.
@@ -122,11 +147,22 @@ public struct BubbleShooterGame: Sendable {
     /// Flight distance carried over from the last frame, less than one step.
     private var unspentFlight = 0.0
 
-    public init<R: RandomNumberGenerator>(using rng: inout R) {
+    public init<R: RandomNumberGenerator>(mode: Mode = .waves, speed: GameSpeed = .normal, using rng: inout R) {
+        self.mode = mode
+        self.speed = speed
         cells = Array(repeating: 0, count: Self.rowCount * Self.columns)
         fillTopRows(startingRows, using: &rng)
         current = randomColor(using: &rng)
         next = randomColor(using: &rng)
+        if mode == .flash {
+            timeLeft = Self.flashLength
+            rowClock = flashRowInterval
+        }
+    }
+
+    /// Seconds between Flash Market's rows in this wave.
+    public var flashRowInterval: TimeInterval {
+        max(Self.fastestFlashRow, Self.flashRowEvery - Double(wave - 1))
     }
 
     /// Colors in play: four at first, one more per wave, up to six.
@@ -218,10 +254,30 @@ public struct BubbleShooterGame: Sendable {
         nextSpecial = nil
     }
 
+    /// Runs Flash Market's clock: drops a row whenever the row clock runs out, and ends the game
+    /// when the time does. Waves games have no clock.
+    public mutating func tick<R: RandomNumberGenerator>(by seconds: Double, using rng: inout R) {
+        guard mode == .flash, !isOver, seconds > 0, seconds.isFinite else { return }
+        let step = min(seconds, 0.25)
+        timeLeft = max(0, timeLeft - step)
+        rowClock -= step
+        if rowClock <= 0 {
+            rowClock += flashRowInterval
+            pushRow(using: &rng)
+            checkCrash()
+            refreshLoadedColors(using: &rng)
+        }
+        if timeLeft <= 0 && !isOver {
+            isTimeUp = true
+            isOver = true
+            shot = nil
+        }
+    }
+
     /// Moves a bubble in flight; when it sticks, resolves matches, drops and new rows.
     public mutating func update<R: RandomNumberGenerator>(by seconds: Double, using rng: inout R) {
         guard var flying = shot, !isOver, seconds > 0 else { return }
-        unspentFlight += min(seconds, 0.1) * Self.shotSpeed
+        unspentFlight += min(seconds, 0.1) * Self.shotSpeed * speed.factor
         while unspentFlight >= Self.stepLength {
             unspentFlight -= Self.stepLength
             if advance(&flying) {
@@ -361,10 +417,13 @@ public struct BubbleShooterGame: Sendable {
     private mutating func settle<R: RandomNumberGenerator>(hits: [Int], using rng: inout R) {
         if hits.isEmpty {
             streak = 0
-            misses += 1
-            if misses >= missesBeforeRow {
-                misses = 0
-                pushRow(using: &rng)
+            // In Flash Market rows come on the clock, not with misses.
+            if mode == .waves {
+                misses += 1
+                if misses >= missesBeforeRow {
+                    misses = 0
+                    pushRow(using: &rng)
+                }
             }
         } else {
             var cleared = hits.map { removedBubble(at: $0, dropped: false) }
@@ -391,11 +450,17 @@ public struct BubbleShooterGame: Sendable {
             score += Self.wavePoints * wave // Cleared the whole field.
             wave += 1
             misses = 0
+            rowClock = flashRowInterval
             fillTopRows(startingRows, using: &rng)
         }
+        checkCrash()
+        refreshLoadedColors(using: &rng)
+    }
+
+    /// Ends the game once a bubble sits on the crash line.
+    private mutating func checkCrash() {
         let deadCells = (Self.deadRow * Self.columns)..<(Self.rowCount * Self.columns)
         if deadCells.contains(where: { cells[$0] != 0 }) { isOver = true }
-        refreshLoadedColors(using: &rng)
     }
 
     /// Loads an earned special next, or in the launcher if a special already waits next.
@@ -518,10 +583,11 @@ public struct BubbleShooterGame: Sendable {
         bonusCells.formUnion(indices.filter { cells[$0] != 0 })
     }
 
-    /// Test hook: sets the streak and the wave.
-    mutating func set(streak: Int? = nil, wave: Int? = nil) {
+    /// Test hook: sets the streak, the wave and Flash Market's time left.
+    mutating func set(streak: Int? = nil, wave: Int? = nil, timeLeft: TimeInterval? = nil) {
         if let streak { self.streak = streak }
         if let wave { self.wave = wave }
+        if let timeLeft { self.timeLeft = timeLeft }
     }
     #endif
 }

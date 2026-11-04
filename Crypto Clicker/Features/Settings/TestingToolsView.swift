@@ -11,6 +11,8 @@ struct TestingToolsView: View {
     @AppStorage(Preferences.stepsInviteDismissedKey) private var stepsInviteDismissed = false
 
     private static let coinAmounts: [Double] = [1e6, 1e9, 1e12, 1e15, 1e18, 1e21]
+    /// The rank that carries the last title, past every look a rank unlocks.
+    private static let legendRank = 30
 
     var body: some View {
         let game = store.game
@@ -128,6 +130,24 @@ struct TestingToolsView: View {
             Text("Offline Mining")
         } footer: {
             SettingsNote("Without it, miners stop a minute after the app closes. Use Pretend I Was Away below to see the welcome-back screen.")
+        }
+
+        Section {
+            Button("Unlock Every Look") {
+                store.debugReachArcadeRank(Self.legendRank)
+                store.debugEarnAllAchievements()
+            }
+            .disabled(Cosmetic.allCases.allSatisfy(game.isUnlocked) && game.earnedAchievementTiers >= AchievementCatalog.tierCount)
+            Button("Arcade Rank \(Self.legendRank) (\(ArcadeRank.title(forRank: Self.legendRank)))") {
+                store.debugReachArcadeRank(Self.legendRank)
+            }
+            .disabled(game.arcadeRank >= Self.legendRank)
+            Button("Earn Every Achievement Star") { store.debugEarnAllAchievements() }
+                .disabled(game.earnedAchievementTiers >= AchievementCatalog.tierCount)
+        } header: {
+            Text("Looks")
+        } footer: {
+            SettingsNote("Rank \(Self.legendRank) and every star unlock every look in Style and every coin finish, rim and tap effect. The stars' production bonus comes with them.")
         }
 
         Section("Arcade") {

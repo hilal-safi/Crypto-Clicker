@@ -57,6 +57,20 @@ struct ArcadeBalanceTests {
         #expect((90...160).contains(rush), "Coin Rush pays \(rush)")
     }
 
+    /// Bubble Market's Flash Market pays about what its waves do: it scores faster, with rows on
+    /// the clock and no misses to fear, so its points pay a smaller share.
+    @Test func bubbleModesPayAboutTheSame() {
+        guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
+        let seeds: [UInt64] = [11, 22, 33, 44, 55, 66]
+        let waves = seeds.map { BubbleBot.pointsPerMinute(seed: $0) }.reduce(0, +) / Double(seeds.count)
+            * MiniGame.bubbleBlaster.secondsPerPoint
+        let flash = seeds.map { BubbleBot.flashPointsPerMinute(seed: $0) }.reduce(0, +) / Double(seeds.count)
+            * MiniGame.bubbleBlaster.secondsPerPoint
+        print("Balance: Bubble Market | waves", Int(waves), "Flash Market", Int(flash))
+        #expect((90...160).contains(flash), "Flash Market pays \(flash)")
+        #expect(abs(flash - waves) <= 0.15 * waves, "Flash Market pays \(flash), waves \(waves)")
+    }
+
     /// Pump and Dump's bigger boards pay about what the 3×3 does (their points pay a smaller
     /// share), and the Speed option moves the pay a little either way.
     @Test func pumpDumpBoardsPayAboutTheSame() {
@@ -465,6 +479,26 @@ enum BubbleBot {
 
     static func land(_ game: inout BubbleShooterGame, using rng: inout SeededGenerator) {
         for _ in 0..<200 where game.shot != nil { game.update(by: 0.1, using: &rng) }
+    }
+
+    /// Flash Market, a shot every `secondsPerShot` while the clock runs (rows drop on it), plus a few
+    /// seconds to start each game. Returns the points that pay a minute.
+    static func flashPointsPerMinute(seed: UInt64, games: Int = 2, speed: GameSpeed = .normal) -> Double {
+        var rng = SeededGenerator(seed: seed)
+        var paid = 0.0
+        var seconds = 0.0
+        for _ in 0..<games {
+            var game = BubbleShooterGame(mode: .flash, speed: speed, using: &rng)
+            while !game.isOver {
+                let angle = bestAngle(in: game, using: &rng)
+                game.fire(angle: angle, using: &rng)
+                land(&game, using: &rng)
+                for _ in 0..<Int(secondsPerShot / 0.1) where !game.isOver { game.tick(by: 0.1, using: &rng) }
+            }
+            paid += Double(game.score) * Tuning.bubbleFlashPay
+            seconds += BubbleShooterGame.flashLength - game.timeLeft + 3
+        }
+        return paid / (seconds / 60)
     }
 
     static func bestAngle(in game: BubbleShooterGame, using rng: inout SeededGenerator) -> Double {

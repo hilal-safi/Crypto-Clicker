@@ -324,7 +324,8 @@ extension GameState {
         case .brickBreaker: finishBrickBreaker(score: run.score, bricks: run.detail, level: run.extra, bosses: records.bosses,
                                                powerUps: records.powerUps, bestStreak: records.bestStreak)
         case .bubbleBlaster: finishBubbleBlaster(score: run.score, popped: run.detail, bestShot: run.extra, wave: run.stage,
-                                                 bestStreak: records.bestStreak, bonuses: records.bonuses)
+                                                 bestStreak: records.bestStreak, bonuses: records.bonuses,
+                                                 mode: records.mode == 1 ? .flash : .waves)
         case .merge2048:
             run.stage == ArcadeRun.dailyStage
                 ? finishMerge2048Daily(day: nil, score: run.score, bestTile: run.detail).payout
@@ -434,19 +435,27 @@ extension GameState {
     }
 
     /// `bestShot` is the most bubbles one shot cleared, `wave` the wave the game reached, `bestStreak`
-    /// the most popping shots in a row and `bonuses` the gold bonus bubbles cleared.
+    /// the most popping shots in a row and `bonuses` the gold bonus bubbles cleared. A Flash Market
+    /// game keeps its own best and pays `Tuning.bubbleFlashPay` of its points.
     @discardableResult
     public mutating func finishBubbleBlaster(score: Int, popped: Int, bestShot: Int, wave: Int = 0, bestStreak: Int = 0,
-                                             bonuses: Int = 0) -> ArcadePayout {
-        let isNewBest = score > stats.bubbleBestScore
+                                             bonuses: Int = 0, mode: BubbleShooterGame.Mode = .waves) -> ArcadePayout {
+        let isFlash = mode == .flash
+        let isNewBest = score > (isFlash ? stats.bubbleFlashBestScore : stats.bubbleBestScore)
         stats.bubbleGames += 1
-        stats.bubbleBestScore = max(stats.bubbleBestScore, score)
+        if isFlash {
+            stats.bubbleFlashes += 1
+            stats.bubbleFlashBestScore = max(stats.bubbleFlashBestScore, score)
+        } else {
+            stats.bubbleBestScore = max(stats.bubbleBestScore, score)
+        }
         stats.bubblesPopped = stats.bubblesPopped.addingCount(popped)
         stats.bubbleBestShot = max(stats.bubbleBestShot, bestShot)
         stats.bubbleBestWave = max(stats.bubbleBestWave, wave)
         stats.bubbleBestStreak = max(stats.bubbleBestStreak, bestStreak)
         stats.bubbleBonuses = stats.bubbleBonuses.addingCount(bonuses)
-        return payArcade(.bubbleBlaster, score: score, isNewBest: isNewBest, challengeValue: popped)
+        let paid = isFlash ? Int((Double(max(0, score)) * Tuning.bubbleFlashPay).rounded()) : score
+        return payArcade(.bubbleBlaster, score: score, paidPoints: paid, isNewBest: isNewBest, challengeValue: popped)
     }
 
     /// Records a finished 2048 game and pays it once. Making a 2048 tile also pays a bonus of

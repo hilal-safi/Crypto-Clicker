@@ -49,6 +49,20 @@ extension GameState {
         unlockedGames = Set(MiniGame.allCases)
     }
 
+    /// Raises Arcade Rank to `rank` (Legend at 30), past every look a rank unlocks.
+    public mutating func debugReachArcadeRank(_ rank: Int) {
+        arcade.xp = max(arcade.xp, ArcadeRank.xpNeeded(forRank: rank))
+    }
+
+    /// Earns every tier of every achievement at once, unlocking every look the stars and
+    /// achievements hold (coin finishes, rims, tap effects and the games' looks). Their production
+    /// bonus comes with them. No banners: there would be hundreds.
+    public mutating func debugEarnAllAchievements() {
+        for achievement in AchievementCatalog.all {
+            achievementTiers[achievement.id] = achievement.thresholds.count
+        }
+    }
+
     /// Counts enough taps to unlock steps.
     public mutating func debugUnlockSteps() {
         stats.taps = max(stats.taps, Tuning.stepsUnlockTaps)

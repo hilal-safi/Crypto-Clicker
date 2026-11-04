@@ -90,6 +90,8 @@ struct ArcadeView: View {
             path.append(BrickBreakerRoute.play(.classic)) // Straight into a game, from level 1.
         } else if game == .invaders {
             path.append(InvadersRoute.play(.classic)) // Straight into a game, from wave 1.
+        } else if game == .bubbleBlaster {
+            path.append(BubbleRoute.waves) // Pop Day counts bubbles in any game: straight into Waves.
         } else if game == .pumpDump {
             // Reflex Day counts a run on any board: the one last picked.
             let side = UserDefaults.standard.integer(forKey: Preferences.pumpDumpBoardKey)
@@ -159,6 +161,9 @@ private struct ArcadeDestinations: ViewModifier {
                 switch route {
                 case .play(let waves): InvadersPlayView(waves: waves)
                 }
+            }
+            .navigationDestination(for: BubbleRoute.self) { route in
+                BubblePlayView(route: route)
             }
             .navigationDestination(for: PumpDumpRoute.self) { route in
                 switch route {

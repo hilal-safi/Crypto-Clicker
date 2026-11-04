@@ -1,15 +1,150 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Bubble Market, with token bubbles and a crash line: drag on the field to aim (a guide shows the bounce and a ring marks where the bubble will stick),
-/// lift to fire. Tap the loaded bubble to swap it with the next one.
+/// The screens inside Bubble Market, opened from its start screen.
+enum BubbleRoute: Hashable {
+    /// Wave after wave until the market crashes.
+    case waves
+    /// Two minutes, with rows on the clock.
+    case flash
+    /// Waves from the day's market: everyone starts with the same bubbles all day.
+    case todaysMarket(day: String)
+
+    var mode: BubbleShooterGame.Mode { self == .flash ? .flash : .waves }
+
+    var title: String {
+        switch self {
+        case .waves: MiniGame.bubbleBlaster.name
+        case .flash: "Flash Market"
+        case .todaysMarket: "Today's Market"
+        }
+    }
+}
+
+/// How much of a shot's path the aiming guide shows: all of it, bounces and landing ring, or only
+/// up to the first bounce, for a harder game.
+enum BubbleAimGuide: String, CaseIterable, Identifiable {
+    case full, short
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .full: "Full path"
+        case .short: "First bounce"
+        }
+    }
+}
+
+/// Where Bubble Market opens, like the other arcade games: Waves, Flash Market, Today's Market and
+/// the settings (the shots' speed and the aiming guide), each on a card.
 struct BubbleBlasterView: View {
+    @Environment(GameStore.self) private var store
+    @AppStorage(Preferences.bubbleSpeedKey) private var speed = GameSpeed.normal
+    @AppStorage(Preferences.bubbleAimKey) private var aimGuide = BubbleAimGuide.full
+    @State private var showingHelp = false
+
+    private let tint = MiniGame.bubbleBlaster.color
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                wavesCard
+                flashCard
+                todayCard
+                settingsCard
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+            .frame(maxWidth: 600)
+            .frame(maxWidth: .infinity)
+        }
+        .navigationTitle(MiniGame.bubbleBlaster.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .gameHelp(.bubbleBlaster, isPresented: $showingHelp)
+        .gameBackdrop(.bubbleBlaster)
+    }
+
+    private var wavesCard: some View {
+        let stats = store.game.stats
+        return ModeCard(tint: tint, icon: "water.waves", title: "Waves",
+                        status: stats.bubbleBestScore > 0
+                            ? "Best \(CoinFormat.grouped(stats.bubbleBestScore)) · wave \(stats.bubbleBestWave)"
+                            : "Start at wave 1",
+                        detail: "Pop three of a kind and clear the market for the next wave, with another token each time. Every \(BubbleShooterGame.missesPerRow) shots that pop nothing push a new row down; the game ends at the crash line.",
+                        note: nil) {
+            playLink(.waves, title: "Play Waves")
+        }
+    }
+
+    private var flashCard: some View {
+        let best = store.game.stats.bubbleFlashBestScore
+        return ModeCard(tint: tint, icon: "bolt.fill", title: "Flash Market",
+                        status: best > 0 ? "Best \(CoinFormat.grouped(best))" : "\(Int(BubbleShooterGame.flashLength / 60)) minutes on the clock",
+                        detail: "\(Int(BubbleShooterGame.flashLength / 60)) minutes to score all you can. A new row drops every \(Int(BubbleShooterGame.flashRowEvery)) seconds whatever you shoot, a second sooner each wave, and a miss only costs the streak.",
+                        note: nil) {
+            playLink(.flash, title: "Play Flash Market")
+        }
+    }
+
+    private var todayCard: some View {
+        let today = store.today
+        let popDay = store.game.dailyChallenge(today: today).flatMap { $0.kind == .bubbleBlaster && !$0.isComplete ? $0.goal : nil }
+        return ModeCard(tint: tint, icon: "calendar", title: "Today's Market",
+                        status: popDay.map { "Pop Day: \($0)" } ?? "The same market for everyone today",
+                        detail: "Waves from today's market: everyone starts with the same bubbles, all day. Scores count toward your Waves best.",
+                        note: nil) {
+            playLink(.todaysMarket(day: today), title: "Play Today's Market")
+        }
+    }
+
+    private var settingsCard: some View {
+        ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Settings",
+                 status: "\(speed.name) shots · \(aimGuide.name)",
+                 detail: "How fast shots fly, and how much of their path the guide shows. Neither changes what a point pays.",
+                 note: nil) {
+            VStack(spacing: 12) {
+                Picker("Shot speed", selection: $speed) {
+                    ForEach(GameSpeed.allCases) { speed in
+                        Text(speed.name).tag(speed)
+                    }
+                }
+                .pickerStyle(.segmented)
+                Picker("Aiming guide", selection: $aimGuide) {
+                    ForEach(BubbleAimGuide.allCases) { guide in
+                        Text(guide.name).tag(guide)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+        }
+    }
+
+    private func playLink(_ route: BubbleRoute, title: LocalizedStringKey) -> some View {
+        NavigationLink(value: route) {
+            Label(title, systemImage: "play.fill")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.glassProminent)
+    }
+}
+
+/// Bubble Market's game, with token bubbles and a crash line: drag on the field to aim (a guide
+/// shows the path and a ring marks where the bubble will stick, or only the first bounce with the
+/// short guide), lift to fire. Tap the loaded bubble to swap it with the next one. Waves and
+/// Today's Market bring rows with misses; Flash Market brings them on its two-minute clock. Shots
+/// come from one generator, seeded by the day for Today's Market.
+struct BubblePlayView: View {
     typealias Special = BubbleShooterGame.Special
 
+    let route: BubbleRoute
     @Environment(GameStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
-    @State private var game = BubbleShooterGame.fresh()
+    @AppStorage(Preferences.bubbleSpeedKey) private var speed = GameSpeed.normal
+    @AppStorage(Preferences.bubbleAimKey) private var aimGuide = BubbleAimGuide.full
+    @State private var rng: SeededGenerator
+    @State private var game: BubbleShooterGame
     @State private var isPlaying = false
     @State private var isPaused = false
     @State private var showingHelp = false
@@ -27,6 +162,20 @@ struct BubbleBlasterView: View {
 
     private var isRunning: Bool { isPlaying && !isPaused }
 
+    init(route: BubbleRoute) {
+        self.route = route
+        var rng = Self.generator(for: route)
+        let speed = GameSpeed(rawValue: UserDefaults.standard.string(forKey: Preferences.bubbleSpeedKey) ?? "") ?? .normal
+        _game = State(initialValue: BubbleShooterGame(mode: route.mode, speed: speed, using: &rng))
+        _rng = State(initialValue: rng)
+    }
+
+    /// Today's Market draws from the day's seed; the other games at random.
+    static func generator(for route: BubbleRoute) -> SeededGenerator {
+        if case .todaysMarket(let day) = route { return SeededGenerator(seed: GameState.dailyChallengeSeed(day: day)) }
+        return SeededGenerator(seed: .random(in: 0...UInt64.max))
+    }
+
     struct Banner: Equatable {
         let id: Int
         let text: String
@@ -42,6 +191,8 @@ struct BubbleBlasterView: View {
         let wave: Int
         let bestStreak: Int
         let bonuses: Int
+        /// Flash Market's clock ran out, rather than the market crashing.
+        let isTimeUp: Bool
     }
 
     var body: some View {
@@ -53,8 +204,14 @@ struct BubbleBlasterView: View {
         VStack(spacing: 10) {
             HStack(spacing: 18) {
                 GameStat(title: "Score", value: CoinFormat.grouped(game.score))
-                GameStat(title: "Wave", value: "\(game.wave)")
-                GameStat(title: "New row in", value: "\(game.missesBeforeRow - game.misses)")
+                if game.mode == .flash {
+                    GameStat(title: "Time", value: clock(game.timeLeft))
+                        .foregroundStyle(isPlaying && game.timeLeft < 10 ? Theme.loss : .primary)
+                    GameStat(title: "Row in", value: "\(Int(game.rowClock.rounded(.up)))s")
+                } else {
+                    GameStat(title: "Wave", value: "\(game.wave)")
+                    GameStat(title: "New row in", value: "\(game.missesBeforeRow - game.misses)")
+                }
                 Spacer(minLength: 0)
                 ArcadeButton(title: isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill", size: 40) {
                     if isPlaying { isPaused.toggle() }
@@ -78,7 +235,7 @@ struct BubbleBlasterView: View {
         }
         .overlay { panel }
         .animation(.snappy, value: isPlaying)
-        .navigationTitle(MiniGame.bubbleBlaster.name)
+        .navigationTitle(route.title)
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.bubbleBlaster, isPresented: $showingHelp) {
             if isPlaying { isPaused = true }
@@ -114,12 +271,13 @@ struct BubbleBlasterView: View {
     /// The game so far, held while the app is in the background.
     private var heldRun: ArcadeRun {
         ArcadeRun(game: .bubbleBlaster, score: game.score, detail: game.popped, extra: game.bestClear, stage: game.wave,
-                  records: .init(bestStreak: game.bestStreak, bonuses: game.bonusesCollected))
+                  records: .init(bestStreak: game.bestStreak, bonuses: game.bonusesCollected, mode: game.mode == .flash ? 1 : 0))
     }
 
     private var field: some View {
-        TimelineView(.animation(minimumInterval: nil, paused: !isRunning || game.shot == nil)) { timeline in
-            BubbleField(game: game, guide: game.shot == nil ? aim.map(aimGuide) : nil, finish: store.game.equipped(.bubbles))
+        // Waves only need frames while a shot flies; Flash Market's clock always runs.
+        TimelineView(.animation(minimumInterval: nil, paused: !isRunning || (game.shot == nil && game.mode == .waves))) { timeline in
+            BubbleField(game: game, guide: game.shot == nil ? aim.map(guide) : nil, finish: store.game.equipped(.bubbles))
                 .onChange(of: timeline.date) { _, date in advance(to: date) }
         }
         .aspectRatio(BubbleShooterGame.width / BubbleShooterGame.height, contentMode: .fit)
@@ -159,15 +317,24 @@ struct BubbleBlasterView: View {
 
     private var accessibilityValue: String {
         var parts = ["Score \(game.score)", "wave \(game.wave)"]
+        if game.mode == .flash { parts.append("\(Int(game.timeLeft.rounded(.up))) seconds left") }
         if let special = game.currentSpecial { parts.append("\(special.name) loaded") }
         if let special = game.nextSpecial { parts.append("\(special.name) next") }
         return parts.joined(separator: ", ")
     }
 
-    /// The aiming guide for `angle`: the path up to the third bounce, and where the bubble will stick.
-    private func aimGuide(_ angle: Double) -> BubbleField.Guide {
+    /// The aiming guide for `angle`: the path up to the third bounce, and where the bubble will
+    /// stick; or, with the short guide, only up to the first bounce.
+    private func guide(_ angle: Double) -> BubbleField.Guide {
         let path = game.trajectory(angle: angle, maxBounces: 60)
+        if aimGuide == .short { return BubbleField.Guide(path: Array(path.prefix(2)), landing: nil) }
         return BubbleField.Guide(path: Array(path.prefix(4)), landing: path.last.flatMap { game.landingSpot(for: $0) })
+    }
+
+    /// Time left as "1:42".
+    private func clock(_ seconds: TimeInterval) -> String {
+        let whole = Int(seconds.rounded(.up))
+        return "\(whole / 60):" + (whole % 60 < 10 ? "0" : "") + "\(whole % 60)"
     }
 
     /// Drag to aim (the guide follows your finger) and lift to fire. A tap on the loaded or the
@@ -194,7 +361,6 @@ struct BubbleBlasterView: View {
                 guard isRunning, game.shot == nil, width > 0 else { return }
                 let moved = hypot(value.translation.width, value.translation.height) > 10
                 if moved, let aim {
-                    var rng = SystemRandomNumberGenerator()
                     game.fire(angle: aim, using: &rng)
                     shots += 1
                 } else if !moved {
@@ -225,16 +391,34 @@ struct BubbleBlasterView: View {
     private var panel: some View {
         if !isPlaying {
             if let result {
-                GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
+                GamePanel(title: result.isTimeUp ? "Time's Up" : "Market Crashed", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.game.score, isNewBest: result.game.isNewBest,
-                                    best: store.game.stats.bubbleBestScore, reward: result.game.reward,
+                                    best: best, reward: result.game.reward,
                                     details: summary(result), challenge: result.game.challenge)
                 }
             } else {
-                GamePanel(title: MiniGame.bubbleBlaster.name, buttonTitle: "Start", action: start) {
-                    GameIntro(best: store.game.stats.bubbleBestScore)
+                GamePanel(title: route.title, buttonTitle: "Start", action: start) {
+                    GameIntro(best: best, detail: introDetail)
                 }
             }
+        }
+    }
+
+    /// The best this mode counts toward: Flash Market's own, or Waves' (Today's Market included).
+    private var best: Int {
+        game.mode == .flash ? store.game.stats.bubbleFlashBestScore : store.game.stats.bubbleBestScore
+    }
+
+    private var introDetail: String {
+        let speedText = "\(speed.name) shots · \(aimGuide.name)"
+        switch route {
+        case .waves:
+            return "A new row every \(BubbleShooterGame.missesPerRow) misses · \(speedText)"
+        case .flash:
+            return "\(Int(BubbleShooterGame.flashLength / 60)) minutes · a row every \(Int(BubbleShooterGame.flashRowEvery)) seconds · \(speedText)"
+        case .todaysMarket(let day):
+            let goal = store.game.dailyChallenge(today: day).flatMap { $0.kind == .bubbleBlaster ? $0.goal : nil }
+            return "Everyone starts with the same market today." + (goal.map { " Daily challenge: \($0)." } ?? "") + " \(speedText)."
         }
     }
 
@@ -253,9 +437,9 @@ struct BubbleBlasterView: View {
         guard isRunning else { return }
         let seconds = lastFrame.map { date.timeIntervalSince($0) } ?? 0
         lastFrame = date
-        var rng = SystemRandomNumberGenerator()
+        game.tick(by: seconds, using: &rng)
         game.update(by: seconds, using: &rng)
-        if game.shot == nil { lastFrame = nil }
+        if game.shot == nil && game.mode == .waves { lastFrame = nil }
         if game.isOver { endGame() }
     }
 
@@ -278,7 +462,8 @@ struct BubbleBlasterView: View {
     }
 
     private func start() {
-        game = .fresh()
+        rng = Self.generator(for: route)
+        game = BubbleShooterGame(mode: route.mode, speed: speed, using: &rng)
         result = nil
         isPaused = false
         aim = nil
@@ -295,16 +480,11 @@ struct BubbleBlasterView: View {
         isPaused = false
         aim = nil
         let payout = store.finishBubbleBlaster(score: game.score, popped: game.popped, bestShot: game.bestClear,
-                                               wave: game.wave, bestStreak: game.bestStreak, bonuses: game.bonusesCollected)
+                                               wave: game.wave, bestStreak: game.bestStreak, bonuses: game.bonusesCollected,
+                                               mode: game.mode)
         result = BubbleResult(game: GameResult(score: game.score, payout: payout, detail: game.popped),
-                              wave: game.wave, bestStreak: game.bestStreak, bonuses: game.bonusesCollected)
-    }
-}
-
-extension BubbleShooterGame {
-    static func fresh() -> BubbleShooterGame {
-        var rng = SystemRandomNumberGenerator()
-        return BubbleShooterGame(using: &rng)
+                              wave: game.wave, bestStreak: game.bestStreak, bonuses: game.bonusesCollected,
+                              isTimeUp: game.isTimeUp)
     }
 }
 

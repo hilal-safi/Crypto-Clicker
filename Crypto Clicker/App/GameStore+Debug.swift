@@ -39,6 +39,14 @@ extension GameStore {
         debugChange { game, _ in game.debugUnlockAllGames() }
     }
 
+    func debugReachArcadeRank(_ rank: Int) {
+        debugChange { game, _ in game.debugReachArcadeRank(rank) }
+    }
+
+    func debugEarnAllAchievements() {
+        debugChange { game, _ in game.debugEarnAllAchievements() }
+    }
+
     func debugUnlockSteps() {
         debugChange { game, _ in game.debugUnlockSteps() }
     }

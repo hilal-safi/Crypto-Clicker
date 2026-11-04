@@ -92,6 +92,9 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var bubbleBestWave = 0
     public internal(set) var bubbleBestStreak = 0
     public internal(set) var bubbleBonuses = 0
+    /// Flash Market: the best score and games played (they count toward the totals above too).
+    public internal(set) var bubbleFlashBestScore = 0
+    public internal(set) var bubbleFlashes = 0
     public internal(set) var merge2048Games = 0
     public internal(set) var merge2048BestScore = 0
     public internal(set) var merge2048BestTile = 0
@@ -209,7 +212,7 @@ public struct Stats: Codable, Equatable, Sendable {
         case merge2048Goals
         case moonFlights, moonCashOuts, moonBestMultiplier, moonWagered, moonPaidOut, moonBiggestWin
         case pumpDumpGames, pumpDumpBestScore, pumpDumpCoinsHit, pumpDumpScamsHit, pumpDumpBestCombo, pumpDumpBestRound
-        case pumpDumpRoundsCleared, pumpDumpBoardBests
+        case pumpDumpRoundsCleared, pumpDumpBoardBests, bubbleFlashBestScore, bubbleFlashes
         case tokenSwapLevelsPlayed
         case tokenSwapLevelWins
         case tokenSwapRandomPlayed, tokenSwapRandomWins
@@ -326,6 +329,8 @@ public struct Stats: Codable, Equatable, Sendable {
         bubbleBestWave = c.value(.bubbleBestWave, default: 0)
         bubbleBestStreak = c.value(.bubbleBestStreak, default: 0)
         bubbleBonuses = c.value(.bubbleBonuses, default: 0)
+        bubbleFlashBestScore = c.value(.bubbleFlashBestScore, default: 0)
+        bubbleFlashes = c.value(.bubbleFlashes, default: 0)
         moonFlights = c.value(.moonFlights, default: 0)
         moonCashOuts = c.value(.moonCashOuts, default: 0)
         moonBestMultiplier = c.value(.moonBestMultiplier, default: 0)
@@ -472,6 +477,8 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(pumpDumpBestRound, forKey: .pumpDumpBestRound)
         try c.encode(pumpDumpRoundsCleared, forKey: .pumpDumpRoundsCleared)
         if !pumpDumpBoardBests.isEmpty { try c.encode(pumpDumpBoardBests, forKey: .pumpDumpBoardBests) }
+        try c.encode(bubbleFlashBestScore, forKey: .bubbleFlashBestScore)
+        try c.encode(bubbleFlashes, forKey: .bubbleFlashes)
         try c.encode(tokenSwapLevelsPlayed, forKey: .tokenSwapLevelsPlayed)
         try c.encode(tokenSwapLevelWins, forKey: .tokenSwapLevelWins)
         try c.encode(tokenSwapRandomPlayed, forKey: .tokenSwapRandomPlayed)

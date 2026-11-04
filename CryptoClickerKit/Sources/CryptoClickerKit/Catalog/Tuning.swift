@@ -224,6 +224,9 @@ public enum Tuning {
     public static let snakeSecondsPerPoint = 0.3
     /// Coin Rush scores faster than Classic (three coins out at once), so its points pay this share.
     public static let snakeCoinRushPay = 0.6
+    /// Flash Market's rows come on the clock, so it scores faster than Bubble Market's waves; its
+    /// points pay this share.
+    public static let bubbleFlashPay = 0.65
     public static let brickBreakerSecondsPerPoint = 0.36
     public static let invadersSecondsPerPoint = 0.09
     public static let bubbleSecondsPerPoint = 0.11

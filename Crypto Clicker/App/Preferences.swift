@@ -33,6 +33,10 @@ enum Preferences {
     static let tetrisSpeedKey = "speed.tetris"
     static let invadersSpeedKey = "speed.invaders"
     static let pumpDumpSpeedKey = "speed.pumpDump"
+    /// How fast Bubble Market's shots fly (a `GameSpeed` raw value), and how much of the path its
+    /// aiming guide shows (a `BubbleAimGuide` raw value).
+    static let bubbleSpeedKey = "speed.bubbleBlaster"
+    static let bubbleAimKey = "bubbleBlaster.aimGuide"
     /// Pump and Dump's board (a `PumpDumpGame.Board` raw value: its side).
     static let pumpDumpBoardKey = "pumpDump.board"
     /// The difficulty last picked for a random Token Swap level.

@@ -188,6 +188,23 @@ struct ArcadeProgressionTests {
         #expect(MiniGame.allCases.allSatisfy { game in CosmeticSlot.allCases.contains { $0.games == [game] } })
     }
 
+    /// The Testing Tools' shortcuts unlock every look there is.
+    @Test func theTestingToolsUnlockEveryLook() {
+        var game = player()
+        game.debugReachArcadeRank(30)
+        #expect(game.arcadeRank == 30 && game.arcadeTitle == "Legend")
+        #expect(Cosmetic.allCases.filter { if case .rank = $0.unlock { true } else { false } }.allSatisfy(game.isUnlocked))
+        game.debugEarnAllAchievements()
+        #expect(game.earnedAchievementTiers == AchievementCatalog.tierCount)
+        #expect(Cosmetic.allCases.allSatisfy(game.isUnlocked))
+        let stars = game.earnedAchievementTiers
+        #expect(CoinFinish.allCases.allSatisfy { $0.isUnlocked(stars: stars) })
+        #expect(CoinRim.allCases.allSatisfy { $0.isUnlocked(stars: stars) })
+        #expect(CoinTapEffect.allCases.allSatisfy { $0.isUnlocked(stars: stars) })
+        // Earned tiers stay earned when the metrics are checked again.
+        #expect(game.refreshAchievements().isEmpty && game.earnedAchievementTiers == AchievementCatalog.tierCount)
+    }
+
     @Test func progressSurvivesASaveAndOldSavesStartFresh() throws {
         var game = player()
         game.arcade.xp = 1_234

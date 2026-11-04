@@ -320,8 +320,9 @@ extension MiniGame {
         return MiniGameGuide(
             objective: localized("Fire token bubbles to make groups of three or more of a kind, and clear the market to start the next wave."),
             controls: [
-                localized("Drag to aim and lift to fire. The guide shows the path, bounces included, and a ring marks where the bubble will stick."),
+                localized("Drag to aim and lift to fire. The guide shows the path, bounces included, and a ring marks where the bubble will stick. The short guide shows only the way to the first bounce."),
                 localized("Tap the loaded bubble or the next one to swap them."),
+                localized("The start screen picks Waves, Flash Market or Today's Market (the same bubbles for everyone today), and Settings there how fast shots fly and which guide to show."),
             ],
             scoring: [
                 localized("Popped bubbles score \(Game.pointsPerPop) each; bubbles left hanging fall for \(Game.pointsPerDrop) each."),
@@ -332,6 +333,8 @@ extension MiniGame {
             items: [
                 .init(id: "bubble.row", symbol: "arrow.down.to.line", name: localized("New rows"),
                       detail: localized("Every \(Game.missesPerRow) shots that pop nothing push a new row down. From wave 3 the waves start deeper and rows come sooner, down to every \(Game.fewestMissesPerRow) misses.")),
+                .init(id: "bubble.flash", symbol: "bolt.fill", name: localized("Flash Market"),
+                      detail: localized("\(Int(Game.flashLength / 60)) minutes to score all you can. A new row drops every \(Int(Game.flashRowEvery)) seconds whatever you shoot, a second sooner each wave down to every \(Int(Game.fastestFlashRow)), and a miss only ends the streak. It scores faster, so its points pay \(Int((Tuning.bubbleFlashPay * 100).rounded()))% each, and it keeps its own best.")),
                 .init(id: "bubble.rainbow", symbol: "dollarsign.circle.fill", name: rainbow,
                       detail: localized("Pegged to anything: it takes the kind that makes the biggest group among the bubbles it touches.")),
                 .init(id: "bubble.bomb", symbol: "chart.line.downtrend.xyaxis", name: bomb,
@@ -339,7 +342,7 @@ extension MiniGame {
                 .init(id: "bubble.bonus", symbol: "star.circle.fill", name: localized("Blue chip"),
                       detail: localized("Pays \(Game.bonusPoints) extra however it's cleared: popped, dropped or blown up.")),
             ],
-            ending: localized("The game ends when a bubble sinks to the crash line at the bottom."),
+            ending: localized("The game ends when a bubble sinks to the crash line at the bottom, or in Flash Market when the time runs out."),
             tips: [
                 localized("Pop the bubbles holding up big clusters: falling bubbles pay double."),
                 localized("Keep the streak alive: swap to the bubble that can pop something before you fire."),

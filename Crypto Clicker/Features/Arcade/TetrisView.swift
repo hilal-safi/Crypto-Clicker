@@ -349,7 +349,7 @@ struct TetrisPlayView: View {
                     dragStart = value.startLocation
                     dragColumns = 0
                 }
-                let column = boardWidth / CGFloat(TetrisGame.width)
+                let column = max(1, boardWidth / CGFloat(TetrisGame.width)) // Never 0: a drag can't divide by it.
                 let target = Int((value.translation.width / column).rounded(.towardZero))
                 while dragColumns < target {
                     dragColumns += 1

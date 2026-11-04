@@ -149,7 +149,8 @@ struct GameBackdrop: View {
 
     // MARK: Hash Chain
 
-    /// Trails of hex digits falling down the screen, bright at the head and fading behind.
+    /// Trails of hex digits falling down the screen, bright at the head and fading behind, with a
+    /// long one always running down from each top corner.
     private static func drawHashes(in context: inout GraphicsContext, size: CGSize) {
         var rng = SeededGenerator(seed: 19)
         let green = Color(red: 0.4, green: 1, blue: 0.6)
@@ -157,21 +158,34 @@ struct GameBackdrop: View {
             context.resolve(Text(String(digit)).font(.system(size: 13, weight: .semibold, design: .monospaced)).foregroundStyle(green))
         }
         let column: CGFloat = 24, line: CGFloat = 17
+        func trail(x: CGFloat, head: CGFloat, length: Int, in context: inout GraphicsContext) {
+            for index in 0..<length {
+                let y = head - CGFloat(index) * line
+                guard y > -line, y < size.height + line else { continue }
+                var glyph = context
+                glyph.opacity = index == 0 ? 0.45 : 0.24 * (1 - Double(index) / Double(length))
+                glyph.draw(digits[Int.random(in: 0..<digits.count, using: &rng)], at: CGPoint(x: x, y: y))
+            }
+        }
+        let columns = max(1, Int((size.width - 10) / column) + 1)
+        let lastX = 10 + CGFloat(columns - 1) * column
+        // The corner columns keep their tops for the corner trails.
+        let cornerReach = size.height * 0.36
         var x: CGFloat = 10
         while x < size.width {
+            let isCorner = x == 10 || x == lastX
             for _ in 0..<Int.random(in: 1...2, using: &rng) {
                 let length = Int.random(in: 5...15, using: &rng)
-                let head = CGFloat.random(in: 0...(size.height + CGFloat(length) * line), using: &rng)
-                for index in 0..<length {
-                    let y = head - CGFloat(index) * line
-                    guard y > -line, y < size.height + line else { continue }
-                    var glyph = context
-                    glyph.opacity = index == 0 ? 0.45 : 0.24 * (1 - Double(index) / Double(length))
-                    glyph.draw(digits[Int.random(in: 0..<digits.count, using: &rng)], at: CGPoint(x: x, y: y))
-                }
+                let span = CGFloat(length) * line
+                let lowest = isCorner ? cornerReach + span : 0
+                let head = CGFloat.random(in: lowest...max(lowest, size.height + span), using: &rng)
+                trail(x: x, head: head, length: length, in: &context)
             }
             x += column
         }
+        // The corner trails: long, and reaching from the very top.
+        trail(x: 10, head: size.height * 0.27, length: 14, in: &context)
+        trail(x: lastX, head: size.height * 0.22, length: 12, in: &context)
     }
 
     // MARK: Hash Smash

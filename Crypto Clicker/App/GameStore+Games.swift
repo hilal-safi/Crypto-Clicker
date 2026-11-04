@@ -163,10 +163,11 @@ extension GameStore {
     }
 
     @discardableResult
-    func finishBubbleBlaster(score: Int, popped: Int, bestShot: Int, wave: Int, bestStreak: Int, bonuses: Int) -> ArcadePayout {
+    func finishBubbleBlaster(score: Int, popped: Int, bestShot: Int, wave: Int, bestStreak: Int, bonuses: Int,
+                             mode: BubbleShooterGame.Mode) -> ArcadePayout {
         let payout = perform { game, _ in
             game.finishBubbleBlaster(score: score, popped: popped, bestShot: bestShot, wave: wave, bestStreak: bestStreak,
-                                     bonuses: bonuses)
+                                     bonuses: bonuses, mode: mode)
         }
         save()
         return payout

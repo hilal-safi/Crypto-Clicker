@@ -113,7 +113,10 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   - **Bubble Market:** fire token bubbles (each color a token, with its sign) to pop three of a kind
     before the market sinks to the crash line. Waves add tokens and grow deeper, a streak adds 10% a pop
     (up to double) and earns Stablecoins (they match anything) and Flash Crashes (they wipe out everything
-    nearby), and blue chips pay extra.
+    nearby), and blue chips pay extra. Its start screen offers Waves, Flash Market (two minutes, with a
+    row on the clock every few seconds and misses that only end the streak; its points pay 65% each, so it
+    pays about what Waves does a minute, and it keeps its own best) and Today's Market (the same bubbles
+    for everyone all day), and Settings for the shots' speed and a shorter aiming guide.
   - **Scam Invaders:** rows of meme coins, pump bots and rug pullers march down; drag to move the ship,
     which fires while your finger is down. Hits in a row add 10% each (up to double), four server racks
     shield you and crumble server by server, a whale crosses the top with bonus points and a power-up
@@ -122,9 +125,9 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
     marches faster. Waves from wave 1, Random Waves with a formation made up for every wave (diamonds,
     arrows, frames, skylines, even one giant invader, paying about the same), and the speed.
   - Hash Chain and Merge Mining are played with swipes anywhere on the screen.
-  - Block Chain, Hash Chain, Hash Smash, Scam Invaders and Pump and Dump set their speed on their start
-    screens (Slow, Normal or Fast): a point is worth the same at every speed, so Fast scores sooner and
-    Slow is relaxed. Every action game pauses, and a swipe in from the left edge leaves it.
+  - Block Chain, Hash Chain, Hash Smash, Bubble Market, Scam Invaders and Pump and Dump set their speed
+    on their start screens (Slow, Normal or Fast): a point is worth the same at every speed, so Fast
+    scores sooner and Slow is relaxed. Every action game pauses, and a swipe in from the left edge leaves it.
 - **Pump and Dump.** Tap the coins as they list on an exchange board, before they're delisted, round
   after round: each 30-second round has a score goal to reach and a bonus objective (a combo, golden
   coins, or no mistakes), and each is quicker than the last, with more scam tokens and rug pulls (coins
@@ -333,9 +336,11 @@ include the balance tests.
 
 Builds run from Xcode (the Debug configuration) include a Testing Tools screen, tucked away at the
 bottom of the Settings tab. It adds coins (up to 1 sextillion at a time), tokens, miners, upgrades,
-Offline Mining levels, every combo power-up and prestige points, unlocks every mini-game and steps, completes the day's quests or starts a new day (which also brings the dailies forward on the
-first day), starts a Bull Run, drops an airdrop or a whale, and pretends you were away for an hour or
-eight. The screen and its code are compiled out of Release builds, so they never reach the App Store.
+Offline Mining levels, every combo power-up and prestige points, unlocks every mini-game and steps,
+completes the day's quests or starts a new day (which also brings the dailies forward on the first
+day), starts a Bull Run, drops an airdrop or a whale, and pretends you were away for an hour or eight.
+Its Looks section unlocks every Style look at once: it raises the Arcade Rank to 30 (Legend) and earns
+every achievement star. The screen and its code are compiled out of Release builds, so they never reach the App Store.
 
 ## Token pictures
 

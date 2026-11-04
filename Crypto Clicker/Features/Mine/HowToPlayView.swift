@@ -162,6 +162,7 @@ private struct HowToChapter: Identifiable {
             "Token Swap has levels whose stars each pay once, a daily puzzle and random levels.",
             "\(MiniGame.brickBreaker.name) and Scam Invaders have their levels or waves, random ones, and speed.",
             "Pump and Dump plays on a 3×3, 4×4 or 5×5 board, at the speed you pick. Each board keeps its own best.",
+            "\(MiniGame.bubbleBlaster.name): Waves, a two-minute Flash Market and today's market, with the shots' speed and a shorter aiming guide to pick.",
             "Swipe in from the left edge to leave a game.",
         ]),
     ]) }

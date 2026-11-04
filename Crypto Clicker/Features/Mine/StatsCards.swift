@@ -229,6 +229,7 @@ extension GameStatsCard {
         case .bubbleBlaster:
             return GameStatsCard(game: miniGame, plays: counted(plays, "game"), headline: best,
                                  items: [StatItem("Best wave", CoinFormat.grouped(s.bubbleBestWave)),
+                                         StatItem("Flash Market", CoinFormat.grouped(s.bubbleFlashBestScore)),
                                          StatItem("Best shot", CoinFormat.grouped(s.bubbleBestShot)),
                                          StatItem("Best streak", CoinFormat.grouped(s.bubbleBestStreak)),
                                          StatItem("Popped", CoinFormat.grouped(s.bubblesPopped)),

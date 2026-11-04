@@ -144,6 +144,31 @@ struct MiniGameRewardTests {
         #expect(game.stats.earnedFromGames == 540 + 2_160 + 549)
     }
 
+    @Test func flashMarketKeepsItsOwnBestAndPaysItsShare() throws {
+        var game = earner()
+        let waves = game.finishBubbleBlaster(score: 2_000, popped: 90, bestShot: 9, wave: 3)
+        #expect(waves.isNewBest && game.stats.bubbleBestScore == 2_000)
+        // A Flash Market game below the Waves best is still a new best of its own.
+        let flash = game.finishBubbleBlaster(score: 1_000, popped: 70, bestShot: 12, wave: 2, mode: .flash)
+        #expect(flash.isNewBest)
+        #expect(flash.coins == game.arcadeReward(.bubbleBlaster, score: 650, multiplier: 1 + Tuning.newBestBonus)) // 65% of its points.
+        #expect(game.stats.bubbleFlashBestScore == 1_000 && game.stats.bubbleFlashes == 1)
+        #expect(game.stats.bubbleBestScore == 2_000 && game.stats.bubbleGames == 2)
+        #expect(game.stats.bubblesPopped == 160 && game.stats.bubbleBestShot == 12)
+        // A held run remembers its mode.
+        game.holdArcadeRun(ArcadeRun(game: .bubbleBlaster, score: 1_500, detail: 80, extra: 5, stage: 2,
+                                     records: .init(mode: 1)))
+        let held = game.payUnfinishedRun()
+        #expect(held?.payout.isNewBest == true && game.stats.bubbleFlashBestScore == 1_500 && game.stats.bubbleFlashes == 2)
+        #expect(game.stats.bubbleBestScore == 2_000)
+        // And it all survives a save.
+        let records = ArcadeRun.Records(bestStreak: 4, mode: 1)
+        let run = ArcadeRun(game: .bubbleBlaster, score: 10, detail: 3, extra: 3, records: records)
+        #expect(try JSONDecoder().decode(ArcadeRun.self, from: JSONEncoder().encode(run)) == run)
+        let reloaded = try GameCoding.decoder().decode(GameState.self, from: GameCoding.encoder().encode(game))
+        #expect(reloaded.stats == game.stats)
+    }
+
     @Test func aGameLeftOpenIsPaidOnceAfterTheAppCloses() throws {
         var game = earner() // 10 coins per second.
         game.holdArcadeRun(ArcadeRun(game: .snake, score: 120, detail: 15))

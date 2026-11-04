@@ -409,6 +409,125 @@ struct BubbleShooterTests {
         #expect((25...110).contains(found))
     }
 
+    // MARK: Flash Market and the Speed option
+
+    func flash(_ rows: [[Int]], current: Int = 1, next: Int = 1) -> (Game, SeededGenerator) {
+        var rng = SeededGenerator(seed: 5)
+        var game = Game(mode: .flash, using: &rng)
+        game.load(rows: rows, current: current, next: next)
+        return (game, rng)
+    }
+
+    func run(_ game: inout Game, for seconds: Double, _ rng: inout SeededGenerator) {
+        for _ in 0..<Int((seconds * 10).rounded()) { game.tick(by: 0.1, using: &rng) }
+    }
+
+    @Test func flashMarketStartsWithTwoMinutesOnTheClock() {
+        var rng = SeededGenerator(seed: 1)
+        let game = Game(mode: .flash, using: &rng)
+        #expect(game.mode == .flash)
+        #expect(game.timeLeft == Game.flashLength && Game.flashLength == 120)
+        #expect(game.rowClock == Game.flashRowEvery)
+        // The usual field.
+        #expect((0..<5).allSatisfy { row in game.color(row: row, column: 0) != nil })
+        // Waves games have no clock: ticking does nothing.
+        var waves = Game(using: &rng)
+        let before = waves.cells
+        waves.tick(by: 0.2, using: &rng)
+        #expect(waves.timeLeft == 0 && waves.rowClock == 0 && !waves.isOver && waves.cells == before)
+    }
+
+    @Test func flashMarketDropsARowOnTheClock() {
+        var (game, rng) = flash([[1, 2, 3, 4, 1, 2, 3, 4]])
+        run(&game, for: 8.8, &rng)
+        #expect((0..<8).map { game.color(row: 0, column: $0) } == [1, 2, 3, 4, 1, 2, 3, 4])
+        #expect(!game.topRowShifted)
+        run(&game, for: 0.3, &rng)
+        // The old top row moved down, and a new row arrived above it; the clock starts again.
+        #expect((0..<8).map { game.color(row: 1, column: $0) } == [1, 2, 3, 4, 1, 2, 3, 4])
+        #expect((0..<7).allSatisfy { game.color(row: 0, column: $0) != nil })
+        #expect(game.topRowShifted)
+        #expect(game.rowClock > Game.flashRowEvery - 0.5)
+        #expect(approx(game.timeLeft, Game.flashLength - 9.1))
+    }
+
+    @Test func laterFlashWavesDropRowsSooner() {
+        var (game, _) = flash([])
+        #expect(game.flashRowInterval == 9)
+        game.set(wave: 3)
+        #expect(game.flashRowInterval == 7)
+        game.set(wave: 40)
+        #expect(game.flashRowInterval == Game.fastestFlashRow)
+    }
+
+    @Test func flashMissesOnlyEndTheStreak() {
+        var (game, rng) = flash([[1, 2, 3, 4, 1, 2, 3, 4]], current: 2, next: 2)
+        game.misses = Game.missesPerRow - 1
+        game.set(streak: 4)
+        game.fire(angle: .pi / 2, using: &rng)
+        fly(&game, &rng)
+        #expect(game.streak == 0)
+        #expect(game.misses == Game.missesPerRow - 1)
+        #expect(!game.topRowShifted) // No new row.
+        #expect(game.color(row: 1, column: 3) == 2)
+    }
+
+    @Test func clearingAFlashFieldStartsTheRowClockAgain() {
+        var (game, rng) = flash([[1, 1]], current: 1, next: 1)
+        run(&game, for: 6, &rng)
+        game.fire(angle: angle(to: game.center(row: 0, column: 2)), using: &rng)
+        fly(&game, &rng)
+        #expect(game.wave == 2)
+        #expect(game.rowClock == game.flashRowInterval && game.flashRowInterval == 8)
+    }
+
+    @Test func flashMarketEndsWhenTheTimeRunsOut() {
+        var (game, rng) = flash([[1, 2, 3, 4, 1, 2, 3, 4]], current: 2, next: 2)
+        game.set(timeLeft: 0.5)
+        game.fire(angle: .pi / 2, using: &rng)
+        run(&game, for: 0.6, &rng)
+        #expect(game.isOver && game.isTimeUp)
+        #expect(game.timeLeft == 0)
+        #expect(game.shot == nil) // The bubble in flight is gone.
+        game.fire(angle: .pi / 2, using: &rng)
+        #expect(game.shot == nil)
+    }
+
+    @Test func aRowOnTheClockCanCrashTheMarket() {
+        let chain = (0...10).map { row in [row % 2 == 0 ? 1 : 2] }
+        var (game, rng) = flash(chain, current: 3, next: 3)
+        run(&game, for: Game.flashRowEvery + 0.1, &rng)
+        #expect(game.isOver && !game.isTimeUp)
+        #expect(game.color(row: Game.deadRow, column: 0) != nil)
+    }
+
+    @Test func aLongFrameOnlyMovesTheClockAQuarterSecond() {
+        var (game, rng) = flash([])
+        game.tick(by: 30, using: &rng)
+        #expect(approx(game.timeLeft, Game.flashLength - 0.25))
+        game.tick(by: .nan, using: &rng)
+        game.tick(by: -1, using: &rng)
+        #expect(approx(game.timeLeft, Game.flashLength - 0.25))
+    }
+
+    @Test func fasterShotsFlyTheSamePathSooner() throws {
+        func flight(_ speed: GameSpeed) -> (frames: Int, landed: [Int]) {
+            var rng = SeededGenerator(seed: 5)
+            var game = Game(speed: speed, using: &rng)
+            game.load(rows: [[1, 2, 3, 4, 1, 2, 3, 4]], current: 2, next: 2)
+            game.fire(angle: 1.2, using: &rng)
+            var frames = 0
+            while game.shot != nil && frames < 1_000 {
+                game.update(by: 1.0 / 60, using: &rng)
+                frames += 1
+            }
+            return (frames, game.cells)
+        }
+        let slow = flight(.slow), normal = flight(.normal), fast = flight(.fast)
+        #expect(slow.frames > normal.frames && normal.frames > fast.frames)
+        #expect(slow.landed == normal.landed && fast.landed == normal.landed)
+    }
+
     @Test func shotsAlwaysGoUp() {
         #expect(Game.clampAngle(0) > 0)
         #expect(Game.clampAngle(-1) > 0)
