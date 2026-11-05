@@ -318,7 +318,8 @@ private struct SettingsLinkLabel: View {
     }
 }
 
-/// One difficulty on one line: its name and what it changes, ticked when it's the one in use.
+/// One difficulty: its name and what it does to mining and prestige points, in the same label and
+/// value pairs as the Arcade's records, ticked when it's the one in use.
 private struct DifficultyRow: View {
     let difficulty: Difficulty
     let isSelected: Bool
@@ -334,9 +335,7 @@ private struct DifficultyRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(difficulty.name)
                     .font(.headline)
-                Text(effects)
-                    .font(.subheadline)
-                    .foregroundStyle(.subtext)
+                RecordLine(facts: effects, tint: color)
             }
             Spacer(minLength: 8)
             if isSelected {
@@ -351,12 +350,10 @@ private struct DifficultyRow: View {
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
-    /// "Mining +50% · prestige points ×0.5".
-    private var effects: String {
-        let production = difficulty.productionMultiplier, prestige = difficulty.prestigeMultiplier
-        guard production != 1 || prestige != 1 else { return "Standard mining and prestige points" }
-        let mining = production > 1 ? "Mining +\(CoinFormat.percent(production - 1))" : "Mining −\(CoinFormat.percent(1 - production))"
-        return "\(mining) · prestige points \(CoinFormat.multiplier(prestige))"
+    /// MINING ×1.5 · PRESTIGE ×0.5, the same way for every difficulty.
+    private var effects: [RecordFact] {
+        [RecordFact(String(localized: "Mining"), CoinFormat.multiplier(difficulty.productionMultiplier)),
+         RecordFact(String(localized: "Prestige"), CoinFormat.multiplier(difficulty.prestigeMultiplier))]
     }
 
     private var symbol: String {
