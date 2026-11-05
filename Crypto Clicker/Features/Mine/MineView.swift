@@ -27,16 +27,17 @@ struct MineView: View {
 
     var body: some View {
         NavigationStack {
-            // The coin takes the room the other items leave, from 200 points up to 320 (and larger
-            // still on a new game, with nothing under it yet). When even 200 doesn't fit (a small
-            // iPhone with very large text), the page scrolls instead. The balance sits 1% of the
-            // screen's height below the top.
+            // In the opening the coin is large and holds still: it gets a fixed share of the screen,
+            // and tips and the first miners come and go in the room under it. Once power-ups,
+            // tokens or steps arrive, the coin takes the room the cards leave, from 200 points up
+            // to 320. When even 200 doesn't fit (a small iPhone with very large text), the page
+            // scrolls instead. The balance sits 1% of the screen's height below the top.
             GeometryReader { proxy in
                 let topPadding = (proxy.size.height * 0.01).rounded()
                 ViewThatFits(in: .vertical) {
-                    content(topPadding: topPadding)
+                    content(topPadding: topPadding, height: proxy.size.height)
                     ScrollView {
-                        content(topPadding: topPadding)
+                        content(topPadding: topPadding, height: proxy.size.height)
                     }
                     .scrollBounceBehavior(.basedOnSize)
                 }
@@ -57,13 +58,16 @@ struct MineView: View {
         }
     }
 
-    private func content(topPadding: CGFloat) -> some View {
+    /// The share of the screen's height the coin's area keeps in the opening.
+    private static let openingCoinShare: CGFloat = 0.48
+
+    private func content(topPadding: CGFloat, height: CGFloat) -> some View {
         let game = store.game
         let now = Date.now
-        // A new game has no cards under the coin yet, so the coin grows into the room and sits in
-        // the middle of it.
-        let hasCards = InventoryStrip.hasContent(game)
-            || StepsCard.isShown(game, canTrackSteps: store.canTrackSteps, inviteDismissed: stepsInviteDismissed)
+        // The opening lasts until power-ups, tokens or steps show up under the coin; tips and the
+        // first miners don't move it.
+        let isOpening = !InventoryStrip.hasPowerUpsOrTokens(game)
+            && !StepsCard.isShown(game, canTrackSteps: store.canTrackSteps, inviteDismissed: stepsInviteDismissed)
         return VStack(spacing: 10) {
             // The rates under the balance, and the coin, get less room around them than the other
             // items have (10% less, then 10% less again).
@@ -73,7 +77,7 @@ struct MineView: View {
                     withAnimation(.snappy) { exactNumbers.toggle() }
                 }
                 GeometryReader { proxy in
-                    let cap = hasCards ? CoinButton.maximumSize : CoinButton.freshMaximumSize
+                    let cap = isOpening ? CoinButton.freshMaximumSize : CoinButton.maximumSize
                     // Looks locked again (after a reset) fall back to the plain coin.
                     let stars = game.earnedAchievementTiers
                     CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers,
@@ -86,8 +90,10 @@ struct MineView: View {
                     }
                     .frame(width: proxy.size.width, height: proxy.size.height)
                 }
-                .frame(minHeight: CoinButton.minimumSize, idealHeight: CoinButton.minimumSize, maxHeight: .infinity)
-                .animation(.smooth, value: hasCards)
+                .frame(height: isOpening ? max(CoinButton.minimumSize, (height * Self.openingCoinShare).rounded()) : nil)
+                .frame(minHeight: CoinButton.minimumSize, idealHeight: CoinButton.minimumSize,
+                       maxHeight: isOpening ? nil : .infinity)
+                .animation(.smooth, value: isOpening)
                 .overlay(alignment: .bottom) {
                     // Shown from the combo's first +0.1, so a few casual taps don't flicker it.
                     if store.comboMultiplier > 1 {
@@ -97,6 +103,10 @@ struct MineView: View {
                 }
                 .animation(.snappy, value: store.comboMultiplier > 1)
             }
+            if isOpening {
+                // Cards gather at the bottom, so the coin above stays where it is as they change.
+                Spacer(minLength: 0)
+            }
             GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openDaily: openDaily, openHowToPlay: openHowToPlay)
             InventoryStrip(game: game, market: store.market, openShop: openShop, openTokens: openTokens)
             StepsCard(learnMore: { showingStepsIntro = true })
@@ -105,7 +115,7 @@ struct MineView: View {
         .padding(.top, topPadding)
         .padding(.bottom, 12)
         .frame(maxWidth: 560)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(.smooth, value: game.areStepsUnlocked)
         .animation(.smooth, value: game.steps.isConnected)
     }

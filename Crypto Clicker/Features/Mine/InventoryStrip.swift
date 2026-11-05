@@ -19,6 +19,11 @@ struct InventoryStrip: View {
         game.totalMiners > 0 || hasPowerUps(game) || TokenID.allCases.contains { game.tokenCount($0) > 0 }
     }
 
+    /// Power-ups or tokens: past the opening, when the home screen settles into its usual layout.
+    static func hasPowerUpsOrTokens(_ game: GameState) -> Bool {
+        hasPowerUps(game) || TokenID.allCases.contains { game.tokenCount($0) > 0 }
+    }
+
     private static func hasPowerUps(_ game: GameState) -> Bool {
         game.offlineMiningLevel > 0 || !game.perks.isEmpty || !game.upgrades.isEmpty
             || PowerUpID.allCases.contains { game.powerUpLevel($0) > 0 }
