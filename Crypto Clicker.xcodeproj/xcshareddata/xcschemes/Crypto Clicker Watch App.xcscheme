@@ -43,8 +43,6 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
-      <Testables>
-      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -62,7 +60,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9EEE79952D29A75500FBC049"
             BuildableName = "Crypto Clicker Watch App.app"
-            BlueprintName = "Crypto Clicker Watch App"
             ReferencedContainer = "container:Crypto Clicker.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -79,7 +76,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9EEE79952D29A75500FBC049"
             BuildableName = "Crypto Clicker Watch App.app"
-            BlueprintName = "Crypto Clicker Watch App"
             ReferencedContainer = "container:Crypto Clicker.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
