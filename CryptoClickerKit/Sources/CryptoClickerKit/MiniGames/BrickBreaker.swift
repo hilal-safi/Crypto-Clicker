@@ -189,9 +189,12 @@ public struct BrickBreakerGame: Sendable {
     /// Shapes the walls and picks the power-ups.
     private var rng: SeededGenerator
 
-    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal, levels: LevelStyle = .classic) {
+    /// `startLevel` starts the game further in, at a level the player has reached before.
+    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal, levels: LevelStyle = .classic,
+                startLevel: Int = 1) {
         gameSpeed = speed
         levelStyle = levels
+        level = max(1, startLevel)
         rng = SeededGenerator(seed: seed)
         layOutLevel()
         serve()

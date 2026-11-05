@@ -3,15 +3,22 @@ import CryptoClickerKit
 
 /// The screens inside Hash Smash, opened from its start screen.
 enum BrickBreakerRoute: Hashable {
-    /// A game from level 1 with these walls.
-    case play(BrickBreakerGame.LevelStyle)
+    /// A game with these walls, from `startLevel` (a level reached before).
+    case play(BrickBreakerGame.LevelStyle, startLevel: Int = 1)
 }
 
 /// Where Brick Breaker opens, like Token Swap: the classic levels, random walls and the speed
-/// setting, each on a card. Either kind of game starts at level 1.
+/// setting, each on a card. Levels start at any level reached so far, picked on its track;
+/// random walls start at level 1.
 struct BrickBreakerView: View {
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.brickBreakerSpeedKey) private var speed = GameSpeed.normal
+    @AppStorage(Preferences.brickBreakerStartKey) private var pickedStart = 1
+
+    /// The picked level, kept within those reached.
+    private var startLevel: Int {
+        min(max(pickedStart, 1), store.game.brickBreakerStartLevels.upperBound)
+    }
     @State private var showingHelp = false
 
     var body: some View {
@@ -25,14 +32,16 @@ struct BrickBreakerView: View {
                             ? "Start at level 1"
                             : "Best: level \(CoinFormat.grouped(stats.brickBreakerBestLevel)) · \(CoinFormat.grouped(bosses)) "
                                 + "whale\(bosses == 1 ? "" : "s")" + " beaten",
-                         detail: "The classic walls from level 1 up: cold storage, liquidation and airdrop blocks, and the whale every fifth level.",
+                         detail: "The classic walls: cold storage, liquidation and airdrop blocks, and the whale every fifth level. Start at level 1 or any level you've reached.",
                          note: nil) {
                     VStack(spacing: 12) {
                         LevelTrack(best: stats.brickBreakerBestLevel, bossEvery: BrickBreakerGame.bossEvery, tint: tint,
                                    bossSymbol: "fish.fill", noun: "level",
-                                   bossNote: "The whale every fifth level.")
-                        NavigationLink(value: BrickBreakerRoute.play(.classic)) {
-                            Label("Play Level 1", systemImage: "play.fill")
+                                   bossNote: "The whale every fifth level.",
+                                   selection: Binding(get: { startLevel }, set: { pickedStart = $0 }))
+                        StartPay.label(start: startLevel, noun: "level", slope: Tuning.brickBreakerStartPaySlope)
+                        NavigationLink(value: BrickBreakerRoute.play(.classic, startLevel: startLevel)) {
+                            Label("Play Level \(startLevel)", systemImage: "play.fill")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.glassProminent)
@@ -77,11 +86,13 @@ struct BrickBreakerView: View {
 struct BrickBreakerPlayView: View {
     /// Classic walls or random ones.
     let levels: BrickBreakerGame.LevelStyle
+    /// The level every game here starts at.
+    let startLevel: Int
     @Environment(GameStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @AppStorage(Preferences.brickBreakerSpeedKey) private var speed = GameSpeed.normal
-    @State private var game = BrickBreakerGame()
+    @State private var game: BrickBreakerGame
     @State private var isPlaying = false
     @State private var isPaused = false
     @State private var showingHelp = false
@@ -94,6 +105,12 @@ struct BrickBreakerPlayView: View {
     @State private var effects = Effects()
 
     private var isRunning: Bool { isPlaying && !isPaused }
+
+    init(levels: BrickBreakerGame.LevelStyle, startLevel: Int = 1) {
+        self.levels = levels
+        self.startLevel = startLevel
+        _game = State(initialValue: BrickBreakerGame(levels: levels, startLevel: startLevel))
+    }
 
     var body: some View {
         withLifecycle(withFeedback(layout))
@@ -176,7 +193,8 @@ struct BrickBreakerPlayView: View {
 
     private var heldRun: ArcadeRun {
         ArcadeRun(game: .brickBreaker, score: game.score, detail: game.bricksBroken, extra: game.level,
-                  records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated, bestStreak: game.bestLevelStreak))
+                  records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated, bestStreak: game.bestLevelStreak,
+                                 start: startLevel))
     }
 
     private var field: some View {
@@ -239,9 +257,10 @@ struct BrickBreakerPlayView: View {
                                     challenge: result.challenge)
                 }
             } else {
-                GamePanel(title: "Level 1", buttonTitle: "Start", action: start) {
+                GamePanel(title: "Level \(startLevel)", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.brickBreakerBestScore,
-                              detail: "\(levels == .generated ? "Random walls" : "Classic walls") · \(speed.name) speed")
+                              detail: "\(levels == .generated ? "Random walls" : "Classic walls") · \(speed.name) speed"
+                                + StartPay.note(start: startLevel, noun: "level", slope: Tuning.brickBreakerStartPaySlope, separator: " · "))
                 }
             }
         }
@@ -261,7 +280,7 @@ struct BrickBreakerPlayView: View {
     }
 
     private func start() {
-        game = BrickBreakerGame(speed: speed, levels: levels)
+        game = BrickBreakerGame(speed: speed, levels: levels, startLevel: startLevel)
         result = nil
         isPaused = false
         lastFrame = nil
@@ -274,7 +293,7 @@ struct BrickBreakerPlayView: View {
         isPaused = false
         let payout = store.finishBrickBreaker(score: game.score, bricks: game.bricksBroken, level: game.level,
                                               bosses: game.bossesDefeated, powerUps: game.powerUpsCaught,
-                                              bestStreak: game.bestLevelStreak)
+                                              bestStreak: game.bestLevelStreak, startLevel: startLevel)
         result = GameResult(score: game.score, payout: payout, detail: game.bricksBroken)
     }
 }

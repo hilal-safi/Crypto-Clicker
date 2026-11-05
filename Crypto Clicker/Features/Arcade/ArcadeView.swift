@@ -154,12 +154,12 @@ private struct ArcadeDestinations: ViewModifier {
             }
             .navigationDestination(for: BrickBreakerRoute.self) { route in
                 switch route {
-                case .play(let levels): BrickBreakerPlayView(levels: levels)
+                case .play(let levels, let start): BrickBreakerPlayView(levels: levels, startLevel: start)
                 }
             }
             .navigationDestination(for: InvadersRoute.self) { route in
                 switch route {
-                case .play(let waves): InvadersPlayView(waves: waves)
+                case .play(let waves, let start): InvadersPlayView(waves: waves, startWave: start)
                 }
             }
             .navigationDestination(for: BubbleRoute.self) { route in
@@ -266,7 +266,7 @@ struct MiniGameRow: View {
 
 /// A game's record as label and value pairs, the labels in small capitals in the game's color:
 /// BEST 12,345  WAVE 5. On one line when it fits, one pair a line when it doesn't.
-private struct RecordLine: View {
+struct RecordLine: View {
     let facts: [RecordFact]
     let tint: Color
 

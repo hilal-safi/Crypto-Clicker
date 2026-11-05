@@ -322,7 +322,8 @@ extension GameState {
                                  time: records.seconds, powerUps: records.powerUps,
                                  mode: run.stage == ArcadeRun.coinRushStage ? .coinRush : .classic)
         case .brickBreaker: finishBrickBreaker(score: run.score, bricks: run.detail, level: run.extra, bosses: records.bosses,
-                                               powerUps: records.powerUps, bestStreak: records.bestStreak)
+                                               powerUps: records.powerUps, bestStreak: records.bestStreak,
+                                               startLevel: records.start)
         case .bubbleBlaster: finishBubbleBlaster(score: run.score, popped: run.detail, bestShot: run.extra, wave: run.stage,
                                                  bestStreak: records.bestStreak, bonuses: records.bonuses,
                                                  mode: records.mode == 1 ? .flash : .waves)
@@ -336,7 +337,7 @@ extension GameState {
         case .tokenSwap: finishTokenSwap(score: run.score, tokens: run.detail, bestChain: run.extra, blasts: records.specials)
         case .invaders: finishInvaders(score: run.score, destroyed: run.detail, wave: max(1, run.extra), whales: records.bonuses,
                                        bosses: records.bosses, powerUps: records.powerUps, bestStreak: records.bestStreak,
-                                       volleys: records.volleys, volleysHit: records.volleysHit)
+                                       volleys: records.volleys, volleysHit: records.volleysHit, startWave: records.start)
         case .blackjack, .slots, .moon, .videoPoker: ArcadePayout(coins: 0, isNewBest: false)
         }
         unfinishedRun = nil
@@ -398,28 +399,34 @@ extension GameState {
         return payArcade(.snake, score: score, paidPoints: paid, isNewBest: isNewBest, challengeValue: eaten)
     }
 
-    /// `level` is the level the game reached (so `level - 1` were cleared).
+    /// `level` is the level the game reached and `startLevel` the one it started at (so
+    /// `level - startLevel` were cleared). A game started further in pays a smaller share of its
+    /// points (`Tuning.startPayShare`).
     @discardableResult
     public mutating func finishBrickBreaker(score: Int, bricks: Int, level: Int, bosses: Int = 0, powerUps: Int = 0,
-                                            bestStreak: Int = 0) -> ArcadePayout {
+                                            bestStreak: Int = 0, startLevel: Int = 1) -> ArcadePayout {
+        let start = max(1, min(startLevel, level))
         let isNewBest = score > stats.brickBreakerBestScore
         stats.brickBreakerGames += 1
         stats.brickBreakerBestScore = max(stats.brickBreakerBestScore, score)
         stats.bricksBroken = stats.bricksBroken.addingCount(bricks)
         stats.brickBreakerBestLevel = max(stats.brickBreakerBestLevel, level)
-        stats.brickBreakerLevelsCleared = stats.brickBreakerLevelsCleared.addingCount(level - 1)
+        stats.brickBreakerLevelsCleared = stats.brickBreakerLevelsCleared.addingCount(max(0, level - start))
         stats.brickBreakerBosses = stats.brickBreakerBosses.addingCount(bosses)
         stats.brickBreakerPowerUps = stats.brickBreakerPowerUps.addingCount(powerUps)
         stats.brickBreakerBestStreak = max(stats.brickBreakerBestStreak, bestStreak)
-        return payArcade(.brickBreaker, score: score, isNewBest: isNewBest, challengeValue: bricks)
+        let share = Tuning.startPayShare(level: start, slope: Tuning.brickBreakerStartPaySlope)
+        return payArcade(.brickBreaker, score: score, paidPoints: Int((Double(max(0, score)) * share).rounded()),
+                         isNewBest: isNewBest, challengeValue: bricks)
     }
 
-    /// `destroyed` is the invaders shot down and `wave` the wave the game reached; `volleys` and
+    /// `destroyed` is the invaders shot down, `wave` the wave the game reached and `startWave` the
+    /// one it started at (a later start pays a smaller share of its points); `volleys` and
     /// `volleysHit` count for accuracy.
     @discardableResult
     public mutating func finishInvaders(score: Int, destroyed: Int, wave: Int, whales: Int = 0, bosses: Int = 0,
                                         powerUps: Int = 0, bestStreak: Int = 0, volleys: Int = 0,
-                                        volleysHit: Int = 0) -> ArcadePayout {
+                                        volleysHit: Int = 0, startWave: Int = 1) -> ArcadePayout {
         let isNewBest = score > stats.invadersBestScore
         stats.invadersGames += 1
         stats.invadersBestScore = max(stats.invadersBestScore, score)
@@ -431,7 +438,9 @@ extension GameState {
         stats.invadersBestStreak = max(stats.invadersBestStreak, bestStreak)
         stats.invadersVolleys = stats.invadersVolleys.addingCount(volleys)
         stats.invadersVolleysHit = stats.invadersVolleysHit.addingCount(min(max(0, volleysHit), max(0, volleys)))
-        return payArcade(.invaders, score: score, isNewBest: isNewBest, challengeValue: destroyed)
+        let share = Tuning.startPayShare(level: max(1, min(startWave, wave)), slope: Tuning.invadersStartPaySlope)
+        return payArcade(.invaders, score: score, paidPoints: Int((Double(max(0, score)) * share).rounded()),
+                         isNewBest: isNewBest, challengeValue: destroyed)
     }
 
     /// `bestShot` is the most bubbles one shot cleared, `wave` the wave the game reached, `bestStreak`

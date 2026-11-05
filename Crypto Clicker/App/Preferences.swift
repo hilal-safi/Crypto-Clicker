@@ -32,6 +32,10 @@ enum Preferences {
     static let snakeArenaKey = "snakeArena"
     static let tetrisSpeedKey = "speed.tetris"
     static let invadersSpeedKey = "speed.invaders"
+    /// The level Hash Smash's Levels and the wave Scam Invaders' Waves start at, picked on their
+    /// start screens from those reached.
+    static let brickBreakerStartKey = "start.brickBreaker"
+    static let invadersStartKey = "start.invaders"
     static let pumpDumpSpeedKey = "speed.pumpDump"
     /// How fast Bubble Market's shots fly (a `GameSpeed` raw value), and how much of the path its
     /// aiming guide shows (a `BubbleAimGuide` raw value).

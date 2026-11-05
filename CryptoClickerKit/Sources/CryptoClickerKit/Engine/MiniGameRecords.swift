@@ -97,3 +97,13 @@ extension GameState {
         MiniGame.allCases.filter { !$0.isCasino }.reduce(0) { $0 + timesPlayed($1) }
     }
 }
+
+// MARK: Levels to start from
+
+extension GameState {
+    /// The Hash Smash levels a game can start at: level 1 up to the furthest level reached.
+    public var brickBreakerStartLevels: ClosedRange<Int> { 1...max(1, stats.brickBreakerBestLevel) }
+
+    /// The Scam Invaders waves a game can start at: wave 1 up to the furthest wave reached.
+    public var invadersStartWaves: ClosedRange<Int> { 1...max(1, stats.invadersBestWave) }
+}

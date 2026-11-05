@@ -3,15 +3,22 @@ import CryptoClickerKit
 
 /// The screens inside Scam Invaders, opened from its start screen.
 enum InvadersRoute: Hashable {
-    /// A game from wave 1 with these formations.
-    case play(InvadersGame.WaveStyle)
+    /// A game with these formations, from `startWave` (a wave reached before).
+    case play(InvadersGame.WaveStyle, startWave: Int = 1)
 }
 
 /// Where Scam Invaders opens, like Brick Breaker: the classic waves, random formations and the
-/// speed setting, each on a card. Either kind of game starts at wave 1.
+/// speed setting, each on a card. Waves start at any wave reached so far, picked on its track;
+/// random formations start at wave 1.
 struct InvadersView: View {
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.invadersSpeedKey) private var speed = GameSpeed.normal
+    @AppStorage(Preferences.invadersStartKey) private var pickedStart = 1
+
+    /// The picked wave, kept within those reached.
+    private var startWave: Int {
+        min(max(pickedStart, 1), store.game.invadersStartWaves.upperBound)
+    }
     @State private var showingHelp = false
 
     var body: some View {
@@ -23,13 +30,15 @@ struct InvadersView: View {
                          status: stats.invadersGames == 0
                             ? "Start at wave 1"
                             : "Best: wave \(CoinFormat.grouped(stats.invadersBestWave)) · \(CoinFormat.grouped(stats.invadersBosses)) Bear\(stats.invadersBosses == 1 ? "" : "s") beaten",
-                         detail: "The classic formation from wave 1 up: rug pullers on top, then pump bots and meme coins, marching a little faster and lower every wave. The Bear comes every fifth wave.",
+                         detail: "The classic formation: rug pullers on top, then pump bots and meme coins, marching a little faster and lower every wave. The Bear comes every fifth wave. Start at wave 1 or any wave you've reached.",
                          note: nil) {
                     VStack(spacing: 12) {
                         LevelTrack(best: stats.invadersBestWave, bossEvery: InvadersGame.bossEvery, tint: tint,
-                                   bossSymbol: "pawprint.fill", noun: "wave", bossNote: "The Bear every fifth wave.")
-                        NavigationLink(value: InvadersRoute.play(.classic)) {
-                            Label("Play Wave 1", systemImage: "play.fill")
+                                   bossSymbol: "pawprint.fill", noun: "wave", bossNote: "The Bear every fifth wave.",
+                                   selection: Binding(get: { startWave }, set: { pickedStart = $0 }))
+                        StartPay.label(start: startWave, noun: "wave", slope: Tuning.invadersStartPaySlope)
+                        NavigationLink(value: InvadersRoute.play(.classic, startWave: startWave)) {
+                            Label("Play Wave \(startWave)", systemImage: "play.fill")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.glassProminent)
@@ -75,6 +84,8 @@ struct InvadersView: View {
 struct InvadersPlayView: View {
     /// Classic formations or random ones.
     let waves: InvadersGame.WaveStyle
+    /// The wave every game here starts at.
+    let startWave: Int
     @Environment(GameStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
@@ -101,11 +112,12 @@ struct InvadersPlayView: View {
 
     private var isRunning: Bool { isPlaying && !isPaused }
 
-    init(waves: InvadersGame.WaveStyle) {
+    init(waves: InvadersGame.WaveStyle, startWave: Int = 1) {
         self.waves = waves
+        self.startWave = startWave
         let seed = UInt64.random(in: 0...UInt64.max)
         _seed = State(initialValue: seed)
-        _game = State(initialValue: InvadersGame(seed: seed, waves: waves))
+        _game = State(initialValue: InvadersGame(seed: seed, waves: waves, startWave: startWave))
     }
 
     var body: some View {
@@ -191,7 +203,7 @@ struct InvadersPlayView: View {
     private var heldRun: ArcadeRun {
         ArcadeRun(game: .invaders, score: game.score, detail: game.invadersDestroyed, extra: game.wave,
                   records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated, bestStreak: game.bestStreak,
-                                 bonuses: game.whalesHit, volleys: game.volleysFired, volleysHit: game.volleysHit))
+                                 bonuses: game.whalesHit, volleys: game.volleysFired, volleysHit: game.volleysHit, start: startWave))
     }
 
     private var field: some View {
@@ -314,9 +326,10 @@ struct InvadersPlayView: View {
                                     details: summaryDetails, challenge: result.challenge)
                 }
             } else {
-                GamePanel(title: "Wave 1", buttonTitle: "Start", action: start) {
+                GamePanel(title: "Wave \(startWave)", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.invadersBestScore,
-                              detail: "\(waves == .generated ? "Random formations" : "Classic formation") · \(speed.name) speed")
+                              detail: "\(waves == .generated ? "Random formations" : "Classic formation") · \(speed.name) speed"
+                                + StartPay.note(start: startWave, noun: "wave", slope: Tuning.invadersStartPaySlope, separator: " · "))
                 }
             }
         }
@@ -387,7 +400,7 @@ struct InvadersPlayView: View {
     }
 
     private func start() {
-        game = InvadersGame(seed: seed, speed: speed, waves: waves)
+        game = InvadersGame(seed: seed, speed: speed, waves: waves, startWave: startWave)
         seed = .random(in: 0...UInt64.max)
         result = nil
         isPaused = false
@@ -405,7 +418,8 @@ struct InvadersPlayView: View {
         game.isFiring = false
         let payout = store.finishInvaders(score: game.score, destroyed: game.invadersDestroyed, wave: game.wave,
                                           whales: game.whalesHit, bosses: game.bossesDefeated, powerUps: game.powerUpsCaught,
-                                          bestStreak: game.bestStreak, volleys: game.volleysFired, volleysHit: game.volleysHit)
+                                          bestStreak: game.bestStreak, volleys: game.volleysFired, volleysHit: game.volleysHit,
+                                          startWave: startWave)
         result = GameResult(score: game.score, payout: payout, detail: game.invadersDestroyed)
     }
 }

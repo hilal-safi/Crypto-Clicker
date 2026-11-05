@@ -27,9 +27,9 @@ No real cryptocurrency, no ads, no purchases.
   | Block Chain | Falling blocks with gas spikes; Endless, Block Rush and Today's Pieces |
   | Merge Mining | Slide miners together up to the Lunar Base; Classic and a Daily Puzzle |
   | Hash Chain | A growing chain in four arenas, or a one-minute Coin Rush |
-  | Hash Smash | Brick breaking with power-ups and a whale boss every fifth level |
+  | Hash Smash | Brick breaking with power-ups and a whale boss every fifth level; start at any level reached |
   | Bubble Market | Bubble shooting in Waves, a two-minute Flash Market, or Today's Market |
-  | Scam Invaders | Shoot down formations of scam coins and the Bear boss |
+  | Scam Invaders | Shoot down formations of scam coins and the Bear boss; start at any wave reached |
   | Pump and Dump | Tap coins as they list, on a 3×3, 4×4 or 5×5 board |
   | Token Swap | Match-three with 18 levels, a daily puzzle, random levels and Classic |
 
