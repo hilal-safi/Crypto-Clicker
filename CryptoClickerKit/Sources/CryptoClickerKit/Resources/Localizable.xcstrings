@@ -1,7 +1,2601 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    ", then the Asteroid Harvester and the Galactic Hashnet." : {
 
+    },
+    "%@ and %@ add walls to steer around. Hitting one ends the game." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ and %2$@ add walls to steer around. Hitting one ends the game."
+          }
+        }
+      }
+    },
+    "%@ coins in the Arcade" : {
+
+    },
+    "%@ coins in the Shop" : {
+
+    },
+    "%@ coins mined" : {
+
+    },
+    "%@ Fleet" : {
+
+    },
+    "%@ Mk %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ Mk %2$@"
+          }
+        }
+      }
+    },
+    "%@ more doubles what they mine" : {
+
+    },
+    "%@ network stalls for an hour" : {
+
+    },
+    "%@ network upgrade goes live" : {
+
+    },
+    "%@ ready now; the Shop suggests prestiging at %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ ready now; the Shop suggests prestiging at %2$@"
+          }
+        }
+      }
+    },
+    "%@ Ride" : {
+
+    },
+    "%@ slips during an exchange outage" : {
+
+    },
+    "%@ soars after a celebrity post" : {
+
+    },
+    "%@ Table" : {
+
+    },
+    "%@ trends worldwide" : {
+
+    },
+    "%@ XP to go · playing games earns XP" : {
+
+    },
+    "%@: %@ of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@ of %3$@"
+          }
+        }
+      }
+    },
+    "%@: its first star pays coins" : {
+
+    },
+    "%lld a game, one slide back at a time. Not once the game is over." : {
+
+    },
+    "%lld minutes to score all you can. A new row drops every %lld seconds whatever you shoot, a second sooner each wave down to every %lld, and a miss only ends the streak. It scores faster, so its points pay %lld%% each, and it keeps its own best." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld minutes to score all you can. A new row drops every %2$lld seconds whatever you shoot, a second sooner each wave down to every %3$lld, and a miss only ends the streak. It scores faster, so its points pay %4$lld%% each, and it keeps its own best."
+          }
+        }
+      }
+    },
+    "%lld points each, in the bottom two rows of the classic formation." : {
+
+    },
+    "%lld points each, in the middle rows of the classic formation." : {
+
+    },
+    "%lld points each, in the top row of the classic formation." : {
+
+    },
+    "%lld seconds faster, like a payment on the Lightning Network, and every coin counts double." : {
+
+    },
+    "%lld seconds slower, for tight spots. It replaces Lightning, and the other way round." : {
+
+    },
+    "+%@ automatic taps per second, worth %@ of a tap" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%1$@ automatic taps per second, worth %2$@ of a tap"
+          }
+        }
+      }
+    },
+    "+1 automatic tap per second, worth %@ of a tap" : {
+
+    },
+    "21 Million" : {
+
+    },
+    "A 2×2 square makes a Propeller. It clears the tokens beside it, then flies off to one you need." : {
+
+    },
+    "A bolt cracks across the coin" : {
+
+    },
+    "A bright neon tube" : {
+
+    },
+    "A Cardano, a Solana and an Ethereum on the line, in any order, win %lld free spins at the same bet. They can win more, and they wait for you if you leave." : {
+
+    },
+    "A chained token can't be swapped and doesn't fall, but it can match. Matching it, or a blast, breaks the chain." : {
+
+    },
+    "A coin scores %lld. Hits in a row build a combo worth up to ×%lld." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A coin scores %1$lld. Hits in a row build a combo worth up to ×%2$lld."
+          }
+        }
+      }
+    },
+    "A coin with a red rim. It shakes, then turns into a scam: tap it early or leave it." : {
+
+    },
+    "A flight ends when you cash out or the market crashes. Leaving the screen cashes out." : {
+
+    },
+    "A frozen token can't move or match. A match beside it, or a blast, cracks the ice; thick ice takes two hits." : {
+
+    },
+    "A glow that beats like a heart" : {
+
+    },
+    "A hand ends after the draw. A dealt hand waits if you leave; if the app closes, it's finished the way Hint would play it." : {
+
+    },
+    "A low pair is worth more than unpaired high cards." : {
+
+    },
+    "A major exchange lists %@" : {
+
+    },
+    "A match right beside a frozen token cracks its ice, and so does a blast." : {
+
+    },
+    "A mining network across the galaxy." : {
+
+    },
+    "A natural 21 (an ace and a ten-value card as your first two) pays 3 to 2, and its coin bonus is half as much again." : {
+
+    },
+    "A new wall made up for every level: blobs, waves, rings, skylines and more, never the same twice." : {
+
+    },
+    "A paddle half as wide again for %lld seconds." : {
+
+    },
+    "A pair of jacks, queens, kings or aces is the smallest win, and gives your bet back." : {
+
+    },
+    "A plain wall first, then eight familiar shapes." : {
+
+    },
+    "A prestige worth %@ points" : {
+
+    },
+    "A ring of flickering flame" : {
+
+    },
+    "A ring rolls out from the coin" : {
+
+    },
+    "A round ends when every hand stands or busts and the dealer has played." : {
+
+    },
+    "A row with gas in it pays a fee of %lld on top, times the level." : {
+
+    },
+    "A run ends when a round finishes short of its goal." : {
+
+    },
+    "A soft glow in the finish's color" : {
+
+    },
+    "A swap that makes no match springs back, unless it moves a special: swapping a special with any neighbor sets it off." : {
+
+    },
+    "A trusty laptop for light-duty mining." : {
+
+    },
+    "A warehouse of humming servers." : {
+
+    },
+    "A whale swimming along the top, with a health bar. It dumps as it goes: a dump that lands on your paddle shrinks it for a few seconds." : {
+
+    },
+    "A win pays your bet back twice; a tie (push) returns it." : {
+
+    },
+    "Ace" : {
+
+    },
+    "Aces" : {
+
+    },
+    "After every slide a Chromebook (2) appears in an empty cell, or now and then a Desktop (4)." : {
+
+    },
+    "AI Miner" : {
+
+    },
+    "Aim for liquidation blocks in the thick of a wall." : {
+
+    },
+    "Airdrop blocks" : {
+
+    },
+    "Airdrop Hunter" : {
+
+    },
+    "Airdrop Magnet" : {
+
+    },
+    "Airdrop Radar" : {
+
+    },
+    "Airdrops come every 2–4 minutes and stay for 30 seconds" : {
+
+    },
+    "All miners produce %@" : {
+
+    },
+    "All-Rounder" : {
+
+    },
+    "Always split aces and eights." : {
+
+    },
+    "Amethyst" : {
+
+    },
+    "An industrial mining operation." : {
+
+    },
+    "Arcade Champion" : {
+
+    },
+    "Arcade Day" : {
+
+    },
+    "Arcade Rank %lld" : {
+
+    },
+    "Arcade Star" : {
+
+    },
+    "Arenas" : {
+
+    },
+    "ASIC Chips" : {
+
+    },
+    "Asteroid Harvester" : {
+
+    },
+    "At %@ coins mined in all" : {
+
+    },
+    "Auto Clicker Pro" : {
+
+    },
+    "Automated Clicker" : {
+
+    },
+    "Automatic cash-out" : {
+
+    },
+    "Automatic taps are worth 50% of a tap" : {
+
+    },
+    "Avoid the direction that pulls the best miner out of its corner." : {
+
+    },
+    "Beat the whale in Hash Smash" : {
+
+    },
+    "Best" : {
+
+    },
+    "Best hand" : {
+
+    },
+    "Best streak" : {
+
+    },
+    "Bet in a token you can spare." : {
+
+    },
+    "Bet tokens you bought in the Shop's Tokens page. Winnings come back as tokens, and wins also pay a coin bonus that grows with the coin value of your bet." : {
+
+    },
+    "Big matches and specials clear the most tokens of the color you need." : {
+
+    },
+    "Big Score" : {
+
+    },
+    "Bigger boards list coins faster and more at once, with bigger goals. Their points pay a little less each, so every board pays about the same, and each keeps its own best." : {
+
+    },
+    "Biggest combo ×%@" : {
+
+    },
+    "Bitcoin" : {
+
+    },
+    "Bitcoin collection" : {
+
+    },
+    "Blast Zone" : {
+
+    },
+    "Block Chain" : {
+
+    },
+    "Block Chain Coins" : {
+
+    },
+    "Block Day" : {
+
+    },
+    "Blue chip" : {
+
+    },
+    "Blueprints" : {
+
+    },
+    "Bomb" : {
+
+    },
+    "Bonus Reward I" : {
+
+    },
+    "Bonus Reward II" : {
+
+    },
+    "Bonus Reward III" : {
+
+    },
+    "Boom Town" : {
+
+    },
+    "Bounce the coin ball off your paddle to smash every hash block and reach the next, faster level. Every %lldth level the whale comes to dump on you." : {
+
+    },
+    "Break %lld chains" : {
+
+    },
+    "Break %lld crates" : {
+
+    },
+    "Break 1 chain" : {
+
+    },
+    "Break 1 crate" : {
+
+    },
+    "Break the crates with matches beside them and with blasts." : {
+
+    },
+    "Bring down %lld gold bars" : {
+
+    },
+    "Bring down 1 gold bar" : {
+
+    },
+    "Bring the gold bars down to the bottom row." : {
+
+    },
+    "Bronze" : {
+
+    },
+    "Bubble Market" : {
+
+    },
+    "Bubble Market Bubbles" : {
+
+    },
+    "Bubble Popper" : {
+
+    },
+    "Bubbles" : {
+
+    },
+    "Bulk Discount" : {
+
+    },
+    "Bull Market" : {
+
+    },
+    "Bull Runs last 2 minutes" : {
+
+    },
+    "Bullion Drop" : {
+
+    },
+    "Buttons beside the well move, rotate, drop and hold the piece." : {
+
+    },
+    "Buy %@" : {
+
+    },
+    "Buy %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Buy %1$@ %2$@"
+          }
+        }
+      }
+    },
+    "Buy %@ miners" : {
+
+    },
+    "Buy %@ tokens" : {
+
+    },
+    "Buy miner Mk upgrades" : {
+
+    },
+    "Buy tokens in the Shop" : {
+
+    },
+    "Can't be matched. Clear the tokens under it to bring it down: it's collected on the bottom row." : {
+
+    },
+    "Card Backs" : {
+
+    },
+    "Card Shark" : {
+
+    },
+    "Cardano" : {
+
+    },
+    "Cargo Hold" : {
+
+    },
+    "Cash out %@ times in To the Moon" : {
+
+    },
+    "Cash out at 2× or more %@ times in To the Moon today" : {
+
+    },
+    "Cash out this high in To the Moon" : {
+
+    },
+    "Cash-outs" : {
+
+    },
+    "Cashes out by itself the moment the multiplier reaches your target." : {
+
+    },
+    "Cashing out pays the bet times the multiplier; a crash loses the bet." : {
+
+    },
+    "Casino Day" : {
+
+    },
+    "Casino Green" : {
+
+    },
+    "Catch %@ airdrops" : {
+
+    },
+    "Catch %lld golden coins" : {
+
+    },
+    "Catch 1 golden coin" : {
+
+    },
+    "Catch airdrops" : {
+
+    },
+    "Catch Lightning when coins are close: they count double." : {
+
+    },
+    "Catch the ball near the paddle's edge to aim it into gaps." : {
+
+    },
+    "Catch whale airdrops" : {
+
+    },
+    "Chain" : {
+
+    },
+    "Chain Gang" : {
+
+    },
+    "Chain Reaction" : {
+
+    },
+    "Chained tokens can't be swapped and don't fall, but they still match: matching one breaks its chain." : {
+
+    },
+    "Challenger" : {
+
+    },
+    "Chromebook" : {
+
+    },
+    "Classic" : {
+
+    },
+    "Classic ends after %lld seconds; waves still falling count. A level or puzzle ends when every goal is reached, or when the moves run out." : {
+
+    },
+    "Classic Red" : {
+
+    },
+    "Classic sets goals one after another: the %@, then the %@, and on. Building the Lunar Base reaches the Moon: a bonus of %lld minutes of income, and you can keep going." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Classic sets goals one after another: the %1$@, then the %2$@, and on. Building the Lunar Base reaches the Moon: a bonus of %3$lld minutes of income, and you can keep going."
+          }
+        }
+      }
+    },
+    "Clear %@ lines in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Clear %1$@ lines in %2$@"
+          }
+        }
+      }
+    },
+    "Clear %@ rounds in Pump and Dump" : {
+
+    },
+    "Clear %lld %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Clear %1$lld %2$@"
+          }
+        }
+      }
+    },
+    "Clear lines in Block Chain" : {
+
+    },
+    "Clear the tokens the goal asks for, and set off two specials." : {
+
+    },
+    "Clear the tokens under a gold bar to bring it down: it's collected on the bottom row." : {
+
+    },
+    "Clearing a wave scores 100 times the wave, and 50 times more if you didn't lose a ship on it." : {
+
+    },
+    "Clearing the whole field scores %lld times the wave. Each wave brings another color, up to %lld." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Clearing the whole field scores %1$lld times the wave. Each wave brings another color, up to %2$lld."
+          }
+        }
+      }
+    },
+    "Clears with piece after piece build a combo: each adds %lld × the combo × the level." : {
+
+    },
+    "Clubs" : {
+
+    },
+    "Coin Burst" : {
+
+    },
+    "Coin Chips" : {
+
+    },
+    "Coin Clicker" : {
+
+    },
+    "Coin Whacker" : {
+
+    },
+    "Coins from a single tap" : {
+
+    },
+    "Cold Snap" : {
+
+    },
+    "Cold Storage" : {
+
+    },
+    "Cold storage blocks" : {
+
+    },
+    "Collector" : {
+
+    },
+    "Color Clear" : {
+
+    },
+    "Combinations" : {
+
+    },
+    "Combo Booster" : {
+
+    },
+    "Combo King" : {
+
+    },
+    "Combo Lab" : {
+
+    },
+    "Combo Master" : {
+
+    },
+    "Combo Overdrive" : {
+
+    },
+    "Combos build %@× as fast" : {
+
+    },
+    "Combos build twice as fast and reach at least ×3" : {
+
+    },
+    "Complete daily challenges" : {
+
+    },
+    "Complete daily quests" : {
+
+    },
+    "Compound Interest" : {
+
+    },
+    "Costs %lld points and ends your combo. Let it go." : {
+
+    },
+    "Count as 11, or as 1 when 11 would go over 21. Split aces get one card each." : {
+
+    },
+    "Crack all the ice: matches beside a frozen token crack it." : {
+
+    },
+    "Crate" : {
+
+    },
+    "Crate Expectations" : {
+
+    },
+    "Crates take a hit from every match beside them and every blast that reaches them." : {
+
+    },
+    "Crimson" : {
+
+    },
+    "Crunches space rocks into blocks." : {
+
+    },
+    "Crypto Slots" : {
+
+    },
+    "Daily quest and streak rewards ×2" : {
+
+    },
+    "Daily rewards claimed in a row" : {
+
+    },
+    "Daily Stride" : {
+
+    },
+    "Data Center" : {
+
+    },
+    "Deal yourself %@ natural 21s today" : {
+
+    },
+    "Deal yourself a natural 21" : {
+
+    },
+    "Deal yourself a natural 21 today" : {
+
+    },
+    "Dealer hits soft 17" : {
+
+    },
+    "Dealer stands on all 17s" : {
+
+    },
+    "Deep Liquidity" : {
+
+    },
+    "Deep Mine" : {
+
+    },
+    "Defense Day" : {
+
+    },
+    "Demolition" : {
+
+    },
+    "Desktop" : {
+
+    },
+    "Diamond" : {
+
+    },
+    "Diamond Hands" : {
+
+    },
+    "Diamonds" : {
+
+    },
+    "Dogecoin" : {
+
+    },
+    "Double" : {
+
+    },
+    "Double on 10 or 11 when the dealer shows a lower card." : {
+
+    },
+    "Double Trouble" : {
+
+    },
+    "Drag a token onto a neighbor to swap them, or tap one token and then the other." : {
+
+    },
+    "Drag a token onto its neighbor to swap them. Line up three of a kind to clear them." : {
+
+    },
+    "Drag anywhere to move the paddle, and lift your finger to launch the ball." : {
+
+    },
+    "Drag anywhere to move your ship. It fires while your finger is down: lift it to hold fire." : {
+
+    },
+    "Drag or tap to swap" : {
+
+    },
+    "Drag paddle · Lift to launch" : {
+
+    },
+    "Drag to aim · Lift to fire · Tap to swap" : {
+
+    },
+    "Drag to aim and lift to fire. The guide shows the path, bounces included, and a ring marks where the bubble will stick. The short guide shows only the way to the first bounce." : {
+
+    },
+    "Drag to move · Hold to fire" : {
+
+    },
+    "Drop a power-up: catch it with the paddle." : {
+
+    },
+    "Dyson Swarm" : {
+
+    },
+    "Each +0.1 of a combo comes sooner: %@ faster a level, up to %@× as fast." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Each +0.1 of a combo comes sooner: %1$@ faster a level, up to %2$@× as fast."
+          }
+        }
+      }
+    },
+    "Each block scores 10 points per hit it takes; clearing a level adds 100 times the level, and beating the whale 500 more." : {
+
+    },
+    "Each flight's crash point is drawn at launch. Some crash at 1.00×, before you can cash out." : {
+
+    },
+    "Each round lasts %lld seconds. Reach its goal to go on; each round is quicker, with more scams." : {
+
+    },
+    "Each token cleared scores %lld. Tokens that fall into new matches score more each wave: double, then triple." : {
+
+    },
+    "Earn %@ coins" : {
+
+    },
+    "Earn Token Swap level stars" : {
+
+    },
+    "Easy" : {
+
+    },
+    "Emerald" : {
+
+    },
+    "Endless ends when a new piece has no room at the top, or a gas spike pushes the stack out of the well. Block Rush ends when its rows are cleared, and its record is your time." : {
+
+    },
+    "Engineer" : {
+
+    },
+    "Engineering Team" : {
+
+    },
+    "Ethereum" : {
+
+    },
+    "Every %lld coins a power-up appears for %lld seconds: steer onto it to pick it up." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Every %1$lld coins a power-up appears for %2$lld seconds: steer onto it to pick it up."
+          }
+        }
+      }
+    },
+    "Every %lld pops in a row earn a special bubble, loaded next: first a %@, then a %@, and so on." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Every %1$lld pops in a row earn a special bubble, loaded next: first a %2$@, then a %3$@, and so on."
+          }
+        }
+      }
+    },
+    "Every %lld shots that pop nothing push a new row down. From wave 3 the waves start deeper and rows come sooner, down to every %lld misses." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Every %1$lld shots that pop nothing push a new row down. From wave 3 the waves start deeper and rows come sooner, down to every %2$lld misses."
+          }
+        }
+      }
+    },
+    "Every %lldth wave a giant bear-market bot slides along the top with a health bar, firing three shots at a time. Beating it gives back a lost ship." : {
+
+    },
+    "Every 10 rows is a level: pieces fall faster. Dropping a piece yourself adds a point or two per row." : {
+
+    },
+    "Every achievement star adds 2% production instead of 1%" : {
+
+    },
+    "Every ball forks into three. You only lose a life when the last one falls." : {
+
+    },
+    "Every Bitcoin on the line is collected; every %lld pay a coin prize." : {
+
+    },
+    "Every coin is worth %lld points and adds a block to the chain. The chain speeds up as it grows." : {
+
+    },
+    "Every color, turning" : {
+
+    },
+    "Every round has a bonus objective worth extra points toward the goal." : {
+
+    },
+    "Every spin is settled the moment the reels stop: the bet is taken and the win paid in one step." : {
+
+    },
+    "Every tap also earns %@ of a second's production" : {
+
+    },
+    "Everything at once. Plan for combinations." : {
+
+    },
+    "Exchange" : {
+
+    },
+    "Exchange Floor" : {
+
+    },
+    "Exchanged %@" : {
+
+    },
+    "Exchanger" : {
+
+    },
+    "Expert" : {
+
+    },
+    "Falling Into Place" : {
+
+    },
+    "Fast" : {
+
+    },
+    "Fiber Uplink" : {
+
+    },
+    "Fills a cell. Each match beside it, or blast, breaks a layer; some crates have two or three." : {
+
+    },
+    "Finish Block Rushes in Block Chain" : {
+
+    },
+    "Finish closer to 21 than the dealer without going over." : {
+
+    },
+    "Fire Ring" : {
+
+    },
+    "Fire token bubbles to make groups of three or more of a kind, and clear the market to start the next wave." : {
+
+    },
+    "Fires twice as fast, with up to four volleys at once, for %lld seconds." : {
+
+    },
+    "Fireworks" : {
+
+    },
+    "First %@" : {
+
+    },
+    "First prestige" : {
+
+    },
+    "First Swaps" : {
+
+    },
+    "Five Alive" : {
+
+    },
+    "Five in a row makes a Color Clear, and here's one to try. Swap it with any token to clear every token of that color." : {
+
+    },
+    "Flash Crash" : {
+
+    },
+    "Flash Market" : {
+
+    },
+    "Flush" : {
+
+    },
+    "Flying Saucer" : {
+
+    },
+    "For %lld seconds each shot burns through every invader in its path." : {
+
+    },
+    "For %lld seconds the paddle fires bolts that smash blocks by themselves." : {
+
+    },
+    "For %lld seconds, coins within %lld steps of the head drop straight into the chain." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "For %1$lld seconds, coins within %2$lld steps of the head drop straight into the chain."
+          }
+        }
+      }
+    },
+    "Fork" : {
+
+    },
+    "Fortune" : {
+
+    },
+    "Four in a row makes a Rocket, a 2×2 square a Propeller, an L or T a Bomb." : {
+
+    },
+    "Four of a Kind" : {
+
+    },
+    "Four racks that stop shots, yours and theirs: every hit knocks out a piece of a server, and invaders crush what they touch." : {
+
+    },
+    "Free" : {
+
+    },
+    "Free %lld frozen tokens" : {
+
+    },
+    "Free 1 frozen token" : {
+
+    },
+    "Free spins" : {
+
+    },
+    "From wave 2 (wave 1 in Random Waves), one invader a wave glows gold: it's worth double and drops a power-up." : {
+
+    },
+    "Frozen Gold" : {
+
+    },
+    "Frozen tokens can't move or match. A match right beside one, or a blast, cracks its ice." : {
+
+    },
+    "Frozen Vault" : {
+
+    },
+    "Full House" : {
+
+    },
+    "Full Toolkit" : {
+
+    },
+    "Fusion Reactor" : {
+
+    },
+    "Galactic Hashnet" : {
+
+    },
+    "Gas Limit" : {
+
+    },
+    "Gas spikes" : {
+
+    },
+    "Gems" : {
+
+    },
+    "Geothermal Plant" : {
+
+    },
+    "Get closer to 21 than the dealer, betting tokens. Wins pay a coin bonus that grows with your bet." : {
+
+    },
+    "Glass" : {
+
+    },
+    "Glinting facets all around" : {
+
+    },
+    "Glossy" : {
+
+    },
+    "Glow" : {
+
+    },
+    "Gold" : {
+
+    },
+    "Gold bar" : {
+
+    },
+    "Gold bars can't be matched. Clear the tokens under one to bring it down: it's collected on the bottom row." : {
+
+    },
+    "Gold Fever" : {
+
+    },
+    "Gold Foil" : {
+
+    },
+    "Gold Rush" : {
+
+    },
+    "Golden coin" : {
+
+    },
+    "Golden sparks fly off" : {
+
+    },
+    "Golden tokens" : {
+
+    },
+    "Golden Touch" : {
+
+    },
+    "GPU Rig" : {
+
+    },
+    "Green" : {
+
+    },
+    "Haptic Engine" : {
+
+    },
+    "Hard" : {
+
+    },
+    "Hardware Wallet" : {
+
+    },
+    "Harvest" : {
+
+    },
+    "Hash Chain" : {
+
+    },
+    "Hash Chain Blocks" : {
+
+    },
+    "Hash Rate" : {
+
+    },
+    "Hash Smash" : {
+
+    },
+    "Hash Smash Paddle" : {
+
+    },
+    "Hash Smasher" : {
+
+    },
+    "Hash Storm" : {
+
+    },
+    "Hashes swirl up around it" : {
+
+    },
+    "Head Start" : {
+
+    },
+    "Hearts" : {
+
+    },
+    "High Roller" : {
+
+    },
+    "High Score" : {
+
+    },
+    "Hit" : {
+
+    },
+    "Hit · Stand · Double · Split" : {
+
+    },
+    "Hit %@ coins in Pump and Dump" : {
+
+    },
+    "Hit coins in Pump and Dump" : {
+
+    },
+    "Hit takes a card, Stand keeps your total, Double doubles the bet for exactly one more card, and Split turns a pair into two hands (once per round). Only the moves you can make right now are shown." : {
+
+    },
+    "Hits in a row build a streak: each hit scores 10% more than the last, up to double. A volley that hits nothing, or only a server rack, ends it." : {
+
+    },
+    "HODL the cards you believe in and draw once. A royal flush pays 800 to 1." : {
+
+    },
+    "Hold" : {
+
+    },
+    "Hold a long piece for the gap it fits: four rows at once is a Full Block." : {
+
+    },
+    "Hold still for a few seconds and a hint shows a good move." : {
+
+    },
+    "Holographic" : {
+
+    },
+    "Ice" : {
+
+    },
+    "Ice Floe" : {
+
+    },
+    "In Chains" : {
+
+    },
+    "In Endless, every %lld pieces gas pushes the stack up a row from below. A gas row has one gap, under your lowest column: fill it to clear the row and collect its fee." : {
+
+    },
+    "In the Daily Puzzle every move counts: favor slides that merge." : {
+
+    },
+    "Invader Hunter" : {
+
+    },
+    "Invaders Ship" : {
+
+    },
+    "Jack" : {
+
+    },
+    "Jackpot Run" : {
+
+    },
+    "Jackpots" : {
+
+    },
+    "Jacks or Better" : {
+
+    },
+    "Just the coin's edge" : {
+
+    },
+    "Keep any paying hand, but break up a flush or straight for four cards to a royal flush." : {
+
+    },
+    "Keep miner Mk upgrades when you prestige" : {
+
+    },
+    "Keep one column open: gas rows leave their gap under it, so one long piece clears them with your own rows." : {
+
+    },
+    "Keep production upgrades when you prestige" : {
+
+    },
+    "Keep tapping upgrades when you prestige" : {
+
+    },
+    "Keep the streak alive: swap to the bubble that can pop something before you fire." : {
+
+    },
+    "Keep your best miner in a corner and build along one edge." : {
+
+    },
+    "Keeps you safe from one crash: the chain stops for a moment so you can turn away. You can carry one at a time." : {
+
+    },
+    "Key Holder" : {
+
+    },
+    "King" : {
+
+    },
+    "Lambo" : {
+
+    },
+    "Laser" : {
+
+    },
+    "Last Line of Defense" : {
+
+    },
+    "Launch · Cash Out" : {
+
+    },
+    "Legend" : {
+
+    },
+    "Level" : {
+
+    },
+    "Levels: winning earns a star, and higher scores earn the second and third. Each move left over adds %lld points. Each star pays coins the first time you earn it." : {
+
+    },
+    "Lift your finger under a server rack: your own shots wear it down too." : {
+
+    },
+    "Lightning" : {
+
+    },
+    "Line Clearer" : {
+
+    },
+    "Line up four to make a Rocket: four across clears its row, four down its column. Match it or swap it to set it off." : {
+
+    },
+    "Liquid Cooling" : {
+
+    },
+    "Liquidate every block around them when they go, and can set each other off in a cascade." : {
+
+    },
+    "Liquidation blocks" : {
+
+    },
+    "Little coins spray out and fall" : {
+
+    },
+    "Loading Dock" : {
+
+    },
+    "Locked Ledger" : {
+
+    },
+    "Locked Vault" : {
+
+    },
+    "Low gravity, high hash rate." : {
+
+    },
+    "Low targets win often and small; high targets win rarely and big." : {
+
+    },
+    "Loyal Miner" : {
+
+    },
+    "Lucky Streak" : {
+
+    },
+    "Lunar Base" : {
+
+    },
+    "Machine learning finds blocks faster." : {
+
+    },
+    "Made by a 2×2 square. Clears the four tokens beside it, then flies to the most useful spot: an obstacle or token the level still needs." : {
+
+    },
+    "Made by five in a row. Swap it with a token to clear every token of that color. Set off by a blast, it takes the commonest color." : {
+
+    },
+    "Made by five in an L or T shape. Clears the 5×5 square around it." : {
+
+    },
+    "Made by four in a row. Four across clears its whole row; four down clears its column." : {
+
+    },
+    "Make specials and swap them together for the big points." : {
+
+    },
+    "Make the best five-card poker hand you can: HODL the cards you believe in, and swap the rest once." : {
+
+    },
+    "Make two pair or better %@ times in %@ today" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Make two pair or better %1$@ times in %2$@ today"
+          }
+        }
+      }
+    },
+    "Marathon" : {
+
+    },
+    "Market Crash" : {
+
+    },
+    "Market Insider" : {
+
+    },
+    "Master" : {
+
+    },
+    "Match %@ tokens in Token Swap" : {
+
+    },
+    "Match chained tokens, or blast them, to break their chains." : {
+
+    },
+    "Match Day" : {
+
+    },
+    "Match five in an L or T shape to make a Bomb. It clears the 5×5 square around it." : {
+
+    },
+    "Match tokens in Token Swap" : {
+
+    },
+    "Matches low on the board shake up more tokens for falling waves." : {
+
+    },
+    "Mechanical Keyboard" : {
+
+    },
+    "Medium" : {
+
+    },
+    "Meet the weekly variety goal" : {
+
+    },
+    "Meme Coin" : {
+
+    },
+    "Meme coins" : {
+
+    },
+    "Meme coins score %lld, pump bots %lld and rug pullers %lld." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Meme coins score %1$lld, pump bots %2$lld and rug pullers %3$lld."
+          }
+        }
+      }
+    },
+    "Merge a miner this big in Merge Mining" : {
+
+    },
+    "Merge Master" : {
+
+    },
+    "Merge Mining" : {
+
+    },
+    "Merge Mining Tiles" : {
+
+    },
+    "Merge your way to the %@ (%lld) in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Merge your way to the %1$@ (%2$lld) in %3$@"
+          }
+        }
+      }
+    },
+    "Midnight" : {
+
+    },
+    "Mine %@ coins in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mine %1$@ coins in %2$@"
+          }
+        }
+      }
+    },
+    "Mine %@ coins in one %@ game" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mine %1$@ coins in one %2$@ game"
+          }
+        }
+      }
+    },
+    "Mine Center" : {
+
+    },
+    "Mine coins over all time" : {
+
+    },
+    "Mine coins to add blocks to your chain, but never cross your own blocks." : {
+
+    },
+    "Miner" : {
+
+    },
+    "Miners cost 10% less" : {
+
+    },
+    "Miners produce 40% less; prestiges earn 50% more points." : {
+
+    },
+    "Miners produce 50% more; prestiges earn half the points." : {
+
+    },
+    "Mines %@ a second · %@ coins" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mines %1$@ a second · %2$@ coins"
+          }
+        }
+      }
+    },
+    "Mini-game and casino coin rewards ×1.5" : {
+
+    },
+    "Mini-game rewards %@" : {
+
+    },
+    "Mining" : {
+
+    },
+    "Mining at a cosmic scale, off-world." : {
+
+    },
+    "Mining Farm" : {
+
+    },
+    "Monero" : {
+
+    },
+    "Moonshot" : {
+
+    },
+    "More cores, more coins." : {
+
+    },
+    "More gold bars drop in from the top as you collect them. Crates under a bar hold it up." : {
+
+    },
+    "Mother Lode" : {
+
+    },
+    "Muscle Memory" : {
+
+    },
+    "Mystery" : {
+
+    },
+    "Mythic" : {
+
+    },
+    "Natural" : {
+
+    },
+    "Neon" : {
+
+    },
+    "Neural Interface" : {
+
+    },
+    "New miners" : {
+
+    },
+    "New rows" : {
+
+    },
+    "Next piece" : {
+
+    },
+    "No mistakes: no scams, no empty taps" : {
+
+    },
+    "No Win" : {
+
+    },
+    "Node Network" : {
+
+    },
+    "Normal" : {
+
+    },
+    "Numbers Only" : {
+
+    },
+    "Obsidian" : {
+
+    },
+    "Offline Mining" : {
+
+    },
+    "On the start screen, Levels starts at level 1, Random Walls makes up a new wall for every level (never the same twice), and Settings sets the ball's speed." : {
+
+    },
+    "On the start screen, Waves starts at wave 1, Random Waves makes up a new formation for every wave (never the same twice, with the kinds mixed up), and Settings sets the speed." : {
+
+    },
+    "One to four rows at once score 100, 300, 500 or 800, times the level. Four at once is a Full Block." : {
+
+    },
+    "Only two volleys can be in the air at once: shots that hit come back sooner than ones that fly off the top." : {
+
+    },
+    "Open" : {
+
+    },
+    "Or on the well: tap to rotate, drag sideways to move, swipe down to drop at once, and swipe up to hold." : {
+
+    },
+    "Orbit" : {
+
+    },
+    "Over many spins the machine returns about %lld%% of the tokens bet. Spins are independent: a near miss doesn't make the next win likelier." : {
+
+    },
+    "Overclocking" : {
+
+    },
+    "Own %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Own %1$@ %2$@"
+          }
+        }
+      }
+    },
+    "Own %@ at once" : {
+
+    },
+    "Own miners at once" : {
+
+    },
+    "Own prestige perks" : {
+
+    },
+    "Own upgrades at once" : {
+
+    },
+    "Pays %lld extra however it's cleared: popped, dropped or blown up." : {
+
+    },
+    "Pays per token bet: %@." : {
+
+    },
+    "Pearl" : {
+
+    },
+    "Pegged to anything: it takes the kind that makes the biggest group among the bubbles it touches." : {
+
+    },
+    "Pending marker" : {
+
+    },
+    "Perk Collector" : {
+
+    },
+    "Permafrost" : {
+
+    },
+    "Pick a token and a bet, and if you like an automatic cash-out, then Launch. " : {
+
+    },
+    "Pick a token and a bet, then Deal. " : {
+
+    },
+    "Pick a token and a bet, then Spin. The reels that make a win light up, and the result shows your bet, the payout and the net." : {
+
+    },
+    "Pixel" : {
+
+    },
+    "Plain" : {
+
+    },
+    "Played well, the table returns about 97%." : {
+
+    },
+    "Player" : {
+
+    },
+    "Poker Face" : {
+
+    },
+    "Pop %@ bubbles" : {
+
+    },
+    "Pop %@ bubbles in one %@ game" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Pop %1$@ bubbles in one %2$@ game"
+          }
+        }
+      }
+    },
+    "Pop bubbles in Bubble Market" : {
+
+    },
+    "Pop Day" : {
+
+    },
+    "Pop the bubbles holding up big clusters: falling bubbles pay double." : {
+
+    },
+    "Pop three token bubbles of a kind before the market sinks to the crash line." : {
+
+    },
+    "Popped bubbles score %lld each; bubbles left hanging fall for %lld each." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Popped bubbles score %1$lld each; bubbles left hanging fall for %2$lld each."
+          }
+        }
+      }
+    },
+    "Pops in a row build a streak: each popping shot scores 10% more than the last, up to double. A shot that pops nothing ends it." : {
+
+    },
+    "Precision Day" : {
+
+    },
+    "Prestige" : {
+
+    },
+    "Prestige for %@ points" : {
+
+    },
+    "Prestige to reveal the %@" : {
+
+    },
+    "Prestigious" : {
+
+    },
+    "Pro" : {
+
+    },
+    "Production %@ as fast afterwards" : {
+
+    },
+    "Propeller" : {
+
+    },
+    "Propellers fly to the ice you still need to crack." : {
+
+    },
+    "Pulse" : {
+
+    },
+    "Pump and Dump" : {
+
+    },
+    "Pump and Dump Board" : {
+
+    },
+    "Pump Bot" : {
+
+    },
+    "Pump bots" : {
+
+    },
+    "Puzzle Day" : {
+
+    },
+    "Puzzle Solver" : {
+
+    },
+    "Quantum Computer" : {
+
+    },
+    "Qubits crack hashes in parallel." : {
+
+    },
+    "Queen" : {
+
+    },
+    "Quest Master" : {
+
+    },
+    "Questions about Tether's reserves resurface" : {
+
+    },
+    "Quick Combos" : {
+
+    },
+    "Quick taps in a row" : {
+
+    },
+    "Rack-mounted hashing around the clock." : {
+
+    },
+    "Rainbow" : {
+
+    },
+    "Raises the biggest combo by ×%@ a level, from ×%@ up to ×%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Raises the biggest combo by ×%1$@ a level, from ×%2$@ up to ×%3$@."
+          }
+        }
+      }
+    },
+    "Random" : {
+
+    },
+    "Rapid Fire" : {
+
+    },
+    "Reach %@ miner goals in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Reach %1$@ miner goals in %2$@"
+          }
+        }
+      }
+    },
+    "Reach a combo of %lld" : {
+
+    },
+    "Reach an income per second" : {
+
+    },
+    "Reach this Arcade Rank" : {
+
+    },
+    "Reflex Day" : {
+
+    },
+    "Regulators take a closer look at %@" : {
+
+    },
+    "Ride the chart as the multiplier climbs. Cash out before the market crashes." : {
+
+    },
+    "Ride the multiplier up and cash out before the market crashes." : {
+
+    },
+    "Ripple" : {
+
+    },
+    "Robot Assistant" : {
+
+    },
+    "Robotic Finger" : {
+
+    },
+    "Rocket" : {
+
+    },
+    "Rocket Lab" : {
+
+    },
+    "Rocket Science" : {
+
+    },
+    "Rockets and Bombs break every chain they reach." : {
+
+    },
+    "Rockets lift off" : {
+
+    },
+    "Rookie" : {
+
+    },
+    "Rose Gold" : {
+
+    },
+    "Round" : {
+
+    },
+    "Rounded" : {
+
+    },
+    "Royal Blue" : {
+
+    },
+    "Royal Flush" : {
+
+    },
+    "Rug pull" : {
+
+    },
+    "Rug Puller" : {
+
+    },
+    "Rug pullers" : {
+
+    },
+    "Rumours shake %@ holders" : {
+
+    },
+    "Rush" : {
+
+    },
+    "Sapphire" : {
+
+    },
+    "Satoshi's Touch" : {
+
+    },
+    "Save a %@ for a big cluster hanging from a few bubbles." : {
+
+    },
+    "Save a Hardware Wallet for the late game, when the chain is long." : {
+
+    },
+    "Save specials to combine them: a combination clears far more than two specials on their own." : {
+
+    },
+    "Scam Invaders" : {
+
+    },
+    "Scam token" : {
+
+    },
+    "Score %@" : {
+
+    },
+    "Score %@ in one %@ game" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Score %1$@ in one %2$@ game"
+          }
+        }
+      }
+    },
+    "Score %@ in one Pump and Dump run" : {
+
+    },
+    "Score %@ in one round of Token Swap Classic" : {
+
+    },
+    "Score %@ points in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Score %1$@ points in %2$@"
+          }
+        }
+      }
+    },
+    "Score in %@ different arcade games today" : {
+
+    },
+    "Score in a single Block Chain game" : {
+
+    },
+    "Score in a single Hash Chain game" : {
+
+    },
+    "Sell %@ tokens on the market" : {
+
+    },
+    "Sell tokens in the Shop" : {
+
+    },
+    "Sell tokens with no fee" : {
+
+    },
+    "Server" : {
+
+    },
+    "Server racks" : {
+
+    },
+    "Set off %lld Bombs" : {
+
+    },
+    "Set off %lld Color Clears" : {
+
+    },
+    "Set off %lld Propellers" : {
+
+    },
+    "Set off %lld Rockets" : {
+
+    },
+    "Set off %lld specials" : {
+
+    },
+    "Set off 1 Bomb" : {
+
+    },
+    "Set off 1 Color Clear" : {
+
+    },
+    "Set off 1 Propeller" : {
+
+    },
+    "Set off 1 Rocket" : {
+
+    },
+    "Set off 1 special" : {
+
+    },
+    "Sets the piece aside to use later, or swaps it with the one held. Once per piece." : {
+
+    },
+    "Shackled" : {
+
+    },
+    "Shiba Inu" : {
+
+    },
+    "Shield" : {
+
+    },
+    "Shoot %@ invaders in one Scam Invaders game" : {
+
+    },
+    "Shoot %@ invaders in Scam Invaders" : {
+
+    },
+    "Shoot down every scam token before the formation lands, and survive wave after wave. Every %lldth wave is a boss." : {
+
+    },
+    "Shoot down invaders in Scam Invaders" : {
+
+    },
+    "Shoot down the scam tokens before they land. Hide behind the server racks." : {
+
+    },
+    "Shopping Spree" : {
+
+    },
+    "Shows what's coming. Every seven pieces include each shape once." : {
+
+    },
+    "Silver" : {
+
+    },
+    "Six colors make matches harder to find: look for specials to do the heavy lifting." : {
+
+    },
+    "Six graphics cards and a lot of fans." : {
+
+    },
+    "Slide miners together to upgrade them, from a Chromebook up. Build a Lunar Base for a bonus." : {
+
+    },
+    "Slide miners together to upgrade them, up the Shop's ladder from a Chromebook to the Lunar Base (2,048) and beyond. Play Classic, or the Daily Puzzle: the same start and miners for everyone today, in %lld moves." : {
+
+    },
+    "Slot Reels" : {
+
+    },
+    "Slow" : {
+
+    },
+    "Small clears one after another build a combo." : {
+
+    },
+    "Smash %@ blocks in one %@ game" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Smash %1$@ blocks in one %2$@ game"
+          }
+        }
+      }
+    },
+    "Smash %@ hash blocks" : {
+
+    },
+    "Smash blocks in Hash Smash" : {
+
+    },
+    "Smash every hash block with the coin ball. Each level is faster, and the whale comes every fifth." : {
+
+    },
+    "Solana" : {
+
+    },
+    "Solar Farm" : {
+
+    },
+    "Space Mining Colonies" : {
+
+    },
+    "Space Mining Colony" : {
+
+    },
+    "Spades" : {
+
+    },
+    "Sparks" : {
+
+    },
+    "Sparks circling the edge" : {
+
+    },
+    "Spin" : {
+
+    },
+    "Spin Crypto Slots %@ times" : {
+
+    },
+    "Spin three reels of crypto tokens and line up matches on the pay line." : {
+
+    },
+    "Spin three reels of crypto. Three Bitcoins pay 500 times your bet." : {
+
+    },
+    "Split" : {
+
+    },
+    "Spread Shot" : {
+
+    },
+    "Sprinter" : {
+
+    },
+    "Square Deal" : {
+
+    },
+    "Stablecoin" : {
+
+    },
+    "Stack Attack" : {
+
+    },
+    "Stack coin blocks into full rows to mine them, before the gas spikes push the stack up." : {
+
+    },
+    "Stack the falling coin blocks into full rows, which are mined for points, in a well %lld rows deep. Play Endless until the stack tops out, Block Rush: %lld rows against the clock, or Today's Pieces: Endless with today's pieces, the same for everyone." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Stack the falling coin blocks into full rows, which are mined for points, in a well %1$lld rows deep. Play Endless until the stack tops out, Block Rush: %2$lld rows against the clock, or Today's Pieces: Endless with today's pieces, the same for everyone."
+          }
+        }
+      }
+    },
+    "Stand" : {
+
+    },
+    "Stand on 17 or more; hit 11 or less." : {
+
+    },
+    "Star Collector" : {
+
+    },
+    "Stars" : {
+
+    },
+    "Stars from daily Merge Mining puzzles" : {
+
+    },
+    "Start every run with 10 Chromebooks, 10 Desktops and 5 GPU Rigs" : {
+
+    },
+    "Started mining" : {
+
+    },
+    "Stay near the middle early and keep the edges for a long chain." : {
+
+    },
+    "Steel bands show the hits left: two from level 2, three from level 6." : {
+
+    },
+    "Steer the chain to mine coins: every coin adds a block, so keep it growing as long as you can. Play Classic in one of four arenas, or Coin Rush: one minute with three coins out at once." : {
+
+    },
+    "Step Booster" : {
+
+    },
+    "Steps earn %@" : {
+
+    },
+    "Steps earn ×2" : {
+
+    },
+    "Steps walked in a single day" : {
+
+    },
+    "Straight" : {
+
+    },
+    "Straight Flush" : {
+
+    },
+    "Strong Fingers" : {
+
+    },
+    "Strongbox" : {
+
+    },
+    "Suggests the move basic strategy makes with your hand against the dealer's card. It's the best move over time, not a promise about the next card." : {
+
+    },
+    "Survival Day" : {
+
+    },
+    "Swap neighboring tokens to line up three or more of a kind. Win levels by reaching their goals in the moves allowed, solve the daily puzzle, play a random level made up for you, or score big in a one-minute Classic round." : {
+
+    },
+    "Swap neighboring tokens to line up three or more. Big matches leave Blasts behind." : {
+
+    },
+    "Swap two specials together for a combination: two Rockets clear a row and a column, two Bombs a 7×7 square." : {
+
+    },
+    "Swap two specials together to combine them." : {
+
+    },
+    "Swims across the top now and then: shoot it for 50 to 300 points and a power-up." : {
+
+    },
+    "Swipe anywhere to turn up, down, left or right. Quick swipes queue up two turns, and turning straight back is ignored." : {
+
+    },
+    "Swipe to slide" : {
+
+    },
+    "Swipe to steer" : {
+
+    },
+    "Swipe up, down, left or right to slide every miner that way." : {
+
+    },
+    "Switch to Practice to play for chips instead: the same game, with no tokens, coins or statistics at stake." : {
+
+    },
+    "Table options choose the table and turn on the coach, which outlines the basic-strategy move." : {
+
+    },
+    "Takes one hit for your ship." : {
+
+    },
+    "Tap a coin the moment it lists, before it's delisted. A tap counts as soon as your finger touches." : {
+
+    },
+    "Tap cards to HODL · Draw" : {
+
+    },
+    "Tap cards to HODL them (they lift, marked HODL), then Draw to replace the rest. Hint HODLs what a strong player would." : {
+
+    },
+    "Tap Cash Out at any time to take your bet times the multiplier. The screen shows what cashing out pays right now." : {
+
+    },
+    "Tap coins · Avoid scams and shaking coins" : {
+
+    },
+    "Tap coins as they list on the board, reach each round's goal, and see how many rounds you can last." : {
+
+    },
+    "Tap rotate · Drag move · Swipe ↓ drop, ↑ hold" : {
+
+    },
+    "Tap the coin" : {
+
+    },
+    "Tap the coin %@ times" : {
+
+    },
+    "Tap the coins as they list before they're delisted. Dodge scam tokens and rug pulls." : {
+
+    },
+    "Tap the loaded bubble or the next one to swap them." : {
+
+    },
+    "Tapper" : {
+
+    },
+    "Tapping" : {
+
+    },
+    "Tapping an empty slot or letting a coin get delisted also ends your combo." : {
+
+    },
+    "Taps earn +%@ coin" : {
+
+    },
+    "Taps earn 50% more" : {
+
+    },
+    "Tether" : {
+
+    },
+    "Tether dips a fraction of a cent" : {
+
+    },
+    "Tether holds its peg through a busy day" : {
+
+    },
+    "Tether reserves pass another audit" : {
+
+    },
+    "Tether wobbles off its peg for a moment" : {
+
+    },
+    "The ball slows down for %lld seconds." : {
+
+    },
+    "The Bear" : {
+
+    },
+    "The Classic table" : {
+
+    },
+    "The coach" : {
+
+    },
+    "The coins you earn, and nothing more" : {
+
+    },
+    "The crash" : {
+
+    },
+    "The crates in the corners hold up the gold above them. Break them first." : {
+
+    },
+    "The Daily Puzzle earns stars at %@, %@ and %@ points. Each star pays %lld minutes of income the first time you earn it that day." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The Daily Puzzle earns stars at %1$@, %2$@ and %3$@ points. Each star pays %4$lld minutes of income the first time you earn it that day."
+          }
+        }
+      }
+    },
+    "The daily puzzle pays its reward for the first win each day. Classic and random levels pay coins for every point, and winning a random level pays a bonus." : {
+
+    },
+    "The dealer hits a soft 17 (a 17 counting an ace as 11), which suits the house a little better, so wins pay %lld%% more coin bonus." : {
+
+    },
+    "The dealer plays from one deck, checks for a natural 21 first, and stands on every 17." : {
+
+    },
+    "The dots at the bottom show where the piece will land, like a transaction waiting for its block." : {
+
+    },
+    "The formation speeds up as it shrinks. Leave the last few until you're lined up." : {
+
+    },
+    "The game ends when a bubble sinks to the crash line at the bottom, or in Flash Market when the time runs out." : {
+
+    },
+    "The game ends when no slide can change the board, when the Daily Puzzle's moves run out, or when you tap End Game to collect." : {
+
+    },
+    "The game ends when the chain hits a wall or crosses its own blocks, or when Coin Rush's minute is up." : {
+
+    },
+    "The ladder" : {
+
+    },
+    "The multiplier starts at 1.00× and doubles every %lld seconds." : {
+
+    },
+    "The rarest symbol, one stop on each reel. Three of them is the %lld× jackpot." : {
+
+    },
+    "The standard balance." : {
+
+    },
+    "The start screen picks the board, 3×3, 4×4 or 5×5, and Settings there the speed: Slow, Normal or Fast." : {
+
+    },
+    "The start screen picks the mode and arena, and Settings there the chain's speed: Slow, Normal or Fast." : {
+
+    },
+    "The start screen picks the mode, and Settings there the speed: Slow, Normal or Fast pieces." : {
+
+    },
+    "The start screen picks Waves, Flash Market or Today's Market (the same bubbles for everyone today), and Settings there how fast shots fly and which guide to show." : {
+
+    },
+    "The Tough table" : {
+
+    },
+    "The whale" : {
+
+    },
+    "Thick ice takes two hits to break." : {
+
+    },
+    "Thin Ice" : {
+
+    },
+    "Thin out the edge columns: the formation turns at the edges, so a narrow one takes longer to come down." : {
+
+    },
+    "Three new miners appear after the first prestige" : {
+
+    },
+    "Three of a Kind" : {
+
+    },
+    "Three of a kind pays: %@ your bet." : {
+
+    },
+    "Three shots fan out from every volley for %lld seconds." : {
+
+    },
+    "Tireless robots that never stop mining." : {
+
+    },
+    "To the Moon" : {
+
+    },
+    "Token Hunt" : {
+
+    },
+    "Token Swap" : {
+
+    },
+    "Token Swap Tiles" : {
+
+    },
+    "Token Swapper" : {
+
+    },
+    "Tokens that fall into new matches count, and each wave scores more than the last." : {
+
+    },
+    "Top miner" : {
+
+    },
+    "Tough" : {
+
+    },
+    "Trader" : {
+
+    },
+    "Traders park their gains in Tether" : {
+
+    },
+    "Treasure Fall" : {
+
+    },
+    "Turn steps into coins" : {
+
+    },
+    "Two Bitcoins pay %lld×, a pair on the first two reels pays %lld×, and a single Bitcoin returns your bet." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Two Bitcoins pay %1$lld×, a pair on the first two reels pays %2$lld×, and a single Bitcoin returns your bet."
+          }
+        }
+      }
+    },
+    "Two equal miners that meet merge into the next one up, worth their sum, which is added to your score. A miner merges once per slide." : {
+
+    },
+    "Two Pair" : {
+
+    },
+    "Two pair or better also pays a coin bonus. " : {
+
+    },
+    "Two Rockets clear a row and a column; a Rocket and a Bomb, three of each; two Bombs, a 7×7 square. Two Propellers send three flying, and a Propeller carries a Rocket or Bomb to its target. A Color Clear turns a whole color into the special it's swapped with; two clear the board." : {
+
+    },
+    "Tycoon" : {
+
+    },
+    "Ultimate Step Booster" : {
+
+    },
+    "Undo" : {
+
+    },
+    "Undo takes back your last slide and its points, %lld times a game. The same slide then brings the same new miner, so Undo can't reroll your luck." : {
+
+    },
+    "Unlock %@" : {
+
+    },
+    "Unlocked %@" : {
+
+    },
+    "Upgraded Clicker" : {
+
+    },
+    "Upgraded Step Booster" : {
+
+    },
+    "Upgrader" : {
+
+    },
+    "Walk %@ steps" : {
+
+    },
+    "Walker" : {
+
+    },
+    "Warehouse" : {
+
+    },
+    "Watch the dumps under the whale and slide out of their way." : {
+
+    },
+    "Watch the red rims: a rug pull tapped before it shakes is a normal coin." : {
+
+    },
+    "Wave" : {
+
+    },
+    "Wave reached in Bubble Market" : {
+
+    },
+    "Wave reached in Scam Invaders" : {
+
+    },
+    "Wave Rider" : {
+
+    },
+    "Waves that fall into new matches score more each time, and specials score big." : {
+
+    },
+    "Whale" : {
+
+    },
+    "Whale airdrops are three times as likely" : {
+
+    },
+    "Whale Hunter" : {
+
+    },
+    "Whale Spotter" : {
+
+    },
+    "Whale Watcher" : {
+
+    },
+    "Whales are buying %@" : {
+
+    },
+    "Whales dump %@" : {
+
+    },
+    "Whatever target you pick, flights return %lld%% of the bet on average: aim for what's fun." : {
+
+    },
+    "Where the ball meets the paddle sets its angle: the edges send it off sideways." : {
+
+    },
+    "Win %@ %@ hands" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Win %1$@ %2$@ hands"
+          }
+        }
+      }
+    },
+    "Win %@ %@ hands today" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Win %1$@ %2$@ hands today"
+          }
+        }
+      }
+    },
+    "Win %@ spins at Crypto Slots today" : {
+
+    },
+    "Win %@ Token Swap levels" : {
+
+    },
+    "Win a Token Swap level" : {
+
+    },
+    "Win hands of 21 Million" : {
+
+    },
+    "Win hands of Diamond Hands" : {
+
+    },
+    "Win spins at Crypto Slots" : {
+
+    },
+    "Win Token Swap level %lld" : {
+
+    },
+    "Wins" : {
+
+    },
+    "Wipes out every bubble within two of where it lands, any kind, and anything left hanging falls." : {
+
+    },
+    "Worth %lld coins, but drops back sooner." : {
+
+    },
+    "You have %lld lives. You lose one when the last ball falls past the paddle, along with any power-ups running; the game ends with the last life." : {
+
+    },
+    "You have %lld ships. An invader's shot costs one, along with any power-ups running; the game ends with the last ship, or the moment an invader reaches your ship's line." : {
+
+    },
+    "Your first prestige point" : {
+
+    },
+    "Your next prestige point" : {
+
+    }
   },
   "version" : "1.0"
 }

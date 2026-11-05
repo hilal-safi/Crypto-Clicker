@@ -1,7 +1,61 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "+%@ per tap" : {
 
+    },
+    "+%@/s" : {
+
+    },
+    "≈ +%@ coins%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "≈ +%1$@ coins%2$@"
+          }
+        }
+      }
+    },
+    "Each step pays %@ coins the day after, when you open Crypto Clicker on your iPhone." : {
+
+    },
+    "Each step pays %@ coins, paid when Crypto Clicker on your iPhone syncs your steps." : {
+
+    },
+    "Earns %@ coins per tap" : {
+
+    },
+    "iPhone connected" : {
+
+    },
+    "iPhone not reachable" : {
+
+    },
+    "Mine coin" : {
+
+    },
+    "Open Crypto Clicker on your iPhone to sync." : {
+
+    },
+    "Show Live Steps" : {
+
+    },
+    "Stats" : {
+
+    },
+    "Steps" : {
+
+    },
+    "steps today" : {
+
+    },
+    "Synced" : {
+
+    },
+    "Turn steps into coins in Crypto Clicker on your iPhone. Steps unlock after %@ taps." : {
+
+    }
   },
   "version" : "1.0"
 }

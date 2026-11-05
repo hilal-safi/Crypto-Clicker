@@ -76,7 +76,7 @@ coins, trade tokens, and prestige for permanent bonuses and perks.
   free spins included). In To the Moon the multiplier climbs up a price chart until the market
   crashes: cash out in time (or set an automatic cash-out), and every target returns 97% on average.
   Wins pay tokens plus a coin bonus, with confetti and a shower of coins. Every round is paid once.
-- **Unlocking games.** The twelve games unlock one at a time. 21 Million and Block Chain cost a few thousand
+- **Unlocking games.** Each game costs more than the one before, so they open roughly one at a time. 21 Million and Block Chain cost a few thousand
   coins, and each game after costs several times the one before, up to about one and a half trillion
   for Scam Invaders: a player who keeps playing gets the first two in the first quarter hour and about
   seven in three hours, and one who checks in four times a day gets a new one every half day or so,
