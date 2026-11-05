@@ -360,6 +360,16 @@
         }
       }
     },
+    "%@s %lld–%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@s %2$lld–%3$lld"
+          }
+        }
+      }
+    },
     "%lld" : {
 
     },
@@ -695,16 +705,6 @@
     },
     "Best %@" : {
 
-    },
-    "Best %@ reached: %lld. %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Best %1$@ reached: %2$lld. %3$@"
-          }
-        }
-      }
     },
     "Best buy now" : {
 
@@ -1129,6 +1129,9 @@
     "Each step pays" : {
 
     },
+    "Earlier %@s" : {
+
+    },
     "Earn coins from steps!" : {
 
     },
@@ -1219,6 +1222,16 @@
     },
     "Free spins" : {
 
+    },
+    "From %@ %lld, points pay %lld%%. %@ 1 pays them all." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "From %1$@ %2$lld, points pay %3$lld%%. %4$@ 1 pays them all."
+          }
+        }
+      }
     },
     "From %@ to %@ coins per second, best %@" : {
       "localizations" : {
@@ -1368,6 +1381,9 @@
     "Last synced" : {
 
     },
+    "Later %@s" : {
+
+    },
     "LAUNCH" : {
 
     },
@@ -1408,9 +1424,6 @@
           }
         }
       }
-    },
-    "Level 1" : {
-
     },
     "Level Complete!" : {
 
@@ -1520,6 +1533,9 @@
 
     },
     "Miners stop a minute after you leave. Offline Mining keeps them earning while the app is closed." : {
+
+    },
+    "Mining" : {
 
     },
     "Missed: %@" : {
@@ -1637,16 +1653,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Next: Level %1$lld, %2$@. %3$@ in %4$lld moves."
-          }
-        }
-      }
-    },
-    "No %@s reached yet. %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "No %1$@s reached yet. %2$@"
           }
         }
       }
@@ -1806,9 +1812,6 @@
     "Play Level %lld" : {
 
     },
-    "Play Level 1" : {
-
-    },
     "Play Random Walls" : {
 
     },
@@ -1827,7 +1830,7 @@
     "Play Today's Puzzle" : {
 
     },
-    "Play Wave 1" : {
+    "Play Wave %lld" : {
 
     },
     "Play Waves" : {
@@ -2275,10 +2278,10 @@
     "The chart adds a point every minute while you play." : {
 
     },
-    "The classic formation from wave 1 up: rug pullers on top, then pump bots and meme coins, marching a little faster and lower every wave. The Bear comes every fifth wave." : {
+    "The classic formation: rug pullers on top, then pump bots and meme coins, marching a little faster and lower every wave. The Bear comes every fifth wave. Start at wave 1 or any wave you've reached." : {
 
     },
-    "The classic walls from level 1 up: cold storage, liquidation and airdrop blocks, and the whale every fifth level." : {
+    "The classic walls: cold storage, liquidation and airdrop blocks, and the whale every fifth level. Start at level 1 or any level you've reached." : {
 
     },
     "The full rules for every game, locked or not. Each game also has a How to Play button of its own." : {
@@ -2481,7 +2484,7 @@
     "Wave" : {
 
     },
-    "Wave 1" : {
+    "Wave %lld" : {
 
     },
     "Waves" : {

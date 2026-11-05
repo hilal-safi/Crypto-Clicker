@@ -1569,10 +1569,10 @@
     "Offline Mining" : {
 
     },
-    "On the start screen, Levels starts at level 1, Random Walls makes up a new wall for every level (never the same twice), and Settings sets the ball's speed." : {
+    "On the start screen, Levels starts at level 1 or any level you've reached (tap it on the track; a later start pays %lld%% of its points from level 6, less the further in), Random Walls makes up a new wall for every level (never the same twice), and Settings sets the ball's speed." : {
 
     },
-    "On the start screen, Waves starts at wave 1, Random Waves makes up a new formation for every wave (never the same twice, with the kinds mixed up), and Settings sets the speed." : {
+    "On the start screen, Waves starts at wave 1 or any wave you've reached (tap it on the track; a later start pays %lld%% of its points from wave 6, less the further in), Random Waves makes up a new formation for every wave (never the same twice, with the kinds mixed up), and Settings sets the speed." : {
 
     },
     "One to four rows at once score 100, 300, 500 or 800, times the level. Four at once is a Full Block." : {
