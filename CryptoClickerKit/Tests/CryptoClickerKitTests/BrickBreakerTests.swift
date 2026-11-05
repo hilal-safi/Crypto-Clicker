@@ -27,6 +27,46 @@ struct BrickBreakerTests {
         }
     }
 
+    @Test func aGameCanStartAtALevelReachedBefore() {
+        let later = Game(seed: 3, startLevel: 4)
+        #expect(later.level == 4 && later.lives == Game.startingLives && later.score == 0)
+        #expect(later.phase == .serving && later.boss == nil)
+        #expect(Set(later.bricks.map(\.row)).count == Game.rows(for: 4))
+        #expect(later.speed > Game(seed: 3).speed) // As fast as level 4 always is.
+        // A boss level starts with the whale.
+        let whale = Game(seed: 3, startLevel: 5)
+        #expect(whale.isBossLevel && whale.boss != nil)
+        // Nonsense starts at level 1.
+        #expect(Game(seed: 3, startLevel: 0).level == 1 && Game(seed: 3, startLevel: -4).level == 1)
+    }
+
+    @Test func levelsUnlockAsFarAsTheBestLevelReached() {
+        var state = GameState.make()
+        #expect(state.brickBreakerStartLevels == 1...1)
+        state.finishBrickBreaker(score: 900, bricks: 60, level: 7)
+        #expect(state.brickBreakerStartLevels == 1...7)
+        state.finishBrickBreaker(score: 100, bricks: 5, level: 2) // A worse game keeps what's unlocked.
+        #expect(state.brickBreakerStartLevels == 1...7)
+    }
+
+    @Test func aGameStartedFurtherInPaysASmallerShare() throws {
+        var state = GameState.make(miners: minersEarning(10))
+        let fromStart = state.finishBrickBreaker(score: 1_000, bricks: 50, level: 8)
+        #expect(fromStart.coins == state.arcadeReward(.brickBreaker, score: 1_000, multiplier: 1 + Tuning.newBestBonus))
+        // From level 6: 1 / (1 + 0.3 × 5) = 40% of its points, and only the levels it cleared count.
+        let cleared = state.stats.brickBreakerLevelsCleared
+        let later = state.finishBrickBreaker(score: 900, bricks: 40, level: 9, startLevel: 6)
+        #expect(later.coins == state.arcadeReward(.brickBreaker, score: 360))
+        #expect(state.stats.brickBreakerLevelsCleared == cleared + 3)
+        #expect(state.stats.brickBreakerBestLevel == 9)
+        // A held run remembers where it started.
+        state.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: 500, detail: 20, extra: 7, records: .init(start: 6)))
+        let held = state.payUnfinishedRun()
+        #expect(held?.payout.coins == state.arcadeReward(.brickBreaker, score: 200))
+        let run = ArcadeRun(game: .brickBreaker, score: 5, detail: 1, extra: 6, records: .init(start: 6))
+        #expect(try JSONDecoder().decode(ArcadeRun.self, from: JSONEncoder().encode(run)) == run)
+    }
+
     @Test func theServingBallRidesThePaddle() {
         var game = Game()
         game.movePaddle(to: 0.8)

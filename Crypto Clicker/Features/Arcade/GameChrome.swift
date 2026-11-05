@@ -318,8 +318,9 @@ struct ModeCard<Buttons: View>: View {
     }
 }
 
-/// Ten levels (or waves) at a time on a game's start screen: the ones reached so far lit in the
-/// game's color, and every boss marked with its symbol.
+/// A game's levels (or waves) ten at a time, those reached filled in and every boss marked. With a
+/// `selection`, each level reached is a button that picks where the next game starts, the pick
+/// ringed, and arrows page through the tens.
 struct LevelTrack: View {
     let best: Int
     let bossEvery: Int
@@ -329,33 +330,116 @@ struct LevelTrack: View {
     let noun: String
     /// When the bosses come, for VoiceOver: "A boss every fifth level."
     let bossNote: String
+    /// The level the next game starts at.
+    var selection: Binding<Int>? = nil
+    /// The first number of the ten on show; `nil` until the player pages.
+    @State private var shownFirst: Int?
+
+    /// The furthest level that can be picked: 1 before any game.
+    private var reachable: Int { max(1, best) }
+
+    private static func first(ofTenWith number: Int) -> Int { max(0, number - 1) / 10 * 10 + 1 }
 
     var body: some View {
-        let first = max(0, best - 1) / 10 * 10 + 1
-        HStack(spacing: 4) {
-            ForEach(first..<(first + 10), id: \.self) { number in
-                let reached = number <= best
-                ZStack {
-                    Circle()
-                        .fill(reached ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(Color.primary.opacity(0.08)))
-                    if number % bossEvery == 0 {
-                        Image(systemName: bossSymbol)
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(reached ? .white : Theme.gold)
+        let first = shownFirst ?? Self.first(ofTenWith: selection?.wrappedValue ?? best)
+        VStack(spacing: 8) {
+            HStack(spacing: 4) {
+                ForEach(first..<(first + 10), id: \.self) { number in
+                    if let selection, number <= reachable {
+                        Button { selection.wrappedValue = number } label: { circle(number) }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(label(for: number))
+                            .accessibilityAddTraits(selection.wrappedValue == number ? .isSelected : [])
                     } else {
-                        Text("\(number)")
-                            .font(.footnote.weight(.bold).monospacedDigit())
-                            .foregroundStyle(reached ? .white : .primary)
-                            .minimumScaleFactor(0.6)
+                        circle(number)
+                            .accessibilityHidden(selection != nil)
                     }
                 }
-                .frame(maxWidth: 34)
-                .aspectRatio(1, contentMode: .fit)
+            }
+            .frame(maxWidth: .infinity)
+            if selection != nil && reachable > 10 {
+                pager(first: first)
             }
         }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(best > 0 ? "Best \(noun) reached: \(best). \(bossNote)" : "No \(noun)s reached yet. \(bossNote)")
+        .accessibilityElement(children: selection == nil ? .ignore : .contain)
+        .accessibilityLabel(selection == nil ? summary : "")
+    }
+
+    private func circle(_ number: Int) -> some View {
+        let reached = number <= best
+        let isPicked = selection?.wrappedValue == number
+        return ZStack {
+            Circle()
+                .fill(reached ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(Color.primary.opacity(0.08)))
+            if number % bossEvery == 0 {
+                Image(systemName: bossSymbol)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(reached ? .white : Theme.gold)
+            } else {
+                Text("\(number)")
+                    .font(.footnote.weight(.bold).monospacedDigit())
+                    .foregroundStyle(reached ? .white : .primary)
+                    .minimumScaleFactor(0.6)
+            }
+        }
+        .overlay {
+            if isPicked {
+                Circle().strokeBorder(.white, lineWidth: 2.5)
+                Circle().strokeBorder(tint, lineWidth: 1).padding(-2)
+            }
+        }
+        .frame(maxWidth: 34)
+        .aspectRatio(1, contentMode: .fit)
+        .contentShape(.circle)
+    }
+
+    /// "‹ 11–20 ›": the tens up to the furthest level reached.
+    private func pager(first: Int) -> some View {
+        HStack(spacing: 18) {
+            Button { shownFirst = max(1, first - 10) } label: { Image(systemName: "chevron.left") }
+                .disabled(first == 1)
+                .accessibilityLabel("Earlier \(noun)s")
+            Text("\(noun.capitalized)s \(first)–\(first + 9)")
+                .font(.footnote.weight(.semibold).monospacedDigit())
+                .foregroundStyle(.subtext)
+            Button { shownFirst = first + 10 } label: { Image(systemName: "chevron.right") }
+                .disabled(first + 10 > reachable)
+                .accessibilityLabel("Later \(noun)s")
+        }
+        .font(.subheadline.weight(.bold))
+        .tint(tint)
+    }
+
+    private func label(for number: Int) -> String {
+        "\(noun.capitalized) \(number)" + (number % bossEvery == 0 ? ", boss" : "")
+    }
+
+    private var summary: String {
+        best > 0 ? "Best \(noun) reached: \(best). \(bossNote)" : "No \(noun)s reached yet. \(bossNote)"
+    }
+}
+
+/// What a game started further in pays, under its level track: "From level 6, points pay 40%".
+enum StartPay {
+    static func percent(start: Int, slope: Double) -> Int {
+        Int((Tuning.startPayShare(level: start, slope: slope) * 100).rounded())
+    }
+
+    /// The line itself, or nothing from level 1 (which pays in full); `separator` goes before it.
+    static func note(start: Int, noun: String, slope: Double, separator: String = "") -> String {
+        guard start > 1 else { return "" }
+        return separator + "from \(noun) \(start), points pay \(percent(start: start, slope: slope))%"
+    }
+
+    @ViewBuilder
+    static func label(start: Int, noun: String, slope: Double) -> some View {
+        if start > 1 {
+            Label("From \(noun) \(start), points pay \(percent(start: start, slope: slope))%. \(noun.capitalized) 1 pays them all.",
+                  systemImage: "info.circle.fill")
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.subtext)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
 

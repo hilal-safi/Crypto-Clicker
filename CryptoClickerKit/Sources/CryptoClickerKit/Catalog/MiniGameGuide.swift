@@ -277,7 +277,7 @@ extension MiniGame {
     private static var brickBreakerGuide: MiniGameGuide {
         typealias PowerUp = BrickBreakerGame.PowerUp
         func seconds(_ powerUp: PowerUp) -> Int { Int(powerUp.duration ?? 0) }
-        let startScreen = localized("On the start screen, Levels starts at level 1, Random Walls makes up a new wall for every level (never the same twice), and Settings sets the ball's speed.")
+        let startScreen = localized("On the start screen, Levels starts at level 1 or any level you've reached (tap it on the track; a later start pays \(Int((Tuning.startPayShare(level: 6, slope: Tuning.brickBreakerStartPaySlope) * 100).rounded()))% of its points from level 6, less the further in), Random Walls makes up a new wall for every level (never the same twice), and Settings sets the ball's speed.")
         let lives = localized("You have \(BrickBreakerGame.startingLives) lives. You lose one when the last ball falls past the paddle, along with any power-ups running; the game ends with the last life.")
         return MiniGameGuide(
             objective: localized("Bounce the coin ball off your paddle to smash every hash block and reach the next, faster level. Every \(BrickBreakerGame.bossEvery)th level the whale comes to dump on you."),
@@ -360,7 +360,7 @@ extension MiniGame {
             controls: [
                 localized("Drag anywhere to move your ship. It fires while your finger is down: lift it to hold fire."),
                 localized("Only two volleys can be in the air at once: shots that hit come back sooner than ones that fly off the top."),
-                localized("On the start screen, Waves starts at wave 1, Random Waves makes up a new formation for every wave (never the same twice, with the kinds mixed up), and Settings sets the speed."),
+                localized("On the start screen, Waves starts at wave 1 or any wave you've reached (tap it on the track; a later start pays \(Int((Tuning.startPayShare(level: 6, slope: Tuning.invadersStartPaySlope) * 100).rounded()))% of its points from wave 6, less the further in), Random Waves makes up a new formation for every wave (never the same twice, with the kinds mixed up), and Settings sets the speed."),
             ],
             scoring: [
                 localized("Meme coins score \(kinds.memeCoin.points), pump bots \(kinds.pumpBot.points) and rug pullers \(kinds.rugPuller.points)."),

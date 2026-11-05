@@ -292,9 +292,12 @@ public struct InvadersGame: Sendable {
     private var nextID = 0
     private var rng: SeededGenerator
 
-    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal, waves: WaveStyle = .classic) {
+    /// `startWave` starts the game further in, at a wave the player has reached before.
+    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal, waves: WaveStyle = .classic,
+                startWave: Int = 1) {
         gameSpeed = speed
         waveStyle = waves
+        wave = max(1, startWave)
         rng = SeededGenerator(seed: seed)
         whaleClock = Double.random(in: 16...24, using: &rng)
         layOutWave()

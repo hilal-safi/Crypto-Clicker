@@ -228,6 +228,16 @@ public enum Tuning {
     /// points pay this share.
     public static let bubbleFlashPay = 0.65
     public static let brickBreakerSecondsPerPoint = 0.36
+    /// Starting Hash Smash or Scam Invaders further in skips the easy levels, and later levels score
+    /// more a minute (bigger clear bonuses and bosses), so a game started at level `n` pays
+    /// `1 / (1 + slope × (n − 1))` of its points (balance tested). From level 1 it pays them all.
+    public static let brickBreakerStartPaySlope = 0.3
+    public static let invadersStartPaySlope = 0.1
+
+    /// The share of its points a game started at `level` pays, for a game's slope.
+    public static func startPayShare(level: Int, slope: Double) -> Double {
+        1 / (1 + slope * Double(max(0, level - 1)))
+    }
     public static let invadersSecondsPerPoint = 0.09
     public static let bubbleSecondsPerPoint = 0.11
     public static let merge2048SecondsPerPoint = 0.055

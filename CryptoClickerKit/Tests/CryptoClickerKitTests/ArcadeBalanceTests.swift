@@ -128,6 +128,35 @@ struct ArcadeBalanceTests {
         #expect(fast <= 1.6 * normal)
     }
 
+    /// Starting Hash Smash or Scam Invaders at a level or wave reached before pays about what a game
+    /// from the start does: later levels score more a minute, so their points pay a smaller share
+    /// (`Tuning.startPayShare`). Boss starts are checked too, so a boss can't be farmed. A game swings a
+    /// lot with its layout, so this takes a dozen games for each start.
+    @Test func startingFurtherInPaysAboutTheSame() {
+        guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
+        let seeds: [UInt64] = [11, 22, 33, 44, 55, 66, 77, 88, 99, 110, 121, 132]
+        func smash(_ start: Int) -> Double {
+            seeds.map { BrickBot.pointsPerMinute(seed: $0, startLevel: start) }.reduce(0, +) / Double(seeds.count)
+                * MiniGame.brickBreaker.secondsPerPoint * Tuning.startPayShare(level: start, slope: Tuning.brickBreakerStartPaySlope)
+        }
+        func invaders(_ start: Int) -> Double {
+            seeds.map { InvadersBot.pointsPerMinute(seed: $0, startWave: start) }.reduce(0, +) / Double(seeds.count)
+                * MiniGame.invaders.secondsPerPoint * Tuning.startPayShare(level: start, slope: Tuning.invadersStartPaySlope)
+        }
+        let first = smash(1)
+        for start in [3, 5, 6, 10, 11] {
+            let income = smash(start)
+            print("Balance: Hash Smash from level", start, "| income seconds/min", Int(income), "(from level 1:", Int(first), ")")
+            #expect((55...170).contains(income), "Hash Smash from level \(start) pays \(income)")
+        }
+        let firstWave = invaders(1)
+        for start in [3, 6, 11, 16] {
+            let income = invaders(start)
+            print("Balance: Scam Invaders from wave", start, "| income seconds/min", Int(income), "(from wave 1:", Int(firstWave), ")")
+            #expect((55...170).contains(income), "Scam Invaders from wave \(start) pays \(income)")
+        }
+    }
+
     @Test(arguments: [MiniGame.tetris, .merge2048, .snake, .brickBreaker, .bubbleBlaster, .pumpDump, .tokenSwap, .invaders])
     func everyArcadeGamePaysAboutTheSame(_ game: MiniGame) {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
@@ -435,9 +464,9 @@ enum SnakeBot {
 /// left each time the ball comes down.
 enum BrickBot {
     static func pointsPerMinute(seed: UInt64, minutes: Double = 3, levels: BrickBreakerGame.LevelStyle = .classic,
-                                speed: GameSpeed = .normal) -> Double {
+                                speed: GameSpeed = .normal, startLevel: Int = 1) -> Double {
         var rng = SeededGenerator(seed: seed)
-        var game = BrickBreakerGame(seed: seed, speed: speed, levels: levels)
+        var game = BrickBreakerGame(seed: seed, speed: speed, levels: levels, startLevel: startLevel)
         let frame = 1.0 / 60
         var time = 0.0
         var target: Vector2?
@@ -625,8 +654,8 @@ enum InvadersBot {
     static let dodgeTime = 0.45
 
     static func pointsPerMinute(seed: UInt64, minutes: Double = 3, speed: GameSpeed = .normal,
-                                waves: InvadersGame.WaveStyle = .classic) -> Double {
-        var game = InvadersGame(seed: seed, speed: speed, waves: waves)
+                                waves: InvadersGame.WaveStyle = .classic, startWave: Int = 1) -> Double {
+        var game = InvadersGame(seed: seed, speed: speed, waves: waves, startWave: startWave)
         let time = play(&game, seconds: minutes * 60)
         return Double(game.score) / (time / 60)
     }

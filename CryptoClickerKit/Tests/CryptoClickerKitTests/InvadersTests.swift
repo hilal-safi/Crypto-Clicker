@@ -31,6 +31,36 @@ struct InvadersTests {
         return game.frame(of: invader).midX
     }
 
+    @Test func aGameCanStartAtAWaveReachedBefore() {
+        let later = Game(seed: 1, startWave: 3)
+        #expect(later.wave == 3 && later.lives == Game.startingLives && later.score == 0)
+        #expect(later.phase == .incoming && later.boss == nil)
+        #expect(later.invaders.count == Game.rows * Game.columns)
+        #expect(later.invaders.contains { $0.isGolden }) // From wave 2 on, as always.
+        let bear = Game(seed: 1, startWave: 5)
+        #expect(bear.isBossWave && bear.boss != nil)
+        #expect(Game(seed: 1, startWave: 0).wave == 1)
+    }
+
+    @Test func wavesUnlockAsFarAsTheBestWaveReached() {
+        var state = GameState.make()
+        #expect(state.invadersStartWaves == 1...1)
+        state.finishInvaders(score: 1_000, destroyed: 60, wave: 6)
+        #expect(state.invadersStartWaves == 1...6)
+        state.finishInvaders(score: 10, destroyed: 1, wave: 1)
+        #expect(state.invadersStartWaves == 1...6)
+    }
+
+    @Test func aGameStartedFurtherInPaysASmallerShare() {
+        var state = GameState.make(miners: minersEarning(10))
+        state.finishInvaders(score: 5_000, destroyed: 100, wave: 7)
+        // From wave 6: 1 / (1 + 0.1 × 5) = two thirds of its points.
+        let later = state.finishInvaders(score: 3_000, destroyed: 50, wave: 8, startWave: 6)
+        #expect(later.coins == state.arcadeReward(.invaders, score: 2_000))
+        state.holdArcadeRun(ArcadeRun(game: .invaders, score: 1_500, detail: 30, extra: 7, records: .init(start: 6)))
+        #expect(state.payUnfinishedRun()?.payout.coins == state.arcadeReward(.invaders, score: 1_000))
+    }
+
     @Test func aGameStartsWithAFullFormationBehindFourFirewalls() {
         var game = Game(seed: 1)
         #expect(game.invaders.count == Game.rows * Game.columns)
