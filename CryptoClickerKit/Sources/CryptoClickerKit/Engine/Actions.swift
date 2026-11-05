@@ -1,0 +1,486 @@
+import Foundation
+
+/// Coins credited while the player was away, and how they were made.
+public struct OfflineReport: Equatable, Sendable, Identifiable {
+    /// How long the app was closed.
+    public let elapsed: TimeInterval
+    /// How much of that time was paid: up to the Offline Mining limit.
+    public let credited: TimeInterval
+    public let earned: Double
+    /// What earned the coins, largest first: each miner type, then automatic taps.
+    /// The amounts add up to `earned`.
+    public let sources: [Source]
+    /// Paid seconds that ran during a Bull Run, and its multiplier (1 when there was none).
+    public let boostedSeconds: TimeInterval
+    public let boostMultiplier: Double
+    /// The permanent multipliers on production while the player was away.
+    public let multipliers: Multipliers
+    /// The Offline Mining limit at the time (0 without the power-up).
+    public let offlineCap: TimeInterval
+
+    public var id: Double { elapsed }
+    public var wasCapped: Bool { credited < elapsed }
+
+    public struct Source: Equatable, Sendable, Identifiable {
+        public enum Kind: Equatable, Sendable {
+            case miner(MinerID)
+            case autoTaps
+        }
+
+        public let kind: Kind
+        /// Units owned, or automatic taps per second.
+        public let count: Double
+        public let coins: Double
+
+        public var id: String {
+            switch kind {
+            case .miner(let miner): miner.rawValue
+            case .autoTaps: "autoTaps"
+            }
+        }
+    }
+
+    public struct Multipliers: Equatable, Sendable {
+        public let upgrades: Double
+        public let prestige: Double
+        public let achievements: Double
+        public let difficulty: Double
+
+        public var total: Double { upgrades * prestige * achievements * difficulty }
+    }
+}
+
+/// What an airdrop holds, decided when it appears so a whale can look different.
+public enum AirdropKind: String, Codable, Equatable, Sendable {
+    case coins, bullRun, whale
+}
+
+/// One airdrop, caught or missed, for the history in Statistics.
+public struct AirdropLog: Codable, Equatable, Sendable {
+    public let kind: AirdropKind
+    public let date: Date
+    /// Whether it was caught before it went away.
+    public let caught: Bool
+    /// The coins it paid: none for a miss, or for a Bull Run, whose reward is the boost.
+    public let coins: Double
+
+    public init(kind: AirdropKind, date: Date, caught: Bool, coins: Double = 0) {
+        self.kind = kind
+        self.date = date
+        self.caught = caught
+        self.coins = coins
+    }
+}
+
+/// What an airdrop paid out.
+public enum AirdropReward: Equatable, Sendable {
+    case coins(Double)
+    case bullRun(multiplier: Double, duration: TimeInterval)
+    /// A rare whale: about an hour of income at once.
+    case whale(Double)
+}
+
+enum CreditSource {
+    case tap, idle, offline, steps, games, airdrop, daily
+}
+
+/// Every way the player can change the game. Each method validates its own rules,
+/// so the UI can call them directly and simply ignore a `false` result.
+/// Mini-game actions live in `MiniGameActions.swift`.
+extension GameState {
+    // MARK: Time
+
+    /// Credits income for the time since the last update. The live tick loop and a return
+    /// from the background share this one path, so time is never paid twice or lost:
+    /// short gaps are paid in full, longer ones (time away) up to the Offline Mining limit,
+    /// with a report for the welcome-back screen.
+    @discardableResult
+    public mutating func advance(to now: Date) -> OfflineReport? {
+        let elapsed = now.timeIntervalSince(lastUpdate)
+        guard elapsed > 0 else {
+            if elapsed < 0 { lastUpdate = now } // The clock moved backwards: re-anchor, pay nothing.
+            return nil
+        }
+        let isAway = elapsed >= Tuning.awayThreshold
+        let credited = min(elapsed, timeAwayLimit)
+        let earned = income(from: lastUpdate, seconds: credited)
+        let report = isAway ? offlineReport(elapsed: elapsed, credited: credited, earned: earned) : nil
+        credit(earned, source: isAway ? .offline : .idle)
+        lastUpdate = now
+        journey.noteCoins(stats.lifetimeCoins, at: now)
+        expireBoost(at: now)
+        stats.peakIncome = max(stats.peakIncome, idleIncome(at: now))
+        return report
+    }
+
+    /// Breaks down `credited` seconds of income from `lastUpdate`, before it is paid.
+    func offlineReport(elapsed: TimeInterval, credited: TimeInterval, earned: Double) -> OfflineReport {
+        var boostedSeconds = 0.0
+        var multiplier = 1.0
+        if let boost {
+            boostedSeconds = min(credited, max(0, boost.endsAt.timeIntervalSince(lastUpdate)))
+            if boostedSeconds > 0 { multiplier = boost.multiplier }
+        }
+        let normalSeconds = credited - boostedSeconds
+        var sources: [OfflineReport.Source] = MinerID.allCases.compactMap { miner in
+            let rate = rate(of: miner)
+            guard rate > 0 else { return nil }
+            return .init(kind: .miner(miner), count: Double(owned(miner)),
+                         coins: rate * (normalSeconds + boostedSeconds * multiplier))
+        }
+        let autoTaps = autoTapsPerSecond
+        if autoTaps > 0 {
+            let base = baseProduction
+            let coins = autoTapIncome(production: base) * normalSeconds
+                + autoTapIncome(production: base * multiplier) * boostedSeconds
+            if coins > 0 { sources.append(.init(kind: .autoTaps, count: autoTaps, coins: coins)) }
+        }
+        sources.sort { $0.coins > $1.coins }
+        return OfflineReport(
+            elapsed: elapsed, credited: credited, earned: earned, sources: sources,
+            boostedSeconds: boostedSeconds, boostMultiplier: multiplier,
+            multipliers: .init(upgrades: upgradeProductionMultiplier, prestige: prestigeBonus,
+                               achievements: achievementBonus, difficulty: difficulty.productionMultiplier),
+            offlineCap: offlineCap)
+    }
+
+    /// Idle income over `seconds` starting at `start`, honouring a boost that ends part-way.
+    func income(from start: Date, seconds: TimeInterval) -> Double {
+        guard seconds > 0 else { return 0 }
+        let rates = incomeRates
+        var boosted = 0.0
+        if let boost { boosted = min(seconds, max(0, boost.endsAt.timeIntervalSince(start))) }
+        return rates.normal * (seconds - boosted) + rates.boosted * boosted
+    }
+
+    mutating func expireBoost(at now: Date) {
+        if let boost, now >= boost.endsAt { self.boost = nil }
+    }
+
+    /// Starts a Bull Run, or keeps a longer one that is already running.
+    mutating func startBullRun(duration: TimeInterval, at now: Date) {
+        let ends = now.addingTimeInterval(duration)
+        boost = Boost(multiplier: Tuning.bullRunMultiplier, endsAt: max(ends, activeBoost(at: now)?.endsAt ?? ends))
+    }
+
+    /// Records idle income for the income chart, at most once per `Tuning.incomeSampleInterval`;
+    /// older samples are thinned as they age.
+    public mutating func recordIncomeSample(at now: Date) {
+        incomeHistory.removeAll { $0.date > now } // The clock moved backwards.
+        if let last = incomeHistory.last, now.timeIntervalSince(last.date) < Tuning.incomeSampleInterval { return }
+        incomeHistory.append(IncomeSample(date: now, income: baseIdleIncome))
+        incomeHistory = Self.thinned(incomeHistory, at: now)
+    }
+
+    /// Thins older samples to one per period of their age tier (see `Tuning.incomeHistoryTiers`),
+    /// keeping each period's highest income, then caps the count.
+    static func thinned(_ samples: [IncomeSample], at now: Date) -> [IncomeSample] {
+        var result: [IncomeSample] = []
+        result.reserveCapacity(samples.count)
+        var period: (tier: Int, index: Double)?
+        for sample in samples {
+            let age = now.timeIntervalSince(sample.date)
+            guard let tier = Tuning.incomeHistoryTiers.lastIndex(where: { age >= $0.age }) else {
+                result.append(sample)
+                period = nil
+                continue
+            }
+            let index = (sample.date.timeIntervalSinceReferenceDate / Tuning.incomeHistoryTiers[tier].bucket).rounded(.down)
+            if let period, period.tier == tier, period.index == index, let last = result.last {
+                if sample.income >= last.income { result[result.count - 1] = sample }
+            } else {
+                result.append(sample)
+                period = (tier, index)
+            }
+        }
+        let overflow = result.count - Tuning.maxIncomeSamples
+        return overflow > 0 ? Array(result.dropFirst(overflow)) : result
+    }
+
+    // MARK: Tapping
+
+    /// Credits `count` taps and returns the coins earned. `combo` is this tap's place in a run of
+    /// quick taps (1 for a lone tap): longer runs multiply its value, up to the combo maximum.
+    @discardableResult
+    public mutating func tap(count: Int = 1, at now: Date, combo: Int = 1) -> Double {
+        guard count > 0 else { return 0 }
+        let value = combo > 1 ? Self.wholeCoins(tapValue(at: now) * comboMultiplier(streak: combo), minimum: 1)
+                              : tapValue(at: now)
+        let earned = value * Double(count)
+        credit(earned, source: .tap)
+        stats.taps += count
+        stats.bestTap = max(stats.bestTap, value)
+        stats.bestCombo = max(stats.bestCombo, combo)
+        return earned
+    }
+
+    /// Applies a batch of taps made on Apple Watch exactly once.
+    /// Returns `nil` when the batch was already applied.
+    ///
+    /// Numbered batches are checked against the last number applied from their watch, which is
+    /// saved with the game: batches from one watch arrive in order, so this remembers every batch
+    /// ever applied, however many arrive at once. Batches from watch apps that don't number them
+    /// are remembered by id (the newest `Tuning.rememberedWatchBatches`).
+    @discardableResult
+    public mutating func applyWatchTaps(_ batch: WatchTapBatch, at now: Date) -> Double? {
+        if let source = batch.source, let sequence = batch.sequence {
+            let key = source.uuidString
+            guard sequence > watchSequences[key, default: 0] else { return nil }
+            watchSequences[key] = sequence
+        } else {
+            guard !recentWatchBatches.contains(batch.id) else { return nil }
+            recentWatchBatches.append(batch.id)
+            let overflow = recentWatchBatches.count - Tuning.rememberedWatchBatches
+            if overflow > 0 { recentWatchBatches.removeFirst(overflow) }
+        }
+        let taps = min(max(batch.taps, 0), Tuning.maxWatchTapsPerBatch)
+        return tap(count: taps, at: now)
+    }
+
+    // MARK: Shopping
+
+    @discardableResult
+    public mutating func buy(_ miner: MinerID, quantity: Int) -> Bool {
+        guard quantity > 0, isRevealed(miner) else { return false }
+        let cost = price(of: miner, quantity: quantity)
+        guard cost.isFinite, cost <= coins else { return false }
+        spend(cost)
+        let count = owned(miner) + quantity
+        miners[miner] = count
+        if journey.miners[miner] == nil { journey.miners[miner] = lastUpdate }
+        stats.minersBought += quantity
+        stats.maxOwned[miner] = max(stats.maxOwned[miner, default: 0], count)
+        stats.maxTotalMiners = max(stats.maxTotalMiners, totalMiners)
+        return true
+    }
+
+    /// Buys the miner's next Mk upgrade, which doubles its output for the rest of the run.
+    @discardableResult
+    public mutating func buyMinerUpgrade(_ miner: MinerID) -> Bool {
+        guard let next = availableMinerUpgrade(miner), next.price <= coins else { return false }
+        spend(next.price)
+        minerUpgrades[miner] = next.level + 1
+        stats.minerUpgradesBought += 1
+        return true
+    }
+
+    @discardableResult
+    public mutating func buy(_ upgrade: UpgradeID) -> Bool {
+        guard !upgrades.contains(upgrade), isRevealed(upgrade), upgrade.cost <= coins else { return false }
+        spend(upgrade.cost)
+        upgrades.insert(upgrade)
+        stats.maxUpgrades = max(stats.maxUpgrades, upgrades.count)
+        return true
+    }
+
+    // MARK: Power-ups
+
+    /// Buys the next Offline Mining level. Like every power-up it is permanent: prestiges keep it.
+    @discardableResult
+    public mutating func buyOfflineMining() -> Bool {
+        guard let price = offlineMiningPrice, price <= coins else { return false }
+        spend(price)
+        offlineMiningLevel += 1
+        if journey.offlineMining == nil { journey.offlineMining = lastUpdate }
+        return true
+    }
+
+    // MARK: Power-ups
+
+    /// The next level's price, or `nil` at the last level.
+    public func powerUpPrice(_ powerUp: PowerUpID) -> Double? {
+        let level = powerUpLevel(powerUp)
+        guard level < powerUp.maxLevel else { return nil }
+        return Tuning.scaledPrice(powerUp.listPrice(afterLevel: level))
+    }
+
+    /// Whether the Shop shows a power-up: once lifetime coins reach a tenth of its first level's
+    /// price, and for Combo Overdrive, once Combo Booster is at its last level.
+    public func isRevealed(_ powerUp: PowerUpID) -> Bool {
+        if let required = powerUp.requires, powerUpLevel(required) < required.maxLevel { return false }
+        return powerUpLevel(powerUp) > 0 || stats.lifetimeCoins >= Tuning.scaledPrice(powerUp.listPrice(afterLevel: 0)) * 0.1
+    }
+
+    /// Buys a power-up's next level.
+    @discardableResult
+    public mutating func buyPowerUp(_ powerUp: PowerUpID) -> Bool {
+        guard isRevealed(powerUp), let price = powerUpPrice(powerUp), price <= coins else { return false }
+        spend(price)
+        powerUps[powerUp] = powerUpLevel(powerUp) + 1
+        stats.powerUpLevelsBought += 1
+        return true
+    }
+
+    // MARK: Settings
+
+    /// Changing difficulty never raises the current run's prestige reward,
+    /// unless the run has barely started (no miners yet).
+    public mutating func setDifficulty(_ newValue: Difficulty) {
+        difficulty = newValue
+        if totalMiners == 0 && stats.runCoins < 1_000 {
+            runPrestigeMultiplier = newValue.prestigeMultiplier
+        } else {
+            runPrestigeMultiplier = min(runPrestigeMultiplier, newValue.prestigeMultiplier)
+        }
+    }
+
+    // MARK: Airdrops
+
+    /// What a new airdrop holds. `roll` is a random number in `0..<1` (injected for testing).
+    public func airdropKind(roll: Double) -> AirdropKind {
+        if roll < whaleChance { return .whale }
+        if roll < whaleChance + Tuning.bullRunChance { return .bullRun }
+        return .coins
+    }
+
+    /// What a whale pays: an hour of income, but never more than the coins mined so far this run
+    /// (and never less than an ordinary airdrop's 30 seconds), so a whale in the first minutes can't skip
+    /// the opening.
+    public var whaleAmount: Double {
+        let income = rewardIncome
+        let hour = income * Tuning.whaleIncomeSeconds
+        return Self.wholeCoins(max(min(hour, stats.runCoins), income * Tuning.airdropMinimumSeconds), minimum: 1)
+    }
+
+    /// Pays an airdrop the player caught.
+    @discardableResult
+    public mutating func claimAirdrop(_ kind: AirdropKind, at now: Date) -> AirdropReward {
+        stats.airdrops += 1
+        let income = rewardIncome
+        let reward: AirdropReward
+        switch kind {
+        case .bullRun:
+            stats.bullRuns += 1
+            startBullRun(duration: bullRunDuration, at: now)
+            reward = .bullRun(multiplier: Tuning.bullRunMultiplier, duration: bullRunDuration)
+        case .whale:
+            stats.whaleAirdrops += 1
+            let amount = whaleAmount
+            credit(amount, source: .airdrop)
+            reward = .whale(amount)
+        case .coins:
+            let amount = Self.wholeCoins(max(min(coins * Tuning.airdropBankShare, income * Tuning.airdropIncomeSeconds),
+                                             income * Tuning.airdropMinimumSeconds), minimum: 1)
+            credit(amount, source: .airdrop)
+            reward = .coins(amount)
+        }
+        let paid: Double = switch reward {
+        case .coins(let amount), .whale(let amount): amount
+        case .bullRun: 0
+        }
+        stats.bestAirdrop = max(stats.bestAirdrop, paid)
+        logAirdrop(AirdropLog(kind: kind, date: now, caught: true, coins: paid))
+        return reward
+    }
+
+    /// Notes an airdrop that went away before it was caught.
+    public mutating func missAirdrop(_ kind: AirdropKind, at now: Date) {
+        stats.airdropsMissed += 1
+        logAirdrop(AirdropLog(kind: kind, date: now, caught: false))
+    }
+
+    private mutating func logAirdrop(_ log: AirdropLog) {
+        recentAirdrops.append(log)
+        if recentAirdrops.count > Tuning.rememberedAirdrops {
+            recentAirdrops.removeFirst(recentAirdrops.count - Tuning.rememberedAirdrops)
+        }
+    }
+
+    // MARK: Steps
+
+    /// Starts rewarding steps from today. Fails until steps are unlocked by tapping.
+    @discardableResult
+    public mutating func connectSteps(today: String) -> Bool {
+        guard areStepsUnlocked else { return false }
+        steps.isConnected = true
+        if steps.startDay == nil { steps.startDay = today }
+        return true
+    }
+
+    public mutating func disconnectSteps() {
+        steps.isConnected = false
+    }
+
+    /// Counts new steps and pays for them. From the second day of the game, steps are paid as
+    /// they're walked; the first day's wait until the next day, so walking can't skip the opening.
+    /// `days` are HealthKit daily totals for the sync window, today included. Safe to call
+    /// repeatedly: no step is counted or paid twice.
+    @discardableResult
+    public mutating func creditSteps(_ days: [StepDay], today: String, at now: Date) -> StepCredit {
+        guard steps.isConnected else { return StepCredit(steps: 0, coins: 0) }
+        // Count what's new, today's steps included: quests, achievements and records see them now.
+        var counted = 0
+        for day in days {
+            let new = steps.uncounted(day)
+            guard new > 0 else { continue }
+            counted += new
+            steps.counted[day.key] = day.steps
+            stats.bestDaySteps = max(stats.bestDaySteps, day.steps)
+        }
+        stats.lifetimeSteps = stats.lifetimeSteps.addingCount(counted)
+        // Pay for the days that are over, and today's steps too after the first day, at today's
+        // step value.
+        let paysToday = !stepsPaidNextDay(today: today)
+        var paid = 0
+        var paidDays: [String] = []
+        for key in steps.counted.keys.sorted() where key < today || (key == today && paysToday) {
+            let unpaid = steps.unpaid(key)
+            guard unpaid > 0 else { continue }
+            paid = paid.addingCount(unpaid)
+            paidDays.append(key)
+            steps.credited[key] = steps.counted[key]
+        }
+        steps.todayKey = today
+        steps.todaySteps = days.first { $0.key == today }?.steps ?? steps.counted[today, default: 0]
+        steps.lastSync = now
+        if let oldest = days.map(\.key).min() {
+            steps.counted = steps.counted.filter { $0.key >= oldest }
+            steps.credited = steps.credited.filter { $0.key >= oldest }
+        }
+        guard paid > 0 else { return StepCredit(steps: 0, coins: 0, counted: counted) }
+        stats.stepsPaid = stats.stepsPaid.addingCount(paid)
+        let coins = Double(paid) * stepValue
+        credit(coins, source: .steps)
+        return StepCredit(steps: paid, coins: coins, counted: counted, days: paidDays)
+    }
+
+    /// Whether today's steps wait for tomorrow: only on the game's first day.
+    public func stepsPaidNextDay(today: String) -> Bool { isFirstDay(today) }
+
+    /// Coins today's steps will pay tomorrow, at today's step value (it grows with income). Only
+    /// the first day's steps wait; after that they're paid as they're synced.
+    public func pendingStepCoins(today: String) -> Double {
+        guard steps.isConnected, steps.todayKey == today else { return 0 }
+        return Double(steps.unpaid(today)) * stepValue
+    }
+
+    // MARK: Ledger
+
+    mutating func credit(_ amount: Double, source: CreditSource) {
+        guard amount.isFinite, amount > 0 else { return }
+        coins += amount
+        stats.lifetimeCoins += amount
+        stats.runCoins += amount
+        switch source {
+        case .tap: stats.earnedFromTaps += amount
+        case .idle: stats.earnedFromIdle += amount
+        case .offline: stats.earnedOffline += amount
+        case .steps: stats.earnedFromSteps += amount
+        case .games: stats.earnedFromGames += amount
+        case .airdrop: stats.earnedFromAirdrops += amount
+        case .daily: stats.earnedFromDaily += amount
+        }
+    }
+
+    mutating func spend(_ amount: Double) {
+        coins = max(0, coins - amount)
+        stats.spent += amount
+    }
+
+    /// Adds tokens to the wallet, stopping at `Int.max` rather than trapping (a 32-bit count on
+    /// Apple Watch).
+    mutating func giveTokens(_ token: TokenID, amount: Int) {
+        guard amount > 0 else { return }
+        tokens[token] = tokenCount(token).addingCount(amount)
+    }
+}

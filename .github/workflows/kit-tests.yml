@@ -1,0 +1,35 @@
+# Runs the CryptoClickerKit tests (all of the game's rules) on every push and pull request.
+# The kit has no UI or Apple frameworks, so it builds on Linux with the official Swift image.
+# Run it by hand from the Actions tab with "balance" ticked to add the balance and pacing
+# simulations (a few extra minutes).
+name: Kit tests
+
+on:
+  push:
+    branches: [main, "refactor/**"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      balance:
+        description: "Also run the balance and pacing simulations"
+        type: boolean
+        default: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    defaults:
+      run:
+        working-directory: CryptoClickerKit
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: swift build --build-tests
+      - name: Test
+        run: swift test --skip-build
+      - name: Balance and pacing
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.balance }}
+        env:
+          RUN_BALANCE_TESTS: "1"
+        run: swift test --skip-build --filter "ArcadeBalanceTests|PacingTests"

@@ -1,0 +1,2604 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    " " : {
+
+    },
+    "-%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "-%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "— — —" : {
+
+    },
+    "???" : {
+
+    },
+    "#" : {
+
+    },
+    "#0c7e" : {
+
+    },
+    "#3fa9" : {
+
+    },
+    "#9e02" : {
+
+    },
+    "#27d0" : {
+
+    },
+    "#61af" : {
+
+    },
+    "#b41d" : {
+
+    },
+    "#d7c5" : {
+
+    },
+    "#e8b3" : {
+
+    },
+    "%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@ · Daily Challenge" : {
+
+    },
+    "%@ (%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$lld)"
+          }
+        }
+      }
+    },
+    "%@ / %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ / %2$@"
+          }
+        }
+      }
+    },
+    "%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "%@ ×%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ ×%2$@"
+          }
+        }
+      }
+    },
+    "%@ a second, each worth %@ of a tap" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ a second, each worth %2$@ of a tap"
+          }
+        }
+      }
+    },
+    "%@ ago" : {
+
+    },
+    "%@ board" : {
+
+    },
+    "%@ Board" : {
+
+    },
+    "%@ built!" : {
+
+    },
+    "%@ caught · %@ missed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ caught · %2$@ missed"
+          }
+        }
+      }
+    },
+    "%@ chips" : {
+
+    },
+    "%@ coins" : {
+
+    },
+    "%@ coins per second" : {
+
+    },
+    "%@ coins per second, %@ per tap" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ coins per second, %2$@ per tap"
+          }
+        }
+      }
+    },
+    "%@ each" : {
+
+    },
+    "%@ field" : {
+
+    },
+    "%@ held · %@ bought" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ held · %2$@ bought"
+          }
+        }
+      }
+    },
+    "%@ in %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ in %2$lld"
+          }
+        }
+      }
+    },
+    "%@ more for %@ output" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ more for %2$@ output"
+          }
+        }
+      }
+    },
+    "%@ of %@ needed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@ needed"
+          }
+        }
+      }
+    },
+    "%@ of %@ XP to rank %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@ XP to rank %3$lld"
+          }
+        }
+      }
+    },
+    "%@ of the way to the next point" : {
+
+    },
+    "%@ owned" : {
+
+    },
+    "%@ owned · most %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ owned · most %2$@"
+          }
+        }
+      }
+    },
+    "%@ pays %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ pays %2$@"
+          }
+        }
+      }
+    },
+    "%@ per second" : {
+
+    },
+    "%@ per tap" : {
+
+    },
+    "%@ per tap · %@ an hour · %@ a day" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ per tap · %2$@ an hour · %3$@ a day"
+          }
+        }
+      }
+    },
+    "%@ points · +%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ points · +%2$@"
+          }
+        }
+      }
+    },
+    "%@ pts" : {
+
+    },
+    "%@ reward in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ reward in %2$@"
+          }
+        }
+      }
+    },
+    "%@ stats" : {
+
+    },
+    "%@ steps today" : {
+
+    },
+    "%@ well" : {
+
+    },
+    "%@ XP to Rank %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ XP to Rank %2$lld"
+          }
+        }
+      }
+    },
+    "%@, %@ coins, %@ %@ today, %lld owned" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@ coins, %3$@ %4$@ today, %5$lld owned"
+          }
+        }
+      }
+    },
+    "%@, %@: %@ coins, %@ of the total" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@: %3$@ coins, %4$@ of the total"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@: %@ in %lld moves. The same board for everyone today." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@ in %3$lld moves. The same board for everyone today."
+          }
+        }
+      }
+    },
+    "%@: +%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: +%2$lld"
+          }
+        }
+      }
+    },
+    "%@!" : {
+
+    },
+    "%@/s" : {
+
+    },
+    "%@%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$lld"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld balls" : {
+
+    },
+    "%lld free %@ at %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld free %2$@ at %3$@ %4$@"
+          }
+        }
+      }
+    },
+    "%lld in a row · %@ points" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld in a row · %2$@ points"
+          }
+        }
+      }
+    },
+    "%lld lives left" : {
+
+    },
+    "%lld minutes to score all you can. A new row drops every %lld seconds whatever you shoot, a second sooner each wave, and a miss only costs the streak." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld minutes to score all you can. A new row drops every %2$lld seconds whatever you shoot, a second sooner each wave, and a miss only costs the streak."
+          }
+        }
+      }
+    },
+    "%lld more below" : {
+
+    },
+    "%lld more for the %@ coin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld more for the %2$@ coin"
+          }
+        }
+      }
+    },
+    "%lld of %lld points" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld points"
+          }
+        }
+      }
+    },
+    "%lld of %lld stars" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld stars"
+          }
+        }
+      }
+    },
+    "%lld of 3 stars" : {
+
+    },
+    "%lld seconds" : {
+
+    },
+    "%lld seconds left" : {
+
+    },
+    "%lld ships left" : {
+
+    },
+    "%lld still hidden" : {
+
+    },
+    "%lld to go" : {
+
+    },
+    "%lld/%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "%llds" : {
+
+    },
+    "•" : {
+
+    },
+    "+%@" : {
+
+    },
+    "+%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "+%@ %@ profit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%1$@ %2$@ profit"
+          }
+        }
+      }
+    },
+    "+%@ coins" : {
+
+    },
+    "+%@ coins per second · pays for itself in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%1$@ coins per second · pays for itself in %2$@"
+          }
+        }
+      }
+    },
+    "+%@ coins, and +%@ for the week's %lldth" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%1$@ coins, and +%2$@ for the week's %3$lldth"
+          }
+        }
+      }
+    },
+    "+%@ production from achievements" : {
+
+    },
+    "+%@/s" : {
+
+    },
+    "+%lld" : {
+
+    },
+    "+1" : {
+
+    },
+    "×%@" : {
+
+    },
+    "×%lld" : {
+
+    },
+    "×5" : {
+
+    },
+    "◎" : {
+
+    },
+    "☠️" : {
+
+    },
+    "✕" : {
+
+    },
+    "🌕 Lunar Base built!" : {
+
+    },
+    "🐋" : {
+
+    },
+    "📉" : {
+
+    },
+    "🔥 %lld-day streak" : {
+
+    },
+    "🪂" : {
+
+    },
+    "🪤" : {
+
+    },
+    "🚀" : {
+
+    },
+    "$" : {
+
+    },
+    "₮" : {
+
+    },
+    "₳" : {
+
+    },
+    "₿" : {
+
+    },
+    "2× pays +%@ coins" : {
+
+    },
+    "A Cardano, a Solana and an Ethereum on the line, in any order, win %lld free spins at the same bet, and they can win more. About 1 spin in %lld wins them." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A Cardano, a Solana and an Ethereum on the line, in any order, win %1$lld free spins at the same bet, and they can win more. About 1 spin in %2$lld wins them."
+          }
+        }
+      }
+    },
+    "A level made up for you: a random goal, board and obstacles, never the same twice. Every point pays coins, and a win pays %@ more." : {
+
+    },
+    "A pair of jacks or better wins. Deal to start." : {
+
+    },
+    "A quiet day on the market." : {
+
+    },
+    "A special goes off when it's matched, blasted, or swapped with any neighbor. Swap two specials together for a bigger combination." : {
+
+    },
+    "A square makes a Propeller, four in a row a Rocket, an L or T a Bomb, and five in a row a Color Clear." : {
+
+    },
+    "A win also pays %@ coins" : {
+
+    },
+    "About" : {
+
+    },
+    "About %@" : {
+
+    },
+    "Accuracy" : {
+
+    },
+    "Achievements" : {
+
+    },
+    "Achievements and statistics" : {
+
+    },
+    "Add the Balance widget from the Home Screen or Lock Screen editor." : {
+
+    },
+    "after %@" : {
+
+    },
+    "Aiming guide" : {
+
+    },
+    "Airdrop incoming!" : {
+
+    },
+    "Airdrop. Tap to catch it before it disappears." : {
+
+    },
+    "Airdrops" : {
+
+    },
+    "All Levels" : {
+
+    },
+    "All three stars!" : {
+
+    },
+    "All time" : {
+
+    },
+    "All together" : {
+
+    },
+    "Allow notifications for Crypto Clicker in the Settings app to get these reminders." : {
+
+    },
+    "Another Level" : {
+
+    },
+    "Appearance" : {
+
+    },
+    "Apple Health" : {
+
+    },
+    "Apple Health isn't available on this device." : {
+
+    },
+    "Apple Watch" : {
+
+    },
+    "Arcade" : {
+
+    },
+    "Arcade Rank %lld" : {
+
+    },
+    "Arcade Rank and game achievements unlock new looks. They change how the games look, nothing else." : {
+
+    },
+    "Auto cash-out %@" : {
+
+    },
+    "Auto cash-out off" : {
+
+    },
+    "Automatic cash-out" : {
+
+    },
+    "Automatic taps" : {
+
+    },
+    "Best" : {
+
+    },
+    "Best %@" : {
+
+    },
+    "Best %@ reached: %lld. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Best %1$@ reached: %2$lld. %3$@"
+          }
+        }
+      }
+    },
+    "Best buy now" : {
+
+    },
+    "Best cash-out" : {
+
+    },
+    "Best catch" : {
+
+    },
+    "Best chain" : {
+
+    },
+    "Best combo" : {
+
+    },
+    "Best hand" : {
+
+    },
+    "Best level" : {
+
+    },
+    "Best round" : {
+
+    },
+    "Best Rush" : {
+
+    },
+    "Best shot" : {
+
+    },
+    "Best spin" : {
+
+    },
+    "Best streak" : {
+
+    },
+    "Best value" : {
+
+    },
+    "Best value: the next one adds the most per coin" : {
+
+    },
+    "Best wave" : {
+
+    },
+    "Bet" : {
+
+    },
+    "Bet %@" : {
+
+    },
+    "Bet %lld %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bet %1$lld %2$@"
+          }
+        }
+      }
+    },
+    "Bet back" : {
+
+    },
+    "Bet tokens from the Shop" : {
+
+    },
+    "Bets and payouts count tokens at their list price." : {
+
+    },
+    "Biggest win" : {
+
+    },
+    "Bitcoin collection: %lld of %lld. The next prize pays %@ coins" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bitcoin collection: %1$lld of %2$lld. The next prize pays %3$@ coins"
+          }
+        }
+      }
+    },
+    "Bitcoin prizes" : {
+
+    },
+    "Bitcoins" : {
+
+    },
+    "BLACKJACK PAYS 3 TO 2" : {
+
+    },
+    "Block Rush" : {
+
+    },
+    "Blocks" : {
+
+    },
+    "Blue chips" : {
+
+    },
+    "Bonus objective: %@, worth %lld points" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bonus objective: %1$@, worth %2$lld points"
+          }
+        }
+      }
+    },
+    "Bonus: %@" : {
+
+    },
+    "Bosses" : {
+
+    },
+    "Bought" : {
+
+    },
+    "BULL RUN %@" : {
+
+    },
+    "Bull Run %@ for %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bull Run %1$@ for %2$@"
+          }
+        }
+      }
+    },
+    "Bull Run, production %@" : {
+
+    },
+    "Bull Runs" : {
+
+    },
+    "Bust" : {
+
+    },
+    "Buy %@" : {
+
+    },
+    "Buy %@ for %@ coins" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Buy %1$@ for %2$@ coins"
+          }
+        }
+      }
+    },
+    "Buy %@ for %lld points" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Buy %1$@ for %2$lld points"
+          }
+        }
+      }
+    },
+    "Buy %lld %@ for %@ coins" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Buy %1$lld %2$@ for %3$@ coins"
+          }
+        }
+      }
+    },
+    "Buy a %@ to reveal" : {
+
+    },
+    "Buy a miner in the Shop and it shows up here." : {
+
+    },
+    "Buy a miner to start your income line" : {
+
+    },
+    "Buy crypto tokens in the Shop to bet or trade" : {
+
+    },
+    "Buy quantity" : {
+
+    },
+    "Buy tokens below to bet them or trade them." : {
+
+    },
+    "Buy tokens in the Shop to place bets, or practice with chips." : {
+
+    },
+    "Buy tokens in the Shop to play, or practice with chips." : {
+
+    },
+    "Buy tokens in the Shop to play." : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Cash Out" : {
+
+    },
+    "Cash-outs" : {
+
+    },
+    "Cashed out" : {
+
+    },
+    "Casino" : {
+
+    },
+    "Catch it for an hour of mining" : {
+
+    },
+    "Chain" : {
+
+    },
+    "Chain ×%lld" : {
+
+    },
+    "Check My Coins" : {
+
+    },
+    "Claim" : {
+
+    },
+    "Claim a reward every day to keep your streak. Day 7 pays an hour of income, then the week starts over." : {
+
+    },
+    "Claim Day %lld" : {
+
+    },
+    "Claimed" : {
+
+    },
+    "Classic" : {
+
+    },
+    "Classic best" : {
+
+    },
+    "Classic games" : {
+
+    },
+    "Close" : {
+
+    },
+    "Close tip" : {
+
+    },
+    "Coach" : {
+
+    },
+    "Coach suggests %@" : {
+
+    },
+    "Coach: %@" : {
+
+    },
+    "Coin Finish" : {
+
+    },
+    "Coin rewards grow with your income. Quests finished but not claimed are paid at midnight." : {
+
+    },
+    "Coin Rim" : {
+
+    },
+    "Coin Rush" : {
+
+    },
+    "Coin Tap Strength" : {
+
+    },
+    "Coins come quicker, with more scams." : {
+
+    },
+    "Coins hit" : {
+
+    },
+    "Coins per second" : {
+
+    },
+    "Coins per second from your miners, saved every minute while the game is open. Older points keep the best of each stretch of time, and dips are prestiges." : {
+
+    },
+    "Coins, tokens and miners" : {
+
+    },
+    "Collect" : {
+
+    },
+    "Combo" : {
+
+    },
+    "Combo ×%@" : {
+
+    },
+    "Combo of %lld lost" : {
+
+    },
+    "Combo, taps earn %@" : {
+
+    },
+    "Connect Apple Health" : {
+
+    },
+    "Controls" : {
+
+    },
+    "Controls: %@" : {
+
+    },
+    "CRASH LINE" : {
+
+    },
+    "Crate, %lld layer%@ left, row %lld, column %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Crate, %1$lld layer%2$@ left, row %3$lld, column %4$lld"
+          }
+        }
+      }
+    },
+    "Crypto Clicker" : {
+
+    },
+    "Crypto Slots" : {
+
+    },
+    "CRYPTO SLOTS" : {
+
+    },
+    "Ð" : {
+
+    },
+    "Daily" : {
+
+    },
+    "Daily challenge complete!" : {
+
+    },
+    "Daily Puzzle" : {
+
+    },
+    "Daily Reward" : {
+
+    },
+    "Daily rewards, quests and challenges start on your second day. Claim a reward every day to keep your streak: day 7 pays an hour of income." : {
+
+    },
+    "Daily stars" : {
+
+    },
+    "Daily wins" : {
+
+    },
+    "Day %lld" : {
+
+    },
+    "Day %lld%@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Day %1$lld%2$@%3$@"
+          }
+        }
+      }
+    },
+    "Deal" : {
+
+    },
+    "DEAL" : {
+
+    },
+    "Deal Again" : {
+
+    },
+    "DEAL AGAIN" : {
+
+    },
+    "Dealer" : {
+
+    },
+    "Dealer plays…" : {
+
+    },
+    "Dealer wins" : {
+
+    },
+    "Difficulty" : {
+
+    },
+    "Difficulty multiplier" : {
+
+    },
+    "Done" : {
+
+    },
+    "Doubles what your %@ mine" : {
+
+    },
+    "Drag anywhere to move the paddle" : {
+
+    },
+    "Drag to move, lift your finger to launch" : {
+
+    },
+    "DRAW" : {
+
+    },
+    "Each step pays" : {
+
+    },
+    "Earn coins from steps!" : {
+
+    },
+    "Earned" : {
+
+    },
+    "Earned every second" : {
+
+    },
+    "Earned in all" : {
+
+    },
+    "Earns %@ coins per tap" : {
+
+    },
+    "Easy mines faster, but prestiges pay fewer points; Hard mines slower and pays more. Everything that follows your income moves with it (the income part of each tap, steps, airdrops and game prizes); prices stay the same.\n\nA run's prestige points use the easiest difficulty picked since it began, so switching to Hard just before prestiging doesn't pay extra. Before your first miner, a new difficulty applies in full." : {
+
+    },
+    "End and Collect" : {
+
+    },
+    "End this game?" : {
+
+    },
+    "End this puzzle?" : {
+
+    },
+    "Endless" : {
+
+    },
+    "Endless with today's pieces, dealt the same to everyone all day. Scores count toward your Endless best." : {
+
+    },
+    "Erases everything, prestige and achievements included." : {
+
+    },
+    "Every Bitcoin on the line goes into your collection, and every %lld pay a coin prize. It never changes the odds of a spin.\n\nPayouts include your bet. Each spin pays its best line. Winning spins also pay coins, more for bigger wins. Over time the machine returns about %@ of the tokens bet, free spins included. Every spin is independent: a near miss doesn't make the next win more likely." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Every Bitcoin on the line goes into your collection, and every %1$lld pay a coin prize. It never changes the odds of a spin.\n\nPayouts include your bet. Each spin pays its best line. Winning spins also pay coins, more for bigger wins. Over time the machine returns about %2$@ of the tokens bet, free spins included. Every spin is independent: a near miss doesn't make the next win more likely."
+          }
+        }
+      }
+    },
+    "Every level won. Replay any of them for three stars." : {
+
+    },
+    "Every point ever earned adds %@ production, even after you spend it on perks. Perks last forever." : {
+
+    },
+    "Every point pays coins" : {
+
+    },
+    "Every star earned." : {
+
+    },
+    "Every step pays %@ as you walk" : {
+
+    },
+    "Every step pays %@ tomorrow" : {
+
+    },
+    "Every upgrade is yours." : {
+
+    },
+    "Feedback" : {
+
+    },
+    "Flash Market" : {
+
+    },
+    "Floor" : {
+
+    },
+    "Formations made up for every wave, never the same twice: diamonds, arrows, frames, skylines and more, with the three kinds mixed up. They pay about the same, a golden invader shows up from the first wave, and the Bear still comes every fifth wave." : {
+
+    },
+    "Free rounds" : {
+
+    },
+    "Free spin" : {
+
+    },
+    "FREE SPIN" : {
+
+    },
+    "Free spins" : {
+
+    },
+    "From %@ to %@ coins per second, best %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "From %1$@ to %2$@ coins per second, best %3$@"
+          }
+        }
+      }
+    },
+    "From sales" : {
+
+    },
+    "Full" : {
+
+    },
+    "Full · 12,345" : {
+
+    },
+    "Full Blocks" : {
+
+    },
+    "Game Over" : {
+
+    },
+    "Game Rules" : {
+
+    },
+    "Games played" : {
+
+    },
+    "Get Offline Mining" : {
+
+    },
+    "Goal reached" : {
+
+    },
+    "Goal: build the" : {
+
+    },
+    "Goals" : {
+
+    },
+    "GOLD" : {
+
+    },
+    "Good luck!" : {
+
+    },
+    "Grow the chain until it crashes: every coin adds a block, and the chain speeds up as it grows. Every arena but Open adds walls to steer around." : {
+
+    },
+    "Haptics" : {
+
+    },
+    "Head Start: 10 Chromebooks, 10 Desktops and 5 GPU Rigs" : {
+
+    },
+    "Hint" : {
+
+    },
+    "HODL" : {
+
+    },
+    "HODLs the cards a strong player would keep" : {
+
+    },
+    "HODLs this card" : {
+
+    },
+    "Hold" : {
+
+    },
+    "Hold, empty" : {
+
+    },
+    "Hold, holding %@" : {
+
+    },
+    "How fast coins list and leave. Goals move with the speed, so Fast scores sooner but needs quicker fingers, and Slow is relaxed." : {
+
+    },
+    "How fast pieces fall. Points are worth the same at every speed: Fast scores sooner but is harder to keep up with, and Slow is relaxed." : {
+
+    },
+    "How fast shots fly, and how much of their path the guide shows. Neither changes what a point pays." : {
+
+    },
+    "How fast the ball moves. A point is worth the same at every speed: Fast scores sooner, Slow is relaxed." : {
+
+    },
+    "How fast the chain moves. A coin is worth the same at every speed: Fast scores sooner, Slow is relaxed." : {
+
+    },
+    "How fast the invaders march, and everyone fires. A point is worth the same at every speed: Fast scores sooner, Slow is relaxed." : {
+
+    },
+    "How It Ends" : {
+
+    },
+    "How many tokens each Buy and Sell button trades" : {
+
+    },
+    "How quickly the miners slide, and whether each shows its number under its picture. Neither changes the score." : {
+
+    },
+    "How to Play" : {
+
+    },
+    "How to Play %@" : {
+
+    },
+    "In use" : {
+
+    },
+    "Includes %@ for moves left" : {
+
+    },
+    "Income" : {
+
+    },
+    "Income chart, %@" : {
+
+    },
+    "Invaders shot" : {
+
+    },
+    "Jackpots" : {
+
+    },
+    "Keep mining to discover more upgrades." : {
+
+    },
+    "Keep Playing" : {
+
+    },
+    "Keeps" : {
+
+    },
+    "Kept when you prestige" : {
+
+    },
+    "Ł" : {
+
+    },
+    "Last synced" : {
+
+    },
+    "LAUNCH" : {
+
+    },
+    "LAUNCH AGAIN" : {
+
+    },
+    "Learn More" : {
+
+    },
+    "Left" : {
+
+    },
+    "Lets this card go" : {
+
+    },
+    "Level" : {
+
+    },
+    "Level %lld" : {
+
+    },
+    "Level %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Level %1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "Level %lld, %@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Level %1$lld, %2$@, %3$@"
+          }
+        }
+      }
+    },
+    "Level 1" : {
+
+    },
+    "Level Complete!" : {
+
+    },
+    "Levels" : {
+
+    },
+    "Levels cleared" : {
+
+    },
+    "Levels played" : {
+
+    },
+    "Levels won" : {
+
+    },
+    "LISTED" : {
+
+    },
+    "Live Activity" : {
+
+    },
+    "Lock Screen and Widgets" : {
+
+    },
+    "Locked: %@" : {
+
+    },
+    "Locked: win level %lld first" : {
+
+    },
+    "Longest chain" : {
+
+    },
+    "Longest game" : {
+
+    },
+    "Lost %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Lost %1$@ %2$@"
+          }
+        }
+      }
+    },
+    "Lucky Streak doubles every daily reward. Coin rewards grow with your income." : {
+
+    },
+    "Market" : {
+
+    },
+    "Market Crashed" : {
+
+    },
+    "Market News" : {
+
+    },
+    "Max" : {
+
+    },
+    "Max Bonus" : {
+
+    },
+    "Mempool" : {
+
+    },
+    "Merge miners as far as you can, with goals to climb and %lld undos. Building the Lunar Base (%@) reaches the Moon: a bonus of %@ coins." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Merge miners as far as you can, with goals to climb and %1$lld undos. Building the Lunar Base (%2$@) reaches the Moon: a bonus of %3$@ coins."
+          }
+        }
+      }
+    },
+    "Milestones (25, 50, 100… owned) and Mk upgrades each double a miner. Shares include any Bull Run." : {
+
+    },
+    "Mine" : {
+
+    },
+    "Mine %lld rows as fast as you can, with no gas: the record is your time." : {
+
+    },
+    "Mine coin" : {
+
+    },
+    "Mine coins, build a mining empire and keep it growing, even while you're away." : {
+
+    },
+    "Mine rows until the stack tops out, faster every 10 rows. Every %lld pieces a gas spike pushes the stack up a row from below: clear it to collect the fee." : {
+
+    },
+    "Miner Mk upgrades" : {
+
+    },
+    "Miners" : {
+
+    },
+    "Miners keep earning for %@ after you leave the app." : {
+
+    },
+    "Miners stop a minute after you leave the app. Keep them mining while it's closed." : {
+
+    },
+    "Miners stop a minute after you leave. Offline Mining keeps them earning while the app is closed." : {
+
+    },
+    "Missed: %@" : {
+
+    },
+    "Mk %@" : {
+
+    },
+    "Mode" : {
+
+    },
+    "More below" : {
+
+    },
+    "More ways to win" : {
+
+    },
+    "Most coins" : {
+
+    },
+    "Move left" : {
+
+    },
+    "Move right" : {
+
+    },
+    "moves" : {
+
+    },
+    "Moves left" : {
+
+    },
+    "Mythic, %@ needed" : {
+
+    },
+    "Natural 21!" : {
+
+    },
+    "NATURAL 21!" : {
+
+    },
+    "Naturals" : {
+
+    },
+    "Needs %@" : {
+
+    },
+    "Net %@%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Net %1$@%2$@ %3$@"
+          }
+        }
+      }
+    },
+    "New best score!" : {
+
+    },
+    "New best! +%@ coins" : {
+
+    },
+    "New in %@" : {
+
+    },
+    "New Level" : {
+
+    },
+    "New quests are on their way." : {
+
+    },
+    "New row in" : {
+
+    },
+    "New Stack of %@ Chips" : {
+
+    },
+    "New star" : {
+
+    },
+    "New stars" : {
+
+    },
+    "NEXT" : {
+
+    },
+    "Next goal: %@" : {
+
+    },
+    "Next goal: the %@" : {
+
+    },
+    "Next Level" : {
+
+    },
+    "Next level: %@" : {
+
+    },
+    "Next one: +%@/s" : {
+
+    },
+    "Next run speed" : {
+
+    },
+    "Next star at %@" : {
+
+    },
+    "Next: %@" : {
+
+    },
+    "Next: Level %lld, %@. %@ in %lld moves." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Next: Level %1$lld, %2$@. %3$@ in %4$lld moves."
+          }
+        }
+      }
+    },
+    "No %@s reached yet. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No %1$@s reached yet. %2$@"
+          }
+        }
+      }
+    },
+    "No tokens, coins or stats change" : {
+
+    },
+    "No win" : {
+
+    },
+    "None owned" : {
+
+    },
+    "Not enough coins yet" : {
+
+    },
+    "Not Now" : {
+
+    },
+    "Not played yet" : {
+
+    },
+    "Not played yet: %@" : {
+
+    },
+    "Nothing played yet: your records fill in as you play." : {
+
+    },
+    "Notifications" : {
+
+    },
+    "Notifications are off" : {
+
+    },
+    "Numbers" : {
+
+    },
+    "Off" : {
+
+    },
+    "Offline Mining" : {
+
+    },
+    "Offline Mining paid for %@ of that. Level it up to earn for longer." : {
+
+    },
+    "OK" : {
+
+    },
+    "One minute in the open arena with three coins out at once: grab as many as you can before the clock runs out. It pays about what Classic does." : {
+
+    },
+    "Open Settings" : {
+
+    },
+    "Opens the Shop's tokens" : {
+
+    },
+    "Opens when %@ reaches level %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Opens when %1$@ reaches level %2$lld"
+          }
+        }
+      }
+    },
+    "Other ways coins arrive" : {
+
+    },
+    "Out of Moves" : {
+
+    },
+    "Own %@ · worth %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Own %1$@ · worth %2$@"
+          }
+        }
+      }
+    },
+    "Owned" : {
+
+    },
+    "Owned %@" : {
+
+    },
+    "Paddle shrunk for %lld seconds" : {
+
+    },
+    "Page" : {
+
+    },
+    "Paid %@" : {
+
+    },
+    "Paid back" : {
+
+    },
+    "Part of the save file is damaged, so your progress can't be opened right now. Nothing has been deleted: the file is kept on this iPhone as %@, so it can still be recovered. Until you choose, nothing new is saved." : {
+
+    },
+    "Paused" : {
+
+    },
+    "Pays about +%@ tomorrow" : {
+
+    },
+    "Pays tomorrow" : {
+
+    },
+    "Paytable" : {
+
+    },
+    "Perks" : {
+
+    },
+    "Perks (%lld ready)" : {
+
+    },
+    "Pick looks for the games" : {
+
+    },
+    "Play" : {
+
+    },
+    "Play %@" : {
+
+    },
+    "Play a Random Level" : {
+
+    },
+    "Play Again" : {
+
+    },
+    "Play Block Rush" : {
+
+    },
+    "Play Classic" : {
+
+    },
+    "Play Coin Rush" : {
+
+    },
+    "Play Endless" : {
+
+    },
+    "Play Flash Market" : {
+
+    },
+    "Play for Tokens" : {
+
+    },
+    "Play Level %lld" : {
+
+    },
+    "Play Level 1" : {
+
+    },
+    "Play Random Walls" : {
+
+    },
+    "Play Random Waves" : {
+
+    },
+    "Play today's challenge" : {
+
+    },
+    "Play Today's Market" : {
+
+    },
+    "Play Today's Pieces" : {
+
+    },
+    "Play Today's Puzzle" : {
+
+    },
+    "Play Wave 1" : {
+
+    },
+    "Play Waves" : {
+
+    },
+    "points" : {
+
+    },
+    "Points gained" : {
+
+    },
+    "Points to spend" : {
+
+    },
+    "Pop in a row for a streak" : {
+
+    },
+    "Pop three of a kind and clear the market for the next wave, with another token each time. Every %lld shots that pop nothing push a new row down; the game ends at the crash line." : {
+
+    },
+    "Popped" : {
+
+    },
+    "Power-ups" : {
+
+    },
+    "Practice" : {
+
+    },
+    "Practice bet" : {
+
+    },
+    "Practice plays with chips: no tokens, coins or statistics change" : {
+
+    },
+    "Prestige" : {
+
+    },
+    "Prestige and Start Over" : {
+
+    },
+    "Prestige for +%@" : {
+
+    },
+    "Prestige once to discover new miners beyond the stars." : {
+
+    },
+    "Prestige points, their bonus and your perks" : {
+
+    },
+    "Preview" : {
+
+    },
+    "Prices drift within about a quarter of each token's usual price, and news nudges them up or down. Bet tokens at the casino games in the Arcade, or sell them back for coins. Tokens reset when you prestige." : {
+
+    },
+    "Prices move every 5 minutes" : {
+
+    },
+    "Production bonus after" : {
+
+    },
+    "Production multipliers" : {
+
+    },
+    "Purchased (%lld)" : {
+
+    },
+    "Push" : {
+
+    },
+    "Puzzle Solved!" : {
+
+    },
+    "Quantity" : {
+
+    },
+    "Random Level" : {
+
+    },
+    "Random Walls" : {
+
+    },
+    "Random Waves" : {
+
+    },
+    "Random wins" : {
+
+    },
+    "Range" : {
+
+    },
+    "Reached" : {
+
+    },
+    "Ready" : {
+
+    },
+    "Records" : {
+
+    },
+    "Replay" : {
+
+    },
+    "Replay Level %lld" : {
+
+    },
+    "Reset All Progress" : {
+
+    },
+    "Reset all progress?" : {
+
+    },
+    "Reset Everything" : {
+
+    },
+    "Resets" : {
+
+    },
+    "Resume" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Reward collected" : {
+
+    },
+    "Right now" : {
+
+    },
+    "Round %lld" : {
+
+    },
+    "Round %lld Cleared!" : {
+
+    },
+    "Round %lld goal" : {
+
+    },
+    "Rounds" : {
+
+    },
+    "Row in" : {
+
+    },
+    "Rows" : {
+
+    },
+    "Royal flushes" : {
+
+    },
+    "RUG" : {
+
+    },
+    "Rules" : {
+
+    },
+    "Run Over" : {
+
+    },
+    "Run total %@ · best combo %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Run total %1$@ · best combo %2$lld"
+          }
+        }
+      }
+    },
+    "Says how many coins you have and how fast your miners are mining." : {
+
+    },
+    "SCAM" : {
+
+    },
+    "Scam Invaders" : {
+
+    },
+    "Scam Invaders field" : {
+
+    },
+    "Scams hit" : {
+
+    },
+    "Score" : {
+
+    },
+    "Score %@" : {
+
+    },
+    "Score %lld, %lld lines" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Score %1$lld, %2$lld lines"
+          }
+        }
+      }
+    },
+    "Score %lld, blocks %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Score %1$lld, blocks %2$lld"
+          }
+        }
+      }
+    },
+    "Score as much as you can in a minute. Every point pays coins." : {
+
+    },
+    "Score more for another star." : {
+
+    },
+    "Scoring" : {
+
+    },
+    "Scrolls to the rest of the summary" : {
+
+    },
+    "See Breakdown" : {
+
+    },
+    "Sell" : {
+
+    },
+    "Sell %@" : {
+
+    },
+    "Sell %lld %@ for %@ coins" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sell %1$lld %2$@ for %3$@ coins"
+          }
+        }
+      }
+    },
+    "Sells for %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sells for %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "Sent only while the game is closed: when Offline Mining runs out (if you have half an hour of it or more), and when a daily reward is waiting to be claimed." : {
+
+    },
+    "Sent only while the game is closed." : {
+
+    },
+    "Settings" : {
+
+    },
+    "Shop" : {
+
+    },
+    "Short" : {
+
+    },
+    "Short · 12.3K" : {
+
+    },
+    "Shot speed" : {
+
+    },
+    "Show numbers on miners" : {
+
+    },
+    "Showing %lld" : {
+
+    },
+    "Shows every digit" : {
+
+    },
+    "Shows numbers in short form" : {
+
+    },
+    "Shows the short form" : {
+
+    },
+    "Shows where every coin came from" : {
+
+    },
+    "Shows where your coins come from" : {
+
+    },
+    "Slide down" : {
+
+    },
+    "Slide left" : {
+
+    },
+    "Slide right" : {
+
+    },
+    "Slide speed" : {
+
+    },
+    "Slide up" : {
+
+    },
+    "So close. Here's how far you got:" : {
+
+    },
+    "Sold" : {
+
+    },
+    "Something went wrong" : {
+
+    },
+    "Specials" : {
+
+    },
+    "Specials and Hazards" : {
+
+    },
+    "Speed" : {
+
+    },
+    "SPIN" : {
+
+    },
+    "Spinning…" : {
+
+    },
+    "Star score" : {
+
+    },
+    "Stars" : {
+
+    },
+    "Start" : {
+
+    },
+    "Start a New Game" : {
+
+    },
+    "Start Earning" : {
+
+    },
+    "Statistics" : {
+
+    },
+    "Stats" : {
+
+    },
+    "Status" : {
+
+    },
+    "Steps" : {
+
+    },
+    "Steps already rewarded" : {
+
+    },
+    "Steps are paid as you walk, each time the game syncs with Apple Health, and count toward quests and achievements right away. Your first day's steps are the exception: they're paid the next day, at your step value then, so walking can't skip the opening. Steps from your iPhone and Apple Watch are combined by Apple Health, and each one is paid once.\n\nIf no steps appear, allow access in the Health app under Sharing › Apps › Crypto Clicker." : {
+
+    },
+    "Steps are paid as you walk." : {
+
+    },
+    "Steps Connected" : {
+
+    },
+    "Steps walked" : {
+
+    },
+    "Still couldn't read your save" : {
+
+    },
+    "Stop Rewarding Steps" : {
+
+    },
+    "Streak %lld · next ×%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Streak %1$lld · next ×%2$@"
+          }
+        }
+      }
+    },
+    "Streak %lld, points times %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Streak %1$lld, points times %2$@"
+          }
+        }
+      }
+    },
+    "Streak now" : {
+
+    },
+    "Style" : {
+
+    },
+    "Swap %@" : {
+
+    },
+    "Sync Now" : {
+
+    },
+    "Sync steps" : {
+
+    },
+    "Table" : {
+
+    },
+    "Table options" : {
+
+    },
+    "Tap coins as they list and reach each %lld-second round's goal. Bigger boards list coins faster and more at once, with bigger goals; their points pay a little less each, so every board pays about the same." : {
+
+    },
+    "Tap Effect" : {
+
+    },
+    "Tap Sound" : {
+
+    },
+    "Tap the cards you want to keep, then draw." : {
+
+    },
+    "Tap to catch it" : {
+
+    },
+    "Tapping" : {
+
+    },
+    "Tapping upgrades add a share of a second's production to every tap. Quick taps in a row build a combo, and the combo power-ups in the Shop raise how big it gets and how fast it builds." : {
+
+    },
+    "The chart adds a point every minute while you play." : {
+
+    },
+    "The classic formation from wave 1 up: rug pullers on top, then pump bots and meme coins, marching a little faster and lower every wave. The Bear comes every fifth wave." : {
+
+    },
+    "The classic walls from level 1 up: cold storage, liquidation and airdrop blocks, and the whale every fifth level." : {
+
+    },
+    "The full rules for every game, locked or not. Each game also has a How to Play button of its own." : {
+
+    },
+    "The latest airdrops, newest first." : {
+
+    },
+    "The Live Activity shows your coin and balance on the Lock Screen and in the Dynamic Island while the game is closed: what your miners earn a second, how long they keep going, and what you'll have when they stop. It updates each time you leave the game.\n\nThe Balance widget does the same on the Home Screen or the Lock Screen, its number growing as your miners earn. To add it, touch and hold an empty spot, tap Edit, then Add Widget, and pick Crypto Clicker." : {
+
+    },
+    "The multiplier doubles every %lld seconds until the market crashes. Every target pays back 97%% on average: it's luck, so bet what you can lose." : {
+
+    },
+    "The same start and miners for everyone today: %lld moves, stars at %@. Each star pays %@ coins the first time today." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The same start and miners for everyone today: %1$lld moves, stars at %2$@. Each star pays %3$@ coins the first time today."
+          }
+        }
+      }
+    },
+    "The scale grows %@ times per line, so early and late income both show." : {
+
+    },
+    "Theme" : {
+
+    },
+    "This can't be undone." : {
+
+    },
+    "This run" : {
+
+    },
+    "This run keeps %@'s prestige points until you prestige." : {
+
+    },
+    "This week: %lld of %lld games · +%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This week: %1$lld of %2$lld games · +%3$@"
+          }
+        }
+      }
+    },
+    "Three of a kind" : {
+
+    },
+    "Three of a kind wins. Bitcoin pays the most." : {
+
+    },
+    "Time" : {
+
+    },
+    "Time left" : {
+
+    },
+    "Time's Up" : {
+
+    },
+    "Tips" : {
+
+    },
+    "To the Moon" : {
+
+    },
+    "TO THE MOON" : {
+
+    },
+    "Today" : {
+
+    },
+    "Today's Market" : {
+
+    },
+    "Today's Pieces" : {
+
+    },
+    "Today's Quests" : {
+
+    },
+    "Today's reward" : {
+
+    },
+    "Today's reward was already paid." : {
+
+    },
+    "Today's steps are paid tomorrow; after that, as you walk." : {
+
+    },
+    "Token" : {
+
+    },
+    "Token Swap" : {
+
+    },
+    "Token: %@, %lld owned" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Token: %1$@, %2$lld owned"
+          }
+        }
+      }
+    },
+    "Tokens" : {
+
+    },
+    "Tokens cleared" : {
+
+    },
+    "Top miner" : {
+
+    },
+    "Total" : {
+
+    },
+    "Trophies" : {
+
+    },
+    "Try %@" : {
+
+    },
+    "Try Again" : {
+
+    },
+    "Turn down" : {
+
+    },
+    "Turn left" : {
+
+    },
+    "Turn right" : {
+
+    },
+    "Turn up" : {
+
+    },
+    "Turn your daily walks into coins for your mining empire." : {
+
+    },
+    "Turn!" : {
+
+    },
+    "Two pair or better also pays %@–%@ coins" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Two pair or better also pays %1$@–%2$@ coins"
+          }
+        }
+      }
+    },
+    "Undo" : {
+
+    },
+    "Unlock %@ for %@ coins" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unlock %1$@ for %2$@ coins"
+          }
+        }
+      }
+    },
+    "Unlock your iPhone first, then ask again." : {
+
+    },
+    "Unlocked mini-games" : {
+
+    },
+    "Unlocks after %@ taps" : {
+
+    },
+    "Upgrade Offline Mining" : {
+
+    },
+    "Upgrades" : {
+
+    },
+    "Version" : {
+
+    },
+    "Wallet" : {
+
+    },
+    "Wallet value" : {
+
+    },
+    "Walls made up for every level, never the same twice. They take about as many hits and pay about the same, and the whale still comes every fifth level." : {
+
+    },
+    "Wave" : {
+
+    },
+    "Wave 1" : {
+
+    },
+    "Waves" : {
+
+    },
+    "Waves from today's market: everyone starts with the same bubbles, all day. Scores count toward your Waves best." : {
+
+    },
+    "Weekly goals" : {
+
+    },
+    "Weekly variety goal met" : {
+
+    },
+    "Welcome back!" : {
+
+    },
+    "Whale airdrop, worth an hour of mining. Tap to catch it before it disappears." : {
+
+    },
+    "Whale airdrop!" : {
+
+    },
+    "Whales" : {
+
+    },
+    "What a tap earns" : {
+
+    },
+    "What each tier mines a second, and its share of what all your miners mine." : {
+
+    },
+    "When Miners Stop" : {
+
+    },
+    "Where coins came from" : {
+
+    },
+    "While you were away" : {
+
+    },
+    "Win rate" : {
+
+    },
+    "Wins" : {
+
+    },
+    "Wins pay tokens plus up to %@ coins" : {
+
+    },
+    "with the Bitcoin collection prize" : {
+
+    },
+    "Worth so far" : {
+
+    },
+    "XP earned" : {
+
+    },
+    "You can start later in Settings" : {
+
+    },
+    "You earned" : {
+
+    },
+    "You have %@ coins, mining %@ a second." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "You have %1$@ coins, mining %2$@ a second."
+          }
+        }
+      }
+    },
+    "You haven't started mining yet. Open Crypto Clicker and tap the coin." : {
+
+    },
+    "You reached the Moon: +%@ coins when the game ends. Keep going!" : {
+
+    },
+    "You were away for %@." : {
+
+    },
+    "YOU WIN!" : {
+
+    },
+    "Your daily streak and quests" : {
+
+    },
+    "Your first prestige also reveals three new miners beyond the Space Mining Colony." : {
+
+    },
+    "Your first quests and daily challenge arrive tomorrow." : {
+
+    },
+    "Your income line starts here" : {
+
+    },
+    "Your Journey" : {
+
+    },
+    "Your miners earned" : {
+
+    },
+    "Your next goals" : {
+
+    },
+    "Your saved game couldn't be read" : {
+
+    },
+    "Your saved game needs a look. Open Crypto Clicker." : {
+
+    },
+    "Ξ" : {
+
+    }
+  },
+  "version" : "1.0"
+}

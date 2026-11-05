@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1620"
+   LastUpgradeVersion = "2600"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -43,30 +43,6 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9EEE79A42D29A75800FBC049"
-               BuildableName = "Crypto Clicker Watch AppTests.xctest"
-               BlueprintName = "Crypto Clicker Watch AppTests"
-               ReferencedContainer = "container:Crypto Clicker.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9EEE79AE2D29A75800FBC049"
-               BuildableName = "Crypto Clicker Watch AppUITests.xctest"
-               BlueprintName = "Crypto Clicker Watch AppUITests"
-               ReferencedContainer = "container:Crypto Clicker.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -84,7 +60,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9EEE79952D29A75500FBC049"
             BuildableName = "Crypto Clicker Watch App.app"
-            BlueprintName = "Crypto Clicker Watch App"
             ReferencedContainer = "container:Crypto Clicker.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -101,7 +76,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9EEE79952D29A75500FBC049"
             BuildableName = "Crypto Clicker Watch App.app"
-            BlueprintName = "Crypto Clicker Watch App"
             ReferencedContainer = "container:Crypto Clicker.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

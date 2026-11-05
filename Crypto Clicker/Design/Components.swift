@@ -1,0 +1,181 @@
+import SwiftUI
+import CryptoClickerKit
+
+/// The gold coin artwork.
+struct CoinIcon: View {
+    var size: CGFloat = 20
+
+    var body: some View {
+        Image("Coin")
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+}
+
+/// A coin amount in the short idle-game format, with the coin artwork.
+struct CoinAmount: View {
+    let amount: Double
+    var font: Font = .body
+    var iconSize: CGFloat = 16
+
+    var body: some View {
+        HStack(spacing: 4) {
+            CoinIcon(size: iconSize)
+            Text(CoinFormat.short(amount))
+                .font(font.monospacedDigit())
+                .contentTransition(.numericText(value: amount))
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(CoinFormat.short(amount)) coins")
+    }
+}
+
+/// How coin amounts are written everywhere: short (12.3K) or with every digit (12,345). Tapping
+/// the balance on Mine switches it too.
+struct NumberFormatPicker: View {
+    /// A segmented control rather than a menu row.
+    var isSegmented = false
+    @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
+
+    var body: some View {
+        let picker = Picker("Numbers", selection: $exactNumbers.animation(.snappy)) {
+            Text("Short · 12.3K").tag(false)
+            Text("Full · 12,345").tag(true)
+        }
+        if isSegmented {
+            picker.pickerStyle(.segmented)
+        } else {
+            picker
+        }
+    }
+}
+
+/// Bronze, silver, gold and mythic stars for achievement tiers. Earned stars are metal; the
+/// mythic one shimmers through every color.
+struct TierStars: View {
+    let earned: Int
+    var size: CGFloat = 12
+
+    var body: some View {
+        let total = AchievementCatalog.tierNames.count
+        HStack(spacing: 2) {
+            ForEach(0..<total, id: \.self) { tier in
+                if tier >= earned {
+                    Image(systemName: "star")
+                        .font(.system(size: size, weight: .semibold))
+                        .foregroundStyle(Theme.subtext.opacity(0.6))
+                } else if tier == total - 1 {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: size + 2, weight: .semibold))
+                        .foregroundStyle(AngularGradient(colors: TierStyle.mythic, center: .center))
+                        .shadow(color: Theme.tierColor(3).opacity(0.8), radius: 3)
+                } else {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: size, weight: .semibold))
+                        .foregroundStyle(LinearGradient(colors: TierStyle.metal(tier), startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing))
+                        .shadow(color: .black.opacity(0.25), radius: 0.5, y: 0.5)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(earned) of \(total) stars")
+    }
+}
+
+/// A token's artwork.
+struct TokenImage: View {
+    let token: TokenID
+    var size: CGFloat = 36
+
+    var body: some View {
+        Image(token.imageName)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+}
+
+/// A section heading drawn over the background.
+struct SectionHeader: View {
+    let title: Text
+    var detail: Text? = nil
+
+    init(title: LocalizedStringKey, detail: LocalizedStringKey? = nil) {
+        self.title = Text(title)
+        self.detail = detail.map { Text($0) }
+    }
+
+    @_disfavoredOverload
+    init<Title: StringProtocol>(title: Title, detail: String? = nil) {
+        self.title = Text(title)
+        self.detail = detail.map { Text($0) }
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            title
+                .font(.title3.bold())
+            Spacer()
+            if let detail {
+                detail
+                    .font(.subheadline)
+                    .foregroundStyle(.subtext)
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.top, 8)
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
+extension View {
+    /// Shows the balance in the navigation bar where the tab bar accessory isn't shown (iPad layouts).
+    func balanceToolbar() -> some View {
+        modifier(BalanceToolbar())
+    }
+
+    /// Styles a button that spends coins. Affordable: filled with `tint`. Not yet affordable: a
+    /// neutral outline whose price keeps full-strength text, instead of the faded grey of a disabled
+    /// button, so it stays readable on a dim screen. Its action should check the price itself.
+    func priceButtonStyle(canAfford: Bool, tint: Color) -> some View {
+        modifier(PriceButtonStyle(canAfford: canAfford, tint: tint))
+    }
+}
+
+private struct PriceButtonStyle: ViewModifier {
+    let canAfford: Bool
+    let tint: Color
+
+    func body(content: Content) -> some View {
+        if canAfford {
+            content
+                .buttonStyle(.borderedProminent)
+                .tint(tint)
+        } else {
+            content
+                .buttonStyle(.bordered)
+                .tint(.primary)
+                .accessibilityHint("Not enough coins yet")
+        }
+    }
+}
+
+private struct BalanceToolbar: ViewModifier {
+    @Environment(GameStore.self) private var store
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    func body(content: Content) -> some View {
+        content.toolbar {
+            if sizeClass == .regular {
+                ToolbarItem(placement: .topBarTrailing) {
+                    CoinAmount(amount: store.coins, font: .headline, iconSize: 18)
+                        .padding(.horizontal, 6)
+                }
+            }
+        }
+    }
+}

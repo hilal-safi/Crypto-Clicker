@@ -1,0 +1,81 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@ · %@ when they stop" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ when they stop"
+          }
+        }
+      }
+    },
+    "%@ coins" : {
+
+    },
+    "%@ coins waiting. The miners are resting until you open the game." : {
+
+    },
+    "%@ coins, earning %@ a second, %@ when the miners stop" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ coins, earning %2$@ a second, %3$@ when the miners stop"
+          }
+        }
+      }
+    },
+    "%@ when the miners stop" : {
+
+    },
+    "+%@ earned · open the game to collect" : {
+
+    },
+    "Balance" : {
+
+    },
+    "Coins" : {
+
+    },
+    "Crypto Clicker" : {
+
+    },
+    "Full" : {
+
+    },
+    "Miners resting" : {
+
+    },
+    "Mining while you're away" : {
+
+    },
+    "Open Crypto Clicker" : {
+
+    },
+    "Open Crypto Clicker to see your coins" : {
+
+    },
+    "Open Crypto Clicker to see your coins here" : {
+
+    },
+    "Open the game to collect and keep mining" : {
+
+    },
+    "Your coins as your miners earn them, and what they make a second." : {
+
+    }
+  },
+  "version" : "1.0"
+}
