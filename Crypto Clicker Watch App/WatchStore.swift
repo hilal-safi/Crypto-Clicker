@@ -17,6 +17,7 @@ final class WatchStore {
     private let link = PhoneLink()
     private let stepCounter = WatchStepCounter()
     @ObservationIgnored private var sendTask: Task<Void, Never>?
+    @ObservationIgnored private var lastRefreshRequest: Date?
 
     private enum Key {
         static let snapshot = "snapshot"
@@ -26,6 +27,10 @@ final class WatchStore {
 
     /// Taps are collected for this long after the last one, so one transfer carries a burst.
     private static let sendDelay: Duration = .seconds(1.5)
+    /// The watch projects the balance itself, so it asks the iPhone for fresh numbers at most this
+    /// often: each request wakes the iPhone app over Bluetooth, and every wrist raise would otherwise
+    /// send one.
+    static let refreshInterval: TimeInterval = 120
 
     init() {
         snapshot = Self.load(WatchSnapshot.self, key: Key.snapshot)
@@ -34,11 +39,11 @@ final class WatchStore {
         link.onSnapshot = { [weak self] snapshot in self?.receive(snapshot) }
         link.onReachabilityChange = { [weak self] reachable in
             self?.isPhoneReachable = reachable
-            if reachable { self?.link.requestRefresh() }
+            if reachable { self?.requestRefreshIfDue() }
         }
         link.onActivated = { [weak self] in
             self?.sendPendingTaps()
-            self?.link.requestRefresh()
+            self?.requestRefreshIfDue()
         }
         link.activate()
     }
@@ -88,7 +93,7 @@ final class WatchStore {
     func scenePhaseChanged(to phase: ScenePhase) {
         switch phase {
         case .active:
-            link.requestRefresh()
+            requestRefreshIfDue()
             Task { await refreshLiveSteps() }
         case .inactive, .background:
             sendPendingTaps()
@@ -112,6 +117,13 @@ final class WatchStore {
     }
 
     // MARK: Sync
+
+    /// Asks the iPhone for fresh numbers, unless it was asked recently and a snapshot is here.
+    private func requestRefreshIfDue(now: Date = .now) {
+        if snapshot != nil, let last = lastRefreshRequest, now.timeIntervalSince(last) < Self.refreshInterval { return }
+        lastRefreshRequest = now
+        link.requestRefresh()
+    }
 
     private func sendPendingTaps() {
         sendTask?.cancel()

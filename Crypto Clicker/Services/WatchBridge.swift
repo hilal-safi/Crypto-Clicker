@@ -29,11 +29,13 @@ final class WatchBridge: NSObject {
         session.activate()
     }
 
-    func send(_ snapshot: WatchSnapshot) {
+    /// Leaves the snapshot for the watch app. `live` also sends it straight to an open watch app,
+    /// which wakes the watch's radio: only for changes the watch can't project itself.
+    func send(_ snapshot: WatchSnapshot, live: Bool = true) {
         guard let session, session.activationState == .activated, session.isPaired, session.isWatchAppInstalled,
               let payload = WatchPayload.make(snapshot, key: WatchPayload.snapshotKey) else { return }
         try? session.updateApplicationContext(payload)
-        if session.isReachable {
+        if live && session.isReachable {
             session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
         }
     }

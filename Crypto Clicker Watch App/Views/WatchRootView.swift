@@ -19,9 +19,12 @@ private let watchGradient = LinearGradient(
 
 struct MinePage: View {
     @Environment(WatchStore.self) private var store
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.5)) { context in
+        // Once a second while the screen is lit; once a minute on the dimmed Always On screen,
+        // which watchOS otherwise keeps redrawing every second.
+        TimelineView(.periodic(from: .now, by: isLuminanceReduced ? 60 : 1)) { context in
             let balance = store.balance(at: context.date)
             VStack(spacing: 4) {
                 Text(CoinFormat.short(balance))
@@ -54,7 +57,9 @@ struct MinePage: View {
                         .font(.footnote.weight(.semibold))
                 }
             }
-            .animation(.snappy(duration: 0.3), value: balance)
+            // Only taps animate the balance; the passing seconds just change the digits, so the
+            // screen isn't animating most of the time.
+            .animation(.snappy(duration: 0.25), value: store.taps)
         }
         .containerBackground(watchGradient, for: .tabView)
     }
@@ -62,6 +67,7 @@ struct MinePage: View {
 
 struct StepsPage: View {
     @Environment(WatchStore.self) private var store
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     var body: some View {
         ScrollView {
@@ -101,10 +107,13 @@ struct StepsPage: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .containerBackground(Color.green.gradient.opacity(0.35), for: .tabView)
-        .task {
+        // A Health read when the page shows, then once a minute while the screen is lit; none on the
+        // dimmed Always On screen.
+        .task(id: isLuminanceReduced) {
+            guard !isLuminanceReduced else { return }
             while !Task.isCancelled {
                 await store.refreshLiveSteps()
-                try? await Task.sleep(for: .seconds(30))
+                try? await Task.sleep(for: .seconds(60))
             }
         }
     }

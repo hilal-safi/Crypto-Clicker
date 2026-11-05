@@ -96,20 +96,24 @@ extension GameStore {
         pushToWatch(force: true)
     }
 
+    /// The watch asked for fresh numbers, or came into reach. Steps sync at most once a minute, so a
+    /// watch opening and closing doesn't read Apple Health each time.
     func refreshWatch() {
         pushToWatch(force: true)
-        Task { await syncSteps(force: true) }
+        Task { await syncSteps() }
     }
 
     func pushToWatch(force: Bool = false) {
         guard !isSaveLocked else { return }
         let now = Date.now
-        guard force || now.timeIntervalSince(lastWatchPush) >= 15 else { return }
+        guard force || now.timeIntervalSince(lastWatchPush) >= 60 else { return }
         lastWatchPush = now
         if isInForeground { catchUp(to: now) }
         // The balance is anchored at the game clock, which stays put in the background, so the watch
         // projects exactly what the phone will credit (up to the offline cap) when it next opens.
-        watch.send(game.watchSnapshot(at: now))
+        // The once-a-minute refresh only corrects drift, so it waits for the watch app to read it;
+        // purchases, taps and other changes go straight to an open watch app.
+        watch.send(game.watchSnapshot(at: now), live: force)
     }
 
     // MARK: Widgets and the Live Activity
