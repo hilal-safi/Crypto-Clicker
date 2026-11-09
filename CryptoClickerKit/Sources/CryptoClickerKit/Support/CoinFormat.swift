@@ -74,7 +74,7 @@ public enum CoinFormat {
         return "\(tenths / 600):" + String(format: "%02d.%d", (tenths / 10) % 60, tenths % 10)
     }
 
-    /// `45s`, `3m 5s`, `2h 14m`, `3d 4h`.
+    /// `45s`, `3m 5s`, `2h 14m`, `3d 4h`, `1d 3h 30m`.
     public static func duration(_ seconds: TimeInterval) -> String {
         guard seconds.isFinite else { return "∞" }
         let total = Int(min(max(seconds, 0), 1e9).rounded()) // About 31 years; fits a 32-bit Int.
@@ -82,7 +82,11 @@ public enum CoinFormat {
         let hours = (total % 86_400) / 3_600
         let minutes = (total % 3_600) / 60
         let secs = total % 60
-        if days > 0 { return hours > 0 ? "\(days)d \(hours)h" : "\(days)d" }
+        if days > 0 {
+            // Minutes stay with days, so a day and a half hour reads "1d 30m", not "1d".
+            let parts = ["\(days)d", hours > 0 ? "\(hours)h" : nil, minutes > 0 ? "\(minutes)m" : nil]
+            return parts.compactMap { $0 }.joined(separator: " ")
+        }
         if hours > 0 { return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h" }
         if minutes > 0 { return secs > 0 ? "\(minutes)m \(secs)s" : "\(minutes)m" }
         return "\(secs)s"

@@ -116,14 +116,14 @@ struct TestingToolsView: View {
         Section {
             LabeledContent("Level \(game.offlineMiningLevel)",
                            value: game.offlineCap > 0 ? CoinFormat.duration(game.offlineCap) : "Off")
-            Button("Add 4 Hours (8 Levels)") { store.debugAddOfflineMining(levels: 8) }
+            Button("Add 4 Hours") { store.debugAddOfflineMining(hours: 4) }
                 .disabled(game.offlineMiningLevel >= Tuning.offlineMiningMaxLevel)
             Button("Max It Out (\(CoinFormat.duration(GameState.offlineCap(level: Tuning.offlineMiningMaxLevel))))") {
-                store.debugAddOfflineMining(levels: Tuning.offlineMiningMaxLevel)
+                store.debugAddOfflineMining(hours: 72)
             }
             .disabled(game.offlineMiningLevel >= Tuning.offlineMiningMaxLevel)
             Button("Turn It Off", role: .destructive) {
-                store.debugAddOfflineMining(levels: -Tuning.offlineMiningMaxLevel)
+                store.debugAddOfflineMining(hours: -72)
             }
             .disabled(game.offlineMiningLevel == 0)
         } header: {

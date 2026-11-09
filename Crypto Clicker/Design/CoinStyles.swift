@@ -176,6 +176,8 @@ struct TapEffectsLayer: View {
     let bursts: [TapBurst]
     /// The coin's diameter.
     let coin: CGFloat
+    /// How much wider than tall the effects spread: sideways movement is scaled by this.
+    static let spread = 1.5
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60, paused: bursts.isEmpty)) { timeline in
@@ -225,7 +227,7 @@ struct TapEffectsLayer: View {
             let image = context.resolve(Image("CoinSmall"))
             let gravity = coin * 2.6
             for _ in 0..<8 {
-                let vx = Double.random(in: -1...1, using: &rng) * coin * 0.8
+                let vx = Double.random(in: -1...1, using: &rng) * coin * 0.8 * Self.spread
                 let vy = -Double.random(in: 0.9...1.4, using: &rng) * coin
                 let x = center.x + vx * age
                 let y = center.y - r * 0.3 + vy * age + 0.5 * gravity * age * age
@@ -237,7 +239,7 @@ struct TapEffectsLayer: View {
         case .rockets:
             let rocket = context.resolve(Text("🚀").font(.system(size: coin * 0.13)))
             for index in 0..<3 {
-                let x = center.x + (Double(index) - 1) * r * 0.45 + Double.random(in: -0.1...0.1, using: &rng) * r
+                let x = center.x + ((Double(index) - 1) * r * 0.45 + Double.random(in: -0.1...0.1, using: &rng) * r) * Self.spread
                 let lift = coin * 0.95 * (p * p)
                 let y = center.y + r * 0.35 - lift - Double(index % 2) * r * 0.1
                 var layer = context
@@ -276,7 +278,7 @@ struct TapEffectsLayer: View {
                 let start = Double(index) / Double(glyphs.count) * 2 * .pi + Double.random(in: 0...0.5, using: &rng)
                 let angle = start + p * 2.2
                 let radius = r * (0.65 + 0.45 * p)
-                let x = center.x + cos(angle) * radius
+                let x = center.x + cos(angle) * radius * Self.spread
                 let y = center.y + sin(angle) * radius * 0.6 - coin * 0.45 * p
                 var layer = context
                 layer.opacity = 1 - p

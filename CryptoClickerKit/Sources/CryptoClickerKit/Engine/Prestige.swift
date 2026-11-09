@@ -68,6 +68,7 @@ extension GameState {
     public mutating func prestige(at now: Date) -> Int {
         let gained = claimablePrestigePoints
         guard gained > 0 else { return 0 }
+        let previousIncome = rewardIncome
         prestigePoints = Self.addingPoints(prestigePoints, gained)
         prestigePotentialClaimed = prestigePotential
         if journey.firstPrestige == nil { journey.firstPrestige = now }
@@ -99,6 +100,7 @@ extension GameState {
         if hasPerk(.headStart) {
             for (miner, count) in Tuning.headStartMiners { give(miner, count: count) }
         }
+        rescaleQuestsForNewRun(previousIncome: previousIncome)
         return gained
     }
 

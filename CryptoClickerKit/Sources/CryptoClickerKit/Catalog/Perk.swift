@@ -91,25 +91,27 @@ public enum PerkID: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 
-    /// Price in prestige points. The first prestige affords a few cheap perks; the last ones take
-    /// about three weeks of prestiging.
+    /// Price in prestige points: each perk costs about half again to twice the one before, as points
+    /// grow. The first prestige affords a few cheap perks, and the last one comes after about three
+    /// weeks of prestiging.
     public var cost: Int {
         switch self {
         case .headStart: 1
         case .strongFingers: 2
-        case .airdropRadar: 5
-        case .marketInsider: 10
+        case .airdropRadar: 4
+        case .marketInsider: 8
         case .muscleMemory: 15
         case .blueprints: 25
-        case .arcadeChampion, .marathon: 40
-        case .comboMaster: 75
-        case .bullMarket: 100
-        case .bulkDiscount: 150
+        case .arcadeChampion: 40
+        case .marathon: 60
+        case .comboMaster: 100
+        case .bullMarket: 150
+        case .bulkDiscount: 250
         case .luckyStreak: 400
-        case .whaleWatcher: 1_000
-        case .autoClickerPro: 2_500
-        case .engineeringTeam: 6_000
-        case .compoundInterest: 20_000
+        case .whaleWatcher: 750
+        case .autoClickerPro: 1_500
+        case .engineeringTeam: 3_000
+        case .compoundInterest: 6_000
         }
     }
 

@@ -13,6 +13,53 @@ struct Toast: Identifiable, Equatable {
     let message: String
 }
 
+/// The Shop's purchase popup. Purchases made while it's up add to it instead of stacking more
+/// popups, so tapping Buy a few times shows one running total; it goes three seconds after the
+/// last purchase.
+struct PurchaseNote: Identifiable, Equatable {
+    struct Item: Equatable {
+        let name: String
+        var count: Int
+        /// What it changed when that isn't coins: "Biggest combo ×3.5".
+        var effect: String?
+    }
+
+    /// The same while purchases add to the popup, so it updates in place.
+    let id = UUID()
+    private(set) var items: [Item] = []
+    /// Idle income and a tap's worth before the first of these purchases...
+    let incomeBefore: Double
+    let tapBefore: Double
+    /// ...and after the latest.
+    var incomeNow: Double
+    var tapNow: Double
+    /// The latest purchase; the popup stays up `lifetime` after it.
+    var updatedAt: Date
+
+    static let lifetime: TimeInterval = 3
+
+    init(incomeBefore: Double, tapBefore: Double, at date: Date) {
+        self.incomeBefore = incomeBefore
+        self.tapBefore = tapBefore
+        incomeNow = incomeBefore
+        tapNow = tapBefore
+        updatedAt = date
+    }
+
+    mutating func add(_ name: String, count: Int, effect: String?) {
+        if let index = items.firstIndex(where: { $0.name == name }) {
+            items[index].count += count
+            if let effect { items[index].effect = effect }
+        } else {
+            items.append(Item(name: name, count: count, effect: effect))
+        }
+    }
+
+    var itemCount: Int { items.reduce(0) { $0 + $1.count } }
+    var addedIncome: Double { max(0, incomeNow - incomeBefore) }
+    var addedTap: Double { max(0, tapNow - tapBefore) }
+}
+
 /// What the welcome-back screen shows: what the miners earned while the app was closed, what that
 /// unlocked, and the best thing to buy with it.
 struct WelcomeBack: Identifiable {
@@ -94,6 +141,8 @@ final class GameStore {
     /// Set when the save couldn't be read: the player is told before a new game starts saving.
     var unreadableSave: UnreadableSave?
     private(set) var toasts: [Toast] = []
+    /// The Shop's purchase popup, while it's up.
+    private(set) var purchaseNote: PurchaseNote?
     private(set) var watchStatus = WatchBridge.Status.unsupported
     private(set) var market = MarketBoard(at: .now)
     // Set by the store and its extensions in the GameStore+… files; screens only read them.
@@ -305,7 +354,7 @@ final class GameStore {
     private func tick(at now: Date) {
         guard isInForeground else { return }
         catchUp(to: now)
-        if comboStreak > 0 && now.timeIntervalSince(lastTapAt) > Tuning.comboWindow { comboStreak = 0 }
+        if comboStreak > 0 && now.timeIntervalSince(lastTapAt) > state.comboWindow { comboStreak = 0 }
         updateAirdrop(at: now)
         refreshMarket(at: now)
         refreshDaily(at: now)
@@ -386,6 +435,28 @@ final class GameStore {
 
     func dismiss(_ toast: Toast) {
         toasts.removeAll { $0.id == toast.id }
+    }
+
+    /// What a purchase popup measures from: idle income and a tap's worth, without boosts.
+    var purchaseBaseline: (income: Double, tap: Double) { (state.baseIdleIncome, state.baseTapValue) }
+
+    /// Adds a purchase to the popup: to the one on screen if the last purchase was under three
+    /// seconds ago, else to a new one measured from `before` (`purchaseBaseline` before buying).
+    func notePurchase(_ name: String, count: Int = 1, effect: String? = nil, before: (income: Double, tap: Double)) {
+        let now = Date.now
+        var note = purchaseNote.flatMap { now.timeIntervalSince($0.updatedAt) < PurchaseNote.lifetime ? $0 : nil }
+            ?? PurchaseNote(incomeBefore: before.income, tapBefore: before.tap, at: now)
+        note.add(name, count: count, effect: effect)
+        note.incomeNow = state.baseIdleIncome
+        note.tapNow = state.baseTapValue
+        note.updatedAt = now
+        purchaseNote = note
+    }
+
+    /// Takes the purchase popup away: now, or (`ifUnchangedSince`) only if nothing was bought since.
+    func dismissPurchaseNote(ifUnchangedSince date: Date? = nil) {
+        guard let note = purchaseNote, date.map({ note.updatedAt == $0 }) ?? true else { return }
+        purchaseNote = nil
     }
 
     // MARK: Saving

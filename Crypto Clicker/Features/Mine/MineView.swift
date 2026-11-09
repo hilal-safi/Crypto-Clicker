@@ -324,8 +324,9 @@ struct CoinButton: View {
         .overlay {
             GeometryReader { proxy in
                 let coin = min(proxy.size.width, proxy.size.height)
+                // Half as wide again as tall: the effects spread sideways (see `TapEffectsLayer.spread`).
                 TapEffectsLayer(bursts: bursts, coin: coin)
-                    .frame(width: coin * 2.2, height: coin * 2.2)
+                    .frame(width: coin * 3.3, height: coin * 2.2)
                     .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
             }
             .allowsHitTesting(false)
@@ -363,7 +364,8 @@ struct CoinButton: View {
     }
 
     private func spawnFloater(_ earned: Double) {
-        let floater = Floater(id: taps, text: "+\(text(earned))", xOffset: .random(in: -70...70))
+        // Spread across 210 points (half as wide again as the 140 they had), so quick taps don't stack.
+        let floater = Floater(id: taps, text: "+\(text(earned))", xOffset: .random(in: -105...105))
         floaters.append(floater)
         if floaters.count > 12 { floaters.removeFirst(floaters.count - 12) }
         Task {

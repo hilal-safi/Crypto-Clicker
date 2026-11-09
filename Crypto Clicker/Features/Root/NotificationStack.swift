@@ -1,7 +1,7 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Airdrops and toasts, floating over every tab.
+/// Airdrops, the purchase popup and toasts, floating over every tab.
 struct NotificationStack: View {
     @Environment(GameStore.self) private var store
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -11,6 +11,19 @@ struct NotificationStack: View {
             if let airdrop = store.airdrop, !store.isInGame {
                 AirdropButton(airdrop: airdrop) { store.claimAirdrop() }
                     .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            if let note = store.purchaseNote, !store.isInGame {
+                PurchaseNoteView(note: note)
+                    .id(note.id)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .onTapGesture { store.dismissPurchaseNote() }
+                    .task(id: note.updatedAt) {
+                        // Three seconds after the latest purchase; another one restarts the wait.
+                        do {
+                            try await Task.sleep(for: .seconds(PurchaseNote.lifetime))
+                            store.dismissPurchaseNote(ifUnchangedSince: note.updatedAt)
+                        } catch {}
+                    }
             }
             if let toast = store.toasts.first, !store.isInGame {
                 ToastView(toast: toast)
@@ -29,6 +42,7 @@ struct NotificationStack: View {
         // Below the navigation bar (and the iPad tab bar), so toasts never cover toolbar buttons.
         .padding(.top, sizeClass == .regular ? 110 : 52)
         .animation(.spring(duration: 0.4), value: store.toasts.first?.id)
+        .animation(.spring(duration: 0.4), value: store.purchaseNote?.id)
         .animation(.spring(duration: 0.4), value: store.airdrop?.id)
     }
 }
@@ -53,6 +67,55 @@ struct ToastView: View {
         .frame(maxWidth: 440)
         .fixedSize(horizontal: false, vertical: true)
         .glassEffect(.regular, in: .rect(cornerRadius: 22))
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isStaticText)
+    }
+}
+
+/// What was just bought and what it added: "Added 12.5 coins per second · now 1,240 per second".
+/// Further purchases update it in place, with the numbers rolling to their new values.
+struct PurchaseNoteView: View {
+    let note: PurchaseNote
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "bag.fill.badge.plus")
+                .font(.title2)
+                .foregroundStyle(Theme.accent)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(note.itemCount == 1 ? "Item purchased!" : "\(note.itemCount) items purchased!")
+                    .font(.headline)
+                    .contentTransition(.numericText())
+                Text(note.items.map { $0.count > 1 ? "\($0.name) ×\(CoinFormat.grouped($0.count))" : $0.name }
+                    .joined(separator: " · "))
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(2)
+                    .contentTransition(.numericText())
+                Group {
+                    if note.addedIncome > 0 {
+                        Text("Added \(CoinFormat.rate(note.addedIncome)) coins per second · now \(CoinFormat.rate(note.incomeNow)) per second")
+                    }
+                    if note.addedTap > 0 {
+                        Text("Added \(CoinFormat.short(note.addedTap)) coins per tap · now \(CoinFormat.short(note.tapNow)) per tap")
+                    }
+                    ForEach(note.items.compactMap(\.effect), id: \.self) { effect in
+                        Text(effect)
+                    }
+                }
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(.subtext)
+                .contentTransition(.numericText())
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .frame(maxWidth: 440)
+        .fixedSize(horizontal: false, vertical: true)
+        .glassEffect(.regular.tint(Theme.accent.opacity(0.12)), in: .rect(cornerRadius: 22))
+        .animation(.snappy, value: note)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isStaticText)
     }

@@ -78,13 +78,14 @@ private struct HowToChapter: Identifiable {
         ]),
         HowToTopic("flame.fill", "Combos", "Tap quickly and each tap earns more.", [
             "Every four or five quick taps add ×0.1, so about 45 make ×2.",
-            "Pause for about half a second and the combo starts over.",
+            "Pause for more than about half a second (longer with Combo Keeper) and the combo starts over.",
             "The flame under the coin shows your biggest combo.",
         ]),
         HowToTopic("bolt.fill", "Combo power-ups", "Bought in levels in Shop › Power-ups, and kept when you prestige.", [
             "Combo Booster: the biggest combo grows ×0.5 a level, up to ×5.",
             "Combo Overdrive: then ×1 a level, up to ×10.",
             "Quick Combos: each ×0.1 comes 50% faster a level, up to four times as fast.",
+            "Combo Keeper: a combo waits 20% longer for your next tap a level, up to twice as long.",
             "The Combo Master perk doubles that speed and lifts the biggest combo to at least ×3.",
         ]),
         HowToTopic("cpu", "Miners", "Miners earn coins every second while the app is open.", [
@@ -96,6 +97,7 @@ private struct HowToChapter: Identifiable {
             "Owning 25, 50, 100, 200, then every 100 up to 1,000, doubles a miner's output each time.",
             "At 25, 50, 100, 200 and 400 owned, a Mk upgrade (Mk II to Mk VI) appears in the Shop.",
             "Each Mk upgrade doubles that miner again for the rest of the run.",
+            "Legacy, late in the game: each miner you own 100 of makes every miner four or more tiers older earn ×3.",
         ]),
         HowToTopic("sparkles", "Upgrades", "One-time purchases in the Shop.", [
             "Multiply production and power up taps.",
@@ -104,13 +106,13 @@ private struct HowToChapter: Identifiable {
         ]),
         HowToTopic("moon.zzz.fill", "Offline Mining", "Keeps your miners earning while the app is closed.", [
             "Without it, miners stop a minute after you leave.",
-            "Each level adds 30 minutes, up to a day, then an hour, up to three days.",
+            "Each level adds 5 minutes up to an hour, then half an hour, up to three days. Every level costs more than the last.",
             "It's a power-up, so it stays when you prestige.",
         ]),
     ])
 
     private static var rewards: HowToChapter { HowToChapter(title: "Rewards", topics: [
-        HowToTopic("shippingbox.fill", "Airdrops", "Every few minutes an airdrop falls: tap it to catch it.", [
+        HowToTopic("shippingbox.fill", "Airdrops", "Once you've mined \(CoinFormat.grouped(Int(Tuning.airdropUnlockCoins))) coins, an airdrop falls every few minutes: tap it to catch it.", [
             "It holds a pile of coins, or a Bull Run that multiplies production by 7 for a minute.",
             "Now and then a whale swims by instead: up to an hour of income at once.",
             "Early in a run, a whale pays at most what the run has mined so far.",
@@ -118,6 +120,7 @@ private struct HowToChapter: Identifiable {
         HowToTopic("gift.fill", "Daily rewards and quests", "From your second day, in Trophies › Daily.", [
             "Claim a reward every day to build a streak: day 7 pays an hour of income.",
             "Three new quests arrive each day.",
+            "Coin rewards grow with your income: up to three times over the day, and up to twice once a quest is finished but not yet claimed.",
         ]),
         HowToTopic("target", "Daily challenge", "From your second day, a challenge a day in one of your games.", [
             "A \(MiniGame.tetris.name) score, a \(MiniGame.merge2048.name) miner, a Pump and Dump run, a Token Swap score, invaders shot, good casino hands, or points in three arcade games.",

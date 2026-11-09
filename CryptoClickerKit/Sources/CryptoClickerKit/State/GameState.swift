@@ -181,8 +181,9 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
 /// extensions, so the app can only change state through tested methods.
 public struct GameState: Codable, Equatable, Sendable {
     /// 2: Hard Forks became Prestige. 3: prestige potential needs 10% more lifetime coins.
-    /// 4: and 15% more again. 5: 15 billion for the first point.
-    public static let saveVersion = 5
+    /// 4: and 15% more again. 5: 15 billion for the first point. 6: Offline Mining levels of five
+    /// minutes up to an hour, then half an hour.
+    public static let saveVersion = 6
 
     public internal(set) var coins: Double = 0
     public internal(set) var miners: [MinerID: Int] = [:]
@@ -289,10 +290,12 @@ public struct GameState: Codable, Equatable, Sendable {
         runPrestigeMultiplier = Difficulty.allCases.map(\.prestigeMultiplier).contains(multiplier)
             ? multiplier : difficulty.prestigeMultiplier
         boost = c.value(.boost, default: nil)
-        // Offline upgrades bought in earlier versions become the matching Offline Mining level.
-        let legacyLevel = savedUpgrades.compactMap { UpgradeID.legacyOfflineLevels[$0] }.max() ?? 0
+        // Offline upgrades bought in earlier versions, and levels from before version 6 (which added
+        // more time each), become the level that pays for the same time away.
+        let legacyCap = (savedUpgrades.compactMap { UpgradeID.legacyOfflineHours[$0] }.max() ?? 0) * 3_600
         let savedLevel: Int = c.value(.offlineMiningLevel, default: 0)
-        offlineMiningLevel = min(max(savedLevel, legacyLevel, 0), Tuning.offlineMiningMaxLevel)
+        let savedCap = version < 6 ? Self.version5OfflineCap(level: savedLevel) : Self.offlineCap(level: savedLevel)
+        offlineMiningLevel = Self.offlineMiningLevel(reaching: max(savedCap, legacyCap))
         powerUps = c.enumKeyed(.powerUps, as: PowerUpID.self).mapValues { max(0, $0) }
         unlockedGames = c.enumSet(.unlockedGames, as: MiniGame.self)
         blackjackStake = c.value(.blackjackStake, default: nil)

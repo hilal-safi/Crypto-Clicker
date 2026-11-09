@@ -240,55 +240,65 @@ private struct PerkRow: View {
     @State private var purchases = 0
     @State private var refusals = 0
 
+    /// Width of the icon column, so the lines under the name line up with it.
+    private static let iconSize: CGFloat = 38
+    private static let gap: CGFloat = 12
+
     var body: some View {
-        HStack(spacing: 12) {
-            if perk.requires != nil {
-                Image(systemName: "arrow.turn.down.right")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.subtext)
+        // The name and price share the top line; the summary and what the perk needs run under the
+        // name across the rest of the row, so neither wraps a word to a line.
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: Self.gap) {
+                Image(systemName: perk.symbol)
+                    .font(.headline)
+                    .foregroundStyle(isOwned ? .white : color)
+                    .frame(width: Self.iconSize, height: Self.iconSize)
+                    .background(isOwned ? color : color.opacity(0.15), in: .circle)
                     .accessibilityHidden(true)
-            }
-            Image(systemName: perk.symbol)
-                .font(.headline)
-                .foregroundStyle(isOwned ? .white : color)
-                .frame(width: 38, height: 38)
-                .background(isOwned ? color : color.opacity(0.15), in: .circle)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
                 Text(perk.name)
                     .font(.headline)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.85)
+                Spacer(minLength: 8)
+                trailing
+            }
+            VStack(alignment: .leading, spacing: 4) {
                 Text(perk.summary)
                     .font(.subheadline)
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
-                if !isOwned, !isAvailable, let required = perk.requires {
-                    Label("Needs \(required.name)", systemImage: "lock.fill")
+                if !isOwned, let required = perk.requires {
+                    Label(isAvailable ? "After \(required.name)" : "Needs \(required.name) first",
+                          systemImage: isAvailable ? "arrow.turn.down.right" : "lock.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.accent)
+                        .foregroundStyle(isAvailable ? Theme.subtext : Theme.accent)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Spacer(minLength: 8)
-            if isOwned {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.title3)
-                    .foregroundStyle(.green)
-                    .accessibilityLabel("Owned")
-            } else {
-                Button {
-                    if store.buyPerk(perk) { purchases += 1 } else { refusals += 1 }
-                } label: {
-                    Text("\(CoinFormat.grouped(perk.cost)) pts")
-                        .font(.subheadline.weight(.bold).monospacedDigit())
-                        .frame(minWidth: 64)
-                }
-                .priceButtonStyle(canAfford: canBuy, tint: Theme.arcadeButton)
-                .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
-                .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
-                .accessibilityLabel("Buy \(perk.name) for \(perk.cost) points")
-            }
+            .padding(.leading, Self.iconSize + Self.gap)
         }
-        .padding(.leading, perk.requires == nil ? 0 : 8)
+        .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private var trailing: some View {
+        if isOwned {
+            Label("Owned", systemImage: "checkmark.circle.fill")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.green)
+        } else {
+            Button {
+                if store.buyPerk(perk) { purchases += 1 } else { refusals += 1 }
+            } label: {
+                Text("\(CoinFormat.grouped(perk.cost)) \(perk.cost == 1 ? "pt" : "pts")")
+                    .font(.subheadline.weight(.bold).monospacedDigit())
+                    .frame(minWidth: 64)
+            }
+            .priceButtonStyle(canAfford: canBuy, tint: Theme.arcadeButton)
+            .fixedSize()
+            .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
+            .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
+            .accessibilityLabel("Buy \(perk.name) for \(perk.cost) points")
+        }
     }
 }

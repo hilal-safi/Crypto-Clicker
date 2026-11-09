@@ -35,9 +35,10 @@ extension GameState {
         stats.maxUpgrades = max(stats.maxUpgrades, upgrades.count)
     }
 
-    /// Adds Offline Mining levels for free (a negative count removes them), within its range.
-    public mutating func debugAddOfflineMining(levels: Int) {
-        offlineMiningLevel = min(max(0, offlineMiningLevel + levels), Tuning.offlineMiningMaxLevel)
+    /// Adds `hours` to the Offline Mining limit for free (a negative count takes them away), within
+    /// its range.
+    public mutating func debugAddOfflineMining(hours: Double) {
+        offlineMiningLevel = Self.offlineMiningLevel(reaching: max(0, offlineCap + hours * 3_600))
     }
 
     /// Puts every combo power-up at its last level.
@@ -81,9 +82,9 @@ extension GameState {
     /// Marks today's quests as done, ready to claim.
     public mutating func debugCompleteQuests() {
         daily.quests = daily.quests.map { quest in
-            Quest(kind: quest.kind, target: quest.target, baseline: questMetric(quest.kind) - quest.target,
-                  reward: quest.reward, isClaimed: quest.isClaimed)
+            quest.restarted(target: quest.target, baseline: questMetric(quest.kind) - quest.target)
         }
+        noteQuestCompletions()
     }
 
     /// Makes the daily reward, new quests and a fresh daily challenge available again today (even on

@@ -159,12 +159,26 @@ extension GameState {
         return boost
     }
 
+    // MARK: Legacy
+
+    /// Tiers at least `Tuning.legacyTierGap` above `miner` with `Tuning.legacyUnits` or more units.
+    public func legacyTiers(for miner: MinerID) -> Int {
+        MinerID.allCases.dropFirst(miner.tier + Tuning.legacyTierGap).count { owned($0) >= Tuning.legacyUnits }
+    }
+
+    /// What Legacy multiplies `miner` by: ×5 for each tier from four above it with 100 units (1 until
+    /// the late game).
+    public func legacyMultiplier(_ miner: MinerID) -> Double {
+        pow(Tuning.legacyMultiplier, Double(legacyTiers(for: miner)))
+    }
+
     // MARK: Production
 
-    /// Output multiplier for one miner tier: its milestones and its Mk upgrades.
+    /// Output multiplier for one miner tier: its milestones, its Mk upgrades and Legacy.
     func tierMultiplier(_ miner: MinerID, owned count: Int) -> Double {
         Self.milestoneMultiplier(owned: count)
             * pow(Tuning.minerUpgradeMultiplier, Double(minerUpgradeLevel(miner)))
+            * legacyMultiplier(miner)
     }
 
     /// Coins per second from all units of one miner, without temporary boosts.
@@ -224,6 +238,9 @@ extension GameState {
 
     public func tapValue(at date: Date) -> Double { tapValue(production: production(at: date)) }
 
+    /// What a tap earns without a boost: what purchases change, for the Shop's purchase popup.
+    public var baseTapValue: Double { tapValue(production: baseProduction) }
+
     /// What an automatic tap is worth, as a share of a tap: Auto Clicker Pro doubles it.
     public var autoTapStrength: Double {
         Tuning.autoTapStrength * (hasPerk(.autoClickerPro) ? 2 : 1)
@@ -275,6 +292,12 @@ extension GameState {
     /// Quick taps for each +0.1 of a combo (on average).
     public var comboTapsPerStep: Double { Tuning.comboTapsPerStep / comboSpeed }
 
+    /// How long a combo waits for the next tap: `Tuning.comboWindow`, 20% longer for each level of
+    /// Combo Keeper, up to twice as long.
+    public var comboWindow: TimeInterval {
+        Tuning.comboWindow * (1 + Double(powerUpLevel(.comboKeeper)) * Tuning.comboKeeperStep)
+    }
+
     /// Quick taps in a row, counting the first, that reach the biggest combo.
     public var comboTapsToMax: Int {
         let steps = ((comboMaxMultiplier - 1) / Tuning.comboStep).rounded()
@@ -292,13 +315,37 @@ extension GameState {
 
     // MARK: Offline Mining
 
-    /// Time away that Offline Mining pays for at `level`: 30 minutes per level up to a day,
-    /// then an hour per level, up to three days.
+    /// Time away that Offline Mining pays for at `level`: five minutes per level up to an hour,
+    /// then half an hour per level, up to three days.
     public static func offlineCap(level: Int) -> TimeInterval {
         let level = min(max(0, level), Tuning.offlineMiningMaxLevel)
-        let halfHours = min(level, Tuning.offlineMiningDayLevel)
-        let hours = level - halfHours
-        return Double(halfHours) * Tuning.offlineMiningStep + Double(hours) * Tuning.offlineMiningLateStep
+        let short = min(level, Tuning.offlineMiningHourLevel)
+        return Double(short) * Tuning.offlineMiningShortStep + Double(level - short) * Tuning.offlineMiningStep
+    }
+
+    /// The lowest Offline Mining level that pays for at least `cap` away (the last level for more
+    /// than it pays).
+    static func offlineMiningLevel(reaching cap: TimeInterval) -> Int {
+        guard cap > 0 else { return 0 }
+        return (1...Tuning.offlineMiningMaxLevel).first { offlineCap(level: $0) >= cap } ?? Tuning.offlineMiningMaxLevel
+    }
+
+    /// What Offline Mining levels paid for before version 6: half an hour each up to a day, then an
+    /// hour each up to three days.
+    static func version5OfflineCap(level: Int) -> TimeInterval {
+        let level = min(max(0, level), 96)
+        return Double(min(level, 48)) * 1_800 + Double(max(0, level - 48)) * 3_600
+    }
+
+    /// List price of Offline Mining's `level` (the first is 1), read off `Tuning.offlineMiningPrices`
+    /// by the limit it reaches.
+    public static func offlineMiningListPrice(level: Int) -> Double {
+        let hours = offlineCap(level: level) / 3_600
+        let prices = Tuning.offlineMiningPrices
+        guard let next = prices.firstIndex(where: { $0.hours >= hours }) else { return prices.last?.price ?? 0 }
+        guard next > 0 else { return prices[next].price }
+        let from = prices[next - 1], to = prices[next]
+        return from.price * pow(to.price / from.price, (hours - from.hours) / (to.hours - from.hours))
     }
 
     /// How long miners keep earning while the app is closed: nothing until Offline Mining is bought.
@@ -308,14 +355,19 @@ extension GameState {
     /// first minute, so leaving for longer never pays less than a quick app switch.
     public var timeAwayLimit: TimeInterval { max(offlineCap, Tuning.awayThreshold) }
 
-    /// Price of the next Offline Mining level, or `nil` once it is at the maximum.
+    /// Price of the next Offline Mining level, or `nil` once it is at the maximum. Its own curve
+    /// sets it, with the pace but not the Shop's premium.
     public var offlineMiningPrice: Double? {
         guard offlineMiningLevel < Tuning.offlineMiningMaxLevel else { return nil }
-        return Tuning.scaledPrice(Tuning.offlineMiningBaseCost
-                                  * pow(Tuning.offlineMiningCostGrowth, Double(offlineMiningLevel)))
+        return Tuning.scaledPrice(Self.offlineMiningListPrice(level: offlineMiningLevel + 1))
     }
 
     // MARK: Airdrops
+
+    /// Airdrops fall once `Tuning.airdropUnlockCoins` have been mined in all (and a miner is owned).
+    public var areAirdropsUnlocked: Bool {
+        stats.lifetimeCoins >= Tuning.airdropUnlockCoins && totalMiners > 0
+    }
 
     /// Seconds between airdrops: Airdrop Radar makes them more frequent.
     public var airdropInterval: ClosedRange<TimeInterval> {

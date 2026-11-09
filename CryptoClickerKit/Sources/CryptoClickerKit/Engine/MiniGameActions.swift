@@ -15,7 +15,7 @@ extension GameState {
 
     // MARK: Blackjack
 
-    /// Stakes tokens on the current Blackjack round: the opening bet, a double or a split.
+    /// Stakes tokens on the current Blackjack round: the opening bet, insurance, a double or a split.
     /// A round uses one token type. Fails if the player does not hold enough.
     @discardableResult
     public mutating func placeBlackjackBet(_ token: TokenID, amount: Int) -> Bool {
@@ -52,14 +52,14 @@ extension GameState {
         return max(1, Int(min(needed.rounded(.up), 1e9))) // Fits a 32-bit Int on Apple Watch.
     }
 
-    /// Pays a finished round: winnings back to the wallet, statistics, and a coin bonus per won hand.
-    /// Pays only while a stake is open, so a round can never be paid twice.
+    /// Pays a finished round: winnings (and insurance) back to the wallet, statistics, and a coin
+    /// bonus per won hand. Pays only while a stake is open, so a round can never be paid twice.
     @discardableResult
-    public mutating func settleBlackjack(_ results: [BlackjackResult], token: TokenID,
-                                         rules: BlackjackRules = .standsOnSoft17) -> Double {
+    public mutating func settleBlackjack(_ results: [BlackjackResult], insurance: BlackjackInsurance? = nil,
+                                         token: TokenID, rules: BlackjackRules = .standsOnSoft17) -> Double {
         guard blackjackStake != nil else { return 0 }
         blackjackStake = nil
-        giveTokens(token, amount: results.reduce(0) { $0.addingCount($1.payout) })
+        giveTokens(token, amount: results.reduce(max(0, insurance?.payout ?? 0)) { $0.addingCount($1.payout) })
         stats.blackjackHands += 1
         var bonus = 0.0
         var wins = 0
@@ -86,7 +86,7 @@ extension GameState {
         }
         stats.blackjackWins += wins
         credit(bonus, source: .games)
-        let net = Double(results.reduce(0) { $0 + $1.net }) * token.price + bonus
+        let net = Double(results.reduce(insurance?.net ?? 0) { $0 + $1.net }) * token.price + bonus
         stats.blackjackBiggestWin = max(stats.blackjackBiggestWin, net)
         // The natural challenge counts naturals; the usual one counts hands won.
         let counted = daily.challenge?.kind == .blackjackNatural ? naturals : wins

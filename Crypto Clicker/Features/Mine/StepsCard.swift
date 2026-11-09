@@ -2,9 +2,9 @@ import SwiftUI
 import CryptoClickerKit
 
 /// Steps on the home screen. Hidden until the player has tapped the coin 2,000 times; then a
-/// one-line invitation ("Earn coins from steps!" with Learn More and Start), and once steps are
-/// connected, today's count and what it pays. Kept small so the coin and the inventory strip get
-/// the room.
+/// one-line invitation ("Earn coins from steps!" with Learn More, which explains steps and has the
+/// button that starts them), and once steps are connected, today's count and what it pays. Kept
+/// small so the coin and the inventory strip get the room.
 struct StepsCard: View {
     /// Opens the explanation sheet, which the home screen presents.
     let learnMore: () -> Void
@@ -38,16 +38,16 @@ struct StepsCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Earn coins from steps!")
                     .font(.subheadline.weight(.bold))
-                Button("Learn More", action: learnMore)
-                    .font(.subheadline.weight(.semibold))
-                    .buttonStyle(.borderless)
-                    .tint(Theme.stepsButton)
+                Text("Every step you walk pays")
+                    .font(.subheadline)
+                    .foregroundStyle(.subtext)
             }
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
             Spacer(minLength: 4)
-            Button {
-                Task { await store.connectSteps() }
-            } label: {
-                Text("Start")
+            // How steps work comes first; the explanation has the button that starts them.
+            Button(action: learnMore) {
+                Text("Learn More")
                     .font(.subheadline.weight(.bold))
                     .padding(.horizontal, 2)
             }

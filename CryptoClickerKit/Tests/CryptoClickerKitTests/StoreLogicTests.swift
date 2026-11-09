@@ -69,7 +69,12 @@ struct SaveStoreTests {
 
 @Suite("Airdrop schedule")
 struct AirdropScheduleTests {
-    func player() -> GameState { GameState.make(miners: minersEarning(10)) }
+    /// Owns miners and has mined enough for airdrops.
+    func player() -> GameState {
+        var game = GameState.make(miners: minersEarning(10))
+        game.stats.lifetimeCoins = Tuning.airdropUnlockCoins
+        return game
+    }
 
     @Test func anAirdropWaitsItsTurnFallsAndIsCaught() throws {
         let game = player()
@@ -110,6 +115,12 @@ struct AirdropScheduleTests {
     @Test func noneFallBeforeTheFirstMinerOrDuringAGame() {
         var schedule = AirdropSchedule(nextAt: t0)
         #expect(schedule.update(at: at(1), game: GameState.make(), isInGame: false, kindRoll: 0, delayRoll: 0) == nil)
+        // Nor before 20,000 coins have been mined, so a lucky airdrop can't rush the opening.
+        var early = player()
+        early.stats.lifetimeCoins = Tuning.airdropUnlockCoins - 1
+        #expect(!early.areAirdropsUnlocked)
+        #expect(schedule.update(at: at(1), game: early, isInGame: false, kindRoll: 0, delayRoll: 0) == nil)
+        #expect(player().areAirdropsUnlocked)
         #expect(schedule.update(at: at(1), game: player(), isInGame: true, kindRoll: 0, delayRoll: 0) == nil)
         #expect(schedule.drop == nil)
         // It falls as soon as the game closes.
@@ -126,7 +137,7 @@ struct AirdropScheduleTests {
 struct ReturnGreetingTests {
     @Test func longAbsencesGetTheScreenShortOnesAToast() throws {
         var mining = GameState.make(miners: minersEarning(10))
-        mining.offlineMiningLevel = 4
+        mining.setOfflineMining(hours: 2)
         let away = mining.advance(to: at(3_600))
         let long = try #require(away)
         #expect(ReturnGreeting.choose(for: long, lastWelcomeDay: "2026-11-03", today: "2026-11-03") == .welcomeBack(marksDay: false))

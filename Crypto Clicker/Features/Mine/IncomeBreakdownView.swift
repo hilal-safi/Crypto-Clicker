@@ -126,7 +126,8 @@ struct IncomeBreakdownView: View {
                     }
                     row("Coin airdrop", "Up to \(amount(game.rewardIncome * Tuning.airdropIncomeSeconds))")
                     row("Whale airdrop", amount(game.whaleAmount))
-                    row("Daily quests", "\(amount(game.rewardIncome * 600 * game.dailyRewardMultiplier)) to \(amount(game.rewardIncome * 1_800 * game.dailyRewardMultiplier))")
+                    let questIncome = game.challengeRewardIncome * game.dailyRewardMultiplier
+                    row("Daily quests", "\(amount(questIncome * 600)) to \(amount(questIncome * 1_800))")
                 }
             }
             .monospacedDigit()

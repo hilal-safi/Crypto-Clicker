@@ -113,18 +113,9 @@ struct ShopView: View {
             ForEach(BuyQuantity.allCases) { Text($0.title).tag($0) }
         }
         .pickerStyle(.segmented)
-        let bestValue = game.bestValueMiner
+        let bestValue = revealedMiners.count > 1 ? game.bestValueMiner : nil
         ForEach(revealedMiners) { miner in
-            let count = quantity.count(of: miner, in: game)
-            let price = game.price(of: miner, quantity: count)
-            let upgrade = game.availableMinerUpgrade(miner)
-            MinerRow(miner: miner, owned: game.owned(miner), rate: game.rate(of: miner),
-                     perUnit: game.nextUnitGain(miner), isBestValue: miner == bestValue && revealedMiners.count > 1,
-                     nextMilestone: game.nextMilestone(for: miner), buyCount: count,
-                     price: price, canAfford: price <= game.coins,
-                     mkLevel: game.minerUpgradeLevel(miner), upgradeLevel: upgrade?.level,
-                     upgradePrice: upgrade?.price,
-                     canAffordUpgrade: upgrade.map { $0.price <= game.coins } ?? false)
+            minerRow(miner, game: game, isBestValue: miner == bestValue)
         }
         if let lockedMiner {
             LockedMinerRow(miner: lockedMiner,
@@ -179,6 +170,19 @@ struct ShopView: View {
             && (game.prestigePoints > 0 || game.stats.lifetimeCoins >= Tuning.prestigeScale / 10) {
             PrestigeCard()
         }
+    }
+
+    private func minerRow(_ miner: MinerID, game: GameState, isBestValue: Bool) -> MinerRow {
+        let count = quantity.count(of: miner, in: game)
+        let price = game.price(of: miner, quantity: count)
+        let upgrade = game.availableMinerUpgrade(miner)
+        return MinerRow(miner: miner, owned: game.owned(miner), rate: game.rate(of: miner),
+                        perUnit: game.nextUnitGain(miner), isBestValue: isBestValue,
+                        nextMilestone: game.nextMilestone(for: miner), buyCount: count,
+                        price: price, canAfford: price <= game.coins,
+                        mkLevel: game.minerUpgradeLevel(miner), legacy: game.legacyMultiplier(miner),
+                        upgradeLevel: upgrade?.level, upgradePrice: upgrade?.price,
+                        canAffordUpgrade: upgrade.map { $0.price <= game.coins } ?? false)
     }
 
     /// Shows the tokens page once for each request.

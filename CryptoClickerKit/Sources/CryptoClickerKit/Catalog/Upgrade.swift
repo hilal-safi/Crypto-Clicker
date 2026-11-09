@@ -93,8 +93,12 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 
-    /// The price: the list price, raised by the game's pace (see `Tuning.scaledPrice`).
-    public var cost: Double { Tuning.scaledPrice(listCost) }
+    /// The price: the list price, raised by the game's pace and the Shop's premium (see
+    /// `Tuning.shopPrice`).
+    public var cost: Double { Tuning.shopPrice(listCost) }
+
+    /// Whether it adds coins per second or per tap (step and mini-game upgrades raise other rewards).
+    public var addsCoins: Bool { category == .tapping || category == .production }
 
     /// The price before the pace adjustment.
     public var listCost: Double {
@@ -169,6 +173,6 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 
-    /// Upgrades from earlier versions that are now Offline Mining levels, and the level each grants.
-    static let legacyOfflineLevels: [String: Int] = ["cloudBackup": 8, "serverLease": 16, "alwaysOnRig": 48]
+    /// Upgrades from earlier versions that are now Offline Mining, and the hours away each grants.
+    static let legacyOfflineHours: [String: Double] = ["cloudBackup": 4, "serverLease": 8, "alwaysOnRig": 24]
 }

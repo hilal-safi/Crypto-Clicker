@@ -7,11 +7,11 @@ struct SuggestionTests {
     @Test func theQuickestPaybackWins() throws {
         let game = GameState.make(coins: 10_000, miners: [.chromebook: 10, .desktop: 1])
         let best = try #require(game.bestPurchase)
-        // A Desktop (2 coins a second for 947) beats a Chromebook (a quarter coin for 336) and a GPU Rig.
+        // A Desktop (2 coins a second for 1,136) beats a Chromebook (a quarter coin for 401) and a GPU Rig.
         #expect(best.purchase == .miner(.desktop))
         #expect(best.name == "Desktop")
         #expect(best.price == game.price(of: .miner(.desktop)))
-        #expect(best.price == 947)
+        #expect(best.price == 1_136)
         #expect(best.incomeGain == 2)
         #expect(abs(best.payback - best.price / 2) < 1e-9)
     }

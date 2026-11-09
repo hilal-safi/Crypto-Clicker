@@ -36,4 +36,9 @@ extension GameState {
         state.upgrades = upgrades
         return state
     }
+
+    /// Sets Offline Mining to the level that pays for `hours` away.
+    mutating func setOfflineMining(hours: Double) {
+        offlineMiningLevel = Self.offlineMiningLevel(reaching: hours * 3_600)
+    }
 }

@@ -623,22 +623,20 @@ struct PracticeBetControls: View {
     }
 }
 
+/// The casino's bet: the token (picked from a sheet showing every token's artwork) and how many.
 struct TokenBetControls: View {
     @Binding var token: TokenID
     @Binding var bet: Int
     let counts: [TokenID: Int]
     /// Disabled while a spin is revealed: the counts shown then are only for display.
     @Environment(\.isEnabled) private var isEnabled
+    @State private var showsPicker = false
 
     var body: some View {
         let owned = counts[token, default: 0]
         HStack(spacing: 12) {
-            Menu {
-                Picker("Token", selection: $token) {
-                    ForEach(TokenID.allCases) { token in
-                        Text("\(token.name) · \(CoinFormat.grouped(counts[token, default: 0]))").tag(token)
-                    }
-                }
+            Button {
+                showsPicker = true
             } label: {
                 HStack(spacing: 8) {
                     TokenImage(token: token, size: 28)
@@ -657,12 +655,16 @@ struct TokenBetControls: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Token: \(token.name), \(owned) owned")
+            .accessibilityHint("Choose another token")
             Spacer(minLength: 0)
             Stepper(value: $bet, in: 1...max(1, owned)) {
                 Text("Bet \(CoinFormat.grouped(bet))")
                     .font(.headline.monospacedDigit())
             }
             .fixedSize()
+        }
+        .sheet(isPresented: $showsPicker) {
+            TokenPickerSheet(token: $token, counts: counts)
         }
         .onAppear(perform: fitBetToWallet)
         .onChange(of: owned) { _, _ in fitBetToWallet() }
@@ -674,5 +676,97 @@ struct TokenBetControls: View {
     private func fitBetToWallet() {
         guard isEnabled else { return }
         bet = min(bet, max(1, counts[token, default: 0]))
+    }
+}
+
+/// Every token to bet with, as tiles with its artwork, how many you hold and what one is worth.
+/// Tokens you hold none of are dimmed (the Shop sells them); the one in use is ringed.
+private struct TokenPickerSheet: View {
+    @Binding var token: TokenID
+    let counts: [TokenID: Int]
+    @Environment(GameStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12)], spacing: 12) {
+                    ForEach(TokenID.allCases) { option in
+                        Button {
+                            token = option
+                            dismiss()
+                        } label: {
+                            TokenTile(token: option, owned: counts[option, default: 0],
+                                      price: store.market.quote(option).price, isSelected: option == token)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(16)
+                if TokenID.allCases.contains(where: { counts[$0, default: 0] == 0 }) {
+                    Label("Buy more kinds in the Shop's Tokens page.", systemImage: "info.circle")
+                        .font(.footnote)
+                        .foregroundStyle(.subtext)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
+                }
+            }
+            .navigationTitle("Choose a Token")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+/// One token in the picker.
+private struct TokenTile: View {
+    let token: TokenID
+    let owned: Int
+    let price: Double
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: 6) {
+            TokenImage(token: token, size: 48)
+            Text(token.name)
+                .font(.headline)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            Text(owned > 0 ? "\(CoinFormat.grouped(owned)) \(token.ticker)" : "None yet")
+                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .foregroundStyle(owned > 0 ? AnyShapeStyle(.primary) : AnyShapeStyle(.subtext))
+            Text("\(CoinFormat.short(price)) coins each")
+                .font(.footnote.monospacedDigit())
+                .foregroundStyle(.subtext)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 8)
+        .background(.fill.tertiary, in: .rect(cornerRadius: 18))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .strokeBorder(isSelected ? Theme.accent : .clear, lineWidth: 2)
+        }
+        .overlay(alignment: .topTrailing) {
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(Theme.accent)
+                    .padding(8)
+            }
+        }
+        .opacity(owned > 0 || isSelected ? 1 : 0.5)
+        .contentShape(.rect(cornerRadius: 18))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(token.name), \(owned) owned, \(CoinFormat.short(price)) coins each")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }

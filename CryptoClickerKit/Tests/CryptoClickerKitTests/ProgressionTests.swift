@@ -181,7 +181,7 @@ struct PerkTests {
         #expect(game.buyPerk(.headStart) == false) // Owned already.
         #expect(game.buyPerk(.blueprints) == true)
         #expect(game.availablePrestigePoints == 30 - 1 - 25)
-        #expect(game.buyPerk(.airdropRadar) == false) // 4 points left, it costs 5.
+        #expect(game.buyPerk(.marketInsider) == false) // 4 points left, it costs 8.
         #expect(game.perks == [.headStart, .blueprints])
     }
 
@@ -202,7 +202,10 @@ struct PerkTests {
                 #expect(required.branch == perk.branch)
             }
         }
-        #expect(PerkID.allCases.reduce(0) { $0 + $1.cost } == 30_363)
+        #expect(PerkID.allCases.reduce(0) { $0 + $1.cost } == 12_305)
+        // Each perk costs no more than twice the one before it.
+        let costs = PerkID.allCases.map(\.cost).sorted()
+        for (cheaper, dearer) in zip(costs, costs.dropFirst()) { #expect(dearer <= cheaper * 2) }
     }
 
     @Test func keepPerksSurviveAPrestige() {
@@ -370,12 +373,12 @@ struct ComboTests {
         #expect(game.isRevealed(.comboBooster) && game.isRevealed(.quickCombos))
         #expect(!game.isRevealed(.comboOverdrive)) // Not until Combo Booster is at its last level.
         let first = try #require(game.powerUpPrice(.comboBooster))
-        #expect(first == Tuning.scaledPrice(Tuning.comboBoosterBaseCost))
+        #expect(first == Tuning.shopPrice(Tuning.comboBoosterBaseCost))
         let bought = game.buyPowerUp(.comboBooster)
         #expect(bought)
         #expect(game.powerUpLevel(.comboBooster) == 1 && game.comboMaxMultiplier == 2.5)
         #expect(game.coins == 1e15 - first)
-        #expect(game.powerUpPrice(.comboBooster) == Tuning.scaledPrice(Tuning.comboBoosterBaseCost * Tuning.comboBoosterCostGrowth))
+        #expect(game.powerUpPrice(.comboBooster) == Tuning.shopPrice(Tuning.comboBoosterBaseCost * Tuning.comboBoosterCostGrowth))
         while game.buyPowerUp(.comboBooster) {}
         #expect(game.powerUpLevel(.comboBooster) == 6 && game.powerUpPrice(.comboBooster) == nil)
         #expect(game.isRevealed(.comboOverdrive))
@@ -399,9 +402,37 @@ struct ComboTests {
         #expect(PowerUpID.comboBooster.effect(atLevel: 3) == "Biggest combo ×3.5")
         #expect(PowerUpID.comboOverdrive.effect(atLevel: 5) == "Biggest combo ×10")
         #expect(PowerUpID.quickCombos.effect(atLevel: 2) == "Combos build 2× as fast")
+        #expect(PowerUpID.comboKeeper.effect(atLevel: 2) == "Combos wait 0.84s between taps")
         #expect(PowerUpID.comboBooster.summary.contains("×5"))
         #expect(PowerUpID.comboOverdrive.summary.contains("×10"))
         #expect(PowerUpID.quickCombos.summary.contains("4×"))
+        #expect(PowerUpID.comboKeeper.summary.contains("0.6s") && PowerUpID.comboKeeper.summary.contains("1.2s"))
+        // The Shop's Now and Next show the value alone.
+        #expect(PowerUpID.comboBooster.value(atLevel: 0) == "×2")
+        #expect(PowerUpID.comboBooster.value(atLevel: 3) == "×3.5")
+        #expect(PowerUpID.quickCombos.value(atLevel: 4) == "3× as fast")
+        #expect(PowerUpID.comboKeeper.value(atLevel: 0) == "0.6s")
+        #expect(PowerUpID.comboKeeper.value(atLevel: 5) == "1.2s")
+        #expect(PowerUpID.comboKeeper.value(atLevel: 9) == "1.2s") // Never past the last level.
+    }
+
+    @Test func comboKeeperGivesMoreTimeBetweenTapsUpToTwiceAsLong() throws {
+        var game = GameState.make(coins: 1e15)
+        game.stats.lifetimeCoins = 1e15
+        #expect(game.comboWindow == Tuning.comboWindow)
+        #expect(game.isRevealed(.comboKeeper))
+        let first = try #require(game.powerUpPrice(.comboKeeper))
+        #expect(first == Tuning.shopPrice(Tuning.comboKeeperBaseCost))
+        let bought = game.buyPowerUp(.comboKeeper)
+        #expect(bought)
+        #expect(approx(game.comboWindow, Tuning.comboWindow * 1.2))
+        while game.buyPowerUp(.comboKeeper) {}
+        #expect(game.powerUpLevel(.comboKeeper) == 5)
+        #expect(approx(game.comboWindow, Tuning.comboWindow * 2))
+        #expect(game.powerUpPrice(.comboKeeper) == nil)
+        // Kept through a prestige, like every power-up.
+        game.prestige(at: at(10))
+        #expect(approx(game.comboWindow, 1.2))
     }
 }
 
@@ -625,7 +656,7 @@ struct AchievementTests {
     @Test func newSystemsHaveAchievements() {
         var game = GameState.make()
         game.stats.minerUpgradesBought = 5
-        game.stats.bestCombo = 100
+        game.stats.bestCombo = 110
         game.stats.tokensSold = 10
         game.stats.questsCompleted = 5
         game.stats.longestStreak = 7

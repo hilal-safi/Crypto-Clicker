@@ -60,17 +60,23 @@ struct DebugToolsTests {
 
     @Test func offlineMiningLevelsStayInRange() {
         var game = GameState.make()
-        game.debugAddOfflineMining(levels: 8)
+        game.debugAddOfflineMining(hours: 4)
         #expect(game.offlineCap == 4 * 3_600)
-        game.debugAddOfflineMining(levels: 500)
+        #expect(game.offlineMiningLevel == 18) // Twelve five-minute levels, then six half hours.
+        game.debugAddOfflineMining(hours: 4)
+        #expect(game.offlineCap == 8 * 3_600)
+        game.debugAddOfflineMining(hours: -7.5)
+        #expect(game.offlineCap == 30 * 60)
+        #expect(game.offlineMiningLevel == 6)
+        game.debugAddOfflineMining(hours: 500)
         #expect(game.offlineMiningLevel == Tuning.offlineMiningMaxLevel)
-        game.debugAddOfflineMining(levels: -1_000)
+        game.debugAddOfflineMining(hours: -1_000)
         #expect(game.offlineMiningLevel == 0)
     }
 
     @Test func rewindingPaysTimeAwayWithAReport() throws {
         var game = GameState.make(miners: minersEarning(20)) // 20 coins per second.
-        game.debugAddOfflineMining(levels: 2) // An hour.
+        game.debugAddOfflineMining(hours: 1)
         game.debugRewind(3_600)
         let result = game.advance(to: t0)
         let report = try #require(result)
@@ -80,7 +86,7 @@ struct DebugToolsTests {
 
     @Test func rewindingKeepsABullRunToTheTimeItHadLeft() throws {
         var game = GameState.make(miners: minersEarning(20))
-        game.debugAddOfflineMining(levels: 2)
+        game.debugAddOfflineMining(hours: 1)
         game.debugStartBullRun(at: t0)
         game.debugRewind(3_600)
         let result = game.advance(to: t0)

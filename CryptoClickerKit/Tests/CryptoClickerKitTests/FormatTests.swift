@@ -73,7 +73,7 @@ struct FormatTests {
         #expect(CoinFormat.short(-.infinity) == "-∞")
         #expect(CoinFormat.short(.nan) == "0")
         #expect(CoinFormat.duration(.infinity) == "∞")
-        #expect(CoinFormat.duration(1e300) == "11574d 1h")
+        #expect(CoinFormat.duration(1e300) == "11574d 1h 46m")
     }
 
     @Test func percentAndMultiplier() {
@@ -85,7 +85,7 @@ struct FormatTests {
 
     @Test(arguments: [
         (0.0, "0s"), (45, "45s"), (120, "2m"), (185, "3m 5s"), (3_600, "1h"), (8_040, "2h 14m"),
-        (86_400, "1d"), (273_600, "3d 4h"), (-5, "0s"),
+        (86_400, "1d"), (273_600, "3d 4h"), (88_200, "1d 30m"), (99_000, "1d 3h 30m"), (86_430, "1d"), (-5, "0s"),
     ])
     func duration(_ seconds: Double, _ expected: String) {
         #expect(CoinFormat.duration(seconds) == expected)

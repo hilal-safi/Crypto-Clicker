@@ -27,8 +27,8 @@ extension GameStore {
         debugChange { game, _ in game.debugGiveAllUpgrades() }
     }
 
-    func debugAddOfflineMining(levels: Int) {
-        debugChange { game, _ in game.debugAddOfflineMining(levels: levels) }
+    func debugAddOfflineMining(hours: Double) {
+        debugChange { game, _ in game.debugAddOfflineMining(hours: hours) }
     }
 
     func debugMaxPowerUps() {
