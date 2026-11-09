@@ -79,16 +79,21 @@ struct ShareRow<Icon: View>: View {
                         }
                         .fixedSize()
                     }
-                    VStack(alignment: .leading, spacing: 3) {
-                        names
-                        HStack(alignment: .firstTextBaseline) {
-                            rateText
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.6)
+                    // A long rate gets its own line at full size, with the share beside the name.
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(title)
+                                .font(.subheadline.weight(.semibold))
                             Spacer(minLength: 8)
                             shareText
                                 .fixedSize()
                         }
+                        Text(detail)
+                            .font(.subheadline)
+                            .foregroundStyle(.subtext)
+                        rateText
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                 }
             }
@@ -96,6 +101,7 @@ struct ShareRow<Icon: View>: View {
                 .tint(Theme.accent)
                 .accessibilityHidden(true)
         }
+        .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
     }
 
@@ -111,7 +117,7 @@ struct ShareRow<Icon: View>: View {
 
     private var rateText: some View {
         Text("\(rate)/s")
-            .font(.subheadline.weight(.semibold).monospacedDigit())
+            .font(.headline.monospacedDigit())
     }
 
     private var shareText: some View {
