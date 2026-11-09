@@ -38,7 +38,7 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .quickCombos:
             localized("Each +0.1 of a combo comes sooner: \(CoinFormat.percent(Tuning.quickComboStep)) faster a level, up to \(CoinFormat.compact(Self.quickTop))× as fast.")
         case .comboKeeper:
-            localized("A combo waits \(CoinFormat.percent(Tuning.comboKeeperStep)) longer for your next tap a level, up to twice as long: from \(Self.seconds(Tuning.comboWindow)) to \(Self.seconds(Self.keeperTop)).")
+            localized("A combo waits \(Self.seconds(Tuning.comboKeeperStep)) longer for your next tap a level: from \(Self.seconds(Tuning.comboWindow)) up to \(Self.seconds(Self.keeperTop)), three times as long.")
         }
     }
 
@@ -47,7 +47,7 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .comboBooster: 6
         case .comboOverdrive: 5
         case .quickCombos: 6
-        case .comboKeeper: 5
+        case .comboKeeper: 6
         }
     }
 
@@ -80,7 +80,7 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .quickCombos:
             localized("Combos build \(CoinFormat.compact(1 + level * Tuning.quickComboStep))× as fast")
         case .comboKeeper:
-            localized("Combos wait \(Self.seconds(Tuning.comboWindow * (1 + level * Tuning.comboKeeperStep))) between taps")
+            localized("Combos wait \(Self.seconds(Self.keeperWindow(level: level))) between taps")
         }
     }
 
@@ -92,7 +92,7 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .comboBooster: "×\(CoinFormat.compact(Tuning.comboMaxMultiplier + level * Tuning.comboBoosterStep))"
         case .comboOverdrive: "×\(CoinFormat.compact(Self.boosterTop + level * Tuning.comboOverdriveStep))"
         case .quickCombos: localized("\(CoinFormat.compact(1 + level * Tuning.quickComboStep))× as fast")
-        case .comboKeeper: Self.seconds(Tuning.comboWindow * (1 + level * Tuning.comboKeeperStep))
+        case .comboKeeper: Self.seconds(Self.keeperWindow(level: level))
         }
     }
 
@@ -112,7 +112,12 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
 
     /// The time between taps with Combo Keeper at its last level.
     static var keeperTop: TimeInterval {
-        Tuning.comboWindow * (1 + Double(PowerUpID.comboKeeper.maxLevel) * Tuning.comboKeeperStep)
+        keeperWindow(level: Double(PowerUpID.comboKeeper.maxLevel))
+    }
+
+    /// Time between taps before a combo ends with Combo Keeper at `level`.
+    static func keeperWindow(level: Double) -> TimeInterval {
+        Tuning.comboWindow + level * Tuning.comboKeeperStep
     }
 
     /// The biggest combo with Combo Booster at its last level.

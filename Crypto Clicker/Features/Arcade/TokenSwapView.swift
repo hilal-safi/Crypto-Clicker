@@ -199,12 +199,14 @@ private struct LevelTile: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 6)
         .frame(maxWidth: .infinity)
-        .background(difficultyColor.opacity(isOpen ? 0.22 : 0.08), in: .rect(cornerRadius: 16))
+        // A little darkening under the tint keeps the text readable over the busy backdrop.
+        .background(difficultyColor.opacity(isOpen ? 0.3 : 0.14), in: .rect(cornerRadius: 16))
+        .background(.black.opacity(isOpen ? 0.22 : 0.18), in: .rect(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(difficultyColor.opacity(isOpen ? 0.6 : 0.2), lineWidth: 1)
+                .strokeBorder(difficultyColor.opacity(isOpen ? 0.7 : 0.3), lineWidth: 1)
         }
-        .opacity(isOpen ? 1 : 0.55)
+        .opacity(isOpen ? 1 : 0.7)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Level \(level.id), \(level.name), \(level.difficulty.name)")
         .accessibilityValue(isOpen ? "\(stars) of 3 stars" : "Locked: win level \(level.id - 1) first")

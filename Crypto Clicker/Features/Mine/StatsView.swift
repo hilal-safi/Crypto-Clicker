@@ -266,22 +266,10 @@ struct StatsPage: View {
     }
 
     private func row(_ title: String, _ value: String) -> some View {
-        LabeledContent(title) {
-            Text(value)
-                .foregroundStyle(.subtext)
-                .multilineTextAlignment(.trailing)
-        }
+        ValueRow(title: title, value: value)
     }
 
     private func sourceRow(_ title: String, _ value: Double, of total: Double) -> some View {
-        LabeledContent(title) {
-            VStack(alignment: .trailing, spacing: 1) {
-                Text(amount(value))
-                    .multilineTextAlignment(.trailing)
-                Text(CoinFormat.percent(value / total))
-                    .font(.subheadline.weight(.semibold))
-            }
-            .foregroundStyle(.subtext)
-        }
+        ValueRow(title: title, value: amount(value), detail: CoinFormat.percent(total > 0 ? value / total : 0))
     }
 }

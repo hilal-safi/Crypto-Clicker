@@ -85,7 +85,7 @@ private struct HowToChapter: Identifiable {
             "Combo Booster: the biggest combo grows ×0.5 a level, up to ×5.",
             "Combo Overdrive: then ×1 a level, up to ×10.",
             "Quick Combos: each ×0.1 comes 50% faster a level, up to four times as fast.",
-            "Combo Keeper: a combo waits 20% longer for your next tap a level, up to twice as long.",
+            "Combo Keeper: a combo waits 0.2 seconds longer for your next tap a level, from 0.6 up to 1.8 seconds.",
             "The Combo Master perk doubles that speed and lifts the biggest combo to at least ×3.",
         ]),
         HowToTopic("cpu", "Miners", "Miners earn coins every second while the app is open.", [
@@ -97,7 +97,7 @@ private struct HowToChapter: Identifiable {
             "Owning 25, 50, 100, 200, then every 100 up to 1,000, doubles a miner's output each time.",
             "At 25, 50, 100, 200 and 400 owned, a Mk upgrade (Mk II to Mk VI) appears in the Shop.",
             "Each Mk upgrade doubles that miner again for the rest of the run.",
-            "Legacy, late in the game: each miner you own 100 of makes every miner four or more tiers older earn ×3.",
+            "Legacy, late in the game: each miner you own 100 of makes every miner four or more tiers older earn ×4.",
         ]),
         HowToTopic("sparkles", "Upgrades", "One-time purchases in the Shop.", [
             "Multiply production and power up taps.",

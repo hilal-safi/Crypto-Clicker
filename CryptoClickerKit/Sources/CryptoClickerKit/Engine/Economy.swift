@@ -292,10 +292,10 @@ extension GameState {
     /// Quick taps for each +0.1 of a combo (on average).
     public var comboTapsPerStep: Double { Tuning.comboTapsPerStep / comboSpeed }
 
-    /// How long a combo waits for the next tap: `Tuning.comboWindow`, 20% longer for each level of
-    /// Combo Keeper, up to twice as long.
+    /// How long a combo waits for the next tap: `Tuning.comboWindow`, 0.2s longer for each level of
+    /// Combo Keeper, up to three times as long.
     public var comboWindow: TimeInterval {
-        Tuning.comboWindow * (1 + Double(powerUpLevel(.comboKeeper)) * Tuning.comboKeeperStep)
+        PowerUpID.keeperWindow(level: Double(powerUpLevel(.comboKeeper)))
     }
 
     /// Quick taps in a row, counting the first, that reach the biggest combo.

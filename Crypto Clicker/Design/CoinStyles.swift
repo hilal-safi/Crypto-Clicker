@@ -177,7 +177,7 @@ struct TapEffectsLayer: View {
     /// The coin's diameter.
     let coin: CGFloat
     /// How much wider than tall the effects spread: sideways movement is scaled by this.
-    static let spread = 1.5
+    static let spread = 1.8
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60, paused: bursts.isEmpty)) { timeline in

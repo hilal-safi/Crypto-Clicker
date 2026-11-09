@@ -18,10 +18,10 @@ public enum Tuning {
     // MARK: Legacy
     /// Older miners share in newer hardware: a miner earns this many times as much for each tier at
     /// least `legacyTierGap` above it that has `legacyUnits` or more units. Nothing changes until the
-    /// very late game, when the newest tiers reach a hundred; then the Chromebook earns up to ×3⁹
-    /// (19,683), which lifts each of the oldest tiers from a billionth of production to around a
-    /// thousandth, while the newest tiers (nothing four above them) still earn nearly all of it.
-    public static let legacyMultiplier = 3.0
+    /// very late game, when the newest tiers reach a hundred; then the Chromebook earns up to ×4⁹
+    /// (262,144). By about day 30 of casual play each of the five oldest tiers earns 0.2–0.5% of
+    /// production instead of a billionth, while the newest tiers still earn nearly all of it.
+    public static let legacyMultiplier = 4.0
     public static let legacyTierGap = 4
     public static let legacyUnits = 100
 
@@ -59,9 +59,9 @@ public enum Tuning {
     public static let comboOverdriveStep = 1.0
     /// Each Quick Combos level makes combos build this much faster (0.5 is 50%).
     public static let quickComboStep = 0.5
-    /// Each Combo Keeper level gives this much longer between taps before a combo ends (0.2 is 20%),
-    /// up to twice the `comboWindow` at its last level.
-    public static let comboKeeperStep = 0.2
+    /// Each Combo Keeper level gives this many more seconds between taps before a combo ends, so
+    /// its six levels take `comboWindow` from 0.6s to 1.8s, three times as long.
+    public static let comboKeeperStep: TimeInterval = 0.2
     /// First-level list prices, and how much dearer each level is than the one before. Someone who
     /// keeps playing gets the first Combo Booster in under an hour and Quick Combos within the first
     /// hour and a half; both reach their last levels around the first prestige, and Overdrive over

@@ -81,6 +81,10 @@ struct FormatTests {
         #expect(CoinFormat.percent(0.015) == "1.5%")
         #expect(CoinFormat.multiplier(2) == "×2")
         #expect(CoinFormat.multiplier(1.5) == "×1.5")
+        // Big ones keep their commas, and the biggest go short.
+        #expect(CoinFormat.multiplier(262_144) == "×262,144")
+        #expect(CoinFormat.percent(500.05) == "50,005%")
+        #expect(CoinFormat.multiplier(1.0886e10) == "×10.8B")
     }
 
     @Test(arguments: [

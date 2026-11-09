@@ -176,6 +176,9 @@ public enum CoinFormat {
     /// and multipliers.
     public static func compact(_ value: Double) -> String {
         if value == 0 { return "0" }
+        // Big factors stay readable: "×1,250", "+50,005%", "×10.9B".
+        if value >= 1e9 { return short(value) }
+        if value >= 999.5 { return groupDigits(String(Int(value.rounded()))) }
         let decimals = value >= 100 ? 0 : (value >= 10 ? 1 : 2)
         var text = String(format: "%.\(decimals)f", value)
         if text.contains(".") {

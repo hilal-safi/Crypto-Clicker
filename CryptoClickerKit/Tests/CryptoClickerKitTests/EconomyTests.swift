@@ -178,6 +178,24 @@ struct ProductionTests {
         #expect(state.activeBoost(at: at(60)) == nil)
     }
 
+    @Test func legacyLiftsOldMinersOnceNewerTiersReachAHundred() {
+        var game = GameState.make(miners: [.chromebook: 50, .desktop: 50, .dataCenter: 99, .mineCenter: 100])
+        // The Mine Center is five tiers above the Chromebook and four above the Desktop.
+        #expect(game.legacyMultiplier(.chromebook) == Tuning.legacyMultiplier)
+        #expect(game.legacyMultiplier(.desktop) == Tuning.legacyMultiplier)
+        #expect(game.legacyMultiplier(.gpuRig) == 1) // Only three tiers below it.
+        #expect(game.legacyMultiplier(.mineCenter) == 1)
+        let before = game.rate(of: .chromebook)
+        game.miners[.dataCenter] = 100 // Four above the Chromebook, but not the Desktop.
+        #expect(game.legacyTiers(for: .chromebook) == 2)
+        #expect(game.legacyTiers(for: .desktop) == 1)
+        #expect(approx(game.rate(of: .chromebook), before * Tuning.legacyMultiplier))
+        // With every tier at a hundred, the Chromebook counts the nine from the Data Center up.
+        for miner in MinerID.allCases { game.miners[miner] = 100 }
+        #expect(game.legacyTiers(for: .chromebook) == 9)
+        #expect(game.legacyTiers(for: .galacticHashnet) == 0)
+    }
+
     @Test func offlineMiningAddsFiveMinutesUpToAnHourThenHalfHours() {
         #expect(GameState.make().offlineCap == 0)
         #expect(GameState.offlineCap(level: 1) == 5 * 60)

@@ -14,7 +14,7 @@ struct Toast: Identifiable, Equatable {
 }
 
 /// The Shop's purchase popup. Purchases made while it's up add to it instead of stacking more
-/// popups, so tapping Buy a few times shows one running total; it goes three seconds after the
+/// popups, so tapping Buy a few times shows one running total; it goes nine seconds after the
 /// last purchase.
 struct PurchaseNote: Identifiable, Equatable {
     struct Item: Equatable {
@@ -36,7 +36,7 @@ struct PurchaseNote: Identifiable, Equatable {
     /// The latest purchase; the popup stays up `lifetime` after it.
     var updatedAt: Date
 
-    static let lifetime: TimeInterval = 3
+    static let lifetime: TimeInterval = 9
 
     init(incomeBefore: Double, tapBefore: Double, at date: Date) {
         self.incomeBefore = incomeBefore
@@ -440,7 +440,7 @@ final class GameStore {
     /// What a purchase popup measures from: idle income and a tap's worth, without boosts.
     var purchaseBaseline: (income: Double, tap: Double) { (state.baseIdleIncome, state.baseTapValue) }
 
-    /// Adds a purchase to the popup: to the one on screen if the last purchase was under three
+    /// Adds a purchase to the popup: to the one on screen if the last purchase was under nine
     /// seconds ago, else to a new one measured from `before` (`purchaseBaseline` before buying).
     func notePurchase(_ name: String, count: Int = 1, effect: String? = nil, before: (income: Double, tap: Double)) {
         let now = Date.now

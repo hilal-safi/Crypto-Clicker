@@ -24,7 +24,8 @@ struct StatItem {
 }
 
 /// Figures as tiles, each a value over its name on a tinted backing: three to a row, or two when
-/// there are two or four of them (so none sits alone) and at the largest text sizes.
+/// there are two or four of them (so none sits alone), at the largest text sizes and when a figure
+/// is long (every digit of a late-game amount), and one to a row when it's very long.
 struct StatGrid: View {
     let items: [StatItem]
     let tint: Color
@@ -32,7 +33,8 @@ struct StatGrid: View {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        let perRow = typeSize.isAccessibilitySize || items.count == 2 || items.count == 4 ? 2 : 3
+        let longest = items.map(\.value.count).max() ?? 0
+        let perRow = longest > 20 ? 1 : (typeSize.isAccessibilitySize || items.count == 2 || items.count == 4 || longest > 11 ? 2 : 3)
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .leading),
                                  count: max(1, min(perRow, items.count))),
                   alignment: .leading, spacing: 8) {
