@@ -86,6 +86,9 @@
     "%@: its first star pays coins" : {
 
     },
+    "%@× as fast" : {
+
+    },
     "%lld a game, one slide back at a time. Not once the game is over." : {
 
     },
@@ -157,6 +160,16 @@
     },
     "A coin with a red rim. It shakes, then turns into a scam: tap it early or leave it." : {
 
+    },
+    "A combo waits %@ longer for your next tap a level: from %@ up to %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A combo waits %1$@ longer for your next tap a level: from %2$@ up to %3$@."
+          }
+        }
+      }
     },
     "A flight ends when you cash out or the market crashes. Leaving the screen cashes out." : {
 
@@ -342,6 +355,9 @@
 
     },
     "Bigger boards list coins faster and more at once, with bigger goals. Their points pay a little less each, so every board pays about the same, and each keeps its own best." : {
+
+    },
+    "Biggest combo" : {
 
     },
     "Biggest combo ×%@" : {
@@ -652,6 +668,9 @@
     "Combo Booster" : {
 
     },
+    "Combo Keeper" : {
+
+    },
     "Combo King" : {
 
     },
@@ -664,10 +683,16 @@
     "Combo Overdrive" : {
 
     },
+    "Combo speed" : {
+
+    },
     "Combos build %@× as fast" : {
 
     },
     "Combos build twice as fast and reach at least ×3" : {
+
+    },
+    "Combos wait %@ between taps" : {
 
     },
     "Complete daily challenges" : {
@@ -1164,7 +1189,7 @@
     "Hit" : {
 
     },
-    "Hit · Stand · Double · Split" : {
+    "Hit · Stand · Double · Split · Insurance" : {
 
     },
     "Hit %@ coins in Pump and Dump" : {
@@ -1207,6 +1232,12 @@
 
     },
     "In the Daily Puzzle every move counts: favor slides that merge." : {
+
+    },
+    "Insurance" : {
+
+    },
+    "Insurance costs half your bet and pays 2 to 1 if the dealer has blackjack, which wins back a bet the dealer's natural takes." : {
 
     },
     "Invader Hunter" : {
@@ -2389,6 +2420,9 @@
     "Three shots fan out from every volley for %lld seconds." : {
 
     },
+    "Time between taps" : {
+
+    },
     "Tireless robots that never stop mining." : {
 
     },
@@ -2529,6 +2563,9 @@
 
     },
     "Whatever target you pick, flights return %lld%% of the bet on average: aim for what's fun." : {
+
+    },
+    "When the dealer shows an ace, you may insure your bet before the dealer checks for blackjack. Basic strategy says no: the hole card is a ten less than a third of the time." : {
 
     },
     "Where the ball meets the paddle sets its angle: the edges send it off sideways." : {

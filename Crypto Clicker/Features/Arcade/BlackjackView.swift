@@ -2,9 +2,11 @@ import SwiftUI
 import CryptoClickerKit
 
 /// Blackjack against the dealer on a felt table, betting crypto tokens or practice chips. The rules
-/// live in `BlackjackTable`; this view moves tokens in and out of the wallet, paces the dealer's
-/// turn, and celebrates wins with confetti and a shower of coins. Two tables (the dealer stands on
-/// or hits a soft 17) and an optional coach that suggests the basic-strategy move.
+/// live in `BlackjackTable`; this view moves tokens in and out of the wallet, offers insurance when
+/// the dealer shows an ace, paces the cards (a short beat for the player's, a longer one for each of
+/// the dealer's, so a dealer's blackjack is seen before the round ends), and celebrates wins with
+/// confetti and a shower of coins. Two tables (the dealer stands on or hits a soft 17) and an
+/// optional coach that suggests the basic-strategy move.
 struct BlackjackView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
@@ -28,6 +30,9 @@ struct BlackjackView: View {
     @State private var showingHelp = false
     /// Height of the table above the controls; short screens get smaller cards so both hands fit.
     @State private var tableHeight: CGFloat = 600
+    /// A card the player asked for, on its way: it lands after a short beat, like one dealt from the
+    /// shoe, and the buttons wait for it.
+    @State private var pendingDraw: Task<Void, Never>?
 
     var body: some View {
         let game = store.game
@@ -38,8 +43,11 @@ struct BlackjackView: View {
                 // The result takes the place of the table printing, so nothing below it moves.
                 ZStack {
                     if table.phase == .settled {
-                        ResultBanner(results: table.results, bonus: lastBonus, unit: unit)
+                        ResultBanner(results: table.results, insurance: table.insurance, bonus: lastBonus, unit: unit)
                             .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    } else if let insurance = table.insurance {
+                        InsuranceNote(insurance: insurance, unit: unit)
+                            .transition(.opacity)
                     } else {
                         TableMarkings(rules: table.rules, isPractice: table.phase == .betting ? isPracticing : roundIsPractice)
                             .transition(.opacity)
@@ -171,6 +179,35 @@ struct BlackjackView: View {
             }
             .padding(14)
             .glassEffect(.regular, in: .rect(cornerRadius: 26))
+        case .insurance:
+            let cost = table.insuranceCost
+            let canAfford = roundIsPractice ? chips.balance >= cost : game.tokenCount(roundToken) >= cost
+            VStack(spacing: 8) {
+                VStack(spacing: 2) {
+                    Text("The dealer shows an ace. Insurance?")
+                        .font(.headline)
+                    Text("It costs \(CoinFormat.grouped(cost)) \(unit) and pays 2 to 1 if the dealer has blackjack.")
+                        .font(.footnote)
+                        .foregroundStyle(.white.opacity(0.85))
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .foregroundStyle(.white)
+                if showsCoach {
+                    coachLabel(BlackjackStrategy.takesInsurance ? "Insure" : "No insurance")
+                }
+                GlassEffectContainer(spacing: 12) {
+                    HStack(spacing: 12) {
+                        actionButton("Insure", systemImage: "shield.fill",
+                                     isAdvised: showsCoach && BlackjackStrategy.takesInsurance) { insure() }
+                            .disabled(!canAfford)
+                        actionButton("No Thanks", systemImage: "xmark",
+                                     isAdvised: showsCoach && !BlackjackStrategy.takesInsurance) {
+                            play { table, _ in table.resolveInsurance(insured: false) }
+                        }
+                    }
+                }
+            }
         case .playerTurn:
             let canAffordExtra = roundIsPractice
                 ? chips.balance >= table.extraBetNeeded
@@ -178,43 +215,57 @@ struct BlackjackView: View {
             let advice = showsCoach ? table.suggestedMove : nil
             VStack(spacing: 8) {
                 if let advice {
-                    Label("Coach: \(advice.name)", systemImage: "lightbulb.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.gold)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(.black.opacity(0.35), in: .capsule)
-                        .accessibilityLabel("Coach suggests \(advice.name)")
+                    coachLabel(advice.name)
                 }
                 GlassEffectContainer(spacing: 12) {
                     HStack(spacing: 12) {
-                        actionButton("Hit", systemImage: "plus", isAdvised: advice == .hit) { play { $0.hit(using: &$1) } }
+                        actionButton("Hit", systemImage: "plus", isAdvised: advice == .hit) {
+                            drawCard { play { $0.hit(using: &$1) } }
+                        }
                         actionButton("Stand", systemImage: "hand.raised.fill", isAdvised: advice == .stand) {
                             play { table, _ in table.stand() }
                         }
                         if table.canDouble {
                             actionButton("Double", systemImage: "multiply", isAdvised: advice == .double) {
-                                raise(when: table.canDouble) { $0.doubleDown(using: &$1) }
+                                drawCard { raise(when: table.canDouble) { $0.doubleDown(using: &$1) } }
                             }
                             .disabled(!canAffordExtra)
                         }
                         if table.canSplit {
                             actionButton("Split", systemImage: "arrow.left.and.right", isAdvised: advice == .split) {
-                                raise(when: table.canSplit) { $0.split(using: &$1) }
+                                drawCard { raise(when: table.canSplit) { $0.split(using: &$1) } }
                             }
                             .disabled(!canAffordExtra)
                         }
                     }
                 }
+                .disabled(pendingDraw != nil)
             }
         case .dealerTurn:
             HStack(spacing: 10) {
                 ProgressView()
-                Text("Dealer plays…")
+                Text(dealerTurnTitle)
                     .font(.headline)
             }
             .padding()
         }
+    }
+
+    /// What the dealer's turn is doing: turning over a blackjack, paying a natural, or drawing.
+    private var dealerTurnTitle: LocalizedStringKey {
+        if table.dealer.count == 2 && table.dealerTotal == 21 { return "Dealer has blackjack…" }
+        if table.hands.count == 1 && table.hands[0].isBlackjack { return "Natural 21!" }
+        return "Dealer plays…"
+    }
+
+    private func coachLabel(_ advice: String) -> some View {
+        Label("Coach: \(advice)", systemImage: "lightbulb.fill")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Theme.gold)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(.black.opacity(0.35), in: .capsule)
+            .accessibilityLabel("Coach suggests \(advice)")
     }
 
     private func actionButton(_ title: String, systemImage: String, isAdvised: Bool = false,
@@ -273,19 +324,48 @@ struct BlackjackView: View {
         play(action)
     }
 
+    /// Takes insurance: half the bet more, then the dealer checks for blackjack. The cost is read at
+    /// tap time, like a double's, so a stale tap never takes tokens the table then refuses.
+    private func insure() {
+        guard table.phase == .insurance else { return }
+        let cost = table.insuranceCost
+        if roundIsPractice {
+            guard chips.take(cost) else { return }
+        } else {
+            guard store.placeBet(roundToken, amount: cost) else { return }
+        }
+        play { table, _ in table.resolveInsurance(insured: true) }
+    }
+
+    /// Hits, doubles and splits land their card after a short beat; the buttons wait meanwhile.
+    /// Leaving the table cancels the card on its way, before any bet is raised for it.
+    private func drawCard(_ deal: @escaping () -> Void) {
+        guard pendingDraw == nil else { return }
+        pendingDraw = Task {
+            try? await Task.sleep(for: .milliseconds(320))
+            guard !Task.isCancelled else { return }
+            pendingDraw = nil
+            deal()
+        }
+    }
+
     private func play(_ action: (inout BlackjackTable, inout SystemRandomNumberGenerator) -> Void) {
         var rng = SystemRandomNumberGenerator()
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { action(&table, &rng) }
         settleIfFinished()
     }
 
+    /// The dealer's turn at a steady pace: a beat to see the hole card turned over (a blackjack
+    /// included), then each card the dealer draws.
     private func playDealer() async {
+        var isFirstStep = true
         while table.phase == .dealerTurn {
             do {
-                try await Task.sleep(for: .milliseconds(650))
+                try await Task.sleep(for: .milliseconds(isFirstStep ? 950 : 800))
             } catch {
                 return
             }
+            isFirstStep = false
             play { $0.dealerStep(using: &$1) }
         }
     }
@@ -295,31 +375,33 @@ struct BlackjackView: View {
         guard table.phase == .settled, !isSettled else { return }
         isSettled = true
         if roundIsPractice {
-            chips.pay(table.results.reduce(0) { $0 + $1.payout })
+            chips.pay(table.totalPayout)
             lastBonus = 0
         } else {
-            lastBonus = store.settleBlackjack(table.results, token: roundToken, rules: table.rules)
+            lastBonus = store.settleBlackjack(table.results, insurance: table.insurance, token: roundToken,
+                                              rules: table.rules)
         }
         settledRounds += 1
         celebrate()
     }
 
     private func celebrate() {
-        let net = table.results.reduce(0) { $0 + $1.net }
-        guard net > 0 else { return }
+        guard table.totalNet > 0 else { return }
         let natural = table.results.contains { $0.outcome == .blackjack }
         effects.confetti(natural ? 150 : 90, from: UnitPoint(x: 0.5, y: 0.55))
         effects.coinFountain(natural ? 28 : 16, from: UnitPoint(x: 0.5, y: 0.7))
         if natural { effects.rainCoins(24) }
     }
 
-    /// Leaving mid-round stands on every open hand and lets the dealer finish, so bets are never
-    /// lost. (If the app is closed outright, the saved stake is refunded on the next launch.)
+    /// Leaving mid-round turns down insurance, stands on every open hand and lets the dealer
+    /// finish, so bets are never lost. (If the app is closed outright, the saved stake is refunded
+    /// on the next launch.)
     private func leaveTable() {
-        guard table.phase == .playerTurn || table.phase == .dealerTurn else { return }
+        pendingDraw?.cancel()
+        pendingDraw = nil
+        guard [.insurance, .playerTurn, .dealerTurn].contains(table.phase) else { return }
         var rng = SystemRandomNumberGenerator()
-        while table.phase == .playerTurn { table.stand() }
-        table.finishDealer(using: &rng)
+        table.finishRound(using: &rng)
         settleIfFinished()
     }
 }
@@ -545,23 +627,46 @@ private struct CardBack: View {
     }
 }
 
+/// Insurance taken this round, between the dealer and the player: what it pays once the dealer
+/// has checked for blackjack, or that it's lost.
+private struct InsuranceNote: View {
+    let insurance: BlackjackInsurance
+    let unit: String
+
+    var body: some View {
+        Label(insurance.paid
+              ? "Dealer blackjack: insurance pays \(CoinFormat.grouped(insurance.payout)) \(unit)"
+              : "No blackjack: insurance of \(CoinFormat.grouped(insurance.stake)) \(unit) lost",
+              systemImage: insurance.paid ? "shield.lefthalf.filled.badge.checkmark" : "shield.slash")
+            .font(.subheadline.weight(.bold))
+            .foregroundStyle(insurance.paid ? Theme.gold : .white.opacity(0.85))
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.black.opacity(0.3), in: .capsule)
+    }
+}
+
 private struct ResultBanner: View {
     let results: [BlackjackResult]
+    let insurance: BlackjackInsurance?
     let bonus: Double
     /// What the bets are counted in: a token's ticker, or "chips".
     let unit: String
 
     var body: some View {
-        let net = results.reduce(0) { $0 + $1.net }
+        let net = results.reduce(insurance?.net ?? 0) { $0 + $1.net }
+        let handsNet = results.reduce(0) { $0 + $1.net }
         let isNatural = results.contains { $0.outcome == .blackjack }
         HStack(spacing: 14) {
-            Text(net > 0 ? (isNatural ? "NATURAL 21!" : "YOU WIN!") : net == 0 ? "Push" : "Dealer wins")
-                .font(.system(size: net > 0 ? 26 : 20, weight: .heavy, design: .rounded))
-                .foregroundStyle(net > 0 ? AnyShapeStyle(Theme.gold.gradient) : AnyShapeStyle(.white))
-                .shadow(color: net > 0 ? Theme.gold.opacity(0.6) : .clear, radius: 10)
+            Text(handsNet > 0 ? (isNatural ? "NATURAL 21!" : "YOU WIN!") : handsNet == 0 ? "Push" : "Dealer wins")
+                .font(.system(size: handsNet > 0 ? 26 : 20, weight: .heavy, design: .rounded))
+                .foregroundStyle(handsNet > 0 ? AnyShapeStyle(Theme.gold.gradient) : AnyShapeStyle(.white))
+                .shadow(color: handsNet > 0 ? Theme.gold.opacity(0.6) : .clear, radius: 10)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-            if net != 0 || bonus > 0 {
+            if net != 0 || bonus > 0 || insurance != nil {
                 VStack(alignment: .leading, spacing: 1) {
                     if net > 0 {
                         Text("+\(CoinFormat.grouped(net)) \(unit)")
@@ -570,6 +675,12 @@ private struct ResultBanner: View {
                         Text("-\(CoinFormat.grouped(-net)) \(unit)")
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.7))
+                    }
+                    if let insurance {
+                        Text(insurance.paid ? "Insurance paid \(CoinFormat.grouped(insurance.payout))"
+                                            : "Insurance lost")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.75))
                     }
                     if bonus > 0 {
                         CoinAmount(amount: bonus, font: .subheadline.bold(), iconSize: 14)

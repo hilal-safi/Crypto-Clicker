@@ -37,8 +37,9 @@ struct PriceTests {
 
     @Test func eachUnitCostsFifteenPercentMoreRoundedUp() {
         let state = GameState.make(miners: [.chromebook: 5])
-        #expect(MinerID.chromebook.baseCost == 83) // A list price of 40, about doubled for the opening's pace.
-        #expect(state.price(of: .chromebook, quantity: 1) == 167) // 83 × 1.15⁵ = 166.94
+        // A list price of 40, about doubled for the opening's pace, and 20% more for the opening.
+        #expect(MinerID.chromebook.baseCost == 99)
+        #expect(state.price(of: .chromebook, quantity: 1) == 200) // 99 × 1.15⁵ = 199.13
     }
 
     @Test func maxAffordableIsExactAtPriceBoundaries() {
@@ -54,22 +55,22 @@ struct PriceTests {
 
     @Test func maxAffordableHandlesTinyAndHugeBudgets() {
         let state = GameState.make()
-        #expect(state.maxAffordable(.chromebook, budget: 82.99) == 0)
+        #expect(state.maxAffordable(.chromebook, budget: 98.99) == 0)
         #expect(state.maxAffordable(.chromebook, budget: 0) == 0)
         #expect(state.maxAffordable(.chromebook, budget: .infinity) == 0)
         #expect(state.maxAffordable(.chromebook, budget: .nan) == 0)
         let count = state.maxAffordable(.chromebook, budget: 1e30)
-        #expect(count == 449)
+        #expect(count == 447)
         #expect(state.price(of: .chromebook, quantity: count) <= 1e30)
         #expect(state.price(of: .chromebook, quantity: count + 1) > 1e30)
     }
 
     @Test func maxAffordableUsesTheBalanceByDefault() {
-        let state = GameState.make(coins: 415)
-        // 83 + 95.45 + 109.77 + 126.23 = 414.45, rounded up to 415; a fifth unit would make it 560.
+        let state = GameState.make(coins: 495)
+        // 99 + 113.85 + 130.93 + 150.57 = 494.35, rounded up to 495; a fifth unit would make it 668.
         #expect(state.maxAffordable(.chromebook) == 4)
-        #expect(state.price(of: .chromebook, quantity: 4) == 415)
-        #expect(state.price(of: .chromebook, quantity: 5) == 560)
+        #expect(state.price(of: .chromebook, quantity: 4) == 495)
+        #expect(state.price(of: .chromebook, quantity: 5) == 668)
     }
 }
 
@@ -177,33 +178,79 @@ struct ProductionTests {
         #expect(state.activeBoost(at: at(60)) == nil)
     }
 
-    @Test func offlineMiningAddsHalfHoursUpToADayThenHours() {
+    @Test func legacyLiftsOldMinersOnceNewerTiersReachAHundred() {
+        var game = GameState.make(miners: [.chromebook: 50, .desktop: 50, .dataCenter: 99, .mineCenter: 100])
+        // The Mine Center is five tiers above the Chromebook and four above the Desktop.
+        #expect(game.legacyMultiplier(.chromebook) == Tuning.legacyMultiplier)
+        #expect(game.legacyMultiplier(.desktop) == Tuning.legacyMultiplier)
+        #expect(game.legacyMultiplier(.gpuRig) == 1) // Only three tiers below it.
+        #expect(game.legacyMultiplier(.mineCenter) == 1)
+        let before = game.rate(of: .chromebook)
+        game.miners[.dataCenter] = 100 // Four above the Chromebook, but not the Desktop.
+        #expect(game.legacyTiers(for: .chromebook) == 2)
+        #expect(game.legacyTiers(for: .desktop) == 1)
+        #expect(approx(game.rate(of: .chromebook), before * Tuning.legacyMultiplier))
+        // With every tier at a hundred, the Chromebook counts the nine from the Data Center up.
+        for miner in MinerID.allCases { game.miners[miner] = 100 }
+        #expect(game.legacyTiers(for: .chromebook) == 9)
+        #expect(game.legacyTiers(for: .galacticHashnet) == 0)
+        // What reaching a hundred would lift: owned tiers four or more below, until it's reached.
+        var climbing = GameState.make(miners: [.chromebook: 10, .gpuRig: 3, .mineCenter: 40, .server: 5])
+        #expect(climbing.legacyBeneficiaries(of: .mineCenter) == [.chromebook])  // The Desktop isn't owned.
+        #expect(climbing.legacyBeneficiaries(of: .server).isEmpty) // Nothing four tiers below.
+        climbing.miners[.desktop] = 1
+        #expect(climbing.legacyBeneficiaries(of: .mineCenter) == [.chromebook, .desktop])
+        climbing.miners[.mineCenter] = 100
+        #expect(climbing.legacyBeneficiaries(of: .mineCenter).isEmpty)
+    }
+
+    @Test func offlineMiningAddsFiveMinutesUpToAnHourThenHalfHours() {
         #expect(GameState.make().offlineCap == 0)
-        #expect(GameState.offlineCap(level: 1) == 30 * 60)
-        #expect(GameState.offlineCap(level: 2) == 3_600)
-        #expect(GameState.offlineCap(level: 47) == 23.5 * 3_600)
-        #expect(GameState.offlineCap(level: 48) == 24 * 3_600)
-        #expect(GameState.offlineCap(level: 49) == 25 * 3_600)
-        #expect(GameState.offlineCap(level: 50) == 26 * 3_600)
+        #expect(GameState.offlineCap(level: 1) == 5 * 60)
+        #expect(GameState.offlineCap(level: 6) == 30 * 60)
+        #expect(GameState.offlineCap(level: 11) == 55 * 60)
+        #expect(GameState.offlineCap(level: 12) == 3_600)
+        #expect(GameState.offlineCap(level: 13) == 1.5 * 3_600)
+        #expect(GameState.offlineCap(level: 30) == 10 * 3_600)
+        #expect(GameState.offlineCap(level: 58) == 24 * 3_600)
+        #expect(GameState.offlineCap(level: 59) == 24.5 * 3_600)
         #expect(GameState.offlineCap(level: Tuning.offlineMiningMaxLevel) == 72 * 3_600)
         #expect(GameState.offlineCap(level: 500) == 72 * 3_600)
         #expect(GameState.offlineCap(level: -3) == 0)
+        // Each limit belongs to exactly one level.
+        for level in 0...Tuning.offlineMiningMaxLevel {
+            #expect(GameState.offlineMiningLevel(reaching: GameState.offlineCap(level: level)) == level)
+        }
+        #expect(GameState.offlineMiningLevel(reaching: 7 * 60) == 2) // Rounds up to the next level.
+        #expect(GameState.offlineMiningLevel(reaching: 1e9) == Tuning.offlineMiningMaxLevel)
     }
 
     @Test func offlineMiningLevelsCostMoreEachTimeAndStopAtTheMaximum() {
         var state = GameState.make(coins: 1_000)
-        #expect(state.offlineMiningPrice == 7_195) // A list price of 3,500, about doubled for the opening's pace.
+        // The first five minutes cost 15% less than the half hour the first level used to add (7,195).
+        #expect(state.offlineMiningPrice == 6_116) // A list price of 2,975, about doubled for the opening's pace.
         #expect(state.buyOfflineMining() == false) // Can't afford it yet.
-        state.coins = 7_195 + 10_767 + 100
+        state.coins = 6_116 + 8_249 + 100
         let first = state.buyOfflineMining()
         #expect(first)
         #expect(state.offlineMiningLevel == 1)
-        #expect(state.offlineCap == 30 * 60)
-        #expect(state.offlineMiningPrice == 10_767) // 5,250 at just under ×2.06, rounded up.
+        #expect(state.offlineCap == 5 * 60)
+        #expect(state.offlineMiningPrice == 8_249) // About 35% more a level up to the hour.
         let second = state.buyOfflineMining()
         #expect(second)
         #expect(state.coins == 100)
-        #expect(state.stats.spent == 17_962)
+        #expect(state.stats.spent == 14_365)
+        // Every level costs more than the one before, steeply up to ten hours and more gently after.
+        var previous = 0.0
+        for level in 1...Tuning.offlineMiningMaxLevel {
+            let price = GameState.offlineMiningListPrice(level: level)
+            #expect(price > previous, "level \(level)")
+            previous = price
+        }
+        #expect(approx(GameState.offlineMiningListPrice(level: 12), 8e4)) // An hour.
+        #expect(approx(GameState.offlineMiningListPrice(level: 30), 1.3e11)) // Ten hours.
+        #expect(approx(GameState.offlineMiningListPrice(level: 58), 1e16)) // A day.
+        #expect(approx(GameState.offlineMiningListPrice(level: Tuning.offlineMiningMaxLevel), 1e23)) // Three days.
         state.offlineMiningLevel = Tuning.offlineMiningMaxLevel
         state.coins = 1e300
         #expect(state.offlineMiningPrice == nil)
@@ -217,7 +264,7 @@ struct ProductionTests {
         state.stats.lifetimeCoins = 1e11
         #expect(state.prestige(at: at(10)) > 0)
         #expect(state.offlineMiningLevel == 12)
-        #expect(state.offlineCap == 6 * 3_600)
+        #expect(state.offlineCap == 3_600)
     }
 
     @Test func rewardIncomeHasAFloorAndIgnoresBoosts() {
@@ -259,8 +306,8 @@ struct ShopTests {
         var state = GameState.make(coins: 300)
         #expect(state.buy(.chromebook, quantity: 2) == true)
         #expect(state.owned(.chromebook) == 2)
-        #expect(state.coins == 300 - 179) // 83 + 95.45, rounded up.
-        #expect(state.stats.spent == 179)
+        #expect(state.coins == 300 - 213) // 99 + 113.85, rounded up.
+        #expect(state.stats.spent == 213)
         #expect(state.stats.maxOwned[.chromebook] == 2)
         #expect(state.stats.maxTotalMiners == 2)
     }

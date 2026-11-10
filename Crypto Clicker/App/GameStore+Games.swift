@@ -16,8 +16,9 @@ extension GameStore {
     }
 
     @discardableResult
-    func settleBlackjack(_ results: [BlackjackResult], token: TokenID, rules: BlackjackRules) -> Double {
-        let bonus = perform { game, _ in game.settleBlackjack(results, token: token, rules: rules) }
+    func settleBlackjack(_ results: [BlackjackResult], insurance: BlackjackInsurance?, token: TokenID,
+                         rules: BlackjackRules) -> Double {
+        let bonus = perform { game, _ in game.settleBlackjack(results, insurance: insurance, token: token, rules: rules) }
         save()
         return bonus
     }

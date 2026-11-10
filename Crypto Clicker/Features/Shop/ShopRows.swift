@@ -17,6 +17,10 @@ struct MinerRow: View {
     let canAfford: Bool
     /// Mk upgrades bought this run.
     let mkLevel: Int
+    /// What Legacy multiplies this miner by (1 until newer tiers reach 100 units).
+    let legacy: Double
+    /// The older miners this one lifts with Legacy once it reaches 100.
+    let legacyBoosts: [MinerID]
     /// The Mk upgrade on offer, if one is.
     let upgradeLevel: Int?
     let upgradePrice: Double?
@@ -39,18 +43,40 @@ struct MinerRow: View {
 
     private var mainRow: some View {
         HStack(spacing: 12) {
-            Text(miner.emoji)
-                .font(.system(size: 30))
-                .frame(width: 52, height: 52)
-                .background(Theme.shop.opacity(0.14), in: .circle)
-                .accessibilityHidden(true)
+            // The icon carries the Mk badge above it and the Legacy badge below it.
+            VStack(spacing: 6) {
+                if mkLevel > 0 {
+                    Text("Mk \(MinerID.markName(level: mkLevel - 1))")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Theme.accent)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 1)
+                        .background(Theme.accent.opacity(0.16), in: .capsule)
+                }
+                Text(miner.emoji)
+                    .font(.system(size: 30))
+                    .frame(width: 52, height: 52)
+                    .background(Theme.shop.opacity(0.14), in: .circle)
+                    .accessibilityHidden(true)
+                if legacy > 1 {
+                    Label(CoinFormat.multiplier(legacy), systemImage: "clock.arrow.circlepath")
+                        .font(.subheadline.weight(.bold).monospacedDigit())
+                        .foregroundStyle(Theme.legacy)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 1)
+                        .background(Theme.legacy.opacity(0.16), in: .capsule)
+                        .accessibilityLabel("Legacy: earns \(CoinFormat.multiplier(legacy)) from newer miners")
+                }
+            }
+            .lineLimit(1)
+            .fixedSize()
             VStack(alignment: .leading, spacing: 4) {
                 // The name has a line to itself, so it never breaks in two.
                 Text(miner.name)
                     .font(.headline)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                if isBestValue || mkLevel > 0 {
+                if isBestValue {
                     HStack(spacing: 6) {
                         if isBestValue {
                             Label("Best value", systemImage: "star.fill")
@@ -62,16 +88,9 @@ struct MinerRow: View {
                                 .background(Color(red: 0.06, green: 0.46, blue: 0.22).gradient, in: .capsule)
                                 .accessibilityLabel("Best value: the next one adds the most per coin")
                         }
-                        if mkLevel > 0 {
-                            Text("Mk \(MinerID.markName(level: mkLevel - 1))")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(Theme.accent)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 1)
-                                .background(Theme.accent.opacity(0.16), in: .capsule)
-                        }
                     }
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 }
                 Text(owned > 0 ? "\(CoinFormat.rate(rate)) coins per second" : miner.blurb)
                     .font(.subheadline)
@@ -80,19 +99,21 @@ struct MinerRow: View {
                 Label("Next one: +\(CoinFormat.rate(perUnit))/s", systemImage: "plus.circle.fill")
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(Theme.accent)
-                if let nextMilestone, owned > 0 {
-                    MilestoneProgress(owned: owned, next: nextMilestone)
+                // Each bar sits with its own caption, with clear space between the two.
+                VStack(alignment: .leading, spacing: 12) {
+                    if let nextMilestone, owned > 0 {
+                        MilestoneProgress(owned: owned, next: nextMilestone)
+                    }
+                    // From the first milestone, so it doesn't crowd the opening.
+                    if !legacyBoosts.isEmpty && owned >= 25 {
+                        LegacyProgress(owned: owned, boosts: legacyBoosts)
+                    }
                 }
+                .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            // How many are owned sits over the buy button, where the row has room to spare.
+            // How many are owned sits under the buy button.
             VStack(spacing: 6) {
-                if owned > 0 {
-                    Text("Owned \(CoinFormat.grouped(owned))")
-                        .font(.subheadline.weight(.semibold).monospacedDigit())
-                        .foregroundStyle(.subtext)
-                        .lineLimit(1)
-                }
                 Button {
                     if store.buy(miner, quantity: buyCount) { purchases += 1 } else { refusals += 1 }
                 } label: {
@@ -108,6 +129,12 @@ struct MinerRow: View {
                 .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
                 .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
                 .accessibilityLabel("Buy \(buyCount) \(miner.name) for \(CoinFormat.cost(price)) coins")
+                if owned > 0 {
+                    Text("Owned \(CoinFormat.grouped(owned))")
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(.subtext)
+                        .lineLimit(1)
+                }
             }
             .fixedSize()
         }
@@ -175,6 +202,33 @@ struct MilestoneProgress: View {
                 .foregroundStyle(.subtext)
         }
         .frame(maxWidth: 180, alignment: .leading)
+    }
+}
+
+/// Progress toward the 100 units that lift older miners with Legacy, in Legacy's blue:
+/// "10 more to boost Chromebook ×5".
+struct LegacyProgress: View {
+    let owned: Int
+    let boosts: [MinerID]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            ProgressView(value: Double(owned) / Double(Tuning.legacyUnits))
+                .tint(Theme.legacy)
+            Text("\(CoinFormat.grouped(Tuning.legacyUnits - owned)) more to boost \(names) \(CoinFormat.multiplier(Tuning.legacyMultiplier))")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.subtext)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: 180, alignment: .leading)
+    }
+
+    private var names: String {
+        switch boosts.count {
+        case 1: boosts[0].name
+        case 2: String(localized: "\(boosts[0].name) and \(boosts[1].name)")
+        default: String(localized: "\(boosts.count) older miners")
+        }
     }
 }
 
@@ -254,8 +308,8 @@ struct UpgradeRow: View {
     }
 }
 
-/// The Offline Mining power-up: its current limit, what the next level adds, and its price. Laid
-/// out like the combo power-ups: a header line, then the details across the whole card.
+/// The Offline Mining power-up, laid out like the combo power-ups: a header with its level and
+/// price, what it does, then the time away it pays for now and at the next level.
 struct OfflineMiningRow: View {
     let level: Int
     let price: Double?
@@ -285,17 +339,12 @@ struct OfflineMiningRow: View {
                     MaxedBadge()
                 }
             }
-            Text(level == 0
-                 ? "Miners stop a minute after you leave the app. Keep them mining while it's closed."
-                 : "Miners keep earning for \(CoinFormat.duration(cap)) after you leave the app.")
+            Text("Keeps miners earning while the app is closed: five more minutes a level up to an hour, then half an hour a level, up to three days.")
                 .font(.subheadline)
                 .foregroundStyle(.subtext)
                 .fixedSize(horizontal: false, vertical: true)
-            if price != nil {
-                Label("Next level: \(CoinFormat.duration(nextCap))", systemImage: "arrow.up.circle.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.indigo)
-            }
+            NowAndNext(title: "Time away paid", now: level > 0 ? CoinFormat.duration(cap) : String(localized: "Off"),
+                       next: price != nil ? CoinFormat.duration(nextCap) : nil, color: .indigo)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .rowCard()
@@ -304,8 +353,8 @@ struct OfflineMiningRow: View {
     }
 }
 
-/// A combo power-up: a header with its name, level and price, its level as a bar of pips across the
-/// card, what it gives now and what the next level adds. Kept when you prestige.
+/// A combo power-up: a header with its name, level and price, what it does, its level as a bar of
+/// pips across the card, then what it gives now and at the next level. Kept when you prestige.
 struct PowerUpRow: View {
     let powerUp: PowerUpID
     let level: Int
@@ -334,16 +383,13 @@ struct PowerUpRow: View {
                     MaxedBadge()
                 }
             }
-            LevelPips(level: level, maxLevel: powerUp.maxLevel, color: powerUp.color)
-            Text(level == 0 ? powerUp.summary : powerUp.effect(atLevel: level))
-                .font(.subheadline.weight(level == 0 ? .regular : .semibold))
-                .foregroundStyle(level == 0 ? Theme.subtext : .primary)
+            Text(powerUp.summary)
+                .font(.subheadline)
+                .foregroundStyle(.subtext)
                 .fixedSize(horizontal: false, vertical: true)
-            if price != nil {
-                Label("Next: \(powerUp.effect(atLevel: level + 1))", systemImage: "arrow.up.circle.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(powerUp.color)
-            }
+            LevelPips(level: level, maxLevel: powerUp.maxLevel, color: powerUp.color)
+            NowAndNext(title: powerUp.valueName, now: powerUp.value(atLevel: level),
+                       next: price != nil ? powerUp.value(atLevel: level + 1) : nil, color: powerUp.color)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .rowCard()
@@ -431,6 +477,53 @@ private struct PowerUpPriceButton: View {
     }
 }
 
+/// What a power-up gives now and at its next level, side by side under what it measures:
+/// "BIGGEST COMBO  Now ×3.5 → Next ×4". Without a next level, only now.
+private struct NowAndNext: View {
+    let title: String
+    let now: String
+    let next: String?
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .textCase(.uppercase)
+                .foregroundStyle(.subtext)
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                value("Now", now, color: .primary)
+                if let next {
+                    Image(systemName: "arrow.right")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(.subtext)
+                        .accessibilityHidden(true)
+                    value("Next", next, color: color)
+                }
+                Spacer(minLength: 0)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.08), in: .rect(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
+    }
+
+    private func value(_ label: LocalizedStringKey, _ text: String, color: Color) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.subtext)
+            Text(text)
+                .font(.headline.monospacedDigit())
+                .foregroundStyle(color)
+        }
+    }
+}
+
 /// Shown instead of a price once a power-up is at its last level.
 private struct MaxedBadge: View {
     var body: some View {
@@ -466,6 +559,7 @@ extension PowerUpID {
         case .comboBooster: Color(red: 0.95, green: 0.30, blue: 0.10)
         case .comboOverdrive: Color(red: 0.62, green: 0.25, blue: 0.95)
         case .quickCombos: Color(red: 0.05, green: 0.62, blue: 0.62)
+        case .comboKeeper: Color(red: 0.18, green: 0.48, blue: 0.95)
         }
     }
 }

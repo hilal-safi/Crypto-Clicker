@@ -41,7 +41,7 @@ struct BalanceSnapshotTests {
             played.advance(to: at(seconds))
             #expect(approx(snapshot.coins(at: at(seconds)), played.coins), "\(seconds) s")
         }
-        for level in [3, 50] {
+        for level in [3, 62] {
             var mining = game
             mining.offlineMiningLevel = level
             let snapshot = mining.balanceSnapshot()

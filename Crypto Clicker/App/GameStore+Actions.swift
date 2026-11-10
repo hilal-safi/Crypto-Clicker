@@ -9,38 +9,58 @@ extension GameStore {
     @discardableResult
     func tap() -> Double {
         let now = Date.now
-        comboStreak = now.timeIntervalSince(lastTapAt) <= Tuning.comboWindow ? comboStreak + 1 : 1
+        comboStreak = now.timeIntervalSince(lastTapAt) <= state.comboWindow ? comboStreak + 1 : 1
         lastTapAt = now
         let streak = comboStreak
         return perform { game, now in game.tap(at: now, combo: streak) }
     }
 
+    // Every Shop purchase shows the purchase popup (see `notePurchase`).
+
     @discardableResult
     func buy(_ miner: MinerID, quantity: Int) -> Bool {
-        perform { game, _ in game.buy(miner, quantity: quantity) }
+        let before = purchaseBaseline
+        let bought = perform { game, _ in game.buy(miner, quantity: quantity) }
+        if bought { notePurchase(miner.name, count: quantity, before: before) }
+        return bought
     }
 
     @discardableResult
     func buyMinerUpgrade(_ miner: MinerID) -> Bool {
-        perform { game, _ in game.buyMinerUpgrade(miner) }
+        let before = purchaseBaseline
+        let name = state.name(of: .minerUpgrade(miner))
+        let bought = perform { game, _ in game.buyMinerUpgrade(miner) }
+        if bought { notePurchase(name, before: before) }
+        return bought
     }
 
     @discardableResult
     func buy(_ upgrade: UpgradeID) -> Bool {
-        perform { game, _ in game.buy(upgrade) }
+        let before = purchaseBaseline
+        let bought = perform { game, _ in game.buy(upgrade) }
+        if bought { notePurchase(upgrade.name, effect: upgrade.addsCoins ? nil : upgrade.summary, before: before) }
+        return bought
     }
 
-    /// Buys the next Offline Mining level. Saved at once, since it changes what time away pays.
     /// Buys a suggested purchase (from the welcome-back screen).
     @discardableResult
     func buy(_ purchase: Purchase) -> Bool {
-        perform { game, _ in game.buy(purchase) }
+        let before = purchaseBaseline
+        let name = state.name(of: purchase)
+        let bought = perform { game, _ in game.buy(purchase) }
+        if bought { notePurchase(name, before: before) }
+        return bought
     }
 
+    /// Buys the next Offline Mining level. Saved at once, since it changes what time away pays.
     @discardableResult
     func buyOfflineMining() -> Bool {
+        let before = purchaseBaseline
         let bought = perform { game, _ in game.buyOfflineMining() }
         if bought {
+            notePurchase(String(localized: "Offline Mining"),
+                         effect: String(localized: "Miners earn for up to \(CoinFormat.duration(state.offlineCap)) away"),
+                         before: before)
             save()
             pushToWatch(force: true)
         }
@@ -50,8 +70,12 @@ extension GameStore {
     /// Buys a power-up's next level. Saved at once, like Offline Mining.
     @discardableResult
     func buyPowerUp(_ powerUp: PowerUpID) -> Bool {
+        let before = purchaseBaseline
         let bought = perform { game, _ in game.buyPowerUp(powerUp) }
-        if bought { save() }
+        if bought {
+            notePurchase(powerUp.name, effect: powerUp.effect(atLevel: state.powerUpLevel(powerUp)), before: before)
+            save()
+        }
         return bought
     }
 

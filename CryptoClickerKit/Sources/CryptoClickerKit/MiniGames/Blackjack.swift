@@ -81,7 +81,10 @@ public struct BlackjackHand: Equatable, Sendable, Identifiable {
 }
 
 public enum BlackjackPhase: Equatable, Sendable {
-    case betting, playerTurn, dealerTurn, settled
+    case betting
+    /// The dealer shows an ace: the player may insure the bet before the dealer checks for blackjack.
+    case insurance
+    case playerTurn, dealerTurn, settled
 }
 
 public enum BlackjackOutcome: Equatable, Sendable {
@@ -137,10 +140,23 @@ public struct BlackjackResult: Equatable, Sendable {
     public var net: Int { payout - bet }
 }
 
-/// Casino-standard blackjack: single deck, dealer peeks for blackjack, naturals pay 3:2 (odd bets
-/// round up), one split, double on any two cards (after a split too), split aces get one card. The
-/// dealer stands on all 17s at the classic table and hits a soft 17 at the tough one.
-/// The table never touches the wallet: the caller takes bets and pays out `results`.
+/// Insurance against a dealer's ace: half the bet (rounded up), paying 2 to 1 if the dealer has
+/// blackjack, so a natural that beats the hand gives the bet back.
+public struct BlackjackInsurance: Equatable, Sendable {
+    /// Tokens staked on it.
+    public let stake: Int
+    /// Tokens it returns: its stake and twice as much again if the dealer had blackjack, else nothing.
+    public let payout: Int
+    public var net: Int { payout - stake }
+    public var paid: Bool { payout > 0 }
+}
+
+/// Casino-standard blackjack: single deck, insurance when the dealer shows an ace, dealer peeks for
+/// blackjack, naturals pay 3:2 (odd bets round up), one split, double on any two cards (after a
+/// split too), split aces get one card. The dealer stands on all 17s at the classic table and hits
+/// a soft 17 at the tough one. A natural on either side ends the round after the dealer turns the
+/// hole card over, as a dealer's turn with nothing to draw, so the screen can pace it.
+/// The table never touches the wallet: the caller takes bets and pays out `totalPayout`.
 public struct BlackjackTable: Sendable {
     public private(set) var phase: BlackjackPhase = .betting
     public private(set) var rules: BlackjackRules
@@ -148,6 +164,8 @@ public struct BlackjackTable: Sendable {
     public private(set) var hands: [BlackjackHand] = []
     public private(set) var activeIndex = 0
     public private(set) var results: [BlackjackResult] = []
+    /// Insurance taken this round, if any.
+    public private(set) var insurance: BlackjackInsurance?
     private var shoe: [Card] = []
     private var nextCardID = 0
 
@@ -168,7 +186,23 @@ public struct BlackjackTable: Sendable {
     }
 
     /// The dealer's second card stays face down until the player finishes.
-    public var isHoleCardHidden: Bool { phase == .playerTurn }
+    public var isHoleCardHidden: Bool { phase == .insurance || phase == .playerTurn }
+
+    /// Tokens insurance takes while it's offered: half the bet, rounded up.
+    public var insuranceCost: Int {
+        guard phase == .insurance, let bet = hands.first?.bet else { return 0 }
+        return bet / 2 + bet % 2
+    }
+
+    /// Every token the round returns: each hand's payout and the insurance's.
+    public var totalPayout: Int {
+        results.reduce(insurance?.payout ?? 0) { $0.addingCount($1.payout) }
+    }
+
+    /// What the round won or lost in all, insurance included.
+    public var totalNet: Int {
+        results.reduce(insurance?.net ?? 0) { $0 + $1.net }
+    }
 
     public var dealerTotal: Int { Self.evaluate(dealer).total }
 
@@ -194,11 +228,15 @@ public struct BlackjackTable: Sendable {
 
     public var dealerShouldDraw: Bool { phase == .dealerTurn && dealerMustDraw }
 
-    /// The dealer draws under 17, and on a soft 17 at the tough table.
+    /// The dealer draws under 17, and on a soft 17 at the tough table, unless a player's natural
+    /// already decided the round.
     private var dealerMustDraw: Bool {
+        guard !(hands.count == 1 && hands[0].isBlackjack) else { return false }
         let (total, isSoft) = Self.evaluate(dealer)
         return total < 17 || (rules == .hitsSoft17 && total == 17 && isSoft)
     }
+
+    private var dealerHasNatural: Bool { dealer.count == 2 && Self.evaluate(dealer).total == 21 }
 
     /// What basic strategy plays with the active hand, given the moves the table allows now.
     public var suggestedMove: BlackjackMove? {
@@ -213,18 +251,36 @@ public struct BlackjackTable: Sendable {
         guard bet > 0, phase == .betting || phase == .settled else { return }
         if shoe.count < 15 { shoe = Self.shuffledDeck(using: &rng) }
         results = []
+        insurance = nil
         activeIndex = 0
         var player = [draw(using: &rng)]
         dealer = [draw(using: &rng)]
         player.append(draw(using: &rng))
         dealer.append(draw(using: &rng))
         hands = [BlackjackHand(id: 0, cards: player, bet: bet, isSplit: false)]
-        // Dealer peek: a dealer natural ends the round at once (a player natural pushes).
-        if Self.evaluate(dealer).total == 21 || hands[0].isBlackjack {
-            settle()
+        if dealer[0].isAce {
+            phase = .insurance // Insurance is offered before the dealer checks for blackjack.
         } else {
-            phase = .playerTurn
+            peek()
         }
+    }
+
+    /// Takes insurance or not, then the dealer checks for blackjack. To insure, the caller must
+    /// already have taken `insuranceCost` more tokens.
+    public mutating func resolveInsurance(insured: Bool) {
+        guard phase == .insurance else { return }
+        if insured {
+            let stake = insuranceCost
+            insurance = BlackjackInsurance(stake: stake, payout: dealerHasNatural ? stake.addingCount(stake).addingCount(stake) : 0)
+        }
+        peek()
+    }
+
+    /// The dealer checks for blackjack. A natural on either side ends the round: the dealer's turn
+    /// turns the hole card over and settles, drawing nothing (a natural against a natural pushes).
+    /// Otherwise the player plays.
+    private mutating func peek() {
+        phase = dealerHasNatural || hands[0].isBlackjack ? .dealerTurn : .playerTurn
     }
 
     public mutating func hit<R: RandomNumberGenerator>(using rng: inout R) {
@@ -271,9 +327,17 @@ public struct BlackjackTable: Sendable {
         if !dealerMustDraw { settle() }
     }
 
-    /// Finishes the dealer's turn immediately (used when leaving the table mid-round).
+    /// Finishes the dealer's turn immediately.
     public mutating func finishDealer<R: RandomNumberGenerator>(using rng: inout R) {
         while phase == .dealerTurn { dealerStep(using: &rng) }
+    }
+
+    /// Plays the round out at once, for leaving the table mid-round: no insurance, every open hand
+    /// stands, and the dealer finishes, so the bets are settled rather than lost.
+    public mutating func finishRound<R: RandomNumberGenerator>(using rng: inout R) {
+        resolveInsurance(insured: false)
+        while phase == .playerTurn { stand() }
+        finishDealer(using: &rng)
     }
 
     /// Clears the table for the next bet.
@@ -283,6 +347,7 @@ public struct BlackjackTable: Sendable {
         dealer = []
         hands = []
         results = []
+        insurance = nil
         activeIndex = 0
     }
 
@@ -320,7 +385,7 @@ public struct BlackjackTable: Sendable {
 
     private mutating func settle() {
         let dealerTotal = Self.evaluate(dealer).total
-        let dealerNatural = dealer.count == 2 && dealerTotal == 21
+        let dealerNatural = dealerHasNatural
         results = hands.map { hand in
             if hand.isBlackjack {
                 return dealerNatural
@@ -368,6 +433,10 @@ public struct BlackjackTable: Sendable {
 /// surrender): the move that loses least over time for each hand against each dealer card. It's
 /// the coach's advice, not a promise about the next card.
 public enum BlackjackStrategy {
+    /// Basic strategy never insures: it pays 2 to 1 on a hole card that is a ten less than a third
+    /// of the time.
+    public static let takesInsurance = false
+
     public static func move(for cards: [Card], dealerUp: Card, canDouble: Bool, canSplit: Bool,
                             rules: BlackjackRules) -> BlackjackMove {
         let up = dealerUp.isAce ? 11 : dealerUp.points

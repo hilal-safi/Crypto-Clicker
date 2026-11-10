@@ -15,6 +15,17 @@ public enum Tuning {
     public static let milestones = [25, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1_000]
     public static let milestoneMultiplier = 2.0
 
+    // MARK: Legacy
+    /// Older miners share in newer hardware: a miner earns this many times as much for each tier at
+    /// least `legacyTierGap` above it that has `legacyUnits` or more units. Nothing changes until the
+    /// very late game, when the newest tiers reach a hundred; then the Chromebook earns up to ×5⁹
+    /// (1,953,125), and the oldest tiers go from a billionth of production to a real share of it,
+    /// while the newest tiers still earn most of it. Late-game prices are a little higher to match
+    /// (see `shopPremium`).
+    public static let legacyMultiplier = 5.0
+    public static let legacyTierGap = 4
+    public static let legacyUnits = 100
+
     // MARK: Miner Mk upgrades
     /// Owning this many of a miner reveals its next Mk upgrade (Mk II to Mk VI), alongside the
     /// milestone at the same count...
@@ -49,6 +60,9 @@ public enum Tuning {
     public static let comboOverdriveStep = 1.0
     /// Each Quick Combos level makes combos build this much faster (0.5 is 50%).
     public static let quickComboStep = 0.5
+    /// Each Combo Keeper level gives this many more seconds between taps before a combo ends, so
+    /// its eight levels take `comboWindow` from 0.6s to 2.2s.
+    public static let comboKeeperStep: TimeInterval = 0.2
     /// First-level list prices, and how much dearer each level is than the one before. Someone who
     /// keeps playing gets the first Combo Booster in under an hour and Quick Combos within the first
     /// hour and a half; both reach their last levels around the first prestige, and Overdrive over
@@ -59,6 +73,10 @@ public enum Tuning {
     public static let comboOverdriveCostGrowth = 10.0
     public static let quickCombosBaseCost = 100_000.0
     public static let quickCombosCostGrowth = 10.0
+    /// Combo Keeper helps those who tap a little slower; its first level comes in the first hour or
+    /// two, its last around the first prestige.
+    public static let comboKeeperBaseCost = 75_000.0
+    public static let comboKeeperCostGrowth = 10.0
 
     // MARK: Time
     /// Gaps shorter than this count as live play and are paid in full (ticks, a quick app switch).
@@ -68,19 +86,22 @@ public enum Tuning {
 
     // MARK: Offline Mining
     /// Miners earn nothing while the app is closed until the player buys Offline Mining.
-    /// Each level adds this much time away, up to a full day...
-    public static let offlineMiningStep: TimeInterval = 30 * 60
+    /// Each level adds this much time away, up to an hour...
+    public static let offlineMiningShortStep: TimeInterval = 5 * 60
     /// ...which this level reaches...
-    public static let offlineMiningDayLevel = 48
+    public static let offlineMiningHourLevel = 12
     /// ...and then this much per level...
-    public static let offlineMiningLateStep: TimeInterval = 3_600
+    public static let offlineMiningStep: TimeInterval = 30 * 60
     /// ...up to three days at this level.
-    public static let offlineMiningMaxLevel = 96
-    /// The first level's price (before the pace), and each level costs this many times the one before.
-    /// Early levels are dear on purpose: time away is paid at the full rate, and a long absence
-    /// with cheap levels would buy enough miners to multiply income in one go.
-    public static let offlineMiningBaseCost = 3_500.0
-    public static let offlineMiningCostGrowth = 1.5
+    public static let offlineMiningMaxLevel = 154
+    /// List prices (before the pace) of the levels that reach each limit, in hours; the levels in
+    /// between grow evenly from one to the next. The first five minutes cost 15% less than the half
+    /// hour the first level used to add. Then prices climb steeply while early income does (ten
+    /// hours takes about the first week) and more gently after, so a whole day takes over two weeks
+    /// and three days about two months: time away is paid at the full rate, so it must be earned.
+    public static let offlineMiningPrices: [(hours: Double, price: Double)] = [
+        (5.0 / 60, 2_975), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
+    ]
 
     // MARK: Steps
     /// Lifetime taps needed before steps can be connected, so early coins come from playing.
@@ -110,7 +131,39 @@ public enum Tuning {
 
     /// A list price with the pace applied, in whole coins (rounded up).
     public static func scaledPrice(_ listPrice: Double) -> Double {
-        let price = listPrice * priceScale(forListPrice: listPrice)
+        whole(listPrice * priceScale(forListPrice: listPrice))
+    }
+
+    /// What the Shop's miners, upgrades and combo power-ups cost on top of the pace: 10% more
+    /// across the board, and 20% for everything listed under 5,000 coins (the Chromebook, the
+    /// Desktop, the GPU Rig, the first tapping upgrades), tapering to 10% by 10 million (the Server
+    /// and the first Combo Booster about 17% more, the Data Center about 13%, the Mine Center and
+    /// beyond 10%), so the opening stretches out most. The late game, which Legacy speeds up, costs
+    /// 5% more on top (from the Robot Assistant's list price of 180 million) and the very late game
+    /// 10% (from the Lunar Base's 16 trillion), each easing in over the price tenfold below it. Mk
+    /// upgrades follow their miner's price.
+    public static func shopPremium(forListPrice price: Double) -> Double {
+        let base = 0.1, opening = 0.1, start = 5_000.0, end = 1e7
+        guard price.isFinite, price > start else { return 1 + base + opening }
+        guard price < end else {
+            let late = 1 + 0.05 * ramp(price, from: 1e7, to: 1e8) + 0.05 * ramp(price, from: 1e12, to: 1e13)
+            return (1 + base) * late
+        }
+        return 1 + base + opening * (1 - log10(price / start) / log10(end / start))
+    }
+
+    /// 0 at `from`, 1 at `to` and beyond, evenly in between on a log scale.
+    private static func ramp(_ price: Double, from low: Double, to high: Double) -> Double {
+        min(max(log10(price / low) / log10(high / low), 0), 1)
+    }
+
+    /// A Shop price: the list price with the pace and the Shop's premium, in whole coins.
+    public static func shopPrice(_ listPrice: Double) -> Double {
+        whole(listPrice * priceScale(forListPrice: listPrice) * shopPremium(forListPrice: listPrice))
+    }
+
+    /// Rounds a price up to a whole coin, ignoring floating-point noise just above a whole number.
+    static func whole(_ price: Double) -> Double {
         guard price.isFinite, price < 0x1p52 else { return price } // Larger doubles are already whole.
         return max(0, (price - 1e-6).rounded(.up))
     }
@@ -141,6 +194,9 @@ public enum Tuning {
     public static let productionPerAchievementTier = 0.01
 
     // MARK: Airdrops
+    /// Airdrops start once this many coins have been mined in all, so a lucky one in the first
+    /// minutes can't rush the opening.
+    public static let airdropUnlockCoins = 20_000.0
     public static let airdropInterval: ClosedRange<TimeInterval> = 180...360
     public static let airdropLifetime: TimeInterval = 20
     /// With the Airdrop Radar perk.
@@ -164,6 +220,14 @@ public enum Tuning {
     // MARK: Daily
     /// Quests issued each day.
     public static let questsPerDay = 3
+    /// Daily coin rewards grow with income, but only so far: a quest, the challenge and the week's
+    /// bonus pay at most this many times what they were worth when the day's quests were issued...
+    public static let dailyRewardDayCap = 3.0
+    /// ...and a reward waiting to be claimed (a finished quest, or the daily reward, which waits
+    /// from the start of the day) at most this many times what it was worth when it became ready.
+    /// So finishing early, then buying power-ups or banking time away before claiming, can't
+    /// multiply it.
+    public static let dailyRewardClaimCap = 2.0
     /// The login streak's rewards repeat after this many days.
     public static let streakCycle = 7
     /// Income history for the Statistics chart: a sample every minute while the game is open, so

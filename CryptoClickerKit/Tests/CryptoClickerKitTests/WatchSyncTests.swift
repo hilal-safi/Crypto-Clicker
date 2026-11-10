@@ -136,7 +136,7 @@ struct WatchSyncTests {
 
     @Test func aSnapshotSentFromTheBackgroundProjectsFromTheGameClock() {
         var game = GameState.make(miners: minersEarning(20)) // 20 coins per second.
-        game.offlineMiningLevel = 4 // Two hours.
+        game.setOfflineMining(hours: 2)
         game.coins = 1_000
         // The phone app went to the background at t0 and is woken by the watch 3 hours later.
         let snapshot = game.watchSnapshot(at: at(3 * 3_600))
@@ -164,7 +164,7 @@ struct WatchSyncTests {
         away.advance(to: at(5 * 3_600)) // Longer than the offline cap.
         #expect(approx(snapshot.projectedCoins(at: at(5 * 3_600)), away.coins))
 
-        for level in [3, 50] {
+        for level in [3, 62] {
             var mining = game
             mining.offlineMiningLevel = level
             let snapshot = mining.watchSnapshot(at: t0)

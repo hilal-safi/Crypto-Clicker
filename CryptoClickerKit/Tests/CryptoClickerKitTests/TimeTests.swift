@@ -5,9 +5,9 @@ import Testing
 @Suite("Time and offline earnings")
 struct TimeTests {
     /// 10 Chromebooks and 10 Desktops: 20 coins per second, no taps involved.
-    func earner(offlineMiningLevel: Int = 0) -> GameState {
+    func earner(offlineHours: Double = 0) -> GameState {
         var state = GameState.make(miners: minersEarning(20))
-        state.offlineMiningLevel = offlineMiningLevel
+        state.setOfflineMining(hours: offlineHours)
         return state
     }
 
@@ -48,7 +48,7 @@ struct TimeTests {
     }
 
     @Test func offlineMiningPaysUpToItsLimit() throws {
-        var state = earner(offlineMiningLevel: 4) // Two hours.
+        var state = earner(offlineHours: 2)
         let result = state.advance(to: at(3 * 3_600))
         let report = try #require(result)
         #expect(report.credited == 2 * 3_600)
@@ -56,7 +56,7 @@ struct TimeTests {
         #expect(report.offlineCap == 2 * 3_600)
         #expect(approx(state.coins, 7_200 * 20))
 
-        var long = earner(offlineMiningLevel: Tuning.offlineMiningMaxLevel)
+        var long = earner(offlineHours: 72)
         let longResult = long.advance(to: at(30 * 3_600))
         let longReport = try #require(longResult)
         #expect(longReport.credited == 30 * 3_600)
@@ -66,7 +66,7 @@ struct TimeTests {
     @Test func theReportBreaksDownWhatEarnedTheCoins() throws {
         var state = GameState.make(miners: [.desktop: 10, .chromebook: 2, .server: 2],
                                    upgrades: [.coinClicker, .upgradedClicker, .automatedClicker, .overclocking])
-        state.offlineMiningLevel = 2 // An hour.
+        state.setOfflineMining(hours: 1)
         state.prestigePoints = 2
         state.achievementTiers = ["miner": 2]
         state.boost = Boost(multiplier: 7, endsAt: at(100))
@@ -129,7 +129,7 @@ struct TimeTests {
     }
 
     @Test func boostsCountTowardTimeAwayToo() throws {
-        var state = earner(offlineMiningLevel: 1)
+        var state = earner(offlineHours: 0.5)
         state.boost = Boost(multiplier: 7, endsAt: at(60))
         let result = state.advance(to: at(600))
         let report = try #require(result)

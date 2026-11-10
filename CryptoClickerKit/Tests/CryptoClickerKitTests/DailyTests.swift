@@ -93,6 +93,90 @@ struct DailyQuestTests {
         #expect(game.boost?.endsAt == at(70))
     }
 
+    /// Raises a 10-coins-a-second game's income to `income` with prestige points.
+    func earning(_ income: Double, _ game: inout GameState) {
+        game.prestigePoints = Int(((income / 10 - 1) / Tuning.productionPerPrestigePoint).rounded())
+        #expect(approx(game.rewardIncome, income))
+    }
+
+    @Test func rewardsGrowAtMostThreefoldOverTheDayAndTwofoldWhileWaitingToBeClaimed() throws {
+        var game = player() // 10 coins per second.
+        game.refreshDaily(today: "2026-10-24", canWalk: false, at: t0)
+        #expect(game.daily.dayIncome == 10)
+        game.daily.quests = [
+            Quest(kind: .tapCoin, target: 10, baseline: Double(game.stats.taps), reward: .coins(seconds: 600)),
+            Quest(kind: .catchAirdrops, target: 1, baseline: 0, reward: .coins(seconds: 1_200)),
+        ]
+        // Income grows tenfold before either is finished: their coins only threefold.
+        earning(100, &game)
+        let tap = try #require(game.daily.quests.first)
+        #expect(game.rewardIncome(for: tap) == 30)
+        #expect(game.payout(of: tap.reward, income: game.rewardIncome(for: tap)) == .coins(18_000))
+        // Finished now, the first is worth what it was then: 30 a second, not 100...
+        game.tap(count: 10, at: t0)
+        game.advance(to: at(1))
+        #expect(game.daily.quests[0].completedIncome.map { approx($0, 100) } == true)
+        #expect(game.rewardIncome(for: game.daily.quests[0]) == 30)
+        // ...and while it waits to be claimed it grows with income, but no more than twofold.
+        earning(150, &game)
+        #expect(approx(game.rewardIncome(for: game.daily.quests[0]), 45))
+        earning(1_000, &game)
+        #expect(game.rewardIncome(for: game.daily.quests[0]) == 60)
+        #expect(game.claimQuest(tap.id, at: at(2)) == .coins(36_000))
+        // The unfinished one is still held to three times the day's start...
+        #expect(game.rewardIncome(for: game.daily.quests[1]) == 30)
+        // ...and finished and claimed at once, it pays what it's worth then.
+        game.stats.airdrops = 1
+        #expect(game.claimQuest(QuestKind.catchAirdrops.rawValue, at: at(3)) == .coins(36_000))
+    }
+
+    @Test func theDailyRewardGrowsAtMostTwofoldAndTheChallengeThreefold() {
+        var game = player()
+        game.refreshDaily(today: "2026-10-24", canWalk: false, at: t0)
+        earning(100, &game)
+        // The daily reward is ready from the start of the day, so it waits at most twofold...
+        #expect(game.streakRewardIncome == 20)
+        #expect(game.claimDailyReward(today: "2026-10-24", yesterday: "2026-10-23", at: t0) == .coins(6_000))
+        // ...and the challenge, finished later in the day, grows threefold at most.
+        #expect(game.challengeRewardIncome == 30)
+        #expect(game.challengeReward == Tuning.challengeRewardSeconds * 30)
+        // A new day starts counting from the income then.
+        game.refreshDaily(today: "2026-10-25", canWalk: false, at: at(86_400))
+        #expect(game.daily.dayIncome.map { approx($0, 100) } == true)
+        #expect(approx(game.streakRewardIncome, 100))
+    }
+
+    @Test func aPrestigeResizesUnfinishedQuestsForTheNewRun() throws {
+        var game = GameState.make(miners: [.server: 100]) // Thousands of coins per second.
+        game.stats.lifetimeCoins = 1e12
+        game.refreshDaily(today: "2026-10-24", canWalk: false, at: t0)
+        let before = game.rewardIncome
+        game.daily.quests = [
+            Quest(kind: .earnCoins, target: GameState.roundTarget(3_600 * before), baseline: game.stats.lifetimeCoins,
+                  reward: .coins(seconds: 600)),
+            Quest(kind: .tapCoin, target: 300, baseline: Double(game.stats.taps), reward: .tokens(.bitcoin, 5)),
+        ]
+        // A quarter of the way to its target when the run ends.
+        game.stats.lifetimeCoins += game.daily.quests[0].target / 4
+        #expect(game.prestige(at: at(10)) > 0)
+        let after = game.rewardIncome
+        #expect(after < before / 100)
+        // The coin target is sized for the new run's income and keeps its progress...
+        let earn = try #require(game.daily.quests.first { $0.kind == .earnCoins })
+        #expect(earn.target == GameState.roundTarget(game.daily.quests[0].target))
+        #expect(earn.target < GameState.roundTarget(3_600 * before) / 100)
+        #expect(approx(game.progress(of: earn) / earn.target, 0.25, tolerance: 0.02))
+        #expect(!game.isComplete(earn))
+        // ...and tokens not yet claimed shrink with it, so the old run's income can't be sold into the new one.
+        let tap = try #require(game.daily.quests.first { $0.kind == .tapCoin })
+        #expect(tap.reward != .tokens(.bitcoin, 5))
+        if case .tokens(let token, let count) = tap.reward {
+            #expect(Double(count) * token.price <= 5 * TokenID.bitcoin.price * after / before * 5)
+        }
+        // Other targets don't depend on income and stay as they were.
+        #expect(tap.target == 300)
+    }
+
     @Test func coinTargetsAreRoundNumbers() {
         #expect(GameState.roundTarget(12) == 1_000)
         #expect(GameState.roundTarget(18_000) == 18_000)

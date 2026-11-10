@@ -85,11 +85,29 @@ public struct Quest: Codable, Equatable, Sendable, Identifiable {
     public let target: Double
     /// The tracked statistic when the quest was issued; progress counts up from here.
     public let baseline: Double
-    public let reward: QuestReward
+    public internal(set) var reward: QuestReward
     public internal(set) var isClaimed = false
+    /// Income when it was finished, so waiting to claim can't grow its coins more than
+    /// `Tuning.dailyRewardClaimCap` times. `nil` until finished.
+    public internal(set) var completedIncome: Double?
 
     public var id: String { kind.rawValue }
     public var title: String { kind.title(target: target) }
+
+    init(kind: QuestKind, target: Double, baseline: Double, reward: QuestReward) {
+        self.kind = kind
+        self.target = target
+        self.baseline = baseline
+        self.reward = reward
+    }
+
+    /// The same quest counting `target` from `baseline` (after a prestige, for a target sized by income).
+    func restarted(target: Double, baseline: Double) -> Quest {
+        var quest = Quest(kind: kind, target: target, baseline: baseline, reward: reward)
+        quest.isClaimed = isClaimed
+        quest.completedIncome = completedIncome
+        return quest
+    }
 }
 
 /// What a daily challenge asks for. Each kind belongs to one game (or, for the arcade mix, to
@@ -256,11 +274,15 @@ public struct DailyProgress: Codable, Equatable, Sendable {
     /// The week (the `StepDay` key of its Monday) that `challengesThisWeek` counts.
     public internal(set) var challengeWeek: String?
     public internal(set) var challengesThisWeek = 0
+    /// Income when today's quests were issued: the day's coin rewards grow from here, up to
+    /// `Tuning.dailyRewardDayCap` times (the daily reward, ready all day, up to
+    /// `Tuning.dailyRewardClaimCap` times). `nil` before the first quests.
+    public internal(set) var dayIncome: Double?
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case firstDay, questDay, quests, streak, lastRewardDay, challenge, challengeWeek, challengesThisWeek
+        case firstDay, questDay, quests, streak, lastRewardDay, challenge, challengeWeek, challengesThisWeek, dayIncome
     }
 
     public init(from decoder: Decoder) throws {
@@ -275,6 +297,8 @@ public struct DailyProgress: Codable, Equatable, Sendable {
         challenge = c.value(.challenge, default: nil)
         challengeWeek = c.value(.challengeWeek, default: nil)
         challengesThisWeek = max(0, c.value(.challengesThisWeek, default: 0))
+        let income: Double? = c.value(.dayIncome, default: nil)
+        dayIncome = income.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -287,6 +311,7 @@ public struct DailyProgress: Codable, Equatable, Sendable {
         try c.encodeIfPresent(challenge, forKey: .challenge)
         try c.encodeIfPresent(challengeWeek, forKey: .challengeWeek)
         try c.encode(challengesThisWeek, forKey: .challengesThisWeek)
+        try c.encodeIfPresent(dayIncome, forKey: .dayIncome)
     }
 }
 

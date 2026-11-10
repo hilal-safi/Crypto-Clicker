@@ -73,7 +73,7 @@ struct FormatTests {
         #expect(CoinFormat.short(-.infinity) == "-∞")
         #expect(CoinFormat.short(.nan) == "0")
         #expect(CoinFormat.duration(.infinity) == "∞")
-        #expect(CoinFormat.duration(1e300) == "11574d 1h")
+        #expect(CoinFormat.duration(1e300) == "11574d 1h 46m")
     }
 
     @Test func percentAndMultiplier() {
@@ -81,11 +81,15 @@ struct FormatTests {
         #expect(CoinFormat.percent(0.015) == "1.5%")
         #expect(CoinFormat.multiplier(2) == "×2")
         #expect(CoinFormat.multiplier(1.5) == "×1.5")
+        // Big ones keep their commas, and the biggest go short.
+        #expect(CoinFormat.multiplier(262_144) == "×262,144")
+        #expect(CoinFormat.percent(500.05) == "50,005%")
+        #expect(CoinFormat.multiplier(1.0886e10) == "×10.8B")
     }
 
     @Test(arguments: [
         (0.0, "0s"), (45, "45s"), (120, "2m"), (185, "3m 5s"), (3_600, "1h"), (8_040, "2h 14m"),
-        (86_400, "1d"), (273_600, "3d 4h"), (-5, "0s"),
+        (86_400, "1d"), (273_600, "3d 4h"), (88_200, "1d 30m"), (99_000, "1d 3h 30m"), (86_430, "1d"), (-5, "0s"),
     ])
     func duration(_ seconds: Double, _ expected: String) {
         #expect(CoinFormat.duration(seconds) == expected)

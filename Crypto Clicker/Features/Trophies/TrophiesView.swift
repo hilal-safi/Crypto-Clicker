@@ -69,7 +69,8 @@ struct TrophiesView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
                 .frame(maxWidth: 900)
-                .frame(maxWidth: .infinity)
+                // Exactly the screen's width, so no card can make the page scroll sideways.
+                .containerRelativeFrame(.horizontal)
             }
             .background { AppBackground(tint: Theme.trophies) }
             .navigationTitle("Trophies")
@@ -197,7 +198,8 @@ private struct DailyPage: View {
                     .foregroundStyle(.subtext)
             }
             ForEach(game.daily.quests) { quest in
-                QuestRow(quest: quest, progress: game.progress(of: quest), reward: quest.reward.text(in: game))
+                QuestRow(quest: quest, progress: game.progress(of: quest),
+                         reward: quest.reward.text(in: game, income: game.rewardIncome(for: quest)))
                 if quest.id != game.daily.quests.last?.id { Divider() }
             }
         }
@@ -210,8 +212,8 @@ private struct DailyPage: View {
                           play: canPlay ? openChallenge : nil)
         }
         Text(game.hasPerk(.luckyStreak)
-             ? "Lucky Streak doubles every daily reward. Coin rewards grow with your income."
-             : "Coin rewards grow with your income. Quests finished but not claimed are paid at midnight.")
+             ? "Lucky Streak doubles every daily reward. Coin rewards grow with your income, up to three times over the day and twice once a quest is finished."
+             : "Coin rewards grow with your income, up to three times over the day and twice once a quest is finished. Quests finished but not claimed are paid at midnight.")
             .font(.subheadline)
             .foregroundStyle(.subtext)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -220,13 +222,13 @@ private struct DailyPage: View {
 }
 
 extension QuestReward {
-    /// What the reward pays if claimed now: coins track income, and Lucky Streak doubles it.
-    func text(in game: GameState) -> String {
-        let multiplier = game.dailyRewardMultiplier
-        return switch self {
-        case .coins(let seconds): "\(CoinFormat.short((seconds * game.rewardIncome * multiplier).rounded())) coins"
-        case .tokens(let token, let count): "\(CoinFormat.grouped(Int(Double(count) * multiplier))) \(token.ticker)"
-        case .bullRun: "Bull Run \(CoinFormat.multiplier(Tuning.bullRunMultiplier)) for \(CoinFormat.duration(game.bullRunDuration * multiplier))"
+    /// What the reward pays if claimed now: coins worth its seconds of `income` (the quest's or the
+    /// daily reward's, capped for the day), and Lucky Streak doubles it.
+    func text(in game: GameState, income: Double) -> String {
+        switch game.payout(of: self, income: income) {
+        case .coins(let amount): "\(CoinFormat.short(amount)) coins"
+        case .tokens(let token, let count): "\(CoinFormat.grouped(count)) \(token.ticker)"
+        case .bullRun(let multiplier, let duration): "Bull Run \(CoinFormat.multiplier(multiplier)) for \(CoinFormat.duration(duration))"
         }
     }
 
@@ -282,7 +284,7 @@ private struct DailyRewardCard: View {
                     VStack(spacing: 2) {
                         Text("Claim Day \(nextStreak)")
                             .font(.headline)
-                        Text(reward.text(in: game))
+                        Text(reward.text(in: game, income: game.streakRewardIncome))
                             .font(.subheadline.monospacedDigit())
                     }
                     .frame(maxWidth: .infinity)
@@ -345,6 +347,19 @@ private struct QuestRow: View {
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var claims = 0
 
+    private var progressText: some View {
+        Text("\(CoinFormat.short(progress)) / \(CoinFormat.short(quest.target))")
+            .monospacedDigit()
+            .lineLimit(1)
+    }
+
+    private var rewardLabel: some View {
+        Label(reward, systemImage: quest.reward.symbol)
+            .foregroundStyle(Theme.accent)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+    }
+
     var body: some View {
         let isComplete = progress >= quest.target
         HStack(spacing: 12) {
@@ -360,12 +375,17 @@ private struct QuestRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                 ProgressView(value: min(progress, quest.target), total: max(quest.target, 1))
                     .tint(Theme.accent)
-                HStack {
-                    Text("\(CoinFormat.short(progress)) / \(CoinFormat.short(quest.target))")
-                        .monospacedDigit()
-                    Spacer()
-                    Label(reward, systemImage: quest.reward.symbol)
-                        .foregroundStyle(Theme.accent)
+                // Progress and reward side by side, or the reward under the progress when it's long.
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        progressText
+                        Spacer(minLength: 8)
+                        rewardLabel
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        progressText
+                        rewardLabel
+                    }
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.subtext)

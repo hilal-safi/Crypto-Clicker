@@ -65,6 +65,7 @@ extension MiniGame {
             scoring: [
                 localized("A win pays your bet back twice; a tie (push) returns it."),
                 localized("A natural 21 (an ace and a ten-value card as your first two) pays 3 to 2, and its coin bonus is half as much again."),
+                localized("Insurance costs half your bet and pays 2 to 1 if the dealer has blackjack, which wins back a bet the dealer's natural takes."),
                 tokenBets,
             ],
             items: [
@@ -74,6 +75,8 @@ extension MiniGame {
                       detail: localized("The dealer hits a soft 17 (a 17 counting an ace as 11), which suits the house a little better, so wins pay \(Int(((Tuning.blackjackToughTableBonus - 1) * 100).rounded()))% more coin bonus.")),
                 .init(id: "blackjack.ace", symbol: "suit.spade.fill", name: localized("Aces"),
                       detail: localized("Count as 11, or as 1 when 11 would go over 21. Split aces get one card each.")),
+                .init(id: "blackjack.insurance", symbol: "shield.fill", name: localized("Insurance"),
+                      detail: localized("When the dealer shows an ace, you may insure your bet before the dealer checks for blackjack. Basic strategy says no: the hole card is a ten less than a third of the time.")),
                 .init(id: "blackjack.coach", symbol: "lightbulb.fill", name: localized("The coach"),
                       detail: localized("Suggests the move basic strategy makes with your hand against the dealer's card. It's the best move over time, not a promise about the next card.")),
             ],
@@ -83,7 +86,7 @@ extension MiniGame {
                 localized("Double on 10 or 11 when the dealer shows a lower card."),
                 localized("Always split aces and eights."),
             ],
-            controlHint: localized("Hit · Stand · Double · Split"))
+            controlHint: localized("Hit · Stand · Double · Split · Insurance"))
     }
 
     private static var slotsGuide: MiniGameGuide {

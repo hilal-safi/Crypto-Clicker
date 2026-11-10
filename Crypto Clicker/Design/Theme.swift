@@ -4,6 +4,8 @@ import CryptoClickerKit
 enum Theme {
     /// Bitcoin orange, for artwork, glows and backgrounds.
     static let bitcoin = Color(red: 0.97, green: 0.58, blue: 0.10)
+    /// Legacy badges, apart from the orange of Mk upgrades.
+    static let legacy = Color(red: 0.13, green: 0.58, blue: 0.86)
     static let gold = Color(red: 1.00, green: 0.80, blue: 0.25)
     static let shop = Color(red: 0.20, green: 0.55, blue: 1.00)
     static let arcade = Color(red: 0.75, green: 0.30, blue: 0.95)

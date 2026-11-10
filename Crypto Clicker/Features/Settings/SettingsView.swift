@@ -113,33 +113,42 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    LabeledContent("Version", value: Self.version)
+                    #if DEBUG
+                    Button("Testing Tools", systemImage: "ladybug") { showingTestingTools = true }
+                    #endif
+                } header: {
+                    Text("About")
+                } footer: {
+                    #if DEBUG
+                    SettingsNote("Testing Tools are only in builds run from Xcode.")
+                    #endif
+                }
+
+                Section {
                     Button("Reset All Progress", role: .destructive) { confirmingReset = true }
+                } header: {
+                    Text("Progress")
                 } footer: {
                     SettingsNote("Erases everything, prestige and achievements included.")
                 }
-
-                Section("About") {
-                    LabeledContent("Version", value: Self.version)
-                }
-
-                #if DEBUG
-                Section {
-                    Button("Testing Tools", systemImage: "ladybug") { showingTestingTools = true }
-                } footer: {
-                    SettingsNote("Only in builds run from Xcode.")
-                }
-                #endif
             }
+            // The same gap between every pair of sections, footer or not, and room above the
+            // tab bar at the bottom.
+            .listSectionSpacing(28)
+            .contentMargins(.bottom, 24, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .background { AppBackground(tint: Theme.settings) }
             .navigationTitle("Settings")
             .navigationDestination(isPresented: $showingHowToPlay) { HowToPlayView() }
             .onAppear { showHowToPlayIfAsked() }
             .onChange(of: howToPlayRequests) { _, _ in showHowToPlayIfAsked() }
-            .confirmationDialog("Reset all progress?", isPresented: $confirmingReset, titleVisibility: .visible) {
+            // A centred alert, not a popover pointing at whichever row it lands near.
+            .alert("Reset all progress?", isPresented: $confirmingReset) {
                 Button("Reset Everything", role: .destructive) { store.resetGame() }
+                Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This can't be undone.")
+                Text("Your coins, miners, prestige, achievements and records will be erased. This can't be undone.")
             }
             .alert("Notifications are off", isPresented: $notificationsDenied) {
                 Button("Open Settings") {

@@ -30,29 +30,119 @@ struct BlackjackTests {
         #expect(BlackjackTable.naturalPayout(bet: 1) == 3)
     }
 
-    @Test func aPlayerNaturalSettlesAtOnce() {
+    @Test func aPlayerNaturalIsShownThenSettlesWithoutDealerCards() {
         var rng = SeededGenerator(seed: 7)
         var table = stacked([1, 9, 13, 7])
         table.deal(bet: 10, using: &rng)
+        // The dealer turns the hole card over first, so the screen can pause on it...
+        #expect(table.phase == .dealerTurn)
+        #expect(!table.isHoleCardHidden)
+        #expect(!table.dealerShouldDraw)
+        #expect(table.results.isEmpty)
+        // ...then settles, drawing nothing.
+        table.dealerStep(using: &rng)
         #expect(table.phase == .settled)
+        #expect(table.dealer.count == 2)
         #expect(table.results == [BlackjackResult(outcome: .blackjack, bet: 10, payout: 25)])
         #expect(table.hands[0].isBlackjack)
     }
 
     @Test func theDealerPeeksForANatural() {
         var rng = SeededGenerator(seed: 7)
-        var table = stacked([10, 1, 9, 13])
+        var table = stacked([10, 13, 9, 1])
         table.deal(bet: 10, using: &rng)
+        // A ten showing: no insurance, and the natural is revealed before the round ends.
+        #expect(table.phase == .dealerTurn)
+        #expect(table.insuranceCost == 0)
+        #expect(!table.isHoleCardHidden)
+        table.dealerStep(using: &rng)
         #expect(table.phase == .settled)
         #expect(table.results == [BlackjackResult(outcome: .lose, bet: 10, payout: 0)])
-        #expect(!table.isHoleCardHidden)
     }
 
     @Test func twoNaturalsPush() {
         var rng = SeededGenerator(seed: 7)
         var table = stacked([1, 1, 13, 12])
         table.deal(bet: 4, using: &rng)
+        table.resolveInsurance(insured: false)
+        table.finishDealer(using: &rng)
         #expect(table.results == [BlackjackResult(outcome: .push, bet: 4, payout: 4)])
+    }
+
+    @Test func anAceShowingOffersInsuranceFirst() {
+        var rng = SeededGenerator(seed: 7)
+        var table = stacked([10, 1, 9, 13])
+        table.deal(bet: 10, using: &rng)
+        #expect(table.phase == .insurance)
+        #expect(table.isHoleCardHidden)
+        #expect(table.insuranceCost == 5) // Half the bet.
+        #expect(table.activeHand == nil && !table.canHit) // Nothing else until it's answered.
+        table.stand()
+        #expect(table.phase == .insurance)
+        #expect(!BlackjackStrategy.takesInsurance)
+        // Declined: the dealer checks, has blackjack, and turns it over.
+        table.resolveInsurance(insured: false)
+        #expect(table.insurance == nil)
+        #expect(table.phase == .dealerTurn)
+        table.dealerStep(using: &rng)
+        #expect(table.results == [BlackjackResult(outcome: .lose, bet: 10, payout: 0)])
+        #expect(table.totalPayout == 0 && table.totalNet == -10)
+    }
+
+    @Test func insurancePaysTwoToOneWhenTheDealerHasBlackjack() {
+        var rng = SeededGenerator(seed: 7)
+        var table = stacked([10, 1, 9, 13])
+        table.deal(bet: 10, using: &rng)
+        table.resolveInsurance(insured: true)
+        #expect(table.insurance == BlackjackInsurance(stake: 5, payout: 15))
+        table.dealerStep(using: &rng)
+        // The hand loses its 10, the insurance wins 10: even overall.
+        #expect(table.results == [BlackjackResult(outcome: .lose, bet: 10, payout: 0)])
+        #expect(table.totalPayout == 15)
+        #expect(table.totalNet == 0)
+    }
+
+    @Test func insuranceIsLostWhenTheDealerHasNoBlackjack() {
+        var rng = SeededGenerator(seed: 7)
+        var table = stacked([10, 1, 9, 7])
+        table.deal(bet: 10, using: &rng)
+        table.resolveInsurance(insured: true)
+        #expect(table.insurance == BlackjackInsurance(stake: 5, payout: 0))
+        // The hand plays on with the hole card still face down.
+        #expect(table.phase == .playerTurn)
+        #expect(table.isHoleCardHidden)
+        table.stand()
+        table.finishDealer(using: &rng)
+        #expect(table.results == [BlackjackResult(outcome: .win, bet: 10, payout: 20)]) // 19 beats soft 18.
+        #expect(table.totalPayout == 20)
+        #expect(table.totalNet == 5)
+        // Odd bets round insurance up; a new round clears it.
+        table.newRound()
+        #expect(table.insurance == nil)
+        table.stack(ranks: [10, 1, 9, 7])
+        table.deal(bet: 3, using: &rng)
+        #expect(table.insuranceCost == 2)
+    }
+
+    @Test func aPlayerNaturalAgainstAnAceIsPaidOnceTheDealerChecks() {
+        var rng = SeededGenerator(seed: 7)
+        var table = stacked([1, 1, 13, 7])
+        table.deal(bet: 10, using: &rng)
+        #expect(table.phase == .insurance)
+        table.resolveInsurance(insured: false)
+        #expect(table.phase == .dealerTurn)
+        table.dealerStep(using: &rng)
+        #expect(table.results == [BlackjackResult(outcome: .blackjack, bet: 10, payout: 25)])
+    }
+
+    @Test func leavingMidRoundPlaysItOut() {
+        var rng = SeededGenerator(seed: 7)
+        var table = stacked([10, 1, 9, 7])
+        table.deal(bet: 10, using: &rng)
+        table.finishRound(using: &rng) // No insurance, the hand stands, the dealer finishes.
+        #expect(table.phase == .settled)
+        #expect(table.insurance == nil)
+        #expect(table.results == [BlackjackResult(outcome: .win, bet: 10, payout: 20)])
     }
 
     @Test func theHoleCardStaysHiddenDuringThePlayersTurn() {
@@ -71,6 +161,7 @@ struct BlackjackTests {
         var rng = SeededGenerator(seed: 7)
         var table = stacked([10, 1, 8, 6])
         table.deal(bet: 10, using: &rng)
+        table.resolveInsurance(insured: false)
         table.stand()
         #expect(table.phase == .dealerTurn)
         #expect(!table.dealerShouldDraw)
@@ -207,6 +298,8 @@ struct BlackjackTests {
         table.doubleDown(using: &rng)
         table.split(using: &rng)
         table.dealerStep(using: &rng)
+        table.resolveInsurance(insured: true)
+        #expect(table.insurance == nil)
         table.newRound()
         #expect(table.phase == .betting)
         table.deal(bet: 0, using: &rng)
@@ -232,6 +325,13 @@ struct BlackjackTests {
         for round in 0..<5_000 {
             let bet = 1 + round % 7
             table.deal(bet: bet, using: &rng)
+            #expect((table.phase == .insurance) == (table.dealer.first?.isAce == true))
+            let dealerNatural = table.dealer.count == 2 && table.dealerTotal == 21
+            table.resolveInsurance(insured: round % 2 == 0)
+            if let insurance = table.insurance {
+                #expect(insurance.stake == (bet + 1) / 2)
+                #expect(insurance.payout == (dealerNatural ? insurance.stake * 3 : 0))
+            }
             while table.phase == .playerTurn {
                 if table.canSplit && round % 3 == 0 {
                     table.split(using: &rng)
@@ -246,6 +346,7 @@ struct BlackjackTests {
             table.finishDealer(using: &rng)
             #expect(table.phase == .settled)
             #expect(table.results.count == table.hands.count)
+            #expect(table.totalPayout == table.results.reduce(table.insurance?.payout ?? 0) { $0 + $1.payout })
             for (hand, result) in zip(table.hands, table.results) {
                 #expect(result.bet == hand.bet)
                 let allowed = [0, hand.bet, hand.bet * 2, BlackjackTable.naturalPayout(bet: hand.bet)]
@@ -269,6 +370,7 @@ struct BlackjackTests {
         // Player 10 and 8; dealer ace up and a six in the hole: soft 17. Then a 3 for the dealer.
         var classic = stacked([10, 1, 8, 6, 3])
         classic.deal(bet: 10, using: &rng)
+        classic.resolveInsurance(insured: false)
         classic.stand()
         #expect(!classic.dealerShouldDraw)
         classic.finishDealer(using: &rng)
@@ -278,6 +380,7 @@ struct BlackjackTests {
         var tough = BlackjackTable(rules: .hitsSoft17)
         tough.stack(ranks: [10, 1, 8, 6, 3])
         tough.deal(bet: 10, using: &rng)
+        tough.resolveInsurance(insured: false)
         tough.stand()
         #expect(tough.dealerShouldDraw)
         tough.finishDealer(using: &rng)

@@ -270,7 +270,7 @@ struct StepTests {
     @Test func theFirstStepBoosterCostsMore() {
         // It used to cost 1,000, which let walking outpace tapping right away.
         #expect(UpgradeID.stepBooster.listCost == 25_000)
-        #expect(UpgradeID.stepBooster.cost == Tuning.scaledPrice(25_000))
+        #expect(UpgradeID.stepBooster.cost == Tuning.shopPrice(25_000))
     }
 
     @Test func dayKeysUseTheLocalGregorianDay() throws {

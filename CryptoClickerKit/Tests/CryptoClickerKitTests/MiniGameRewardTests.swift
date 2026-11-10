@@ -67,6 +67,16 @@ struct MiniGameRewardTests {
         #expect(game.stats.earnedFromGames == bonus)
     }
 
+    @Test func insuranceIsPaidWithTheHands() {
+        var game = earner()
+        game.placeBlackjackBet(.dogecoin, amount: 3) // A bet of 2 and insurance of 1.
+        let lost = [BlackjackResult(outcome: .lose, bet: 2, payout: 0)]
+        #expect(game.settleBlackjack(lost, insurance: BlackjackInsurance(stake: 1, payout: 3), token: .dogecoin) == 0)
+        #expect(game.tokenCount(.dogecoin) == 5 - 3 + 3) // Insurance paid the bet back.
+        #expect(game.stats.blackjackWins == 0)
+        #expect(game.stats.blackjackBiggestWin == 0)
+    }
+
     @Test func aRoundSettlesOnlyOnce() {
         var game = earner()
         game.placeBlackjackBet(.dogecoin, amount: 2)

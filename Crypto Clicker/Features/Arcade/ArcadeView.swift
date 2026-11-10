@@ -38,7 +38,8 @@ struct ArcadeView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
                 .frame(maxWidth: 700)
-                .frame(maxWidth: .infinity)
+                // Exactly the screen's width, so no card can make the page scroll sideways.
+                .containerRelativeFrame(.horizontal)
             }
             .onAppear(perform: showChallengeIfAsked)
             .onChange(of: challengeRequests) { _, _ in showChallengeIfAsked() }
@@ -265,33 +266,37 @@ struct MiniGameRow: View {
 }
 
 /// A game's record as label and value pairs, the labels in small capitals in the game's color:
-/// BEST 12,345  WAVE 5. On one line when it fits, one pair a line when it doesn't.
+/// BEST 12,345  WAVE 5. On one line when it fits, one pair a line when it doesn't, and a long value
+/// ("TOP MINER Space Mining Colony") wraps under its label rather than pushing the card wider than
+/// the screen.
 struct RecordLine: View {
     let facts: [RecordFact]
     let tint: Color
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 14) { pairs }
-            VStack(alignment: .leading, spacing: 2) { pairs }
+            HStack(spacing: 14) { pairs(fixed: true) }
+            VStack(alignment: .leading, spacing: 2) { pairs(fixed: false) }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(facts.map { "\($0.label) \($0.value)" }.joined(separator: ", "))
     }
 
-    private var pairs: some View {
+    private func pairs(fixed: Bool) -> some View {
         ForEach(facts, id: \.label) { fact in
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(fact.label)
                     .font(.footnote.weight(.heavy))
                     .textCase(.uppercase)
                     .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .fixedSize()
                 Text(fact.value)
                     .font(.subheadline.weight(.bold).monospacedDigit())
                     .foregroundStyle(.primary)
+                    .lineLimit(fixed ? 1 : 2)
+                    .fixedSize(horizontal: fixed, vertical: !fixed)
             }
-            .lineLimit(1)
-            .fixedSize()
         }
     }
 }

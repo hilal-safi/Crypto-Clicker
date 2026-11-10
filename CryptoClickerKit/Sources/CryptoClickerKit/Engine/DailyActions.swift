@@ -86,16 +86,84 @@ extension GameState {
     public mutating func refreshDaily(today: String, canWalk: Bool, at now: Date) -> [RewardPayout] {
         guard !isFirstDay(today) else { return [] }
         refreshChallenge(today: today)
-        guard daily.questDay != today else { return [] }
+        guard daily.questDay != today else {
+            // A save from before the day's rewards were capped starts counting from now.
+            if daily.dayIncome == nil { daily.dayIncome = rewardIncome }
+            return []
+        }
         var paid: [RewardPayout] = []
         for index in daily.quests.indices where !daily.quests[index].isClaimed && isComplete(daily.quests[index]) {
+            noteCompletion(at: index)
             daily.quests[index].isClaimed = true
             stats.questsCompleted += 1
-            paid.append(pay(daily.quests[index].reward, at: now))
+            paid.append(pay(daily.quests[index].reward, income: rewardIncome(for: daily.quests[index]), at: now))
         }
+        daily.dayIncome = rewardIncome
         daily.quests = makeQuests(for: today, canWalk: canWalk)
         daily.questDay = today
         return paid
+    }
+
+    // MARK: Reward caps
+
+    /// Income when today's quests were issued, which the day's coin rewards grow from.
+    var dayStartIncome: Double { daily.dayIncome ?? rewardIncome }
+
+    /// The income a quest's coins are sized by. Until it's finished: today's, but no more than
+    /// `Tuning.dailyRewardDayCap` times what it was when the quest was issued. Once it's finished:
+    /// what it was worth then, growing with income since, but no more than
+    /// `Tuning.dailyRewardClaimCap` times (and shrinking with it after a prestige).
+    public func rewardIncome(for quest: Quest) -> Double {
+        let dayCap = dayStartIncome * Tuning.dailyRewardDayCap
+        guard let completed = quest.completedIncome, completed > 0 else { return min(rewardIncome, dayCap) }
+        return min(completed, dayCap) * min(rewardIncome / completed, Tuning.dailyRewardClaimCap)
+    }
+
+    /// The income the daily reward is sized by: ready from the start of the day, it grows no more
+    /// than `Tuning.dailyRewardClaimCap` times from then.
+    public var streakRewardIncome: Double {
+        min(rewardIncome, dayStartIncome * Tuning.dailyRewardClaimCap)
+    }
+
+    /// The income the daily challenge and the week's bonus are sized by: today's, but no more than
+    /// `Tuning.dailyRewardDayCap` times what it was when the day began.
+    public var challengeRewardIncome: Double {
+        min(rewardIncome, dayStartIncome * Tuning.dailyRewardDayCap)
+    }
+
+    /// Notes when quests are finished, so what they pay stops growing much while they wait to be
+    /// claimed. Cheap enough to run on every tick.
+    mutating func noteQuestCompletions() {
+        for index in daily.quests.indices where daily.quests[index].completedIncome == nil
+            && !daily.quests[index].isClaimed && isComplete(daily.quests[index]) {
+            noteCompletion(at: index)
+        }
+    }
+
+    private mutating func noteCompletion(at index: Int) {
+        guard daily.quests[index].completedIncome == nil else { return }
+        daily.quests[index].completedIncome = rewardIncome
+    }
+
+    /// After a prestige the new run earns far less: unfinished quests whose target was sized by
+    /// income (earn so many coins) get a target sized for the new run, keeping how far along they
+    /// were, and token rewards not yet claimed are made the size the new run's income would make
+    /// them, so tokens from the old run's income can't be sold into the new one. `previousIncome`
+    /// is the income before the prestige.
+    mutating func rescaleQuestsForNewRun(previousIncome: Double) {
+        let ratio = previousIncome > 0 ? min(rewardIncome / previousIncome, 1) : 1
+        for index in daily.quests.indices where !daily.quests[index].isClaimed {
+            let quest = daily.quests[index]
+            if quest.kind == .earnCoins && !isComplete(quest) {
+                let target = Self.roundTarget(quest.target * ratio)
+                let done = min(max(progress(of: quest) / quest.target, 0), 1) * target
+                daily.quests[index] = quest.restarted(target: target, baseline: questMetric(.earnCoins) - done)
+            }
+            if case .tokens(let token, let count) = quest.reward {
+                let worth = Double(count) * token.price * ratio
+                daily.quests[index].reward = tokenReward(worth: worth) ?? .coins(seconds: 1_800)
+            }
+        }
     }
 
     /// The day's quests: different kinds, picked the same way however often they are made.
@@ -171,9 +239,10 @@ extension GameState {
     public mutating func claimQuest(_ id: Quest.ID, at now: Date) -> RewardPayout? {
         guard let index = daily.quests.firstIndex(where: { $0.id == id }),
               !daily.quests[index].isClaimed, isComplete(daily.quests[index]) else { return nil }
+        noteCompletion(at: index)
         daily.quests[index].isClaimed = true
         stats.questsCompleted += 1
-        return pay(daily.quests[index].reward, at: now)
+        return pay(daily.quests[index].reward, income: rewardIncome(for: daily.quests[index]), at: now)
     }
 
     // MARK: Daily reward
@@ -203,7 +272,7 @@ extension GameState {
         switch Self.streakCycleDay(streak) {
         case 1: .coins(seconds: 300)
         case 2: .coins(seconds: 600)
-        case 3: tokenReward(worth: 900 * rewardIncome) ?? .coins(seconds: 900)
+        case 3: tokenReward(worth: 900 * streakRewardIncome) ?? .coins(seconds: 900)
         case 4: .coins(seconds: 1_200)
         case 5: .bullRun
         case 6: .coins(seconds: 1_800)
@@ -219,18 +288,19 @@ extension GameState {
         daily.streak = streak
         daily.lastRewardDay = today
         stats.longestStreak = max(stats.longestStreak, streak)
-        return pay(streakReward(day: streak), at: now)
+        let reward = streakReward(day: streak)
+        return pay(reward, income: streakRewardIncome, at: now)
     }
 
     // MARK: Paying rewards
 
-    /// Pays a quest or streak reward. Coins are worth `seconds` of income when paid; Lucky Streak
-    /// doubles coins and tokens, and makes a Bull Run last twice as long.
-    mutating func pay(_ reward: QuestReward, at now: Date) -> RewardPayout {
+    /// Pays a quest or streak reward. Coins are worth `seconds` of `income` (today's, capped); Lucky
+    /// Streak doubles coins and tokens, and makes a Bull Run last twice as long.
+    mutating func pay(_ reward: QuestReward, income: Double, at now: Date) -> RewardPayout {
         let multiplier = dailyRewardMultiplier
         switch reward {
         case .coins(let seconds):
-            let amount = Self.wholeCoins(seconds * rewardIncome * multiplier, minimum: 1)
+            let amount = Self.wholeCoins(seconds * income * multiplier, minimum: 1)
             credit(amount, source: .daily)
             return .coins(amount)
         case .tokens(let token, let count):
@@ -244,9 +314,10 @@ extension GameState {
         }
     }
 
-    /// Coins worth `seconds` of income, paid as a daily reward (Lucky Streak doubles them).
+    /// Coins worth `seconds` of the challenge's income, paid as a daily reward (Lucky Streak
+    /// doubles them).
     mutating func payDailyCoins(seconds: Double) -> Double {
-        let amount = Self.wholeCoins(seconds * rewardIncome * dailyRewardMultiplier, minimum: 1)
+        let amount = Self.wholeCoins(seconds * challengeRewardIncome * dailyRewardMultiplier, minimum: 1)
         credit(amount, source: .daily)
         return amount
     }
@@ -335,14 +406,26 @@ extension GameState {
         return ChallengeReward(coins: coins, weeklyBonus: bonus)
     }
 
-    /// Coins completing a challenge pays now (it grows with income; Lucky Streak doubles it).
+    /// Coins completing a challenge pays now (it grows with income, up to the day's cap; Lucky
+    /// Streak doubles it).
     public var challengeReward: Double {
-        Self.wholeCoins(Tuning.challengeRewardSeconds * rewardIncome * dailyRewardMultiplier, minimum: 1)
+        Self.wholeCoins(Tuning.challengeRewardSeconds * challengeRewardIncome * dailyRewardMultiplier, minimum: 1)
     }
 
     /// Coins the week's bonus pays now.
     public var weeklyChallengeBonus: Double {
-        Self.wholeCoins(Tuning.weeklyChallengeBonusSeconds * rewardIncome * dailyRewardMultiplier, minimum: 1)
+        Self.wholeCoins(Tuning.weeklyChallengeBonusSeconds * challengeRewardIncome * dailyRewardMultiplier, minimum: 1)
+    }
+
+    /// What a quest or daily reward pays if claimed now, for the screen: coins as the caps allow,
+    /// tokens doubled by Lucky Streak, or a Bull Run.
+    public func payout(of reward: QuestReward, income: Double) -> RewardPayout {
+        let multiplier = dailyRewardMultiplier
+        return switch reward {
+        case .coins(let seconds): .coins(Self.wholeCoins(seconds * income * multiplier, minimum: 1))
+        case .tokens(let token, let count): .tokens(token, Int(Double(count) * multiplier))
+        case .bullRun: .bullRun(multiplier: Tuning.bullRunMultiplier, duration: bullRunDuration * multiplier)
+        }
     }
 
     /// Challenges completed in the week containing `today`.

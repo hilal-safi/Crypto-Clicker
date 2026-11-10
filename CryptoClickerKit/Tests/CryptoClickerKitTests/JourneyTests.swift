@@ -47,7 +47,7 @@ struct JourneyTests {
         game.advance(to: at(10))
         #expect(game.journey.coins[1] == at(10))
         // Time away counts at the moment of coming back.
-        game.offlineMiningLevel = 10
+        game.setOfflineMining(hours: 5)
         game.advance(to: at(4 * 3_600))
         #expect(game.journey.coins[2] == at(4 * 3_600))
     }

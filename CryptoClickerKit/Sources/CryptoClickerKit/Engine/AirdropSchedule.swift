@@ -18,9 +18,9 @@ public struct AirdropDrop: Equatable, Sendable, Identifiable {
 }
 
 /// When airdrops fall. Each waits a few minutes after the last (less with Airdrop Radar), falls
-/// once the player owns a miner and no game is on screen, and stays a short while. One that runs out
-/// is missed, unless a game came on screen meanwhile: games hold airdrops back, so it never had its
-/// chance. The clock lives with the app session; nothing here is saved.
+/// once 20,000 coins have been mined, a miner is owned and no game is on screen, and stays a short
+/// while. One that runs out is missed, unless a game came on screen meanwhile: games hold airdrops
+/// back, so it never had its chance. The clock lives with the app session; nothing here is saved.
 public struct AirdropSchedule: Equatable, Sendable {
     /// The airdrop on screen, if there is one.
     public private(set) var drop: AirdropDrop?
@@ -59,7 +59,7 @@ public struct AirdropSchedule: Equatable, Sendable {
             schedule(from: now, game: game, roll: delayRoll)
             return .expired(drop, missed: !isInGame)
         }
-        guard now >= nextAt, game.totalMiners > 0, !isInGame else { return nil }
+        guard now >= nextAt, game.areAirdropsUnlocked, !isInGame else { return nil }
         let drop = spawn(game.airdropKind(roll: kindRoll), at: now, game: game)
         return .appeared(drop)
     }

@@ -57,33 +57,27 @@ struct IncomeBreakdownView: View {
                     }
                     ForEach(miners) { miner in
                         let minerRate = game.rate(of: miner) * (boost?.multiplier ?? 1)
-                        MinerShareRow(miner: miner, owned: game.owned(miner), mkLevel: game.minerUpgradeLevel(miner),
-                                      milestones: GameState.milestoneMultiplier(owned: game.owned(miner)),
-                                      rate: rate(minerRate), share: idle > 0 ? minerRate / idle : 0)
+                        ShareRow(title: "\(miner.name) ×\(CoinFormat.grouped(game.owned(miner)))",
+                                 detail: boosts(of: miner, in: game), rate: rate(minerRate),
+                                 share: idle > 0 ? minerRate / idle : 0) {
+                            Text(miner.emoji)
+                                .font(.title3)
+                        }
                     }
                     if autoTaps > 0 {
-                        LabeledContent {
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text("\(rate(autoTaps))/s").monospacedDigit()
-                                Text(CoinFormat.percent(idle > 0 ? autoTaps / idle : 0))
-                                    .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.accent)
-                            }
-                        } label: {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Automatic taps")
-                                    Text("\(CoinFormat.rate(game.autoTapsPerSecond)) a second, each worth \(CoinFormat.percent(game.autoTapStrength)) of a tap")
-                                        .font(.subheadline).foregroundStyle(.subtext)
-                                }
-                            } icon: {
-                                Image(systemName: "hand.tap.fill").foregroundStyle(Theme.accent)
-                            }
+                        // Laid out like a miner: what it is, its rate and its share.
+                        ShareRow(title: String(localized: "Automatic taps"),
+                                 detail: String(localized: "\(CoinFormat.rate(game.autoTapsPerSecond)) a second, each worth \(CoinFormat.percent(game.autoTapStrength)) of a tap"),
+                                 rate: rate(autoTaps), share: idle > 0 ? autoTaps / idle : 0) {
+                            Image(systemName: "hand.tap.fill")
+                                .font(.title3)
+                                .foregroundStyle(Theme.accent)
                         }
                     }
                 } header: {
                     Text("Earned every second")
                 } footer: {
-                    SettingsNote("Milestones (25, 50, 100… owned) and Mk upgrades each double a miner. Shares include any Bull Run.")
+                    SettingsNote("Milestones (25, 50, 100… owned) and Mk upgrades each double a miner; late in the game Legacy lifts the oldest. Shares include any Bull Run.")
                 }
 
                 Section("Production multipliers") {
@@ -126,7 +120,8 @@ struct IncomeBreakdownView: View {
                     }
                     row("Coin airdrop", "Up to \(amount(game.rewardIncome * Tuning.airdropIncomeSeconds))")
                     row("Whale airdrop", amount(game.whaleAmount))
-                    row("Daily quests", "\(amount(game.rewardIncome * 600 * game.dailyRewardMultiplier)) to \(amount(game.rewardIncome * 1_800 * game.dailyRewardMultiplier))")
+                    let questIncome = game.challengeRewardIncome * game.dailyRewardMultiplier
+                    row("Daily quests", "\(amount(questIncome * 600)) to \(amount(questIncome * 1_800))")
                 }
             }
             .monospacedDigit()
@@ -149,61 +144,18 @@ struct IncomeBreakdownView: View {
     }
 
     private func row(_ title: String, _ value: String, bold: Bool = false) -> some View {
-        LabeledContent {
-            Text(value)
-                .fontWeight(bold ? .bold : .regular)
-                .foregroundStyle(bold ? Color.primary : Theme.subtext)
-                .multilineTextAlignment(.trailing)
-        } label: {
-            Text(title)
-                .fontWeight(bold ? .bold : .regular)
-        }
-    }
-}
-
-/// One miner's part of the income: how many, its boosts, its rate and share.
-private struct MinerShareRow: View {
-    let miner: MinerID
-    let owned: Int
-    let mkLevel: Int
-    let milestones: Double
-    let rate: String
-    let share: Double
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
-                Text(miner.emoji)
-                    .font(.title3)
-                    .frame(width: 30)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(miner.name) ×\(CoinFormat.grouped(owned))")
-                        .font(.subheadline.weight(.semibold))
-                    Text(boosts)
-                        .font(.subheadline)
-                        .foregroundStyle(.subtext)
-                }
-                Spacer(minLength: 8)
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(rate)/s")
-                        .font(.subheadline.weight(.semibold))
-                        .multilineTextAlignment(.trailing)
-                    Text(CoinFormat.percent(share))
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.accent)
-                }
-            }
-            ProgressView(value: min(max(share, 0), 1))
-                .tint(Theme.accent)
-                .accessibilityHidden(true)
-        }
-        .accessibilityElement(children: .combine)
+        ValueRow(title: title, value: value, bold: bold)
     }
 
-    private var boosts: String {
-        var parts = ["Milestones \(CoinFormat.multiplier(milestones))"]
-        if mkLevel > 0 { parts.append("Mk \(MinerID.markName(level: mkLevel - 1)) \(CoinFormat.multiplier(pow(Tuning.minerUpgradeMultiplier, Double(mkLevel))))") }
+    /// What multiplies a miner: its milestones, Mk upgrades and Legacy.
+    private func boosts(of miner: MinerID, in game: GameState) -> String {
+        var parts = ["Milestones \(CoinFormat.multiplier(GameState.milestoneMultiplier(owned: game.owned(miner))))"]
+        let mkLevel = game.minerUpgradeLevel(miner)
+        if mkLevel > 0 {
+            parts.append("Mk \(MinerID.markName(level: mkLevel - 1)) \(CoinFormat.multiplier(pow(Tuning.minerUpgradeMultiplier, Double(mkLevel))))")
+        }
+        let legacy = game.legacyMultiplier(miner)
+        if legacy > 1 { parts.append("Legacy \(CoinFormat.multiplier(legacy))") }
         return parts.joined(separator: " · ")
     }
 }

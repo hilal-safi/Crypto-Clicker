@@ -13,10 +13,28 @@ struct InventoryStrip: View {
     /// The cards' size, and the gap between them, against their original design: 5% smaller.
     /// Every measurement in this file is multiplied by it.
     static let scale: CGFloat = 0.95
+    /// The tokens card against the miners card: 10% smaller, so the coin has more room.
+    static let tokensSize: CGFloat = 0.9
+    /// The tokens' icons and counts within that card: 5% bigger, then 10% more.
+    static let tokenChipGrowth: CGFloat = 1.155
+    /// Icons without badges have room to spare: this much bigger.
+    static let plainGrowth: CGFloat = 1.12
+    /// Every icon on the miners card: 8% bigger, in the room its trimmed padding leaves.
+    static let minerGrowth: CGFloat = 1.08
 
     /// Whether anything shows: a new game has nothing here yet, and the coin takes the room.
     static func hasContent(_ game: GameState) -> Bool {
         game.totalMiners > 0 || hasPowerUps(game) || TokenID.allCases.contains { game.tokenCount($0) > 0 }
+    }
+
+    /// Power-ups or tokens: past the opening, when the home screen settles into its usual layout.
+    static func hasPowerUpsOrTokens(_ game: GameState) -> Bool {
+        hasPowerUps(game) || TokenID.allCases.contains { game.tokenCount($0) > 0 }
+    }
+
+    /// Legacy as a plain number: "5", "125", "3,125", then short once it's long: "48.8K", "1.95M".
+    private static func legacyText(_ multiplier: Double) -> String {
+        multiplier < 10_000 ? CoinFormat.grouped(Int(multiplier.rounded())) : CoinFormat.short(multiplier)
     }
 
     private static func hasPowerUps(_ game: GameState) -> Bool {
@@ -32,13 +50,15 @@ struct InventoryStrip: View {
         let scale = Self.scale
         VStack(spacing: 10 * scale) {
             if !miners.isEmpty || hasPowerUps {
-                HoldingCard(label: minersLabel(miners), hint: "Opens the Shop", action: openShop) {
+                HoldingCard(label: minersLabel(miners), hint: "Opens the Shop", extraHeight: 5 * scale, action: openShop) {
                     ForEach(miners) { miner in
+                        let mk = game.minerUpgradeLevel(miner)
+                        let legacy = game.legacyMultiplier(miner)
                         InventoryChip(count: CoinFormat.short(Double(game.owned(miner))),
-                                      badge: game.minerUpgradeLevel(miner) > 0
-                                        ? "Mk \(MinerID.markName(level: game.minerUpgradeLevel(miner) - 1))" : nil) {
+                                      mark: mk > 0 ? MinerID.markName(level: mk - 1) : nil,
+                                      legacy: legacy > 1 ? Self.legacyText(legacy) : nil) {
                             Text(miner.emoji)
-                                .font(.system(size: 27 * scale))
+                                .font(.system(size: 27 * scale * Self.minerGrowth * (mk > 0 || legacy > 1 ? 1 : Self.plainGrowth)))
                         }
                     }
                     if !miners.isEmpty && hasPowerUps {
@@ -70,10 +90,12 @@ struct InventoryStrip: View {
             }
             if !tokens.isEmpty {
                 let value = tokens.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
-                HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Shop's tokens", action: openTokens) {
+                HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Shop's tokens",
+                            size: Self.tokensSize, action: openTokens) {
                     ForEach(tokens) { token in
-                        InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token)))) {
-                            TokenImage(token: token, size: 29 * scale)
+                        InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token))),
+                                      size: Self.tokensSize * Self.tokenChipGrowth) {
+                            TokenImage(token: token, size: 29 * scale * Self.tokensSize * Self.tokenChipGrowth)
                         }
                     }
                 }
@@ -104,7 +126,7 @@ struct InventoryStrip: View {
 
     private func symbol(_ name: String, color: Color) -> some View {
         Image(systemName: name)
-            .font(.system(size: 22 * Self.scale, weight: .semibold))
+            .font(.system(size: 22 * Self.scale * Self.minerGrowth * Self.plainGrowth, weight: .semibold))
             .foregroundStyle(color)
     }
 
@@ -129,18 +151,24 @@ struct InventoryStrip: View {
 private struct HoldingCard<Chips: View>: View {
     let label: String
     let hint: String
+    /// Extra height for the miners card's badges.
+    var extraHeight: CGFloat = 0
+    /// The card's size against the strip's: the tokens card is 10% smaller.
+    var size: CGFloat = 1
     let action: () -> Void
     @ViewBuilder let chips: Chips
 
     var body: some View {
-        let scale = InventoryStrip.scale
+        let scale = InventoryStrip.scale * size
         Button(action: action) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12 * scale) {
+                HStack(spacing: 14 * scale) {
                     chips
                 }
-                .padding(.top, 12 * scale) // Includes room for Mk badges.
-                .padding(.bottom, 8 * scale)
+                // Includes room for the badges; the miners card trims 5% top and bottom for its
+                // bigger icons.
+                .padding(.top, (12 * scale + extraHeight * 0.6) * (extraHeight > 0 ? 0.95 : 1))
+                .padding(.bottom, (8 * scale + extraHeight * 0.4) * (extraHeight > 0 ? 0.95 : 1))
             }
             // Margins on the scrolled content (not padding inside it), so the last chip stops
             // clear of the card's rounded edge, and no edge fade over the chips at either end.
@@ -160,37 +188,78 @@ private struct HoldingCard<Chips: View>: View {
     }
 }
 
-/// An icon with a count (or a short value) under it, and an optional badge.
+/// An icon with a count (or a short value) under it. A miner can carry two badges over its top
+/// corners: its Mk upgrade as a Roman numeral in an orange circle on the left, and its Legacy
+/// multiplier in a blue one on the right, which stretches into an oval as the number grows. The
+/// chip widens to make room, so badges never run into the next chip.
 private struct InventoryChip<Icon: View>: View {
     let count: String
-    var badge: String? = nil
+    var mark: String? = nil
+    var legacy: String? = nil
+    /// The chip's size against the strip's (the tokens card's are smaller).
+    var size: CGFloat = 1
     @ViewBuilder let icon: Icon
     /// The subheadline's size, scaled down with the cards, and still following the text size.
     @ScaledMetric(relativeTo: .subheadline) private var countSize: CGFloat = 15 * InventoryStrip.scale
 
     var body: some View {
-        let scale = InventoryStrip.scale
-        VStack(spacing: 3 * scale) {
-            icon
-                .frame(height: 32 * scale)
-                .overlay(alignment: .topTrailing) {
-                    if let badge {
-                        Text(badge)
-                            .font(.system(size: 11 * scale, weight: .heavy))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 5 * scale)
-                            .padding(.vertical, 1.5 * scale)
-                            .background(Theme.accent, in: .capsule)
-                            .fixedSize()
-                            .offset(x: 14 * scale, y: -6 * scale)
+        let scale = InventoryStrip.scale * size
+        // The Legacy badge is laid out beside the icon and count, pulled back over the column's
+        // top-right corner by a fixed amount: its left edge is always in the same place, a longer
+        // number only ever grows to the right, and the chip's width includes the whole badge, so
+        // the next chip moves along instead of being covered.
+        HStack(alignment: .top, spacing: 0) {
+            column(scale: scale)
+                .overlay(alignment: .topLeading) {
+                    if let mark {
+                        CornerBadge(text: mark, color: Theme.accent)
+                            .offset(x: -4 * scale, y: -7 * scale)
+                            .accessibilityLabel("Mk \(mark)")
                     }
                 }
+            if let legacy {
+                CornerBadge(text: legacy, color: Theme.legacy)
+                    .padding(.leading, -16 * scale)
+                    .offset(y: -7 * scale)
+                    .accessibilityLabel("Legacy ×\(legacy)")
+            }
+        }
+        // A little room outside the badges: on the left for the Mk numeral, which sticks out a
+        // few points, and on the right after the Legacy badge.
+        .padding(.leading, mark == nil ? 0 : 2.4 * scale)
+        .padding(.trailing, legacy == nil ? 0 : 2.4 * scale)
+    }
+
+    private func column(scale: CGFloat) -> some View {
+        VStack(spacing: 3 * scale) {
+            icon
+                .frame(height: 32 * scale * (size == 1 ? InventoryStrip.minerGrowth : 1)
+                       * (size == 1 && mark == nil && legacy == nil ? InventoryStrip.plainGrowth : 1))
             Text(count)
-                .font(.system(size: countSize, weight: .bold))
+                .font(.system(size: countSize * size, weight: .bold))
                 .monospacedDigit()
                 .lineLimit(1)
                 .fixedSize()
         }
         .frame(minWidth: 44 * scale)
+    }
+}
+
+/// A small number on a coloured circle, which grows into an oval when the number is longer.
+private struct CornerBadge: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        let scale = InventoryStrip.scale
+        Text(text)
+            .font(.system(size: 11 * scale, weight: .heavy).monospacedDigit())
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 4 * scale)
+            .frame(minWidth: 20 * scale, minHeight: 20 * scale)
+            .background(color, in: .capsule)
+            .overlay { Capsule().strokeBorder(.white.opacity(0.35), lineWidth: 1) }
     }
 }

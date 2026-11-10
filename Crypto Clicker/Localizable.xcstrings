@@ -50,16 +50,6 @@
     "#e8b3" : {
 
     },
-    "%@ · %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@"
-          }
-        }
-      }
-    },
     "%@ · Daily Challenge" : {
 
     },
@@ -93,16 +83,6 @@
         }
       }
     },
-    "%@ ×%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ ×%2$@"
-          }
-        }
-      }
-    },
     "%@ a second, each worth %@ of a tap" : {
       "localizations" : {
         "en" : {
@@ -115,6 +95,16 @@
     },
     "%@ ago" : {
 
+    },
+    "%@ and %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ and %2$@"
+          }
+        }
+      }
     },
     "%@ board" : {
 
@@ -139,6 +129,9 @@
 
     },
     "%@ coins" : {
+
+    },
+    "%@ coins each" : {
 
     },
     "%@ coins per second" : {
@@ -186,6 +179,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ more for %2$@ output"
+          }
+        }
+      }
+    },
+    "%@ more to boost %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ more to boost %2$@ %3$@"
           }
         }
       }
@@ -262,9 +265,6 @@
         }
       }
     },
-    "%@ pts" : {
-
-    },
     "%@ reward in %@" : {
       "localizations" : {
         "en" : {
@@ -310,6 +310,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@, %2$@: %3$@ coins, %4$@ of the total"
+          }
+        }
+      }
+    },
+    "%@, %lld owned, %@ coins each" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$lld owned, %3$@ coins each"
           }
         }
       }
@@ -396,6 +406,9 @@
         }
       }
     },
+    "%lld items purchased!" : {
+
+    },
     "%lld lives left" : {
 
     },
@@ -443,6 +456,9 @@
       }
     },
     "%lld of 3 stars" : {
+
+    },
+    "%lld older miners" : {
 
     },
     "%lld seconds" : {
@@ -529,6 +545,9 @@
 
     },
     "+%lld" : {
+
+    },
+    "+%lld more" : {
 
     },
     "+1" : {
@@ -635,6 +654,9 @@
 
     },
     "after %@" : {
+
+    },
+    "After %@" : {
 
     },
     "Aiming guide" : {
@@ -893,6 +915,9 @@
     "Buy crypto tokens in the Shop to bet or trade" : {
 
     },
+    "Buy more kinds in the Shop's Tokens page." : {
+
+    },
     "Buy quantity" : {
 
     },
@@ -935,6 +960,12 @@
     "Check My Coins" : {
 
     },
+    "Choose a Token" : {
+
+    },
+    "Choose another token" : {
+
+    },
     "Claim" : {
 
     },
@@ -974,7 +1005,7 @@
     "Coin Finish" : {
 
     },
-    "Coin rewards grow with your income. Quests finished but not claimed are paid at midnight." : {
+    "Coin rewards grow with your income, up to three times over the day and twice once a quest is finished. Quests finished but not claimed are paid at midnight." : {
 
     },
     "Coin Rim" : {
@@ -1099,6 +1130,19 @@
     "Dealer" : {
 
     },
+    "Dealer blackjack: insurance pays %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Dealer blackjack: insurance pays %1$@ %2$@"
+          }
+        }
+      }
+    },
+    "Dealer has blackjack…" : {
+
+    },
     "Dealer plays…" : {
 
     },
@@ -1194,6 +1238,9 @@
 
     },
     "Every step pays %@ tomorrow" : {
+
+    },
+    "Every step you walk pays" : {
 
     },
     "Every upgrade is yours." : {
@@ -1357,7 +1404,26 @@
     "Income chart, %@" : {
 
     },
+    "Insurance lost" : {
+
+    },
+    "Insurance paid %@" : {
+
+    },
     "Invaders shot" : {
+
+    },
+    "It costs %@ %@ and pays 2 to 1 if the dealer has blackjack." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "It costs %1$@ %2$@ and pays 2 to 1 if the dealer has blackjack."
+          }
+        }
+      }
+    },
+    "Item purchased!" : {
 
     },
     "Jackpots" : {
@@ -1370,6 +1436,9 @@
 
     },
     "Keeps" : {
+
+    },
+    "Keeps miners earning while the app is closed: five more minutes a level up to an hour, then half an hour a level, up to three days." : {
 
     },
     "Kept when you prestige" : {
@@ -1394,6 +1463,12 @@
 
     },
     "Left" : {
+
+    },
+    "Legacy ×%@" : {
+
+    },
+    "Legacy: earns %@ from newer miners" : {
 
     },
     "Lets this card go" : {
@@ -1471,7 +1546,7 @@
         }
       }
     },
-    "Lucky Streak doubles every daily reward. Coin rewards grow with your income." : {
+    "Lucky Streak doubles every daily reward. Coin rewards grow with your income, up to three times over the day and twice once a quest is finished." : {
 
     },
     "Market" : {
@@ -1502,7 +1577,7 @@
         }
       }
     },
-    "Milestones (25, 50, 100… owned) and Mk upgrades each double a miner. Shares include any Bull Run." : {
+    "Milestones (25, 50, 100… owned) and Mk upgrades each double a miner; late in the game Legacy lifts the oldest. Shares include any Bull Run." : {
 
     },
     "Mine" : {
@@ -1526,10 +1601,7 @@
     "Miners" : {
 
     },
-    "Miners keep earning for %@ after you leave the app." : {
-
-    },
-    "Miners stop a minute after you leave the app. Keep them mining while it's closed." : {
+    "Miners earn for up to %@ away" : {
 
     },
     "Miners stop a minute after you leave. Offline Mining keeps them earning while the app is closed." : {
@@ -1580,7 +1652,7 @@
     "Naturals" : {
 
     },
-    "Needs %@" : {
+    "Needs %@ first" : {
 
     },
     "Net %@%@ %@" : {
@@ -1620,6 +1692,9 @@
     "New stars" : {
 
     },
+    "Next" : {
+
+    },
     "NEXT" : {
 
     },
@@ -1632,9 +1707,6 @@
     "Next Level" : {
 
     },
-    "Next level: %@" : {
-
-    },
     "Next one: +%@/s" : {
 
     },
@@ -1642,9 +1714,6 @@
 
     },
     "Next star at %@" : {
-
-    },
-    "Next: %@" : {
 
     },
     "Next: Level %lld, %@. %@ in %lld moves." : {
@@ -1657,6 +1726,16 @@
         }
       }
     },
+    "No blackjack: insurance of %@ %@ lost" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No blackjack: insurance of %1$@ %2$@ lost"
+          }
+        }
+      }
+    },
     "No tokens, coins or stats change" : {
 
     },
@@ -1664,6 +1743,9 @@
 
     },
     "None owned" : {
+
+    },
+    "None yet" : {
 
     },
     "Not enough coins yet" : {
@@ -1685,6 +1767,12 @@
 
     },
     "Notifications are off" : {
+
+    },
+    "Now" : {
+
+    },
+    "now %@" : {
 
     },
     "Numbers" : {
@@ -1768,6 +1856,12 @@
 
     },
     "Paytable" : {
+
+    },
+    "Per second" : {
+
+    },
+    "Per tap" : {
 
     },
     "Perks" : {
@@ -1894,6 +1988,9 @@
 
     },
     "Production multipliers" : {
+
+    },
+    "Progress" : {
 
     },
     "Purchased (%lld)" : {
@@ -2284,6 +2381,9 @@
     "The classic walls: cold storage, liquidation and airdrop blocks, and the whale every fifth level. Start at level 1 or any level you've reached." : {
 
     },
+    "The dealer shows an ace. Insurance?" : {
+
+    },
     "The full rules for every game, locked or not. Each game also has a How to Play button of its own." : {
 
     },
@@ -2310,9 +2410,6 @@
 
     },
     "Theme" : {
-
-    },
-    "This can't be undone." : {
 
     },
     "This run" : {
@@ -2374,9 +2471,6 @@
 
     },
     "Today's steps are paid tomorrow; after that, as you walk." : {
-
-    },
-    "Token" : {
 
     },
     "Token Swap" : {
@@ -2570,6 +2664,9 @@
 
     },
     "YOU WIN!" : {
+
+    },
+    "Your coins, miners, prestige, achievements and records will be erased. This can't be undone." : {
 
     },
     "Your daily streak and quests" : {

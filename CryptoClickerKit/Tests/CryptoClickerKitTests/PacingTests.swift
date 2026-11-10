@@ -61,7 +61,7 @@ struct SimulatedPlayer {
     /// The average combo over ten minutes of quick taps: it climbs for `comboTapsToMax` taps, then
     /// stays at the top. Taps a second apart are too slow for combos.
     func sessionCombo(_ state: GameState) -> Double {
-        guard 1 / Double(tapsPerSecond) <= Tuning.comboWindow else { return 1 }
+        guard 1 / Double(tapsPerSecond) <= state.comboWindow else { return 1 }
         let taps = 600 * Double(tapsPerSecond)
         let build = Double(state.comboTapsToMax)
         let top = state.comboMaxMultiplier
@@ -78,12 +78,12 @@ struct SimulatedPlayer {
             played += 1
             game.advance(to: now)
             if second < seconds - inArcade {
-                streak = 1 / Double(tapsPerSecond) <= Tuning.comboWindow ? streak + tapsPerSecond : 1
+                streak = 1 / Double(tapsPerSecond) <= game.comboWindow ? streak + tapsPerSecond : 1
                 game.tap(count: tapsPerSecond, at: now, combo: streak)
             } else if second == seconds - 1 {
                 playArcade(minutes: Double(inArcade) / 60)
             }
-            if played >= nextAirdrop {
+            if played >= nextAirdrop && game.areAirdropsUnlocked {
                 nextAirdrop = played + Double.random(in: game.airdropInterval, using: &rng)
                 if Double.random(in: 0..<1, using: &rng) < catchRate {
                     game.claimAirdrop(game.airdropKind(roll: Double.random(in: 0..<1, using: &rng)), at: now)
@@ -305,7 +305,7 @@ struct PacingTests {
 
     /// A few short looks over half a day: tapping twice a second, catching half the airdrops and
     /// never playing the arcade.
-    @Test func aLightPlayerEarnsHundredsOfThousandsNotMillionsInTheFirstHalfDay() {
+    @Test func aLightPlayerEarnsTensOfThousandsNotMillionsInTheFirstHalfDay() {
         var player = SimulatedPlayer(tapsPerSecond: 2, awayHours: [2, 3, 3, 3])
         player.catchRate = 0.5
         player.arcadeSecondsPerTen = 0
@@ -316,36 +316,45 @@ struct PacingTests {
         let lifetime = player.game.stats.lifetimeCoins
         print("Light 12h:", CoinFormat.short(lifetime), "mined | tiers", player.firstBought.count,
               "| offline", CoinFormat.duration(player.game.offlineCap))
-        // Twenty minutes of play spread over twelve hours: a few miner tiers and a few hundred
-        // thousand coins, mostly earned while away, not millions.
-        #expect((50_000...500_000).contains(lifetime))
+        // Twenty minutes of play spread over twelve hours: a few miner tiers and some tens of
+        // thousands of coins, not millions. Offline Mining starts at five minutes a level, so time
+        // away pays little until it has grown.
+        #expect((15_000...150_000).contains(lifetime))
         #expect((2...4).contains(player.firstBought.count))
         #expect(player.game.offlineMiningLevel >= 1)
     }
 
-    @Test func aCasualPlayerReachesTheTenthTierAndAPrestigeInAboutFiveDays() {
-        let player = casualPlayer(days: 6)
+    @Test func aCasualPlayerReachesTheTenthTierAndAPrestigeInAboutAWeek() {
+        let player = casualPlayer(days: 8)
         let tiers = MinerID.allCases.map { "\($0.name) \(days(player.firstBought[$0]))" }
         let lastGame = player.gamesUnlockedAt.values.max()
-        print("Casual 6 days:", tiers.joined(separator: ", "), "| first point", days(player.firstPointAt),
+        print("Casual 8 days:", tiers.joined(separator: ", "), "| first point", days(player.firstPointAt),
               "| prestiges", player.prestigeTimes.map(days), "| every game by", days(lastGame),
               "| points", player.game.prestigePoints, "| offline", CoinFormat.duration(player.game.offlineCap))
-        // The Data Center takes about a day, and the middle of the climb about twice as long as the
-        // start: the first prestige point (15 billion mined) comes around day two, the tenth tier
-        // in four or five days, and the Shop suggests the first prestige around day five.
-        #expect(player.firstBought[.dataCenter].map { (0.5 * 86_400...1.5 * 86_400).contains($0) } == true)
-        #expect(player.firstPointAt.map { (1.5 * 86_400...3 * 86_400).contains($0) } == true)
+        // The Data Center takes a day or more, and the middle of the climb about twice as long as
+        // the start: the first prestige point (15 billion mined) comes around day three, the tenth
+        // tier in about six days, and the Shop suggests the first prestige within the week.
+        #expect(player.firstBought[.dataCenter].map { (1 * 86_400...2 * 86_400).contains($0) } == true)
+        #expect(player.firstPointAt.map { (2 * 86_400...3.5 * 86_400).contains($0) } == true)
         let tenthTier = player.firstBought[.spaceColony]
-        #expect(tenthTier.map { (4 * 86_400...5.5 * 86_400).contains($0) } == true)
-        #expect(player.firstPrestigeAt.map { (4.5 * 86_400...5.5 * 86_400).contains($0) } == true)
+        #expect(tenthTier.map { (5 * 86_400...7 * 86_400).contains($0) } == true)
+        #expect(player.firstPrestigeAt.map { (5.5 * 86_400...7.25 * 86_400).contains($0) } == true)
         #expect((1...2).contains(player.prestigeTimes.count))
-        // Every game by the fifth day, and the whole first ladder before the first prestige (which
+        // Every game within the week, and the whole first ladder before the first prestige (which
         // opens the three tiers beyond it).
         #expect(player.gamesUnlockedAt.count == MiniGame.allCases.count)
-        #expect(lastGame.map { $0 < 5 * 86_400 } == true)
+        #expect(lastGame.map { $0 < 7 * 86_400 } == true)
         #expect(tenthTier.map { $0 <= (player.firstPrestigeAt ?? 0) } == true)
-        // Offline Mining covers the longest absence (ten hours) by the end of the first day.
+        // Offline Mining covers the longest absence (ten hours) within the first week.
         #expect(player.game.offlineCap >= 10 * 3_600)
+    }
+
+    @Test func offlineMiningGrowsOverTheFirstWeekNotTheFirstDay() {
+        let player = casualPlayer(days: 1)
+        // Five minutes a level up to the hour: most of an hour by the end of the first day, so the
+        // first nights pay only part of the time away.
+        print("Casual 1 day: offline", CoinFormat.duration(player.game.offlineCap), "| level", player.game.offlineMiningLevel)
+        #expect((30 * 60...2 * 3_600).contains(player.game.offlineCap))
     }
 
     /// Three weeks of casual play take a while to simulate, so this runs with the balance tests:
@@ -359,7 +368,7 @@ struct PacingTests {
               "| perks", perks.joined(separator: ", "))
         // The cheap perks come with the first prestige, the dearest ones after two weeks or more,
         // and the last miner tier within the three weeks.
-        #expect(player.perksBoughtAt[.headStart].map { $0 < 6 * 86_400 } == true)
+        #expect(player.perksBoughtAt[.headStart].map { $0 < 7.5 * 86_400 } == true)
         #expect(player.firstBought[.lunarBase] != nil)
         #expect(player.firstBought[.galacticHashnet] != nil)
         #expect(player.perksBoughtAt[.engineeringTeam].map { $0 > 14 * 86_400 } ?? true)
@@ -367,12 +376,12 @@ struct PacingTests {
         #expect(player.perksBoughtAt.count >= 13)
     }
 
-    @Test func offlineMiningIsEarnedInTheFirstSessionNotGivenAtTheStart() {
+    @Test func offlineMiningIsEarnedInTheFirstSessionsNotGivenAtTheStart() {
         var player = SimulatedPlayer(tapsPerSecond: 3, awayHours: [3, 4, 5, 10])
         player.play(seconds: 60)
         #expect(player.game.offlineMiningLevel == 0) // Not affordable in the first minute.
-        player.play(seconds: 540)
-        #expect(player.game.offlineMiningLevel >= 1) // Bought before the first break.
+        player.play(seconds: 19 * 60)
+        #expect(player.game.offlineMiningLevel >= 1) // Bought in the first twenty minutes of play.
     }
 
     @Test func tapsStayWorthHavingAllGameLong() {
@@ -384,7 +393,7 @@ struct PacingTests {
         // ...and days in, a single tap is worth most of a second of production.
         var late = SimulatedPlayer(tapsPerSecond: 3, awayHours: [3, 4, 5, 10])
         late.prestigesWhenSuggested = false
-        for _ in 0..<3 {
+        for _ in 0..<5 {
             for gap in [3.0, 4, 5, 10] {
                 late.play(seconds: 600)
                 late.leave(for: gap * 3_600 - 600)
