@@ -41,6 +41,40 @@ struct MinerRow: View {
         .rowCard()
     }
 
+    private var nameText: some View {
+        Text(miner.name)
+            .font(.headline)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+    }
+
+    /// "● Mk V  ● ×25": a coloured dot before each, orange for Mk and blue for Legacy.
+    @ViewBuilder private var badges: some View {
+        if mkLevel > 0 || legacy > 1 {
+            HStack(spacing: 8) {
+                if mkLevel > 0 {
+                    badge("Mk \(MinerID.markName(level: mkLevel - 1))", color: Theme.accent)
+                }
+                if legacy > 1 {
+                    badge(CoinFormat.multiplier(legacy), color: Theme.legacy)
+                        .accessibilityLabel("Legacy: earns \(CoinFormat.multiplier(legacy)) from newer miners")
+                }
+            }
+            .fixedSize()
+        }
+    }
+
+    private func badge(_ text: String, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 7, height: 7)
+            Text(text)
+                .font(.subheadline.weight(.bold).monospacedDigit())
+                .foregroundStyle(color)
+        }
+    }
+
     private var mainRow: some View {
         HStack(spacing: 12) {
             Text(miner.emoji)
@@ -49,11 +83,18 @@ struct MinerRow: View {
                 .background(Theme.shop.opacity(0.14), in: .circle)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                // The name has a line to itself, so it never breaks in two.
-                Text(miner.name)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                // The name, then its Mk and Legacy badges on the same line when they fit (under it
+                // when they don't); the name never breaks in two.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 6) {
+                        nameText
+                        badges
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        nameText
+                        badges
+                    }
+                }
                 if isBestValue {
                     HStack(spacing: 6) {
                         if isBestValue {
@@ -90,31 +131,8 @@ struct MinerRow: View {
                 .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            // The buy column spreads the row's details: Mk and Legacy badges over the button, how
-            // many are owned under it.
+            // How many are owned sits under the buy button.
             VStack(spacing: 6) {
-                if mkLevel > 0 || legacy > 1 {
-                    VStack(spacing: 4) {
-                        if mkLevel > 0 {
-                            Text("Mk \(MinerID.markName(level: mkLevel - 1))")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(Theme.accent)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 1)
-                                .background(Theme.accent.opacity(0.16), in: .capsule)
-                        }
-                        if legacy > 1 {
-                            Label(CoinFormat.multiplier(legacy), systemImage: "clock.arrow.circlepath")
-                                .font(.subheadline.weight(.bold).monospacedDigit())
-                                .foregroundStyle(Theme.legacy)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 1)
-                                .background(Theme.legacy.opacity(0.16), in: .capsule)
-                                .accessibilityLabel("Legacy: earns \(CoinFormat.multiplier(legacy)) from newer miners")
-                        }
-                    }
-                    .lineLimit(1)
-                }
                 Button {
                     if store.buy(miner, quantity: buyCount) { purchases += 1 } else { refusals += 1 }
                 } label: {
