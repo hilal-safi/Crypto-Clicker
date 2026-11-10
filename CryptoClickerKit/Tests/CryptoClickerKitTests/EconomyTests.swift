@@ -194,6 +194,14 @@ struct ProductionTests {
         for miner in MinerID.allCases { game.miners[miner] = 100 }
         #expect(game.legacyTiers(for: .chromebook) == 9)
         #expect(game.legacyTiers(for: .galacticHashnet) == 0)
+        // What reaching a hundred would lift: owned tiers four or more below, until it's reached.
+        var climbing = GameState.make(miners: [.chromebook: 10, .gpuRig: 3, .mineCenter: 40, .server: 5])
+        #expect(climbing.legacyBeneficiaries(of: .mineCenter) == [.chromebook])  // The Desktop isn't owned.
+        #expect(climbing.legacyBeneficiaries(of: .server).isEmpty) // Nothing four tiers below.
+        climbing.miners[.desktop] = 1
+        #expect(climbing.legacyBeneficiaries(of: .mineCenter) == [.chromebook, .desktop])
+        climbing.miners[.mineCenter] = 100
+        #expect(climbing.legacyBeneficiaries(of: .mineCenter).isEmpty)
     }
 
     @Test func offlineMiningAddsFiveMinutesUpToAnHourThenHalfHours() {

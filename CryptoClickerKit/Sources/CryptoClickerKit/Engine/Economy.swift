@@ -172,6 +172,14 @@ extension GameState {
         pow(Tuning.legacyMultiplier, Double(legacyTiers(for: miner)))
     }
 
+    /// The older miners (owned ones) that `miner` will lift with Legacy once it reaches
+    /// `Tuning.legacyUnits`: every tier at least `Tuning.legacyTierGap` below it. Empty once it
+    /// has, or when none are old enough or owned.
+    public func legacyBeneficiaries(of miner: MinerID) -> [MinerID] {
+        guard owned(miner) < Tuning.legacyUnits, miner.tier >= Tuning.legacyTierGap else { return [] }
+        return MinerID.allCases.prefix(miner.tier - Tuning.legacyTierGap + 1).filter { owned($0) > 0 }
+    }
+
     // MARK: Production
 
     /// Output multiplier for one miner tier: its milestones, its Mk upgrades and Legacy.

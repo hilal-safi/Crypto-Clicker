@@ -181,6 +181,7 @@ struct ShopView: View {
                         nextMilestone: game.nextMilestone(for: miner), buyCount: count,
                         price: price, canAfford: price <= game.coins,
                         mkLevel: game.minerUpgradeLevel(miner), legacy: game.legacyMultiplier(miner),
+                        legacyBoosts: game.legacyBeneficiaries(of: miner),
                         upgradeLevel: upgrade?.level, upgradePrice: upgrade?.price,
                         canAffordUpgrade: upgrade.map { $0.price <= game.coins } ?? false)
     }

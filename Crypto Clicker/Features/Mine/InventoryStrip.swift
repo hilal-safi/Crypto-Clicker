@@ -15,6 +15,8 @@ struct InventoryStrip: View {
     static let scale: CGFloat = 0.95
     /// The tokens card against the miners card: 10% smaller, so the coin has more room.
     static let tokensSize: CGFloat = 0.9
+    /// Icons without badges have room to spare: this much bigger.
+    static let plainGrowth: CGFloat = 1.12
 
     /// Whether anything shows: a new game has nothing here yet, and the coin takes the room.
     static func hasContent(_ game: GameState) -> Bool {
@@ -52,7 +54,7 @@ struct InventoryStrip: View {
                                       mark: mk > 0 ? MinerID.markName(level: mk - 1) : nil,
                                       legacy: legacy > 1 ? Self.legacyText(legacy) : nil) {
                             Text(miner.emoji)
-                                .font(.system(size: 27 * scale))
+                                .font(.system(size: 27 * scale * (mk > 0 || legacy > 1 ? 1 : Self.plainGrowth)))
                         }
                     }
                     if !miners.isEmpty && hasPowerUps {
@@ -119,7 +121,7 @@ struct InventoryStrip: View {
 
     private func symbol(_ name: String, color: Color) -> some View {
         Image(systemName: name)
-            .font(.system(size: 22 * Self.scale, weight: .semibold))
+            .font(.system(size: 22 * Self.scale * Self.plainGrowth, weight: .semibold))
             .foregroundStyle(color)
     }
 
@@ -197,7 +199,7 @@ private struct InventoryChip<Icon: View>: View {
         let scale = InventoryStrip.scale * size
         VStack(spacing: 3 * scale) {
             icon
-                .frame(height: 32 * scale)
+                .frame(height: 32 * scale * (size == 1 && mark == nil && legacy == nil ? InventoryStrip.plainGrowth : 1))
             Text(count)
                 .font(.system(size: countSize * size, weight: .bold))
                 .monospacedDigit()
@@ -208,6 +210,8 @@ private struct InventoryChip<Icon: View>: View {
         // The badges sit over the icon's top corners; only a long Legacy number needs more room,
         // so it never reaches the next chip.
         .padding(.trailing, legacy.map { CGFloat(5 * max(0, $0.count - 2)) * scale } ?? 0)
+        // 10% more room between chips that carry badges.
+        .padding(.horizontal, mark != nil || legacy != nil ? 0.7 * scale : 0)
         .overlay(alignment: .topLeading) {
             if let mark {
                 CornerBadge(text: mark, color: Theme.accent)

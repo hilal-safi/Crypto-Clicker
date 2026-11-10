@@ -19,6 +19,8 @@ struct MinerRow: View {
     let mkLevel: Int
     /// What Legacy multiplies this miner by (1 until newer tiers reach 100 units).
     let legacy: Double
+    /// The older miners this one lifts with Legacy once it reaches 100.
+    let legacyBoosts: [MinerID]
     /// The Mk upgrade on offer, if one is.
     let upgradeLevel: Int?
     let upgradePrice: Double?
@@ -94,6 +96,10 @@ struct MinerRow: View {
                     .foregroundStyle(Theme.accent)
                 if let nextMilestone, owned > 0 {
                     MilestoneProgress(owned: owned, next: nextMilestone)
+                }
+                // From the first milestone, so it doesn't crowd the opening.
+                if !legacyBoosts.isEmpty && owned >= 25 {
+                    LegacyProgress(owned: owned, boosts: legacyBoosts)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -187,6 +193,33 @@ struct MilestoneProgress: View {
                 .foregroundStyle(.subtext)
         }
         .frame(maxWidth: 180, alignment: .leading)
+    }
+}
+
+/// Progress toward the 100 units that lift older miners with Legacy, in Legacy's blue:
+/// "10 more to boost Chromebook ×5".
+struct LegacyProgress: View {
+    let owned: Int
+    let boosts: [MinerID]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            ProgressView(value: Double(owned) / Double(Tuning.legacyUnits))
+                .tint(Theme.legacy)
+            Text("\(CoinFormat.grouped(Tuning.legacyUnits - owned)) more to boost \(names) \(CoinFormat.multiplier(Tuning.legacyMultiplier))")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.subtext)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: 180, alignment: .leading)
+    }
+
+    private var names: String {
+        switch boosts.count {
+        case 1: boosts[0].name
+        case 2: String(localized: "\(boosts[0].name) and \(boosts[1].name)")
+        default: String(localized: "\(boosts.count) older miners")
+        }
     }
 }
 
