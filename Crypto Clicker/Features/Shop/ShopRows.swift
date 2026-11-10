@@ -54,7 +54,7 @@ struct MinerRow: View {
                     .font(.headline)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                if isBestValue || mkLevel > 0 || legacy > 1 {
+                if isBestValue {
                     HStack(spacing: 6) {
                         if isBestValue {
                             Label("Best value", systemImage: "star.fill")
@@ -65,23 +65,6 @@ struct MinerRow: View {
                                 .padding(.vertical, 3)
                                 .background(Color(red: 0.06, green: 0.46, blue: 0.22).gradient, in: .capsule)
                                 .accessibilityLabel("Best value: the next one adds the most per coin")
-                        }
-                        if mkLevel > 0 {
-                            Text("Mk \(MinerID.markName(level: mkLevel - 1))")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(Theme.accent)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 1)
-                                .background(Theme.accent.opacity(0.16), in: .capsule)
-                        }
-                        if legacy > 1 {
-                            Label("Legacy \(CoinFormat.multiplier(legacy))", systemImage: "clock.arrow.circlepath")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(Theme.legacy)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 1)
-                                .background(Theme.legacy.opacity(0.16), in: .capsule)
-                                .accessibilityLabel("Legacy: earns \(CoinFormat.multiplier(legacy)) from newer miners")
                         }
                     }
                     .lineLimit(1)
@@ -107,13 +90,30 @@ struct MinerRow: View {
                 .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            // How many are owned sits over the buy button, where the row has room to spare.
+            // The buy column spreads the row's details: Mk and Legacy badges over the button, how
+            // many are owned under it.
             VStack(spacing: 6) {
-                if owned > 0 {
-                    Text("Owned \(CoinFormat.grouped(owned))")
-                        .font(.subheadline.weight(.semibold).monospacedDigit())
-                        .foregroundStyle(.subtext)
-                        .lineLimit(1)
+                if mkLevel > 0 || legacy > 1 {
+                    HStack(spacing: 6) {
+                        if mkLevel > 0 {
+                            Text("Mk \(MinerID.markName(level: mkLevel - 1))")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(Theme.accent)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 1)
+                                .background(Theme.accent.opacity(0.16), in: .capsule)
+                        }
+                        if legacy > 1 {
+                            Label(CoinFormat.multiplier(legacy), systemImage: "clock.arrow.circlepath")
+                                .font(.subheadline.weight(.bold).monospacedDigit())
+                                .foregroundStyle(Theme.legacy)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 1)
+                                .background(Theme.legacy.opacity(0.16), in: .capsule)
+                                .accessibilityLabel("Legacy: earns \(CoinFormat.multiplier(legacy)) from newer miners")
+                        }
+                    }
+                    .lineLimit(1)
                 }
                 Button {
                     if store.buy(miner, quantity: buyCount) { purchases += 1 } else { refusals += 1 }
@@ -130,6 +130,12 @@ struct MinerRow: View {
                 .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
                 .sensoryFeedback(.warning, trigger: refusals) { _, _ in haptics }
                 .accessibilityLabel("Buy \(buyCount) \(miner.name) for \(CoinFormat.cost(price)) coins")
+                if owned > 0 {
+                    Text("Owned \(CoinFormat.grouped(owned))")
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(.subtext)
+                        .lineLimit(1)
+                }
             }
             .fixedSize()
         }
