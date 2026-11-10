@@ -94,13 +94,17 @@ struct MinerRow: View {
                 Label("Next one: +\(CoinFormat.rate(perUnit))/s", systemImage: "plus.circle.fill")
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(Theme.accent)
-                if let nextMilestone, owned > 0 {
-                    MilestoneProgress(owned: owned, next: nextMilestone)
+                // Each bar sits with its own caption, with clear space between the two.
+                VStack(alignment: .leading, spacing: 12) {
+                    if let nextMilestone, owned > 0 {
+                        MilestoneProgress(owned: owned, next: nextMilestone)
+                    }
+                    // From the first milestone, so it doesn't crowd the opening.
+                    if !legacyBoosts.isEmpty && owned >= 25 {
+                        LegacyProgress(owned: owned, boosts: legacyBoosts)
+                    }
                 }
-                // From the first milestone, so it doesn't crowd the opening.
-                if !legacyBoosts.isEmpty && owned >= 25 {
-                    LegacyProgress(owned: owned, boosts: legacyBoosts)
-                }
+                .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             // How many are owned sits over the buy button, where the row has room to spare.
