@@ -15,6 +15,8 @@ struct InventoryStrip: View {
     static let scale: CGFloat = 0.95
     /// The tokens card against the miners card: 10% smaller, so the coin has more room.
     static let tokensSize: CGFloat = 0.9
+    /// The tokens' icons and counts within that card: 5% bigger.
+    static let tokenChipGrowth: CGFloat = 1.05
     /// Icons without badges have room to spare: this much bigger.
     static let plainGrowth: CGFloat = 1.12
     /// Every icon on the miners card: 8% bigger, in the room its trimmed padding leaves.
@@ -91,8 +93,9 @@ struct InventoryStrip: View {
                 HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Shop's tokens",
                             size: Self.tokensSize, action: openTokens) {
                     ForEach(tokens) { token in
-                        InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token))), size: Self.tokensSize) {
-                            TokenImage(token: token, size: 29 * scale * Self.tokensSize)
+                        InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token))),
+                                      size: Self.tokensSize * Self.tokenChipGrowth) {
+                            TokenImage(token: token, size: 29 * scale * Self.tokensSize * Self.tokenChipGrowth)
                         }
                     }
                 }
@@ -223,8 +226,8 @@ private struct InventoryChip<Icon: View>: View {
         }
         // A little room outside the badges: on the left for the Mk numeral, which sticks out a
         // few points, and on the right after the Legacy badge.
-        .padding(.leading, mark == nil ? 0 : 6 * scale)
-        .padding(.trailing, legacy == nil ? 0 : 6 * scale)
+        .padding(.leading, mark == nil ? 0 : 4.8 * scale)
+        .padding(.trailing, legacy == nil ? 0 : 4.8 * scale)
     }
 
     private func column(scale: CGFloat) -> some View {
