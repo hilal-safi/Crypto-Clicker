@@ -218,7 +218,7 @@ private struct InventoryChip<Icon: View>: View {
         // and on the right as much as the Legacy number is wide, so every gap between chips looks
         // the same as between chips without badges.
         .padding(.leading, mark == nil ? 0 : 6 * scale)
-        .padding(.trailing, legacy.map { CGFloat(6 + 6 * max(0, $0.count - 1)) * scale } ?? 0)
+        .padding(.trailing, legacy.map { CGFloat(12 + 7 * max(0, $0.count - 1)) * scale } ?? 0)
         .overlay(alignment: .topLeading) {
             if let mark {
                 CornerBadge(text: mark, color: Theme.accent)

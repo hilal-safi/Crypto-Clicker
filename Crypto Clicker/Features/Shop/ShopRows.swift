@@ -41,60 +41,41 @@ struct MinerRow: View {
         .rowCard()
     }
 
-    private var nameText: some View {
-        Text(miner.name)
-            .font(.headline)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-    }
-
-    /// "● Mk V  ● ×25": a coloured dot before each, orange for Mk and blue for Legacy.
-    @ViewBuilder private var badges: some View {
-        if mkLevel > 0 || legacy > 1 {
-            HStack(spacing: 8) {
+    private var mainRow: some View {
+        HStack(spacing: 12) {
+            // The icon carries the Mk badge above it and the Legacy badge below it.
+            VStack(spacing: 6) {
                 if mkLevel > 0 {
-                    badge("Mk \(MinerID.markName(level: mkLevel - 1))", color: Theme.accent)
+                    Text("Mk \(MinerID.markName(level: mkLevel - 1))")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Theme.accent)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 1)
+                        .background(Theme.accent.opacity(0.16), in: .capsule)
                 }
+                Text(miner.emoji)
+                    .font(.system(size: 30))
+                    .frame(width: 52, height: 52)
+                    .background(Theme.shop.opacity(0.14), in: .circle)
+                    .accessibilityHidden(true)
                 if legacy > 1 {
-                    badge(CoinFormat.multiplier(legacy), color: Theme.legacy)
+                    Label(CoinFormat.multiplier(legacy), systemImage: "clock.arrow.circlepath")
+                        .font(.subheadline.weight(.bold).monospacedDigit())
+                        .foregroundStyle(Theme.legacy)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 1)
+                        .background(Theme.legacy.opacity(0.16), in: .capsule)
                         .accessibilityLabel("Legacy: earns \(CoinFormat.multiplier(legacy)) from newer miners")
                 }
             }
+            .lineLimit(1)
             .fixedSize()
-        }
-    }
-
-    private func badge(_ text: String, color: Color) -> some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(color)
-                .frame(width: 7, height: 7)
-            Text(text)
-                .font(.subheadline.weight(.bold).monospacedDigit())
-                .foregroundStyle(color)
-        }
-    }
-
-    private var mainRow: some View {
-        HStack(spacing: 12) {
-            Text(miner.emoji)
-                .font(.system(size: 30))
-                .frame(width: 52, height: 52)
-                .background(Theme.shop.opacity(0.14), in: .circle)
-                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                // The name, then its Mk and Legacy badges on the same line when they fit (under it
-                // when they don't); the name never breaks in two.
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 6) {
-                        nameText
-                        badges
-                    }
-                    VStack(alignment: .leading, spacing: 4) {
-                        nameText
-                        badges
-                    }
-                }
+                // The name has a line to itself, so it never breaks in two.
+                Text(miner.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 if isBestValue {
                     HStack(spacing: 6) {
                         if isBestValue {
