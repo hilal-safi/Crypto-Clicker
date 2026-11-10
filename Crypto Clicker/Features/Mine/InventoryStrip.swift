@@ -13,6 +13,8 @@ struct InventoryStrip: View {
     /// The cards' size, and the gap between them, against their original design: 5% smaller.
     /// Every measurement in this file is multiplied by it.
     static let scale: CGFloat = 0.95
+    /// The tokens card against the miners card: 10% smaller, so the coin has more room.
+    static let tokensSize: CGFloat = 0.9
 
     /// Whether anything shows: a new game has nothing here yet, and the coin takes the room.
     static func hasContent(_ game: GameState) -> Bool {
@@ -42,7 +44,7 @@ struct InventoryStrip: View {
         let scale = Self.scale
         VStack(spacing: 10 * scale) {
             if !miners.isEmpty || hasPowerUps {
-                HoldingCard(label: minersLabel(miners), hint: "Opens the Shop", action: openShop) {
+                HoldingCard(label: minersLabel(miners), hint: "Opens the Shop", extraHeight: 5 * scale, action: openShop) {
                     ForEach(miners) { miner in
                         let mk = game.minerUpgradeLevel(miner)
                         let legacy = game.legacyMultiplier(miner)
@@ -82,10 +84,11 @@ struct InventoryStrip: View {
             }
             if !tokens.isEmpty {
                 let value = tokens.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
-                HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Shop's tokens", action: openTokens) {
+                HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Shop's tokens",
+                            size: Self.tokensSize, action: openTokens) {
                     ForEach(tokens) { token in
-                        InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token)))) {
-                            TokenImage(token: token, size: 29 * scale)
+                        InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token))), size: Self.tokensSize) {
+                            TokenImage(token: token, size: 29 * scale * Self.tokensSize)
                         }
                     }
                 }
@@ -141,18 +144,22 @@ struct InventoryStrip: View {
 private struct HoldingCard<Chips: View>: View {
     let label: String
     let hint: String
+    /// Extra height for the miners card's badges.
+    var extraHeight: CGFloat = 0
+    /// The card's size against the strip's: the tokens card is 10% smaller.
+    var size: CGFloat = 1
     let action: () -> Void
     @ViewBuilder let chips: Chips
 
     var body: some View {
-        let scale = InventoryStrip.scale
+        let scale = InventoryStrip.scale * size
         Button(action: action) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 18 * scale) {
+                HStack(spacing: 14 * scale) {
                     chips
                 }
-                .padding(.top, 14 * scale) // Includes room for the Mk and Legacy badges.
-                .padding(.bottom, 8 * scale)
+                .padding(.top, 12 * scale + extraHeight * 0.6) // Includes room for the badges.
+                .padding(.bottom, 8 * scale + extraHeight * 0.4)
             }
             // Margins on the scrolled content (not padding inside it), so the last chip stops
             // clear of the card's rounded edge, and no edge fade over the chips at either end.
@@ -180,36 +187,38 @@ private struct InventoryChip<Icon: View>: View {
     let count: String
     var mark: String? = nil
     var legacy: String? = nil
+    /// The chip's size against the strip's (the tokens card's are smaller).
+    var size: CGFloat = 1
     @ViewBuilder let icon: Icon
     /// The subheadline's size, scaled down with the cards, and still following the text size.
     @ScaledMetric(relativeTo: .subheadline) private var countSize: CGFloat = 15 * InventoryStrip.scale
 
     var body: some View {
-        let scale = InventoryStrip.scale
+        let scale = InventoryStrip.scale * size
         VStack(spacing: 3 * scale) {
             icon
                 .frame(height: 32 * scale)
             Text(count)
-                .font(.system(size: countSize, weight: .bold))
+                .font(.system(size: countSize * size, weight: .bold))
                 .monospacedDigit()
                 .lineLimit(1)
                 .fixedSize()
         }
         .frame(minWidth: 44 * scale)
-        // Room beside the icon for each badge, more for a long Legacy number.
-        .padding(.leading, mark == nil ? 0 : 8 * scale)
-        .padding(.trailing, legacy.map { CGFloat(4 + 4 * max(0, $0.count - 1)) * scale } ?? 0)
+        // The badges sit over the icon's top corners; only a long Legacy number needs more room,
+        // so it never reaches the next chip.
+        .padding(.trailing, legacy.map { CGFloat(5 * max(0, $0.count - 2)) * scale } ?? 0)
         .overlay(alignment: .topLeading) {
             if let mark {
                 CornerBadge(text: mark, color: Theme.accent)
-                    .offset(x: -6 * scale, y: -12 * scale)
+                    .offset(x: -4 * scale, y: -7 * scale)
                     .accessibilityLabel("Mk \(mark)")
             }
         }
         .overlay(alignment: .topTrailing) {
             if let legacy {
                 CornerBadge(text: legacy, color: Theme.legacy)
-                    .offset(x: 6 * scale, y: -12 * scale)
+                    .offset(x: 4 * scale, y: -7 * scale)
                     .accessibilityLabel("Legacy ×\(legacy)")
             }
         }

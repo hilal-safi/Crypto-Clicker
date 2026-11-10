@@ -264,12 +264,12 @@ struct CoinButton: View {
     /// The smallest the home screen lets the coin get...
     static let minimumSize: CGFloat = 200
     /// ...the largest once there are cards under it...
-    static let maximumSize: CGFloat = 320
+    static let maximumSize: CGFloat = 333
     /// ...and the largest on a new game, with nothing under it yet (width allowing).
     static let freshMaximumSize: CGFloat = 420
     /// Share of the room above and below the coin that the coin grows into, so it isn't lost in
-    /// space: 15% less padding around it, then 10% less twice more (about 31% of the room in all).
-    static let spareRoomTaken: CGFloat = 1 - 0.85 * 0.9 * 0.9
+    /// space: 15% less padding around it, then 10% less three times more (about 38% of the room).
+    static let spareRoomTaken: CGFloat = 1 - 0.85 * 0.9 * 0.9 * 0.9
 
     /// The coin's size in an area: as big as `cap` allows, then grown into a share of the room
     /// left above and below it (`spareRoomTaken`), never wider than the area.
