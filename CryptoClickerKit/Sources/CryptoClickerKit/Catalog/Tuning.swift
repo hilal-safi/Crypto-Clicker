@@ -18,10 +18,11 @@ public enum Tuning {
     // MARK: Legacy
     /// Older miners share in newer hardware: a miner earns this many times as much for each tier at
     /// least `legacyTierGap` above it that has `legacyUnits` or more units. Nothing changes until the
-    /// very late game, when the newest tiers reach a hundred; then the Chromebook earns up to ×4⁹
-    /// (262,144). By about day 30 of casual play each of the five oldest tiers earns 0.2–0.5% of
-    /// production instead of a billionth, while the newest tiers still earn nearly all of it.
-    public static let legacyMultiplier = 4.0
+    /// very late game, when the newest tiers reach a hundred; then the Chromebook earns up to ×5⁹
+    /// (1,953,125), and the oldest tiers go from a billionth of production to a real share of it,
+    /// while the newest tiers still earn most of it. Late-game prices are a little higher to match
+    /// (see `shopPremium`).
+    public static let legacyMultiplier = 5.0
     public static let legacyTierGap = 4
     public static let legacyUnits = 100
 
@@ -137,12 +138,23 @@ public enum Tuning {
     /// across the board, and 20% for everything listed under 5,000 coins (the Chromebook, the
     /// Desktop, the GPU Rig, the first tapping upgrades), tapering to 10% by 10 million (the Server
     /// and the first Combo Booster about 17% more, the Data Center about 13%, the Mine Center and
-    /// beyond 10%), so the opening stretches out most. Mk upgrades follow their miner's price.
+    /// beyond 10%), so the opening stretches out most. The late game, which Legacy speeds up, costs
+    /// 5% more on top (from the Robot Assistant's list price of 180 million) and the very late game
+    /// 10% (from the Lunar Base's 16 trillion), each easing in over the price tenfold below it. Mk
+    /// upgrades follow their miner's price.
     public static func shopPremium(forListPrice price: Double) -> Double {
         let base = 0.1, opening = 0.1, start = 5_000.0, end = 1e7
         guard price.isFinite, price > start else { return 1 + base + opening }
-        guard price < end else { return 1 + base }
+        guard price < end else {
+            let late = 1 + 0.05 * ramp(price, from: 1e7, to: 1e8) + 0.05 * ramp(price, from: 1e12, to: 1e13)
+            return (1 + base) * late
+        }
         return 1 + base + opening * (1 - log10(price / start) / log10(end / start))
+    }
+
+    /// 0 at `from`, 1 at `to` and beyond, evenly in between on a log scale.
+    private static func ramp(_ price: Double, from low: Double, to high: Double) -> Double {
+        min(max(log10(price / low) / log10(high / low), 0), 1)
     }
 
     /// A Shop price: the list price with the pace and the Shop's premium, in whole coins.

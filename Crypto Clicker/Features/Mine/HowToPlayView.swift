@@ -97,7 +97,7 @@ private struct HowToChapter: Identifiable {
             "Owning 25, 50, 100, 200, then every 100 up to 1,000, doubles a miner's output each time.",
             "At 25, 50, 100, 200 and 400 owned, a Mk upgrade (Mk II to Mk VI) appears in the Shop.",
             "Each Mk upgrade doubles that miner again for the rest of the run.",
-            "Legacy, late in the game: each miner you own 100 of makes every miner four or more tiers older earn ×4.",
+            "Legacy, late in the game: each miner you own 100 of makes every miner four or more tiers older earn ×5.",
         ]),
         HowToTopic("sparkles", "Upgrades", "One-time purchases in the Shop.", [
             "Multiply production and power up taps.",

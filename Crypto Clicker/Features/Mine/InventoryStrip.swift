@@ -24,6 +24,11 @@ struct InventoryStrip: View {
         hasPowerUps(game) || TokenID.allCases.contains { game.tokenCount($0) > 0 }
     }
 
+    /// Legacy as a plain number: "5", "125", "3,125", then short once it's long: "48.8K", "1.95M".
+    private static func legacyText(_ multiplier: Double) -> String {
+        multiplier < 10_000 ? CoinFormat.grouped(Int(multiplier.rounded())) : CoinFormat.short(multiplier)
+    }
+
     private static func hasPowerUps(_ game: GameState) -> Bool {
         game.offlineMiningLevel > 0 || !game.perks.isEmpty || !game.upgrades.isEmpty
             || PowerUpID.allCases.contains { game.powerUpLevel($0) > 0 }
@@ -39,9 +44,11 @@ struct InventoryStrip: View {
             if !miners.isEmpty || hasPowerUps {
                 HoldingCard(label: minersLabel(miners), hint: "Opens the Shop", action: openShop) {
                     ForEach(miners) { miner in
+                        let mk = game.minerUpgradeLevel(miner)
+                        let legacy = game.legacyMultiplier(miner)
                         InventoryChip(count: CoinFormat.short(Double(game.owned(miner))),
-                                      badge: game.minerUpgradeLevel(miner) > 0
-                                        ? "Mk \(MinerID.markName(level: game.minerUpgradeLevel(miner) - 1))" : nil) {
+                                      mark: mk > 0 ? MinerID.markName(level: mk - 1) : nil,
+                                      legacy: legacy > 1 ? Self.legacyText(legacy) : nil) {
                             Text(miner.emoji)
                                 .font(.system(size: 27 * scale))
                         }
@@ -141,10 +148,10 @@ private struct HoldingCard<Chips: View>: View {
         let scale = InventoryStrip.scale
         Button(action: action) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12 * scale) {
+                HStack(spacing: 18 * scale) {
                     chips
                 }
-                .padding(.top, 12 * scale) // Includes room for Mk badges.
+                .padding(.top, 14 * scale) // Includes room for the Mk and Legacy badges.
                 .padding(.bottom, 8 * scale)
             }
             // Margins on the scrolled content (not padding inside it), so the last chip stops
@@ -165,10 +172,14 @@ private struct HoldingCard<Chips: View>: View {
     }
 }
 
-/// An icon with a count (or a short value) under it, and an optional badge.
+/// An icon with a count (or a short value) under it. A miner can carry two badges over its top
+/// corners: its Mk upgrade as a Roman numeral in an orange circle on the left, and its Legacy
+/// multiplier in a blue one on the right, which stretches into an oval as the number grows. The
+/// chip widens to make room, so badges never run into the next chip.
 private struct InventoryChip<Icon: View>: View {
     let count: String
-    var badge: String? = nil
+    var mark: String? = nil
+    var legacy: String? = nil
     @ViewBuilder let icon: Icon
     /// The subheadline's size, scaled down with the cards, and still following the text size.
     @ScaledMetric(relativeTo: .subheadline) private var countSize: CGFloat = 15 * InventoryStrip.scale
@@ -178,18 +189,6 @@ private struct InventoryChip<Icon: View>: View {
         VStack(spacing: 3 * scale) {
             icon
                 .frame(height: 32 * scale)
-                .overlay(alignment: .topTrailing) {
-                    if let badge {
-                        Text(badge)
-                            .font(.system(size: 11 * scale, weight: .heavy))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 5 * scale)
-                            .padding(.vertical, 1.5 * scale)
-                            .background(Theme.accent, in: .capsule)
-                            .fixedSize()
-                            .offset(x: 14 * scale, y: -6 * scale)
-                    }
-                }
             Text(count)
                 .font(.system(size: countSize, weight: .bold))
                 .monospacedDigit()
@@ -197,5 +196,41 @@ private struct InventoryChip<Icon: View>: View {
                 .fixedSize()
         }
         .frame(minWidth: 44 * scale)
+        // Room beside the icon for each badge, more for a long Legacy number.
+        .padding(.leading, mark == nil ? 0 : 8 * scale)
+        .padding(.trailing, legacy.map { CGFloat(4 + 4 * max(0, $0.count - 1)) * scale } ?? 0)
+        .overlay(alignment: .topLeading) {
+            if let mark {
+                CornerBadge(text: mark, color: Theme.accent)
+                    .offset(x: -6 * scale, y: -12 * scale)
+                    .accessibilityLabel("Mk \(mark)")
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if let legacy {
+                CornerBadge(text: legacy, color: Theme.legacy)
+                    .offset(x: 6 * scale, y: -12 * scale)
+                    .accessibilityLabel("Legacy ×\(legacy)")
+            }
+        }
+    }
+}
+
+/// A small number on a coloured circle, which grows into an oval when the number is longer.
+private struct CornerBadge: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        let scale = InventoryStrip.scale
+        Text(text)
+            .font(.system(size: 11 * scale, weight: .heavy).monospacedDigit())
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 4 * scale)
+            .frame(minWidth: 20 * scale, minHeight: 20 * scale)
+            .background(color, in: .capsule)
+            .overlay { Capsule().strokeBorder(.white.opacity(0.35), lineWidth: 1) }
     }
 }

@@ -75,10 +75,10 @@ struct MinerRow: View {
                         if legacy > 1 {
                             Label("Legacy \(CoinFormat.multiplier(legacy))", systemImage: "clock.arrow.circlepath")
                                 .font(.subheadline.weight(.bold))
-                                .foregroundStyle(Theme.bitcoin)
+                                .foregroundStyle(Theme.legacy)
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 1)
-                                .background(Theme.bitcoin.opacity(0.16), in: .capsule)
+                                .background(Theme.legacy.opacity(0.16), in: .capsule)
                                 .accessibilityLabel("Legacy: earns \(CoinFormat.multiplier(legacy)) from newer miners")
                         }
                     }
