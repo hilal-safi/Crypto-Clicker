@@ -212,13 +212,7 @@ private struct InventoryChip<Icon: View>: View {
                 .fixedSize()
         }
         .frame(minWidth: 44 * scale)
-        // The badges sit over the icon's top corners; only a long Legacy number needs more room,
-        // so it never reaches the next chip.
-        // Room for exactly what each badge sticks out: a little on the left for an Mk numeral,
-        // and on the right as much as the Legacy number is wide, so every gap between chips looks
-        // the same as between chips without badges.
-        .padding(.leading, mark == nil ? 0 : 6 * scale)
-        .padding(.trailing, legacy.map { CGFloat(12 + 7 * max(0, $0.count - 1)) * scale } ?? 0)
+        // The badges sit over the icon's top corners.
         .overlay(alignment: .topLeading) {
             if let mark {
                 CornerBadge(text: mark, color: Theme.accent)
@@ -233,6 +227,11 @@ private struct InventoryChip<Icon: View>: View {
                     .accessibilityLabel("Legacy ×\(legacy)")
             }
         }
+        // The badges hug the icon; room goes outside them: a little on the left for an Mk
+        // numeral, and on the right as much as the Legacy number is wide, so the next chip and
+        // its badges stay clear.
+        .padding(.leading, mark == nil ? 0 : 6 * scale)
+        .padding(.trailing, legacy.map { CGFloat(12 + 7 * max(0, $0.count - 1)) * scale } ?? 0)
     }
 }
 
