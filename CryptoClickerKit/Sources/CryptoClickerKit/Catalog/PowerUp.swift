@@ -38,7 +38,7 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .quickCombos:
             localized("Each +0.1 of a combo comes sooner: \(CoinFormat.percent(Tuning.quickComboStep)) faster a level, up to \(CoinFormat.compact(Self.quickTop))× as fast.")
         case .comboKeeper:
-            localized("A combo waits \(Self.seconds(Tuning.comboKeeperStep)) longer for your next tap a level: from \(Self.seconds(Tuning.comboWindow)) up to \(Self.seconds(Self.keeperTop)), three times as long.")
+            localized("A combo waits \(Self.seconds(Tuning.comboKeeperStep)) longer for your next tap a level: from \(Self.seconds(Tuning.comboWindow)) up to \(Self.seconds(Self.keeperTop)).")
         }
     }
 
@@ -47,7 +47,7 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .comboBooster: 6
         case .comboOverdrive: 5
         case .quickCombos: 6
-        case .comboKeeper: 6
+        case .comboKeeper: 8
         }
     }
 

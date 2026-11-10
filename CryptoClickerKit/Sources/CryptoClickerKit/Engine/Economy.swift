@@ -301,7 +301,7 @@ extension GameState {
     public var comboTapsPerStep: Double { Tuning.comboTapsPerStep / comboSpeed }
 
     /// How long a combo waits for the next tap: `Tuning.comboWindow`, 0.2s longer for each level of
-    /// Combo Keeper, up to three times as long.
+    /// Combo Keeper, up to 2.2s.
     public var comboWindow: TimeInterval {
         PowerUpID.keeperWindow(level: Double(powerUpLevel(.comboKeeper)))
     }

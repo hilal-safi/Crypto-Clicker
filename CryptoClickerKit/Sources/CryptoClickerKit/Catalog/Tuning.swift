@@ -61,7 +61,7 @@ public enum Tuning {
     /// Each Quick Combos level makes combos build this much faster (0.5 is 50%).
     public static let quickComboStep = 0.5
     /// Each Combo Keeper level gives this many more seconds between taps before a combo ends, so
-    /// its six levels take `comboWindow` from 0.6s to 1.8s, three times as long.
+    /// its eight levels take `comboWindow` from 0.6s to 2.2s.
     public static let comboKeeperStep: TimeInterval = 0.2
     /// First-level list prices, and how much dearer each level is than the one before. Someone who
     /// keeps playing gets the first Combo Booster in under an hour and Quick Combos within the first

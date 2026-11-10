@@ -406,18 +406,18 @@ struct ComboTests {
         #expect(PowerUpID.comboBooster.summary.contains("×5"))
         #expect(PowerUpID.comboOverdrive.summary.contains("×10"))
         #expect(PowerUpID.quickCombos.summary.contains("4×"))
-        #expect(PowerUpID.comboKeeper.summary.contains("0.6s") && PowerUpID.comboKeeper.summary.contains("1.8s"))
+        #expect(PowerUpID.comboKeeper.summary.contains("0.6s") && PowerUpID.comboKeeper.summary.contains("2.2s"))
         // The Shop's Now and Next show the value alone.
         #expect(PowerUpID.comboBooster.value(atLevel: 0) == "×2")
         #expect(PowerUpID.comboBooster.value(atLevel: 3) == "×3.5")
         #expect(PowerUpID.quickCombos.value(atLevel: 4) == "3× as fast")
         #expect(PowerUpID.comboKeeper.value(atLevel: 0) == "0.6s")
         #expect(PowerUpID.comboKeeper.value(atLevel: 1) == "0.8s")
-        #expect(PowerUpID.comboKeeper.value(atLevel: 6) == "1.8s")
-        #expect(PowerUpID.comboKeeper.value(atLevel: 9) == "1.8s") // Never past the last level.
+        #expect(PowerUpID.comboKeeper.value(atLevel: 8) == "2.2s")
+        #expect(PowerUpID.comboKeeper.value(atLevel: 12) == "2.2s") // Never past the last level.
     }
 
-    @Test func comboKeeperGivesMoreTimeBetweenTapsUpToThreeTimesAsLong() throws {
+    @Test func comboKeeperGivesMoreTimeBetweenTapsUpTo2Point2Seconds() throws {
         var game = GameState.make(coins: 1e15)
         game.stats.lifetimeCoins = 1e15
         #expect(game.comboWindow == Tuning.comboWindow)
@@ -428,12 +428,12 @@ struct ComboTests {
         #expect(bought)
         #expect(approx(game.comboWindow, 0.8))
         while game.buyPowerUp(.comboKeeper) {}
-        #expect(game.powerUpLevel(.comboKeeper) == 6)
-        #expect(approx(game.comboWindow, 1.8))
+        #expect(game.powerUpLevel(.comboKeeper) == 8)
+        #expect(approx(game.comboWindow, 2.2))
         #expect(game.powerUpPrice(.comboKeeper) == nil)
         // Kept through a prestige, like every power-up.
         game.prestige(at: at(10))
-        #expect(approx(game.comboWindow, 1.8))
+        #expect(approx(game.comboWindow, 2.2))
     }
 }
 

@@ -85,7 +85,7 @@ private struct HowToChapter: Identifiable {
             "Combo Booster: the biggest combo grows ×0.5 a level, up to ×5.",
             "Combo Overdrive: then ×1 a level, up to ×10.",
             "Quick Combos: each ×0.1 comes 50% faster a level, up to four times as fast.",
-            "Combo Keeper: a combo waits 0.2 seconds longer for your next tap a level, from 0.6 up to 1.8 seconds.",
+            "Combo Keeper: a combo waits 0.2 seconds longer for your next tap a level, from 0.6 up to 2.2 seconds.",
             "The Combo Master perk doubles that speed and lifts the biggest combo to at least ×3.",
         ]),
         HowToTopic("cpu", "Miners", "Miners earn coins every second while the app is open.", [
