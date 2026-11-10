@@ -222,17 +222,28 @@ private struct InventoryChip<Icon: View>: View {
         }
         .overlay(alignment: .topTrailing) {
             if let legacy {
+                // Its left edge stays put over the icon's corner and a longer number grows to the
+                // right, never back over the icon or the Mk badge.
+                let inset = Self.legacyInset * scale
                 CornerBadge(text: legacy, color: Theme.legacy)
-                    .offset(x: 4 * scale, y: -7 * scale)
+                    .alignmentGuide(.trailing) { badge in badge[.leading] + inset }
+                    .offset(y: -7 * scale)
                     .accessibilityLabel("Legacy ×\(legacy)")
             }
         }
-        // The badges hug the icon; room goes outside them: a little on the left for an Mk
-        // numeral, and on the right as much as the Legacy number is wide, so the next chip and
-        // its badges stay clear.
+        // Room outside the badges: a little on the left for an Mk numeral, and on the right as
+        // much as the Legacy badge reaches past the chip, so the next chip stays clear.
         .padding(.leading, mark == nil ? 0 : 6 * scale)
-        .padding(.trailing, legacy.map { CGFloat(12 + 7 * max(0, $0.count - 1)) * scale } ?? 0)
+        .padding(.trailing, legacy.map { (Self.legacyWidth($0) - Self.legacyInset + 6) * scale } ?? 0)
     }
+}
+
+extension InventoryChip {
+    /// How far in from the chip's right edge the Legacy badge starts.
+    nonisolated static var legacyInset: CGFloat { 16 }
+
+    /// About how wide a Legacy badge is (unscaled): a circle for one digit, longer after.
+    static func legacyWidth(_ text: String) -> CGFloat { max(20, 8 + 7 * CGFloat(text.count)) }
 }
 
 /// A small number on a coloured circle, which grows into an oval when the number is longer.
