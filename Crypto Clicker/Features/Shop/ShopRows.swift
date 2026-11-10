@@ -94,7 +94,7 @@ struct MinerRow: View {
             // many are owned under it.
             VStack(spacing: 6) {
                 if mkLevel > 0 || legacy > 1 {
-                    HStack(spacing: 6) {
+                    VStack(spacing: 4) {
                         if mkLevel > 0 {
                             Text("Mk \(MinerID.markName(level: mkLevel - 1))")
                                 .font(.subheadline.weight(.bold))

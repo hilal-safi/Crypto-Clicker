@@ -215,8 +215,9 @@ private struct InventoryChip<Icon: View>: View {
         // The badges sit over the icon's top corners; only a long Legacy number needs more room,
         // so it never reaches the next chip.
         .padding(.trailing, legacy.map { CGFloat(5 * max(0, $0.count - 2)) * scale } ?? 0)
-        // 60% more room between chips that carry badges.
-        .padding(.horizontal, mark != nil || legacy != nil ? 4.2 * scale : 0)
+        // Clear room on both sides of a chip with badges, so its badges and the next chip's have
+        // a real gap between them (about twice the usual space).
+        .padding(.horizontal, mark != nil || legacy != nil ? 10 * scale : 0)
         .overlay(alignment: .topLeading) {
             if let mark {
                 CornerBadge(text: mark, color: Theme.accent)
