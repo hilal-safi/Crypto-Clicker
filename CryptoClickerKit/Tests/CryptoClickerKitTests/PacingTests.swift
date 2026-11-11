@@ -317,11 +317,11 @@ struct PacingTests {
         print("Light 12h:", CoinFormat.short(lifetime), "mined | tiers", player.firstBought.count,
               "| offline", CoinFormat.duration(player.game.offlineCap))
         // Twenty minutes of play spread over twelve hours: a few miner tiers and some tens of
-        // thousands of coins, not millions. Offline Mining starts at five minutes a level, so time
-        // away pays little until it has grown.
+        // thousands of coins, not millions. Offline Mining starts at a minute a level, so time away
+        // pays little in the first half day: a few minutes at most.
         #expect((15_000...150_000).contains(lifetime))
         #expect((2...4).contains(player.firstBought.count))
-        #expect(player.game.offlineMiningLevel >= 1)
+        #expect(player.game.offlineCap <= 10 * 60)
     }
 
     @Test func aCasualPlayerReachesTheTenthTierAndAPrestigeInAboutAWeek() {

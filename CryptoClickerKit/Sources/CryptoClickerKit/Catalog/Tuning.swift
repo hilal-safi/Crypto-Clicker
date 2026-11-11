@@ -95,13 +95,13 @@ public enum Tuning {
     /// The level that reaches three days: 10 + 10 + 8 + 138.
     public static let offlineMiningMaxLevel = 166
     /// List prices (before the pace) of the levels that reach each limit, in hours; the levels in
-    /// between grow evenly from one to the next. The first minute costs a fifth of what the first
-    /// five minutes did (1,224 coins at the opening's pace), the same price a minute. Then prices
+    /// between grow evenly from one to the next. The first minute costs 2,500 coins at the opening's
+    /// pace, twice the old price a minute, to keep time away from coming too cheaply. Then prices
     /// climb steeply while early income does (ten
     /// hours takes about the first week) and more gently after, so a whole day takes over two weeks
     /// and three days about two months: time away is paid at the full rate, so it must be earned.
     public static let offlineMiningPrices: [(hours: Double, price: Double)] = [
-        (1.0 / 60, 595), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
+        (1.0 / 60, 1_216.16), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
     ]
 
     // MARK: Steps

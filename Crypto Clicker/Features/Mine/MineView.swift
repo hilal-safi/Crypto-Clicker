@@ -419,13 +419,13 @@ struct ComboPill: View {
             Label("Combo ×\(String(format: "%.1f", multiplier))", systemImage: "flame.fill")
                 .font(.headline.monospacedDigit())
                 .contentTransition(.numericText(value: multiplier))
-            Text("\(CoinFormat.grouped(taps)) quick taps")
+            Text("\(CoinFormat.grouped(taps)) taps!")
                 .font(.footnote.weight(.semibold).monospacedDigit())
                 .opacity(0.85)
                 .contentTransition(.numericText(value: Double(taps)))
         }
         .foregroundStyle(.white)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 30) // About a fifth wider than its text needs.
         .padding(.vertical, 6)
         .background((isMax ? Color.red : Theme.accent).gradient, in: .capsule)
         .shadow(color: .black.opacity(0.3), radius: 6, y: 3)

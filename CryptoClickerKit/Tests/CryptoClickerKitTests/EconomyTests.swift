@@ -229,20 +229,20 @@ struct ProductionTests {
 
     @Test func offlineMiningLevelsCostMoreEachTimeAndStopAtTheMaximum() {
         var state = GameState.make(coins: 1_000)
-        // The first minute costs 1,224: a list price of 595, about doubled for the opening's pace.
-        #expect(state.offlineMiningPrice == 1_224)
+        // The first minute costs 2,500: a list price of 1,216.16, about doubled for the opening's pace.
+        #expect(state.offlineMiningPrice == 2_500)
         state.coins = 1_000
         #expect(state.buyOfflineMining() == false) // Can't afford it yet.
-        state.coins = 1_224 + 1_330 + 100
+        state.coins = 2_500 + 2_684 + 100
         let first = state.buyOfflineMining()
         #expect(first)
         #expect(state.offlineMiningLevel == 1)
         #expect(state.offlineCap == 60)
-        #expect(state.offlineMiningPrice == 1_330) // About 9% more for each minute to the hour.
+        #expect(state.offlineMiningPrice == 2_684) // About 7% more for each minute to the hour.
         let second = state.buyOfflineMining()
         #expect(second)
         #expect(state.coins == 100)
-        #expect(state.stats.spent == 2_554)
+        #expect(state.stats.spent == 5_184)
         // Every level costs more than the one before, steeply up to ten hours and more gently after.
         var previous = 0.0
         for level in 1...Tuning.offlineMiningMaxLevel {
