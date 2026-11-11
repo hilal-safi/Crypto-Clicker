@@ -125,7 +125,7 @@ struct SaveTests {
 
     @Test func offlineUpgradesFromEarlierVersionsBecomeOfflineMiningLevels() throws {
         // Cloud Backup gave 4 hours, Server Lease 8 and the Always-On Rig a day.
-        #expect(try decode(#"{"upgrades": ["coinClicker", "cloudBackup"]}"#).offlineMiningLevel == 18)
+        #expect(try decode(#"{"upgrades": ["coinClicker", "cloudBackup"]}"#).offlineMiningLevel == 29)
         #expect(try decode(#"{"upgrades": ["cloudBackup", "serverLease"]}"#).offlineCap == 8 * 3_600)
         let rig = try decode(#"{"upgrades": ["alwaysOnRig", "overclocking"]}"#)
         #expect(rig.offlineCap == 24 * 3_600)
@@ -137,17 +137,27 @@ struct SaveTests {
         #expect(try decode("{}").offlineCap == 0)
     }
 
-    @Test func offlineMiningLevelsFromBeforeVersionSixKeepTheirTimeAway() throws {
+    @Test func offlineMiningLevelsFromBeforeVersionEightKeepTheirTimeAway() throws {
         // Levels used to add half an hour each up to a day, then an hour each.
         #expect(try decode(#"{"version": 5, "offlineMiningLevel": 1}"#).offlineCap == 30 * 60)
-        #expect(try decode(#"{"version": 5, "offlineMiningLevel": 2}"#).offlineMiningLevel == 12)
+        #expect(try decode(#"{"version": 5, "offlineMiningLevel": 2}"#).offlineMiningLevel == 19)
         #expect(try decode(#"{"version": 5, "offlineMiningLevel": 20}"#).offlineCap == 10 * 3_600)
-        #expect(try decode(#"{"version": 5, "offlineMiningLevel": 48}"#).offlineMiningLevel == 58)
+        #expect(try decode(#"{"version": 5, "offlineMiningLevel": 48}"#).offlineMiningLevel == 69)
         #expect(try decode(#"{"version": 5, "offlineMiningLevel": 50}"#).offlineCap == 26 * 3_600)
         #expect(try decode(#"{"version": 5, "offlineMiningLevel": 96}"#).offlineMiningLevel == Tuning.offlineMiningMaxLevel)
-        // From version 6 on, a level is saved as it is.
-        #expect(try decode(#"{"version": 6, "offlineMiningLevel": 20}"#).offlineMiningLevel == 20)
-        #expect(try decode(#"{"version": 6, "offlineMiningLevel": 900}"#).offlineMiningLevel == Tuning.offlineMiningMaxLevel)
+        // Version 6's levels were five minutes to an hour, then half an hour.
+        #expect(try decode(#"{"version": 6, "offlineMiningLevel": 1}"#).offlineCap == 5 * 60)
+        #expect(try decode(#"{"version": 6, "offlineMiningLevel": 12}"#).offlineMiningLevel == 19)
+        #expect(try decode(#"{"version": 6, "offlineMiningLevel": 30}"#).offlineCap == 10 * 3_600)
+        #expect(try decode(#"{"version": 6, "offlineMiningLevel": 154}"#).offlineMiningLevel == Tuning.offlineMiningMaxLevel)
+        // Version 7 had no free first minute under its levels: a minute a level up to 10 minutes.
+        #expect(try decode(#"{"version": 7, "offlineMiningLevel": 1}"#).offlineCap == 2 * 60) // Rounded up.
+        #expect(try decode(#"{"version": 7, "offlineMiningLevel": 5}"#).offlineMiningLevel == 4)
+        #expect(try decode(#"{"version": 7, "offlineMiningLevel": 20}"#).offlineMiningLevel == 19)
+        #expect(try decode(#"{"version": 7, "offlineMiningLevel": 70}"#).offlineCap == 24 * 3_600)
+        #expect(try decode(#"{"version": 7, "offlineMiningLevel": 900}"#).offlineMiningLevel == Tuning.offlineMiningMaxLevel)
+        // From version 8 on, a level is saved as it is.
+        #expect(try decode(#"{"version": 8, "offlineMiningLevel": 20}"#).offlineMiningLevel == 20)
         var game = GameState.make()
         game.offlineMiningLevel = 7
         let saved = try GameCoding.decoder().decode(GameState.self, from: GameCoding.encoder().encode(game))

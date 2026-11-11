@@ -32,13 +32,13 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
     public var summary: String {
         switch self {
         case .comboBooster:
-            localized("Raises the biggest combo by ×\(CoinFormat.compact(Tuning.comboBoosterStep)) a level, from ×\(CoinFormat.compact(Tuning.comboMaxMultiplier)) up to ×\(CoinFormat.compact(Self.boosterTop)).")
+            localized("Raises the biggest combo, up to ×\(CoinFormat.compact(Self.boosterTop)).")
         case .comboOverdrive:
-            localized("Raises the biggest combo by ×\(CoinFormat.compact(Tuning.comboOverdriveStep)) a level, from ×\(CoinFormat.compact(Self.boosterTop)) up to ×\(CoinFormat.compact(Tuning.comboTopMultiplier)).")
+            localized("Raises the biggest combo further, up to ×\(CoinFormat.compact(Tuning.comboTopMultiplier)).")
         case .quickCombos:
-            localized("Each +0.1 of a combo comes sooner: \(CoinFormat.percent(Tuning.quickComboStep)) faster a level, up to \(CoinFormat.compact(Self.quickTop))× as fast.")
+            localized("Combos build faster, up to \(CoinFormat.compact(Self.quickTop))× as fast.")
         case .comboKeeper:
-            localized("A combo waits \(Self.seconds(Tuning.comboKeeperStep)) longer for your next tap a level: from \(Self.seconds(Tuning.comboWindow)) up to \(Self.seconds(Self.keeperTop)).")
+            localized("A combo waits longer for your next tap, up to \(Self.seconds(Self.keeperTop)).")
         }
     }
 

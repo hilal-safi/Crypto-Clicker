@@ -97,7 +97,8 @@ struct MineView: View {
                 .overlay(alignment: .bottom) {
                     // Shown from the combo's first +0.1, so a few casual taps don't flicker it.
                     if store.comboMultiplier > 1 {
-                        ComboPill(multiplier: store.comboMultiplier, isMax: store.comboMultiplier >= game.comboMaxMultiplier)
+                        ComboPill(multiplier: store.comboMultiplier, taps: store.comboStreak,
+                                  isMax: store.comboMultiplier >= game.comboMaxMultiplier)
                             .transition(.scale.combined(with: .opacity))
                     }
                 }
@@ -408,19 +409,29 @@ private struct FloatingText: View {
 /// The combo under the coin while quick taps keep it going.
 struct ComboPill: View {
     let multiplier: Double
+    /// Quick taps in a row so far.
+    let taps: Int
     let isMax: Bool
 
     var body: some View {
-        Label("Combo ×\(String(format: "%.1f", multiplier))", systemImage: "flame.fill")
-            .font(.headline.monospacedDigit())
-            .foregroundStyle(.white)
-            .contentTransition(.numericText(value: multiplier))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background((isMax ? Color.red : Theme.accent).gradient, in: .capsule)
-            .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
-            .allowsHitTesting(false)
-            .accessibilityLabel("Combo, taps earn \(CoinFormat.multiplier(multiplier))")
+        // The multiplier, with the run of quick taps on a line under it.
+        VStack(spacing: 1) {
+            Label("Combo ×\(String(format: "%.1f", multiplier))", systemImage: "flame.fill")
+                .font(.headline.monospacedDigit())
+                .contentTransition(.numericText(value: multiplier))
+            Text("\(CoinFormat.grouped(taps)) taps!")
+                .font(.footnote.weight(.semibold).monospacedDigit())
+                .opacity(0.85)
+                .contentTransition(.numericText(value: Double(taps)))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 30) // About a fifth wider than its text needs.
+        .padding(.vertical, 6)
+        .background((isMax ? Color.red : Theme.accent).gradient, in: .capsule)
+        .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
+        .allowsHitTesting(false)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Combo of \(taps) quick taps, taps earn \(CoinFormat.multiplier(multiplier))")
     }
 }
 

@@ -182,8 +182,9 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
 public struct GameState: Codable, Equatable, Sendable {
     /// 2: Hard Forks became Prestige. 3: prestige potential needs 10% more lifetime coins.
     /// 4: and 15% more again. 5: 15 billion for the first point. 6: Offline Mining levels of five
-    /// minutes up to an hour, then half an hour.
-    public static let saveVersion = 6
+    /// minutes up to an hour, then half an hour. 7: a minute to 10 minutes, then 5 minutes to an
+    /// hour, 15 minutes to 3 hours, then half an hour.
+    public static let saveVersion = 8
 
     public internal(set) var coins: Double = 0
     public internal(set) var miners: [MinerID: Int] = [:]
@@ -290,11 +291,13 @@ public struct GameState: Codable, Equatable, Sendable {
         runPrestigeMultiplier = Difficulty.allCases.map(\.prestigeMultiplier).contains(multiplier)
             ? multiplier : difficulty.prestigeMultiplier
         boost = c.value(.boost, default: nil)
-        // Offline upgrades bought in earlier versions, and levels from before version 6 (which added
-        // more time each), become the level that pays for the same time away.
+        // Offline upgrades bought in earlier versions, and levels from before version 8 (which added
+        // different amounts of time), become the level that pays for the same time away.
         let legacyCap = (savedUpgrades.compactMap { UpgradeID.legacyOfflineHours[$0] }.max() ?? 0) * 3_600
         let savedLevel: Int = c.value(.offlineMiningLevel, default: 0)
-        let savedCap = version < 6 ? Self.version5OfflineCap(level: savedLevel) : Self.offlineCap(level: savedLevel)
+        let savedCap = version < 6 ? Self.version5OfflineCap(level: savedLevel)
+            : version == 6 ? Self.version6OfflineCap(level: savedLevel)
+            : version == 7 ? Self.version7OfflineCap(level: savedLevel) : Self.offlineCap(level: savedLevel)
         offlineMiningLevel = Self.offlineMiningLevel(reaching: max(savedCap, legacyCap))
         powerUps = c.enumKeyed(.powerUps, as: PowerUpID.self).mapValues { max(0, $0) }
         unlockedGames = c.enumSet(.unlockedGames, as: MiniGame.self)
