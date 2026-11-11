@@ -266,9 +266,10 @@ struct PacingTests {
         #expect(player.firstBought[.gpuRig].map { $0 > 8 * 60 } == true)
         #expect(player.firstBought[.server].map { $0 > 25 * 60 } == true)
         #expect(player.firstBought[.dataCenter] == nil)
-        // Blackjack and Tetris cost a few thousand coins: both arrive in the first twenty minutes.
+        // Blackjack and Tetris cost a few thousand coins: both arrive in the first 25 minutes (airdrops,
+        // from 50,000 coins mined, don't help this early).
         #expect(player.gamesUnlockedAt[.blackjack].map { $0 < 15 * 60 } == true)
-        #expect(player.gamesUnlockedAt[.tetris].map { $0 < 20 * 60 } == true)
+        #expect(player.gamesUnlockedAt[.tetris].map { $0 < 25 * 60 } == true)
         // No daily reward or quests on the first day.
         #expect(player.game.stats.earnedFromDaily == 0)
     }

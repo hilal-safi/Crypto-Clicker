@@ -309,7 +309,8 @@ struct Merge2048PlayView: View {
                         GameOverSummary(score: result.score, isNewBest: result.payout.isNewBest,
                                         best: result.isDaily ? store.game.merge2048Daily.bestScore(on: store.today)
                                                              : store.game.stats.merge2048BestScore,
-                                        reward: result.payout.coins, details: result.details, challenge: result.payout.challenge)
+                                        reward: result.payout.coins, details: result.details, challenge: result.payout.challenge,
+                                        xp: result.xp)
                     }
                 }
             } else if case .daily(let day) = route {
@@ -510,10 +511,10 @@ struct Merge2048PlayView: View {
         if let day = game.day {
             let daily = store.finishMerge2048Daily(day: day, score: game.score, bestTile: game.bestTile)
             result = Merge2048Result(game: game, payout: daily.payout, endedByPlayer: byPlayer, stars: daily.stars,
-                                     newStars: daily.newStars, starCoins: daily.starCoins)
+                                     newStars: daily.newStars, starCoins: daily.starCoins, xp: store.lastArcadeAward)
         } else {
             let payout = store.finishMerge2048(score: game.score, bestTile: game.bestTile)
-            result = Merge2048Result(game: game, payout: payout, endedByPlayer: byPlayer)
+            result = Merge2048Result(game: game, payout: payout, endedByPlayer: byPlayer, xp: store.lastArcadeAward)
         }
     }
 }
@@ -555,8 +556,11 @@ struct Merge2048Result: Equatable {
     var stars = 0
     var newStars = 0
     var starCoins = 0.0
+    /// What the game earned toward Arcade Rank.
+    var xp: ArcadeAward?
 
-    init(game: Merge2048Game, payout: ArcadePayout, endedByPlayer: Bool, stars: Int = 0, newStars: Int = 0, starCoins: Double = 0) {
+    init(game: Merge2048Game, payout: ArcadePayout, endedByPlayer: Bool, stars: Int = 0, newStars: Int = 0, starCoins: Double = 0,
+         xp: ArcadeAward?) {
         score = game.score
         bestTile = game.bestTile
         moves = game.moves
@@ -568,6 +572,7 @@ struct Merge2048Result: Equatable {
         self.stars = stars
         self.newStars = newStars
         self.starCoins = starCoins
+        self.xp = xp
     }
 
     var title: String {

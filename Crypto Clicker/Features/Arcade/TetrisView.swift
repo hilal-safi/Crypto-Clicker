@@ -290,7 +290,7 @@ struct TetrisPlayView: View {
                 GamePanel(title: resultTitle(result), buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.base.score, isNewBest: result.base.isNewBest,
                                     best: store.game.stats.tetrisBestScore, reward: result.base.reward,
-                                    details: resultDetails(result), challenge: result.base.challenge)
+                                    details: resultDetails(result), challenge: result.base.challenge, xp: result.base.xp)
                 }
             } else {
                 GamePanel(title: title, buttonTitle: "Start", action: start) {
@@ -469,7 +469,7 @@ struct TetrisPlayView: View {
         let payout = store.finishTetris(score: game.score, lines: game.lines, rewardPoints: game.rewardPoints,
                                         level: game.level, bestCombo: game.bestCombo, tetrises: game.tetrises,
                                         sprintTime: sprintTime)
-        result = TetrisResult(base: GameResult(score: game.score, payout: payout, detail: game.lines), mode: game.mode,
+        result = TetrisResult(base: GameResult(score: game.score, payout: payout, detail: game.lines, xp: store.lastArcadeAward), mode: game.mode,
                               isComplete: game.isComplete, time: elapsed, level: game.level,
                               bestCombo: game.bestCombo, tetrises: game.tetrises, gasRows: game.gasRowsCleared)
     }
@@ -484,13 +484,16 @@ struct GameResult: Equatable {
     let detail: Int
     /// Set when the game completed the daily challenge.
     let challenge: ChallengeReward?
+    /// What the game earned toward Arcade Rank.
+    let xp: ArcadeAward?
 
-    init(score: Int, payout: ArcadePayout, detail: Int) {
+    init(score: Int, payout: ArcadePayout, detail: Int, xp: ArcadeAward?) {
         self.score = score
         isNewBest = payout.isNewBest
         reward = payout.coins
         self.detail = detail
         challenge = payout.challenge
+        self.xp = xp
     }
 }
 

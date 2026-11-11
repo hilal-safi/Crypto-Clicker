@@ -177,6 +177,11 @@ final class GameStore {
     /// When airdrops fall and go.
     @ObservationIgnored var airdrops = AirdropSchedule()
     @ObservationIgnored var lastTapAt = Date.distantPast
+    /// What the last action earned toward Arcade Rank (`nil` when it finished no game), for the
+    /// result screen that action leads to. Read right after a game's finish call.
+    @ObservationIgnored private(set) var lastArcadeAward: ArcadeAward?
+    /// The miner whose description the Shop is showing, from a tap on its icon.
+    var shopInfoMiner: MinerID?
     @ObservationIgnored private var lastSave = Date.now
     @ObservationIgnored var lastWatchPush = Date.distantPast
     @ObservationIgnored var lastBalanceShare = Date.distantPast
@@ -409,6 +414,7 @@ final class GameStore {
         let result = action(&state, now)
         // Arcade XP and the weekly variety goal, for whatever games the action finished.
         let award = state.awardArcadeProgress(since: arcade, today: StepDay.key(for: now))
+        lastArcadeAward = award
         publish(at: now)
         hasUnsavedChanges = true
         if !challengeWasComplete, game.daily.challenge?.isComplete == true { announceChallenge() }

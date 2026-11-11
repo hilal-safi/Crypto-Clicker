@@ -125,35 +125,40 @@ struct InvadersPlayView: View {
             .gameBackdrop(.invaders)
     }
 
+    /// The score bar, then the field just under it with the ships left (and the streak) down its
+    /// left and the power-ups running down its right.
     private var layout: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 16) {
+        VStack(spacing: 8) {
+            HStack(spacing: 14) {
                 GameStat(title: "Score", value: CoinFormat.grouped(game.score))
                 GameStat(title: "Wave", value: game.isBossWave ? "\(game.wave) · Boss" : "\(game.wave)")
+                GameStat(title: "Enemies", value: CoinFormat.grouped(enemiesLeft))
+                    .accessibilityLabel("\(enemiesLeft) enemies left")
                 Spacer(minLength: 0)
-                HStack(spacing: 3) {
-                    ForEach(0..<InvadersGame.startingLives, id: \.self) { life in
-                        Image(systemName: life < game.lives ? "arrowtriangle.up.fill" : "arrowtriangle.up")
-                            .foregroundStyle(life < game.lives ? Theme.gold : .subtext)
-                    }
-                }
-                .font(.subheadline)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(game.lives) ships left")
                 ArcadeButton(title: isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill", size: 40) {
                     if isPlaying { isPaused.toggle() }
                 }
                 .disabled(!isPlaying)
             }
             .scoreBar()
-            InvadersStatusStrip(game: game)
+            .padding(.horizontal, SideColumn.barInset)
             field
-                .frame(maxHeight: .infinity)
+                .sideColumns {
+                    VStack(spacing: 8) {
+                        LivesColumn(lives: game.lives, total: InvadersGame.startingLives, symbol: "arrowtriangle.up.fill",
+                                    emptySymbol: "arrowtriangle.up", color: Theme.gold, label: "\(game.lives) ships left")
+                        InvadersStreakBadge(game: game)
+                    }
+                } trailing: {
+                    InvadersPowerUpColumn(game: game)
+                }
             ControlHint(game: .invaders)
         }
-        .padding(12)
+        .padding(.horizontal, SideColumn.edge)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
         .frame(maxWidth: 560)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .overlay {
             if isPaused {
                 PausedCard(game: .invaders, resume: { isPaused = false }, showHelp: { showingHelp = true })
@@ -167,6 +172,9 @@ struct InvadersPlayView: View {
             if isPlaying { isPaused = true }
         }
     }
+
+    /// Invaders still flying this wave, and the boss while it's there.
+    private var enemiesLeft: Int { game.invaders.count + (game.boss == nil ? 0 : 1) }
 
     /// Haptics for hits, catches and lost ships, and confetti for cleared waves and beaten bosses.
     private func withFeedback(_ view: some View) -> some View {
@@ -323,7 +331,7 @@ struct InvadersPlayView: View {
                 GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.isNewBest,
                                     best: store.game.stats.invadersBestScore, reward: result.reward,
-                                    details: summaryDetails, challenge: result.challenge)
+                                    details: summaryDetails, challenge: result.challenge, xp: result.xp)
                 }
             } else {
                 GamePanel(title: "Wave \(startWave)", buttonTitle: "Start", action: start) {
@@ -420,7 +428,7 @@ struct InvadersPlayView: View {
                                           whales: game.whalesHit, bosses: game.bossesDefeated, powerUps: game.powerUpsCaught,
                                           bestStreak: game.bestStreak, volleys: game.volleysFired, volleysHit: game.volleysHit,
                                           startWave: startWave)
-        result = GameResult(score: game.score, payout: payout, detail: game.invadersDestroyed)
+        result = GameResult(score: game.score, payout: payout, detail: game.invadersDestroyed, xp: store.lastArcadeAward)
     }
 }
 
@@ -480,43 +488,47 @@ private struct InvadersBanner: View {
 }
 
 /// The power-ups running, each with its time left, the shield, and the streak.
-private struct InvadersStatusStrip: View {
+private struct InvadersPowerUpColumn: View {
     let game: InvadersGame
 
     var body: some View {
-        HStack(spacing: 8) {
+        VStack(spacing: 8) {
             ForEach(InvadersGame.PowerUp.allCases, id: \.self) { kind in
                 if game.isActive(kind) {
-                    HStack(spacing: 5) {
-                        Image(systemName: kind.symbol)
-                            .foregroundStyle(kind.color)
-                        if let left = game.effects[kind], let duration = kind.duration {
-                            ProgressView(value: left, total: duration)
-                                .tint(kind.color)
-                                .frame(width: 40)
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .glassEffect(.regular, in: .capsule)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(kind.name)
-                    .accessibilityValue(game.effects[kind].map { "\(Int($0.rounded(.up))) seconds left" } ?? "Ready")
+                    EffectMeter(symbol: kind.symbol, color: kind.color,
+                                fraction: game.effects[kind].flatMap { left in kind.duration.map { left / $0 } },
+                                label: nil)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(kind.name)
+                        .accessibilityValue(game.effects[kind].map { "\(Int($0.rounded(.up))) seconds left" } ?? "Ready")
                 }
             }
-            Spacer(minLength: 0)
-            if game.streak >= 2 {
-                Label("×\(CoinFormat.compact(game.streakMultiplier))", systemImage: "flame.fill")
-                    .font(.footnote.weight(.heavy).monospacedDigit())
-                    .foregroundStyle(game.streakMultiplier >= 2 ? Theme.gold : .orange)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .glassEffect(.regular, in: .capsule)
-                    .accessibilityLabel("Streak \(game.streak), points times \(CoinFormat.compact(game.streakMultiplier))")
-            }
         }
-        .frame(height: 30)
-        .animation(.snappy, value: game.streak >= 2)
+        .animation(.snappy, value: InvadersGame.PowerUp.allCases.filter(game.isActive))
+    }
+}
+
+/// The hit streak's point multiplier, under the ships once two hits run together.
+private struct InvadersStreakBadge: View {
+    let game: InvadersGame
+
+    var body: some View {
+        if game.streak >= 2 {
+            VStack(spacing: 2) {
+                Image(systemName: "flame.fill")
+                    .font(.subheadline)
+                Text("×\(CoinFormat.compact(game.streakMultiplier))")
+                    .font(.caption2.weight(.heavy).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+            .foregroundStyle(game.streakMultiplier >= 2 ? Theme.gold : .orange)
+            .padding(.vertical, 8)
+            .frame(width: SideColumn.width)
+            .glassEffect(.regular, in: .capsule)
+            .transition(.scale.combined(with: .opacity))
+            .accessibilityLabel("Streak \(game.streak), points times \(CoinFormat.compact(game.streakMultiplier))")
+        }
     }
 }
 

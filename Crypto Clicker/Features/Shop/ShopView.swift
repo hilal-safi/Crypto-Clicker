@@ -73,6 +73,8 @@ struct ShopView: View {
                             powerUpsPage(game)
                         }
                     }
+                    // The miner info pop-up floats over the list, pointing at the tapped icon.
+                    .overlayPreferenceValue(MinerIconAnchors.self) { MinerInfoLayer(anchors: $0) }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 24)
                     .frame(maxWidth: 700)
@@ -83,6 +85,8 @@ struct ShopView: View {
                     showPowerUpsIfAsked(scroller)
                 }
                 .onChange(of: powerUpRequests) { _, _ in showPowerUpsIfAsked(scroller) }
+                .onChange(of: page) { _, _ in store.shopInfoMiner = nil }
+                .onDisappear { store.shopInfoMiner = nil }
                 .onChange(of: tokenRequests) { _, _ in showTokensIfAsked(scroller) }
             }
             .background { AppBackground(tint: page == .tokens ? .green : Theme.shop) }

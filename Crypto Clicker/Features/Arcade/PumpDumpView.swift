@@ -306,7 +306,7 @@ struct PumpDumpPlayView: View {
                 GamePanel(title: "Run Over", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.isNewBest,
                                     best: store.game.pumpDumpBest(on: board), reward: result.reward,
-                                    details: runDetails, challenge: result.challenge)
+                                    details: runDetails, challenge: result.challenge, xp: result.xp)
                 }
             } else {
                 GamePanel(title: "\(board.name) Board", buttonTitle: "Start", action: start) {
@@ -411,7 +411,7 @@ struct PumpDumpPlayView: View {
         isPaused = false
         let payout = store.finishPumpDump(score: game.score, coinsHit: game.coinsHit, bestCombo: game.bestCombo,
                                           scamsHit: game.scamsHit, rounds: game.round, board: board)
-        result = GameResult(score: game.score, payout: payout, detail: game.coinsHit)
+        result = GameResult(score: game.score, payout: payout, detail: game.coinsHit, xp: store.lastArcadeAward)
     }
 }
 

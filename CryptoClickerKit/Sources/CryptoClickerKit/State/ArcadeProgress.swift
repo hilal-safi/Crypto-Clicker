@@ -165,8 +165,17 @@ public enum CosmeticUnlock: Equatable, Sendable {
     case free
     /// On reaching an Arcade Rank.
     case rank(Int)
-    /// With an achievement tier (0 bronze to 3 mythic).
-    case achievement(id: String, tier: Int)
+    /// With an achievement tier (0 bronze to 3 mythic), or on reaching an Arcade Rank, whichever
+    /// comes first.
+    case achievement(id: String, tier: Int, orRank: Int)
+
+    /// The Arcade Rank that unlocks it, if any.
+    public var rank: Int? {
+        switch self {
+        case .free: nil
+        case .rank(let rank), .achievement(_, _, let rank): rank
+        }
+    }
 }
 
 /// A look for a game: card backs, the tables, slot reels, the moon ride, Block Chain's coins, Merge
@@ -258,31 +267,31 @@ public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
              .snakeGreen, .paddleGold, .bubblesGlossy, .pumpExchange, .swapRounded, .shipClassic: .free
         case .swapBubbles: .rank(2)
         case .cardBackMidnight: .rank(3)
-        case .cardBackEmerald: .achievement(id: "poker-face", tier: 0)
-        case .cardBackGold: .achievement(id: "card-shark", tier: 1)
-        case .feltCrimson: .achievement(id: "card-shark", tier: 0)
+        case .cardBackEmerald: .achievement(id: "poker-face", tier: 0, orRank: 16)
+        case .cardBackGold: .achievement(id: "card-shark", tier: 1, orRank: 28)
+        case .feltCrimson: .achievement(id: "card-shark", tier: 0, orRank: 15)
         case .feltBlue: .rank(6)
         case .pokerObsidian: .rank(9)
-        case .pokerRoseGold: .achievement(id: "poker-face", tier: 1)
-        case .reelsNeon: .achievement(id: "high-roller", tier: 0)
+        case .pokerRoseGold: .achievement(id: "poker-face", tier: 1, orRank: 27)
+        case .reelsNeon: .achievement(id: "high-roller", tier: 0, orRank: 17)
         case .reelsGold: .rank(10)
         case .moonLambo: .rank(5)
-        case .moonSaucer: .achievement(id: "moonshot", tier: 1)
+        case .moonSaucer: .achievement(id: "moonshot", tier: 1, orRank: 26)
         case .tetrisPixel: .rank(4)
-        case .tetrisGlass: .achievement(id: "line-clearer", tier: 1)
+        case .tetrisGlass: .achievement(id: "line-clearer", tier: 1, orRank: 19)
         case .mergeMidnight: .rank(11)
-        case .mergeGold: .achievement(id: "merge-master", tier: 1)
+        case .mergeGold: .achievement(id: "merge-master", tier: 1, orRank: 22)
         case .snakeRainbow: .rank(8)
-        case .snakeGold: .achievement(id: "snake-charmer", tier: 1)
+        case .snakeGold: .achievement(id: "snake-charmer", tier: 1, orRank: 20)
         case .paddleNeon: .rank(12)
-        case .paddleDiamond: .achievement(id: "boss-slayer", tier: 0)
+        case .paddleDiamond: .achievement(id: "boss-slayer", tier: 0, orRank: 18)
         case .bubblesNeon: .rank(13)
-        case .bubblesPearl: .achievement(id: "bubble-popper", tier: 1)
+        case .bubblesPearl: .achievement(id: "bubble-popper", tier: 1, orRank: 23)
         case .pumpNeon: .rank(14)
-        case .pumpGold: .achievement(id: "whack-a-coin", tier: 1)
-        case .swapGems: .achievement(id: "token-swapper", tier: 1)
+        case .pumpGold: .achievement(id: "whack-a-coin", tier: 1, orRank: 24)
+        case .swapGems: .achievement(id: "token-swapper", tier: 1, orRank: 21)
         case .shipNeon: .rank(7)
-        case .shipGold: .achievement(id: "invader-hunter", tier: 1)
+        case .shipGold: .achievement(id: "invader-hunter", tier: 1, orRank: 25)
         }
     }
 
@@ -291,8 +300,8 @@ public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
         allCases.filter { $0.slot == slot }
     }
 
-    /// The cosmetics a rank unlocks.
+    /// The cosmetics a rank unlocks (including those an achievement may have unlocked already).
     public static func unlocked(atRank rank: Int) -> [Cosmetic] {
-        allCases.filter { $0.unlock == .rank(rank) }
+        allCases.filter { $0.unlock.rank == rank }
     }
 }

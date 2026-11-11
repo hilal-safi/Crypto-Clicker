@@ -102,6 +102,13 @@ struct StyleView: View {
         }
     }
 
+    private func lockedText(_ cosmetic: Cosmetic, game: GameState) -> String {
+        if let achievement = game.achievementUnlock(cosmetic) {
+            return String(localized: "Locked: reach \(game.unlockText(cosmetic)), or earn the \(achievement.name) achievement at \(achievement.tier)")
+        }
+        return String(localized: "Locked: reach \(game.unlockText(cosmetic))")
+    }
+
     private func row(_ cosmetic: Cosmetic, game: GameState) -> some View {
         let isUnlocked = game.isUnlocked(cosmetic)
         let isEquipped = game.equipped(cosmetic.slot) == cosmetic
@@ -118,9 +125,12 @@ struct StyleView: View {
                         .font(.headline)
                         .foregroundStyle(.primary)
                     if !isUnlocked {
-                        Label(game.unlockText(cosmetic), systemImage: "lock.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.subtext)
+                        UnlockLine(symbol: "lock.fill", text: "Reach \(game.unlockText(cosmetic))")
+                        if let achievement = game.achievementUnlock(cosmetic) {
+                            // The other way in: a game achievement, earned in Trophies.
+                            UnlockLine(symbol: "trophy.fill",
+                                       text: "Or earn the \(achievement.name) achievement (\(achievement.tier))")
+                        }
                     }
                 }
                 Spacer()
@@ -135,7 +145,25 @@ struct StyleView: View {
         .buttonStyle(.plain)
         .disabled(!isUnlocked)
         .accessibilityLabel(cosmetic.name)
-        .accessibilityValue(isEquipped ? "In use" : isUnlocked ? "" : "Locked: \(game.unlockText(cosmetic))")
+        .accessibilityValue(isEquipped ? "In use" : isUnlocked ? "" : lockedText(cosmetic, game: game))
         .accessibilityAddTraits(isEquipped ? .isSelected : [])
+    }
+}
+
+/// One way to unlock a look: a small symbol right beside its text, so the line reads as one.
+private struct UnlockLine: View {
+    let symbol: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: symbol)
+                .font(.footnote)
+                .frame(width: 16)
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.subheadline)
+        .foregroundStyle(.subtext)
     }
 }

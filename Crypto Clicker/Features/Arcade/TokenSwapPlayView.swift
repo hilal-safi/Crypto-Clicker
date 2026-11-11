@@ -49,6 +49,8 @@ struct TokenSwapPlayView: View {
         let isNewBest: Bool
         let bonusPoints: Int
         let progress: [(goal: TokenSwapGame.Goal, done: Int)]
+        /// What the level earned toward Arcade Rank.
+        var xp: ArcadeAward?
 
         static func == (lhs: Outcome, rhs: Outcome) -> Bool {
             lhs.won == rhs.won && lhs.score == rhs.score && lhs.stars == rhs.stars && lhs.coins == rhs.coins
@@ -223,7 +225,7 @@ struct TokenSwapPlayView: View {
                     GameOverSummary(score: classicResult.score, isNewBest: classicResult.isNewBest,
                                     best: store.game.stats.tokenSwapBestScore, reward: classicResult.reward,
                                     details: ["\(CoinFormat.grouped(classicResult.detail)) tokens · \(game.specialsSetOff) specials · longest chain \(game.bestChain)"],
-                                    challenge: classicResult.challenge)
+                                    challenge: classicResult.challenge, xp: classicResult.xp)
                 }
             } else if let level {
                 startPanel(level)
@@ -323,6 +325,7 @@ struct TokenSwapPlayView: View {
                             .font(.subheadline)
                             .foregroundStyle(.subtext)
                     }
+                    ArcadeXPEarned(award: outcome.xp)
                     secondaryButtons(replay: !isDaily && next != nil)
                 }
             }
@@ -335,6 +338,7 @@ struct TokenSwapPlayView: View {
                     GoalList(goals: outcome.progress, showsProgress: true)
                     Text("Score \(CoinFormat.grouped(outcome.score))")
                         .font(.headline)
+                    ArcadeXPEarned(award: outcome.xp)
                     secondaryButtons(replay: false)
                 }
             }
@@ -358,6 +362,7 @@ struct TokenSwapPlayView: View {
                         .font(.title3.weight(.semibold))
                     CoinAmount(amount: outcome.coins, font: .title2.bold(), iconSize: 26)
                 }
+                ArcadeXPEarned(award: outcome.xp)
                 HStack(spacing: 10) {
                     Button("Retry", systemImage: "arrow.counterclockwise", action: start)
                         .buttonStyle(.glass)
@@ -551,7 +556,7 @@ struct TokenSwapPlayView: View {
         chain = 0
         let payout = store.finishTokenSwap(score: game.score, tokens: game.tokensCleared, bestChain: game.bestChain,
                                            blasts: game.specialsSetOff)
-        classicResult = GameResult(score: game.score, payout: payout, detail: game.tokensCleared)
+        classicResult = GameResult(score: game.score, payout: payout, detail: game.tokensCleared, xp: store.lastArcadeAward)
     }
 
     /// Pays a finished level or daily puzzle, once.
@@ -576,6 +581,7 @@ struct TokenSwapPlayView: View {
             outcome = Outcome(won: won, score: game.score, stars: payout.stars, newStars: payout.newStars, coins: payout.coins,
                               isNewBest: payout.isNewBest, bonusPoints: game.bonusPoints, progress: progress)
         }
+        outcome?.xp = store.lastArcadeAward
         finishes += 1
     }
 }

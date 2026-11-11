@@ -25,6 +25,8 @@ struct BlackjackView: View {
     @State private var roundToken = TokenID.shibaInu
     @State private var isSettled = true
     @State private var lastBonus = 0.0
+    /// What the settled round earned toward Arcade Rank (nothing in practice).
+    @State private var lastXP: ArcadeAward?
     @State private var settledRounds = 0
     @State private var effects = Effects()
     @State private var showingHelp = false
@@ -43,7 +45,7 @@ struct BlackjackView: View {
                 // The result takes the place of the table printing, so nothing below it moves.
                 ZStack {
                     if table.phase == .settled {
-                        ResultBanner(results: table.results, insurance: table.insurance, bonus: lastBonus, unit: unit)
+                        ResultBanner(results: table.results, insurance: table.insurance, bonus: lastBonus, unit: unit, xp: lastXP)
                             .transition(.scale(scale: 0.6).combined(with: .opacity))
                     } else if let insurance = table.insurance {
                         InsuranceNote(insurance: insurance, unit: unit)
@@ -377,9 +379,11 @@ struct BlackjackView: View {
         if roundIsPractice {
             chips.pay(table.totalPayout)
             lastBonus = 0
+            lastXP = nil
         } else {
             lastBonus = store.settleBlackjack(table.results, insurance: table.insurance, token: roundToken,
                                               rules: table.rules)
+            lastXP = store.lastArcadeAward
         }
         settledRounds += 1
         celebrate()
@@ -570,7 +574,7 @@ struct PlayingCardView: View {
             if isFaceDown {
                 CardBack()
             } else {
-                CardFace(card: card)
+                CardFace(card: card, width: size.width)
             }
         }
         .frame(width: size.width, height: size.height)
@@ -584,34 +588,35 @@ struct PlayingCardView: View {
     }
 }
 
+/// A card's face: its rank and suit in two corners and a big suit in the middle, all sized to the
+/// card, so the corners keep clear of the middle on the small cards of a long hand or a split.
 private struct CardFace: View {
     let card: Card
+    let width: CGFloat
 
     var body: some View {
         let color = card.suit.isRed ? Color(red: 0.85, green: 0.1, blue: 0.15) : Color.black
         ZStack {
             Color.white
             Text(card.suit.symbol)
-                .font(.system(size: 34))
-            VStack(spacing: -2) {
-                Text(card.label)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                Text(card.suit.symbol)
-                    .font(.system(size: 13))
-            }
-            .padding(5)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            VStack(spacing: -2) {
-                Text(card.label)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                Text(card.suit.symbol)
-                    .font(.system(size: 13))
-            }
-            .padding(5)
-            .rotationEffect(.degrees(180))
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .font(.system(size: width * 0.44))
+            corner
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            corner
+                .rotationEffect(.degrees(180))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
         .foregroundStyle(color)
+    }
+
+    private var corner: some View {
+        VStack(spacing: -width * 0.035) {
+            Text(card.label)
+                .font(.system(size: width * 0.25, weight: .bold, design: .rounded))
+            Text(card.suit.symbol)
+                .font(.system(size: width * 0.19))
+        }
+        .padding(width * 0.07)
     }
 }
 
@@ -654,11 +659,14 @@ private struct ResultBanner: View {
     let bonus: Double
     /// What the bets are counted in: a token's ticker, or "chips".
     let unit: String
+    /// What the round earned toward Arcade Rank.
+    let xp: ArcadeAward?
 
     var body: some View {
         let net = results.reduce(insurance?.net ?? 0) { $0 + $1.net }
         let handsNet = results.reduce(0) { $0 + $1.net }
         let isNatural = results.contains { $0.outcome == .blackjack }
+        VStack(spacing: 4) {
         HStack(spacing: 14) {
             Text(handsNet > 0 ? (isNatural ? "NATURAL 21!" : "YOU WIN!") : handsNet == 0 ? "Push" : "Dealer wins")
                 .font(.system(size: handsNet > 0 ? 26 : 20, weight: .heavy, design: .rounded))
@@ -688,6 +696,8 @@ private struct ResultBanner: View {
                     }
                 }
             }
+        }
+            ArcadeXPEarned(award: xp, compact: true)
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 20)

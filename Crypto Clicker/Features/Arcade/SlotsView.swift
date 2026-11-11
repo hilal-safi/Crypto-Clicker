@@ -17,6 +17,9 @@ struct SlotsView: View {
     /// The spin being revealed, and the one last revealed.
     @State private var pending: SlotsSpin?
     @State private var revealed: SlotsSpin?
+    /// What the spin earned toward Arcade Rank, shown with its result.
+    @State private var pendingXP: ArcadeAward?
+    @State private var revealedXP: ArcadeAward?
     /// The wallet as it was before the spin being revealed (the balance is held by the store).
     @State private var heldCounts: [TokenID: Int]?
     /// The Bitcoin collection as it was before the spin being revealed, so it doesn't give a
@@ -155,6 +158,7 @@ struct SlotsView: View {
             .foregroundStyle(.white)
             .transition(.scale(scale: 0.6).combined(with: .opacity))
             .id(revealed.stops)
+            ArcadeXPEarned(award: revealedXP, compact: true)
         } else {
             Text(isSpinning ? "Good luck!" : "Three of a kind wins. Bitcoin pays the most.")
                 .font(.subheadline.weight(.semibold))
@@ -232,6 +236,7 @@ struct SlotsView: View {
         let coins = game.coins
         let bitcoins = game.slotsBitcoinsTowardPrize
         guard let result = store.spinSlots(token, bet: bet) else { return }
+        pendingXP = store.lastArcadeAward
         heldBitcoins = bitcoins
         // Show the wallet as it was, minus the bet (none for a free spin), until the reels stop.
         var held = counts
@@ -292,6 +297,7 @@ struct SlotsView: View {
         heldCounts = nil
         heldBitcoins = nil
         store.heldCoins = nil
+        revealedXP = pendingXP
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { revealed = result }
         var announcement = title(for: result)
         if result.isWin {

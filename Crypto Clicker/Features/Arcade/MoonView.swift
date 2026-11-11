@@ -18,6 +18,10 @@ struct MoonView: View {
     /// The flight's end, for the frozen chart: seconds after launch.
     @State private var endedAfter: TimeInterval = 0
     @State private var result: MoonResult?
+    /// What the flight earned toward Arcade Rank (nothing in practice).
+    @State private var resultXP: ArcadeAward?
+    /// A flight counts (and earns its XP) at launch; shown once it ends.
+    @State private var flightXP: ArcadeAward?
     @State private var flights = 0
     @State private var effects = Effects()
     @State private var showingHelp = false
@@ -167,6 +171,7 @@ struct MoonView: View {
                         .font(.title3.weight(.bold))
                         .foregroundStyle(Theme.loss)
                 }
+                ArcadeXPEarned(award: resultXP, compact: true)
             }
             .transition(.scale(scale: 0.7).combined(with: .opacity))
         } else {
@@ -264,8 +269,10 @@ struct MoonView: View {
             guard chips.take(practiceBet) else { return }
             practiceRound = MoonRound(token: token, bet: practiceBet,
                                       crashPoint: MoonFlight.crashPoint(roll: Double.random(in: 0..<1)), autoCashOut: autoCashOut)
+            flightXP = nil
         } else {
             guard store.launchMoon(token, bet: bet, autoCashOut: autoCashOut) else { return }
+            flightXP = store.lastArcadeAward
         }
         roundIsPractice = isPracticing
         withAnimation(.snappy) { result = nil }
@@ -301,9 +308,11 @@ struct MoonView: View {
             practiceRound = nil
             settled = round.outcome(after: seconds)
             chips.pay(settled.tokensWon)
+            resultXP = nil
         } else {
             guard let paid = store.settleMoon(after: seconds) else { return }
             settled = paid
+            resultXP = flightXP
         }
         endedAfter = MoonFlight.time(toReach: settled.cashedOutAt ?? settled.crashPoint)
         launchDate = nil

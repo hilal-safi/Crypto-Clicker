@@ -117,38 +117,40 @@ struct BrickBreakerPlayView: View {
             .gameBackdrop(.brickBreaker)
     }
 
+    /// The score bar, then the field just under it with the lives down its left and the power-ups
+    /// running down its right.
     private var layout: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 16) {
+        VStack(spacing: 8) {
+            HStack(spacing: 14) {
                 GameStat(title: "Score", value: CoinFormat.grouped(game.score))
                 GameStat(title: "Level", value: game.isBossLevel ? "\(game.level) · Whale" : "\(game.level)")
+                GameStat(title: "Blocks", value: CoinFormat.grouped(game.bricks.count))
+                    .accessibilityLabel("\(game.bricks.count) blocks left")
                 Spacer(minLength: 0)
-                HStack(spacing: 3) {
-                    ForEach(0..<BrickBreakerGame.startingLives, id: \.self) { life in
-                        Image(systemName: life < game.lives ? "heart.fill" : "heart")
-                            .foregroundStyle(life < game.lives ? .red : .subtext)
-                    }
-                }
-                .font(.subheadline)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(game.lives) lives left")
                 ArcadeButton(title: isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill", size: 40) {
                     if isPlaying { isPaused.toggle() }
                 }
                 .disabled(!isPlaying)
             }
             .scoreBar()
-            BrickPowerUpStrip(game: game)
+            .padding(.horizontal, SideColumn.barInset)
             field
-                .frame(maxHeight: .infinity)
+                .sideColumns {
+                    LivesColumn(lives: game.lives, total: BrickBreakerGame.startingLives, symbol: "heart.fill",
+                                emptySymbol: "heart", color: .red, label: "\(game.lives) lives left")
+                } trailing: {
+                    BrickPowerUpColumn(game: game)
+                }
             Label(game.phase == .serving ? "Drag to move, lift your finger to launch" : "Drag anywhere to move the paddle",
                   systemImage: "hand.draw.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.subtext)
         }
-        .padding(12)
+        .padding(.horizontal, SideColumn.edge)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
         .frame(maxWidth: 560)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .overlay {
             if isPaused {
                 PausedCard(game: .brickBreaker, resume: { isPaused = false }, showHelp: { showingHelp = true })
@@ -254,7 +256,7 @@ struct BrickBreakerPlayView: View {
                                                    ? " · \(game.bossesDefeated) " + "whale\(game.bossesDefeated == 1 ? "" : "s")" + " beaten"
                                                    : "")
                                                 + " · best streak \(game.bestLevelStreak)"],
-                                    challenge: result.challenge)
+                                    challenge: result.challenge, xp: result.xp)
                 }
             } else {
                 GamePanel(title: "Level \(startLevel)", buttonTitle: "Start", action: start) {
@@ -294,7 +296,7 @@ struct BrickBreakerPlayView: View {
         let payout = store.finishBrickBreaker(score: game.score, bricks: game.bricksBroken, level: game.level,
                                               bosses: game.bossesDefeated, powerUps: game.powerUpsCaught,
                                               bestStreak: game.bestLevelStreak, startLevel: startLevel)
-        result = GameResult(score: game.score, payout: payout, detail: game.bricksBroken)
+        result = GameResult(score: game.score, payout: payout, detail: game.bricksBroken, xp: store.lastArcadeAward)
     }
 }
 
@@ -320,41 +322,30 @@ extension BrickBreakerGame.PowerUp {
 }
 
 /// The power-ups running, each with the time it has left, and the shrunk paddle's countdown.
-private struct BrickPowerUpStrip: View {
+private struct BrickPowerUpColumn: View {
     let game: BrickBreakerGame
 
     var body: some View {
-        HStack(spacing: 8) {
+        VStack(spacing: 8) {
             ForEach(BrickBreakerGame.PowerUp.allCases, id: \.self) { kind in
                 if game.isActive(kind) {
-                    HStack(spacing: 5) {
-                        Image(systemName: kind.symbol)
-                            .foregroundStyle(kind.color)
-                        if let left = game.effects[kind], let duration = kind.duration {
-                            ProgressView(value: left, total: duration)
-                                .tint(kind.color)
-                                .frame(width: 40)
-                        } else {
-                            Text("×\(game.balls.count)")
-                                .font(.footnote.weight(.heavy).monospacedDigit())
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .glassEffect(.regular, in: .capsule)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(kind.name)
-                    .accessibilityValue(game.effects[kind].map { "\(Int($0.rounded(.up))) seconds left" } ?? "\(game.balls.count) balls")
+                    EffectMeter(symbol: kind.symbol, color: kind.color,
+                                fraction: game.effects[kind].flatMap { left in kind.duration.map { left / $0 } },
+                                label: kind.duration == nil ? "×\(game.balls.count)" : nil)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(kind.name)
+                        .accessibilityValue(game.effects[kind].map { "\(Int($0.rounded(.up))) seconds left" } ?? "\(game.balls.count) balls")
                 }
             }
             if game.shrunkFor > 0 {
-                Label("\(Int(game.shrunkFor.rounded(.up)))s", systemImage: "arrow.right.and.line.vertical.and.arrow.left")
-                    .font(.footnote.weight(.heavy))
-                    .foregroundStyle(Theme.loss)
+                EffectMeter(symbol: "arrow.right.and.line.vertical.and.arrow.left", color: Theme.loss,
+                            fraction: game.shrunkFor / BrickBreakerGame.shrinkTime)
+                    .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Paddle shrunk for \(Int(game.shrunkFor.rounded(.up))) seconds")
             }
         }
-        .frame(height: 30)
+        .animation(.snappy, value: BrickBreakerGame.PowerUp.allCases.filter(game.isActive))
+        .animation(.snappy, value: game.shrunkFor > 0)
     }
 }
 

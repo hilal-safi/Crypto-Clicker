@@ -394,7 +394,7 @@ struct BubblePlayView: View {
                 GamePanel(title: result.isTimeUp ? "Time's Up" : "Market Crashed", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.game.score, isNewBest: result.game.isNewBest,
                                     best: best, reward: result.game.reward,
-                                    details: summary(result), challenge: result.game.challenge)
+                                    details: summary(result), challenge: result.game.challenge, xp: result.game.xp)
                 }
             } else {
                 GamePanel(title: route.title, buttonTitle: "Start", action: start) {
@@ -482,7 +482,7 @@ struct BubblePlayView: View {
         let payout = store.finishBubbleBlaster(score: game.score, popped: game.popped, bestShot: game.bestClear,
                                                wave: game.wave, bestStreak: game.bestStreak, bonuses: game.bonusesCollected,
                                                mode: game.mode)
-        result = BubbleResult(game: GameResult(score: game.score, payout: payout, detail: game.popped),
+        result = BubbleResult(game: GameResult(score: game.score, payout: payout, detail: game.popped, xp: store.lastArcadeAward),
                               wave: game.wave, bestStreak: game.bestStreak, bonuses: game.bonusesCollected,
                               isTimeUp: game.isTimeUp)
     }

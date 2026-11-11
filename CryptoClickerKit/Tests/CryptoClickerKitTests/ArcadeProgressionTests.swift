@@ -46,9 +46,14 @@ struct ArcadeProgressionTests {
         // The first Snake game today, and a best score: 10 + 20 + 15.
         let first = try #require(play(&game, on: monday) { $0.finishSnake(score: 200, length: 23) })
         #expect(first.xp == 45)
+        // Each part is listed for the result screen, in a fixed order.
+        #expect(first.parts == [.init(reason: .played, xp: 10), .init(reason: .firstToday, xp: 15),
+                                .init(reason: .newBest, xp: 20)])
+        #expect(first.parts.reduce(0) { $0 + $1.xp } == first.xp)
         // Another, below the best: just the game.
         let second = try #require(play(&game, on: monday) { $0.finishSnake(score: 100, length: 13) })
         #expect(second.xp == 10)
+        #expect(second.parts == [.init(reason: .played, xp: 10)])
         // The next day, the first game of the day counts again.
         let tuesday = try #require(play(&game, on: "2026-10-27") { $0.finishSnake(score: 50, length: 8) })
         #expect(tuesday.xp == 25)
@@ -74,9 +79,16 @@ struct ArcadeProgressionTests {
         game.tokens = [.shibaInu: 1_000]
         var rng = SeededGenerator(seed: 4)
         var total = 0
+        var awards: [ArcadeAward] = []
         for _ in 0..<100 {
-            total += play(&game, on: monday) { $0.spinSlots(.shibaInu, bet: 1, using: &rng) }?.xp ?? 0
+            let award = play(&game, on: monday) { $0.spinSlots(.shibaInu, bet: 1, using: &rng) }
+            total += award?.xp ?? 0
+            if let award { awards.append(award) }
         }
+        #expect(awards.first?.parts == [.init(reason: .casinoRound, xp: 2), .init(reason: .firstToday, xp: 15)])
+        #expect(awards.first?.isCasinoCapReached == false)
+        // Once today's casino XP is used up, a round earns none and says why.
+        #expect(awards.last?.xp == 0 && awards.last?.isCasinoCapReached == true && awards.last?.parts == [])
         // 15 for the first game of the day, then 2 a spin up to the cap.
         #expect(total == Tuning.arcadeXPFirstPlayToday + Tuning.arcadeCasinoXPPerDay)
         let tomorrow = play(&game, on: "2026-10-27") { $0.spinSlots(.shibaInu, bet: 1, using: &rng) }
@@ -88,11 +100,13 @@ struct ArcadeProgressionTests {
         game.daily.challenge = DailyChallenge(day: monday, kind: .snake, target: 5)
         let award = try #require(play(&game, on: monday) { $0.finishSnake(score: 60, length: 9) })
         #expect(award.xp == 45 + Tuning.arcadeXPChallenge)
+        #expect(award.parts.last == .init(reason: .challenge, xp: Tuning.arcadeXPChallenge))
         let stars = try #require(play(&game, on: monday) {
             $0.finishMerge2048Daily(day: monday, score: Merge2048Game.dailyStarScores[1], bestTile: 128)
         })
         // A 2048 game (not a best: the daily keeps out of it), the first today, and two stars.
         #expect(stars.xp == 10 + 15 + 2 * Tuning.arcadeXPPerStar)
+        #expect(stars.parts.map(\.reason) == [.played, .firstToday, .stars])
     }
 
     @Test func gameAchievementTiersGiveXP() {
@@ -143,7 +157,7 @@ struct ArcadeProgressionTests {
         #expect(!game.isWeeklyGoalPaid(inWeekOf: "2026-11-02"))
     }
 
-    @Test func cosmeticsUnlockByRankAndAchievement() {
+    @Test func cosmeticsUnlockByRankAndAchievement() throws {
         var game = player()
         #expect(game.equipped(.cardBack) == .cardBackClassic)
         #expect(game.isUnlocked(.cardBackClassic))
@@ -161,8 +175,15 @@ struct ArcadeProgressionTests {
         game.stats.slotsWins = 10
         game.refreshAchievements()
         #expect(game.isUnlocked(.reelsNeon))
-        #expect(game.unlockText(.cardBackGold) == "Card Shark · Silver")
+        #expect(game.unlockText(.cardBackGold) == "Arcade Rank 28")
+        let cardShark = try #require(game.achievementUnlock(.cardBackGold))
+        #expect(cardShark.name == "Card Shark" && cardShark.tier == "Silver" && !cardShark.isEarned)
         #expect(game.unlockText(.reelsGold) == "Arcade Rank 10")
+        #expect(game.achievementUnlock(.reelsGold) == nil)
+        // A look an achievement unlocks also comes with its rank, whichever is first.
+        #expect(!game.isUnlocked(.cardBackGold))
+        game.arcade.xp = ArcadeRank.xpNeeded(forRank: 28)
+        #expect(game.isUnlocked(.cardBackGold))
         // Going back to the default clears the pick.
         game.equip(.cardBackClassic)
         #expect(game.arcade.equipped[.cardBack] == nil)
@@ -177,12 +198,17 @@ struct ArcadeProgressionTests {
         }
         let ids = Set(AchievementCatalog.all.map(\.id))
         for cosmetic in Cosmetic.allCases {
-            if case .achievement(let id, let tier) = cosmetic.unlock {
+            if case .achievement(let id, let tier, _) = cosmetic.unlock {
                 #expect(ids.contains(id), "\(cosmetic) needs \(id)")
                 #expect((0...3).contains(tier))
             }
+            // Every look but the defaults shows the Arcade Rank that unlocks it.
+            #expect((cosmetic.unlock.rank != nil) == (cosmetic.unlock != .free), "\(cosmetic)")
         }
         #expect(Cosmetic.unlocked(atRank: 3) == [.cardBackMidnight])
+        // Ranks 2 to 28 each unlock one look.
+        #expect((2...28).allSatisfy { Cosmetic.unlocked(atRank: $0).count == 1 })
+        #expect(Cosmetic.allCases.compactMap(\.unlock.rank).count == 27)
         // Every game has a look of its own to pick.
         #expect(Set(CosmeticSlot.allCases.flatMap(\.games)) == Set(MiniGame.allCases))
         #expect(MiniGame.allCases.allSatisfy { game in CosmeticSlot.allCases.contains { $0.games == [game] } })
@@ -257,5 +283,19 @@ struct ArcadeProgressionTests {
         let kept = try GameCoding.decoder().decode(GameState.self, from: GameCoding.encoder().encode(current))
         #expect(kept.arcade.xp == 7)
     }
-}
 
+    @Test func aRankUpAnnouncesOnlyTheLooksItNewlyUnlocked() {
+        var game = player()
+        game.arcade.xp = ArcadeRank.xpNeeded(forRank: 14)
+        #expect(game.cosmeticsUnlocked(sinceRank: 14) == [])
+        // Slot Reels' Neon (rank 17) was already won with High Roller, so 15 to 17 brings two.
+        game.stats.slotsWins = 10
+        game.refreshAchievements()
+        #expect(game.isUnlocked(.reelsNeon))
+        game.arcade.xp = ArcadeRank.xpNeeded(forRank: 17)
+        #expect(game.cosmeticsUnlocked(sinceRank: 14) == [.feltCrimson, .cardBackEmerald])
+        #expect(game.cosmeticsUnlocked(sinceRank: 2) == [.cardBackMidnight, .tetrisPixel, .moonLambo, .feltBlue, .shipNeon,
+                                                          .snakeRainbow, .pokerObsidian, .reelsGold, .mergeMidnight,
+                                                          .paddleNeon, .bubblesNeon, .pumpNeon, .feltCrimson, .cardBackEmerald])
+    }
+}
