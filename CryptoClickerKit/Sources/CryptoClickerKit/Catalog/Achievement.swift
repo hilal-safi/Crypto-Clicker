@@ -72,7 +72,7 @@ public enum AchievementCatalog {
         Achievement(id: "engineer", name: localized("Engineer"), detail: localized("Buy miner Mk upgrades"), emoji: "🛠️", imageName: nil,
                     metric: .minerUpgrades, thresholds: [5, 25, 100, 500]),
         Achievement(id: "combo-king", name: localized("Combo King"), detail: localized("Quick taps in a row"), emoji: "🔥", imageName: nil,
-                    metric: .bestCombo, thresholds: [29, 110, 420, 1_538]),
+                    metric: .bestCombo, thresholds: [100, 300, 750, 1_600]),
     ]
 
     private static let miners: [Achievement] = MinerID.allCases.map { miner in

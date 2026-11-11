@@ -339,7 +339,7 @@ struct OfflineMiningRow: View {
                     MaxedBadge()
                 }
             }
-            Text("Keeps miners earning while the app is closed: five more minutes a level up to an hour, then half an hour a level, up to three days.")
+            Text("Keeps miners earning while the app is closed: a minute more a level up to 10 minutes, then 5 minutes to an hour, 15 minutes to 3 hours and half an hour up to three days.")
                 .font(.subheadline)
                 .foregroundStyle(.subtext)
                 .fixedSize(horizontal: false, vertical: true)

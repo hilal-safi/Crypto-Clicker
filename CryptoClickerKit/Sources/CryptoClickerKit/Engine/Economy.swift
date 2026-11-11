@@ -323,12 +323,24 @@ extension GameState {
 
     // MARK: Offline Mining
 
-    /// Time away that Offline Mining pays for at `level`: five minutes per level up to an hour,
-    /// then half an hour per level, up to three days.
+    /// Time away that Offline Mining pays for at `level`: a minute per level up to 10 minutes, then
+    /// 5 minutes up to an hour, 15 minutes up to 3 hours and half an hour up to three days.
     public static func offlineCap(level: Int) -> TimeInterval {
-        let level = min(max(0, level), Tuning.offlineMiningMaxLevel)
-        let short = min(level, Tuning.offlineMiningHourLevel)
-        return Double(short) * Tuning.offlineMiningShortStep + Double(level - short) * Tuning.offlineMiningStep
+        var levels = min(max(0, level), Tuning.offlineMiningMaxLevel)
+        var cap: TimeInterval = 0
+        for stage in Tuning.offlineMiningStages where levels > 0 {
+            let inStage = min(levels, Int(((stage.upTo - cap) / stage.step).rounded()))
+            cap += Double(inStage) * stage.step
+            levels -= inStage
+        }
+        return cap
+    }
+
+    /// What Offline Mining levels paid for in version 6: five minutes each up to an hour, then half
+    /// an hour each up to three days.
+    static func version6OfflineCap(level: Int) -> TimeInterval {
+        let level = min(max(0, level), 154)
+        return Double(min(level, 12)) * 300 + Double(max(0, level - 12)) * 1_800
     }
 
     /// The lowest Offline Mining level that pays for at least `cap` away (the last level for more

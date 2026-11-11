@@ -657,7 +657,7 @@ struct AchievementTests {
     @Test func newSystemsHaveAchievements() {
         var game = GameState.make()
         game.stats.minerUpgradesBought = 5
-        game.stats.bestCombo = 110
+        game.stats.bestCombo = 300
         game.stats.tokensSold = 10
         game.stats.questsCompleted = 5
         game.stats.longestStreak = 7

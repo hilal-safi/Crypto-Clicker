@@ -85,22 +85,23 @@ public enum Tuning {
     public static let awayThreshold: TimeInterval = 60
 
     // MARK: Offline Mining
-    /// Miners earn nothing while the app is closed until the player buys Offline Mining.
-    /// Each level adds this much time away, up to an hour...
-    public static let offlineMiningShortStep: TimeInterval = 5 * 60
-    /// ...which this level reaches...
-    public static let offlineMiningHourLevel = 12
-    /// ...and then this much per level...
-    public static let offlineMiningStep: TimeInterval = 30 * 60
-    /// ...up to three days at this level.
-    public static let offlineMiningMaxLevel = 154
+    /// Miners earn nothing while the app is closed until the player buys Offline Mining. Each level
+    /// adds `step` more time away until the limit reaches `upTo`, then the next stage's: a minute
+    /// at a time to 10 minutes, 5 minutes to an hour, 15 minutes to 3 hours, then half an hour up
+    /// to three days.
+    public static let offlineMiningStages: [(upTo: TimeInterval, step: TimeInterval)] = [
+        (10 * 60, 60), (3_600, 5 * 60), (3 * 3_600, 15 * 60), (72 * 3_600, 30 * 60),
+    ]
+    /// The level that reaches three days: 10 + 10 + 8 + 138.
+    public static let offlineMiningMaxLevel = 166
     /// List prices (before the pace) of the levels that reach each limit, in hours; the levels in
-    /// between grow evenly from one to the next. The first five minutes cost 15% less than the half
-    /// hour the first level used to add. Then prices climb steeply while early income does (ten
+    /// between grow evenly from one to the next. The first minute costs a fifth of what the first
+    /// five minutes did (1,224 coins at the opening's pace), the same price a minute. Then prices
+    /// climb steeply while early income does (ten
     /// hours takes about the first week) and more gently after, so a whole day takes over two weeks
     /// and three days about two months: time away is paid at the full rate, so it must be earned.
     public static let offlineMiningPrices: [(hours: Double, price: Double)] = [
-        (5.0 / 60, 2_975), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
+        (1.0 / 60, 595), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
     ]
 
     // MARK: Steps

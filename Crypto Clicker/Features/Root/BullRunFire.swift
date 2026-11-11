@@ -72,21 +72,28 @@ enum FireEdges {
             ])
             context.fill(Path(rect), with: .linearGradient(gradient, startPoint: start, endPoint: end))
         }
-        // The sides: whole down to where the fire starts to ease, then in thin bands that fade
-        // to half, too fine to see as steps.
-        let easeFrom = (height * 0.6).rounded(.down)
-        let bands = 16
-        let bandHeight = (height - easeFrom) / CGFloat(bands)
-        for (x, inward) in [(CGFloat(0), side), (width, -side)] {
-            edge(CGRect(x: min(x, x + inward), y: 0, width: side, height: easeFrom),
-                 from: CGPoint(x: x, y: 0), to: CGPoint(x: x + inward, y: 0), strength: 1)
-            for band in 0..<bands {
-                let y = easeFrom + CGFloat(band) * bandHeight
-                // A hair of overlap so no hairline shows between bands.
-                edge(CGRect(x: min(x, x + inward), y: y, width: side, height: bandHeight + 0.5),
-                     from: CGPoint(x: x, y: 0), to: CGPoint(x: x + inward, y: 0),
-                     strength: strength(atY: y + bandHeight / 2, height: height))
+        // The sides, the full height in one layer, then faded to half over the lower part by a
+        // smooth vertical mask: one continuous gradient, with no bands to show as lines.
+        context.drawLayer { layer in
+            for (x, inward) in [(CGFloat(0), side), (width, -side)] {
+                let gradient = Gradient(stops: [
+                    .init(color: red.opacity(0.62 * pulse), location: 0),
+                    .init(color: orange.opacity(0.28 * pulse), location: 0.45),
+                    .init(color: orange.opacity(0), location: 1),
+                ])
+                layer.fill(Path(CGRect(x: min(x, x + inward), y: 0, width: side, height: height)),
+                           with: .linearGradient(gradient, startPoint: CGPoint(x: x, y: 0),
+                                                 endPoint: CGPoint(x: x + inward, y: 0)))
             }
+            layer.blendMode = .destinationIn
+            let fade = Gradient(stops: [
+                .init(color: .white, location: 0),
+                .init(color: .white, location: 0.6),
+                .init(color: .white.opacity(lowerStrength), location: 0.72),
+                .init(color: .white.opacity(lowerStrength), location: 1),
+            ])
+            layer.fill(Path(CGRect(x: 0, y: 0, width: width, height: height)),
+                       with: .linearGradient(fade, startPoint: .zero, endPoint: CGPoint(x: 0, y: height)))
         }
         edge(CGRect(x: 0, y: 0, width: width, height: top), from: .zero, to: CGPoint(x: 0, y: top), strength: 0.7)
         edge(CGRect(x: 0, y: height - bottom, width: width, height: bottom),
