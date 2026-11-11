@@ -180,6 +180,8 @@ final class GameStore {
     /// What the last action earned toward Arcade Rank (`nil` when it finished no game), for the
     /// result screen that action leads to. Read right after a game's finish call.
     @ObservationIgnored private(set) var lastArcadeAward: ArcadeAward?
+    /// The miner whose description the Shop is showing, from a tap on its icon.
+    var shopInfoMiner: MinerID?
     @ObservationIgnored private var lastSave = Date.now
     @ObservationIgnored var lastWatchPush = Date.distantPast
     @ObservationIgnored var lastBalanceShare = Date.distantPast

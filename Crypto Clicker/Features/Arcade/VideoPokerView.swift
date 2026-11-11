@@ -58,6 +58,9 @@ struct VideoPokerView: View {
                     cardRow(width: min(proxy.size.width, 560))
                     outcome
                         .frame(minHeight: 60)
+                        // A result tucks up into the empty HODL row under the cards (no card is held
+                        // between hands), about half as far from them as the instructions sit.
+                        .padding(.top, phase == .betting && result != nil ? -22 : 0)
                     Spacer(minLength: 28)
                 }
                 .padding(16)

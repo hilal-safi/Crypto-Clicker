@@ -496,19 +496,36 @@ struct GameOverSummary: View {
     }
 }
 
-/// The Arcade XP a game or round earned, with where it came from ("Game played 10 · First today
-/// 15") and a new rank when it brought one. Casino rounds past the day's XP say so instead.
+/// The Arcade XP a game or round earned, with where it came from ("Game played +10 · First today
+/// +15") and a new rank when it brought one. Casino rounds past the day's XP say so instead. A solid
+/// purple pill with white text, so it reads on any table: dark glass, green felt or a bright board.
 struct ArcadeXPEarned: View {
     let award: ArcadeAward?
     /// One line, for the casino's result banners.
     var compact = false
 
+    static let fill = LinearGradient(colors: [Color(red: 0.55, green: 0.18, blue: 0.80), Color(red: 0.38, green: 0.10, blue: 0.62)],
+                                     startPoint: .top, endPoint: .bottom)
+
     var body: some View {
         if let award, award.xp > 0 {
-            VStack(spacing: 3) {
-                Label("+\(CoinFormat.grouped(award.xp)) Arcade XP", systemImage: "gamecontroller.fill")
-                    .font(compact ? .subheadline.weight(.bold) : .headline)
-                    .foregroundStyle(Theme.arcade)
+            VStack(spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "gamecontroller.fill")
+                    Text("+\(CoinFormat.grouped(award.xp)) Arcade XP")
+                    if award.rankedUp {
+                        Text("· Rank \(award.rankAfter)!")
+                    }
+                }
+                .font(compact ? .subheadline.weight(.heavy) : .headline.weight(.heavy))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .padding(.horizontal, compact ? 12 : 14)
+                .padding(.vertical, compact ? 5 : 7)
+                .background(Self.fill, in: .capsule)
+                .overlay(Capsule().strokeBorder(.white.opacity(0.35), lineWidth: 1))
+                .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
                 if !compact, award.parts.count > 1 {
                     Text(award.parts.map { "\($0.name) +\(CoinFormat.grouped($0.xp))" }.joined(separator: " · "))
                         .font(.footnote.weight(.semibold))
@@ -516,22 +533,113 @@ struct ArcadeXPEarned: View {
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                if award.rankedUp {
-                    Text("Arcade Rank \(award.rankAfter) reached!")
-                        .font(compact ? .footnote.weight(.bold) : .subheadline.weight(.bold))
-                        .foregroundStyle(Theme.arcade)
-                }
             }
-            .padding(.vertical, compact ? 4 : 8)
-            .padding(.horizontal, 12)
-            .background(Theme.arcade.opacity(0.14), in: .rect(cornerRadius: 12))
             .accessibilityElement(children: .combine)
         } else if award?.isCasinoCapReached == true {
             Label("No Arcade XP: today's casino XP is used up", systemImage: "gamecontroller")
                 .font(compact ? .footnote.weight(.semibold) : .subheadline.weight(.semibold))
-                .foregroundStyle(.subtext)
+                .foregroundStyle(.white.opacity(0.9))
                 .multilineTextAlignment(.center)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(.black.opacity(0.45), in: .capsule)
         }
+    }
+}
+
+// MARK: - Side columns
+
+/// The columns beside a game's field: lives down the left, timed effects down the right. Narrow,
+/// so a tall field gives up little width to them.
+enum SideColumn {
+    static let width: CGFloat = 28
+    static let gap: CGFloat = 4
+    /// The screen edge's margin beside the columns (the bars above and below keep `barInset` more).
+    static let edge: CGFloat = 4
+    static let barInset: CGFloat = 8
+}
+
+extension View {
+    /// Puts columns beside a field, each as tall as the field: `leading` from the top down,
+    /// `trailing` filling the height (so a lone effect's bar runs the field's full height).
+    func sideColumns<Leading: View, Trailing: View>(@ViewBuilder leading: () -> Leading,
+                                                    @ViewBuilder trailing: () -> Trailing) -> some View {
+        padding(.horizontal, SideColumn.width + SideColumn.gap)
+            .overlay(alignment: .topLeading) {
+                leading()
+                    .frame(width: SideColumn.width)
+            }
+            .overlay(alignment: .topTrailing) {
+                trailing()
+                    .frame(width: SideColumn.width)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            }
+    }
+}
+
+/// Lives, one above another.
+struct LivesColumn: View {
+    let lives: Int
+    let total: Int
+    let symbol: String
+    let emptySymbol: String
+    let color: Color
+    /// "3 lives left", for VoiceOver.
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ForEach(0..<total, id: \.self) { life in
+                Image(systemName: life < lives ? symbol : emptySymbol)
+                    .foregroundStyle(life < lives ? AnyShapeStyle(color) : AnyShapeStyle(.subtext))
+            }
+        }
+        .font(.title3)
+        .padding(.vertical, 10)
+        .frame(width: SideColumn.width)
+        .glassEffect(.regular, in: .capsule)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+    }
+}
+
+/// A timed effect: its symbol over a bar that empties from the top down as time runs out. One
+/// without a timer shows `label` (such as "×3" balls) instead of the bar.
+struct EffectMeter: View {
+    let symbol: String
+    let color: Color
+    /// The share of the time left, or `nil` for an effect without a timer.
+    let fraction: Double?
+    var label: String? = nil
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: symbol)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(color)
+            if let fraction {
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(.white.opacity(0.15))
+                        .overlay(alignment: .bottom) {
+                            Capsule()
+                                .fill(color.gradient)
+                                .frame(height: proxy.size.height * min(max(fraction, 0), 1))
+                        }
+                }
+                .frame(width: 8)
+                .frame(minHeight: 30, maxHeight: .infinity)
+            } else if let label {
+                Text(label)
+                    .font(.caption.weight(.heavy).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+        }
+        .padding(.vertical, 8)
+        .frame(width: SideColumn.width)
+        .frame(maxHeight: fraction == nil ? nil : .infinity)
+        .glassEffect(.regular, in: .capsule)
     }
 }
 

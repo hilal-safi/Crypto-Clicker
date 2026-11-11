@@ -141,7 +141,7 @@ public struct BrickBreakerGame: Sendable {
     static let laserInterval: TimeInterval = 0.4
     static let wideFactor = 1.5
     static let shrinkFactor = 0.65
-    static let shrinkTime: TimeInterval = 5
+    public static let shrinkTime: TimeInterval = 5
     static let slowFactor = 0.7
     static let maxBalls = 6
     /// Hitting the paddle's edge sends the ball off at up to this angle from straight up.

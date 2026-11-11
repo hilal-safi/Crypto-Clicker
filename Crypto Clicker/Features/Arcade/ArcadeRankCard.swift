@@ -125,16 +125,11 @@ struct StyleView: View {
                         .font(.headline)
                         .foregroundStyle(.primary)
                     if !isUnlocked {
-                        Label("Reach \(game.unlockText(cosmetic))", systemImage: "lock.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.subtext)
+                        UnlockLine(symbol: "lock.fill", text: "Reach \(game.unlockText(cosmetic))")
                         if let achievement = game.achievementUnlock(cosmetic) {
                             // The other way in: a game achievement, earned in Trophies.
-                            Label("or earn the \(achievement.name) achievement at \(achievement.tier)",
-                                  systemImage: "trophy.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.subtext)
-                                .fixedSize(horizontal: false, vertical: true)
+                            UnlockLine(symbol: "trophy.fill",
+                                       text: "Or earn the \(achievement.name) achievement (\(achievement.tier))")
                         }
                     }
                 }
@@ -152,5 +147,23 @@ struct StyleView: View {
         .accessibilityLabel(cosmetic.name)
         .accessibilityValue(isEquipped ? "In use" : isUnlocked ? "" : lockedText(cosmetic, game: game))
         .accessibilityAddTraits(isEquipped ? .isSelected : [])
+    }
+}
+
+/// One way to unlock a look: a small symbol right beside its text, so the line reads as one.
+private struct UnlockLine: View {
+    let symbol: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: symbol)
+                .font(.footnote)
+                .frame(width: 16)
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.subheadline)
+        .foregroundStyle(.subtext)
     }
 }

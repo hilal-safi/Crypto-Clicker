@@ -86,6 +86,9 @@ struct ShopView: View {
                 .onChange(of: tokenRequests) { _, _ in showTokensIfAsked(scroller) }
             }
             .background { AppBackground(tint: page == .tokens ? .green : Theme.shop) }
+            .sheet(item: Binding(get: { store.shopInfoMiner }, set: { store.shopInfoMiner = $0 })) { miner in
+                MinerInfoSheet(miner: miner)
+            }
             .navigationTitle("Shop")
             .balanceToolbar()
         }

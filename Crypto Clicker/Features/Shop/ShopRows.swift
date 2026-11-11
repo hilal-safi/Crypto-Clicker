@@ -29,7 +29,6 @@ struct MinerRow: View {
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var purchases = 0
     @State private var refusals = 0
-    @State private var showsInfo = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -56,7 +55,7 @@ struct MinerRow: View {
                 }
                 // Tapping the icon shows what the miner is, since the line under its name turns into
                 // its income once one is owned.
-                Button { showsInfo = true } label: {
+                Button { store.shopInfoMiner = miner } label: {
                     Text(miner.emoji)
                         .font(.system(size: 30))
                         .frame(width: 52, height: 52)
@@ -65,10 +64,6 @@ struct MinerRow: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("About \(miner.name)")
-                .popover(isPresented: $showsInfo) {
-                    ShopItemInfo(emoji: miner.emoji, title: miner.name, text: miner.blurb,
-                                 detail: owned > 0 ? "Owned \(CoinFormat.grouped(owned)) · \(CoinFormat.rate(rate)) coins per second" : nil)
-                }
                 if legacy > 1 {
                     Label(CoinFormat.multiplier(legacy), systemImage: "clock.arrow.circlepath")
                         .font(.subheadline.weight(.bold).monospacedDigit())
@@ -152,37 +147,47 @@ struct MinerRow: View {
     }
 }
 
-/// What a Shop item is, in a popover from its icon: the description that gives way to its numbers
-/// once it's bought.
-struct ShopItemInfo: View {
-    let emoji: String
-    let title: String
-    let text: String
-    var detail: String? = nil
+/// What a miner is, in a small sheet from its icon in the Shop: the description that gives way to
+/// its income once one is owned. The Shop presents it (not the row), so a row redrawing as the
+/// numbers change can't stop it opening.
+struct MinerInfoSheet: View {
+    let miner: MinerID
+    @Environment(GameStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var height: CGFloat = 200
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Text(emoji)
-                    .font(.system(size: 28))
+        let game = store.game
+        let owned = game.owned(miner)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Text(miner.emoji)
+                    .font(.system(size: 30))
+                    .frame(width: 52, height: 52)
+                    .background(Theme.shop.opacity(0.14), in: .circle)
                     .accessibilityHidden(true)
-                Text(title)
-                    .font(.headline)
+                Text(miner.name)
+                    .font(.title3.bold())
+                Spacer(minLength: 0)
+                Button("Done", systemImage: "xmark") { dismiss() }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.glass)
             }
-            Text(text)
-                .font(.subheadline)
+            Text(miner.blurb)
+                .font(.body)
                 .fixedSize(horizontal: false, vertical: true)
-            if let detail {
-                Text(detail)
-                    .font(.footnote.weight(.semibold).monospacedDigit())
+            if owned > 0 {
+                Text("Owned \(CoinFormat.grouped(owned)) · \(CoinFormat.rate(game.rate(of: miner))) coins per second")
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(16)
-        .frame(idealWidth: 280, maxWidth: 320, alignment: .leading)
-        .presentationCompactAdaptation(.popover)
-        .accessibilityElement(children: .combine)
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+        .presentationDetents([.height(height)])
+        .presentationDragIndicator(.visible)
     }
 }
 
