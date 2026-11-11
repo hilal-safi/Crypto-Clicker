@@ -339,11 +339,11 @@ struct OfflineMiningRow: View {
                     MaxedBadge()
                 }
             }
-            Text("Keeps miners earning while the app is closed: a minute more a level up to 10 minutes, then 5 minutes to an hour, 15 minutes to 3 hours and half an hour up to three days.")
+            Text("Keeps miners earning while the app is closed, up to three days.")
                 .font(.subheadline)
                 .foregroundStyle(.subtext)
                 .fixedSize(horizontal: false, vertical: true)
-            NowAndNext(title: "Time away paid", now: level > 0 ? CoinFormat.duration(cap) : String(localized: "Off"),
+            NowAndNext(title: "Time away paid", now: CoinFormat.duration(max(cap, Tuning.awayThreshold)),
                        next: price != nil ? CoinFormat.duration(nextCap) : nil, color: .indigo)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

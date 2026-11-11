@@ -161,12 +161,12 @@
     "A coin with a red rim. It shakes, then turns into a scam: tap it early or leave it." : {
 
     },
-    "A combo waits %@ longer for your next tap a level: from %@ up to %@." : {
+    "A combo waits longer for your next tap, up to %@." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "A combo waits %1$@ longer for your next tap a level: from %2$@ up to %3$@."
+            "value" : "A combo waits longer for your next tap, up to %@."
           }
         }
       }
@@ -827,12 +827,12 @@
     "Dyson Swarm" : {
 
     },
-    "Each +0.1 of a combo comes sooner: %@ faster a level, up to %@× as fast." : {
+    "Combos build faster, up to %@× as fast." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Each +0.1 of a combo comes sooner: %1$@ faster a level, up to %2$@× as fast."
+            "value" : "Combos build faster, up to %@× as fast."
           }
         }
       }
@@ -1807,12 +1807,22 @@
     "Rainbow" : {
 
     },
-    "Raises the biggest combo by ×%@ a level, from ×%@ up to ×%@." : {
+    "Raises the biggest combo, up to ×%@." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Raises the biggest combo by ×%1$@ a level, from ×%2$@ up to ×%3$@."
+            "value" : "Raises the biggest combo, up to ×%@."
+          }
+        }
+      }
+    },
+    "Raises the biggest combo further, up to ×%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Raises the biggest combo further, up to ×%@."
           }
         }
       }

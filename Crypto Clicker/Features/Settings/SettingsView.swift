@@ -33,7 +33,7 @@ struct SettingsView: View {
                     NavigationLink {
                         HowToPlayView()
                     } label: {
-                        SettingsLinkLabel(title: "How to Play", detail: "Every part of the game, and each game's rules",
+                        SettingsLinkLabel(title: "How to Play", detail: "Rules for every part of the game",
                                           symbol: "questionmark.circle.fill", color: Theme.accent)
                     }
                     NavigationLink {

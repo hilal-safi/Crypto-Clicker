@@ -167,7 +167,7 @@ struct SimulatedPlayer {
     /// pays each day, spread over the ten minutes played per session.
     private func offlineMiningGain() -> Double {
         guard !awayHours.isEmpty else { return 0 }
-        let current = GameState.offlineCap(level: game.offlineMiningLevel)
+        let current = max(GameState.offlineCap(level: game.offlineMiningLevel), Tuning.awayThreshold)
         let next = GameState.offlineCap(level: game.offlineMiningLevel + 1)
         let extra = awayHours.reduce(0.0) { $0 + min($1 * 3_600, next) - min($1 * 3_600, current) }
         return game.baseIdleIncome * extra / (600 * Double(awayHours.count))
@@ -380,8 +380,8 @@ struct PacingTests {
         var player = SimulatedPlayer(tapsPerSecond: 3, awayHours: [3, 4, 5, 10])
         player.play(seconds: 60)
         #expect(player.game.offlineMiningLevel == 0) // Not affordable in the first minute.
-        player.play(seconds: 19 * 60)
-        #expect(player.game.offlineMiningLevel >= 1) // Bought in the first twenty minutes of play.
+        player.play(seconds: 29 * 60)
+        #expect(player.game.offlineMiningLevel >= 1) // Bought in the first half hour of play.
     }
 
     @Test func tapsStayWorthHavingAllGameLong() {

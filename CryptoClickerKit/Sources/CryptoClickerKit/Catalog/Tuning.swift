@@ -85,23 +85,23 @@ public enum Tuning {
     public static let awayThreshold: TimeInterval = 60
 
     // MARK: Offline Mining
-    /// Miners earn nothing while the app is closed until the player buys Offline Mining. Each level
-    /// adds `step` more time away until the limit reaches `upTo`, then the next stage's: a minute
-    /// at a time to 10 minutes, 5 minutes to an hour, 15 minutes to 3 hours, then half an hour up
-    /// to three days.
+    /// Without Offline Mining, time away pays only the free first minute (`awayThreshold`). Each
+    /// level adds `step` more until the limit reaches `upTo`, then the next stage's: the first level
+    /// adds a minute (two in all), then a minute at a time to 10 minutes, 5 minutes to an hour,
+    /// 15 minutes to 3 hours, then half an hour up to three days.
     public static let offlineMiningStages: [(upTo: TimeInterval, step: TimeInterval)] = [
         (10 * 60, 60), (3_600, 5 * 60), (3 * 3_600, 15 * 60), (72 * 3_600, 30 * 60),
     ]
-    /// The level that reaches three days: 10 + 10 + 8 + 138.
-    public static let offlineMiningMaxLevel = 166
+    /// The level that reaches three days: 9 + 10 + 8 + 138.
+    public static let offlineMiningMaxLevel = 165
     /// List prices (before the pace) of the levels that reach each limit, in hours; the levels in
-    /// between grow evenly from one to the next. The first minute costs 2,500 coins at the opening's
-    /// pace, twice the old price a minute, to keep time away from coming too cheaply. Then prices
-    /// climb steeply while early income does (ten
-    /// hours takes about the first week) and more gently after, so a whole day takes over two weeks
-    /// and three days about two months: time away is paid at the full rate, so it must be earned.
+    /// between grow evenly from one to the next. The first level (two minutes) costs 3,500 coins at
+    /// the opening's pace, to keep time away from coming too cheaply. Then prices climb steeply
+    /// while early income does (ten hours takes about the first week) and more gently after, so a
+    /// whole day takes over two weeks and three days about two months: time away is paid at the
+    /// full rate, so it must be earned.
     public static let offlineMiningPrices: [(hours: Double, price: Double)] = [
-        (1.0 / 60, 1_216.16), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
+        (2.0 / 60, 1_702.64), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
     ]
 
     // MARK: Steps

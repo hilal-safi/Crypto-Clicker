@@ -406,7 +406,7 @@ struct ComboTests {
         #expect(PowerUpID.comboBooster.summary.contains("×5"))
         #expect(PowerUpID.comboOverdrive.summary.contains("×10"))
         #expect(PowerUpID.quickCombos.summary.contains("4×"))
-        #expect(PowerUpID.comboKeeper.summary.contains("0.6s") && PowerUpID.comboKeeper.summary.contains("2.2s"))
+        #expect(PowerUpID.comboKeeper.summary.contains("2.2s"))
         // The Shop's Now and Next show the value alone.
         #expect(PowerUpID.comboBooster.value(atLevel: 0) == "×2")
         #expect(PowerUpID.comboBooster.value(atLevel: 3) == "×3.5")
