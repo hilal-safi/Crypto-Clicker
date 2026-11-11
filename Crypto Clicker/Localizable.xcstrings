@@ -23,6 +23,9 @@
     "???" : {
 
     },
+    "· Rank %lld!" : {
+
+    },
     "#" : {
 
     },
@@ -389,6 +392,12 @@
     "%lld balls" : {
 
     },
+    "%lld blocks left" : {
+
+    },
+    "%lld enemies left" : {
+
+    },
     "%lld free %@ at %@ %@" : {
       "localizations" : {
         "en" : {
@@ -410,9 +419,6 @@
       }
     },
     "%lld items purchased!" : {
-
-    },
-    "%lld lives left" : {
 
     },
     "%lld minutes to score all you can. A new row drops every %lld seconds whatever you shoot, a second sooner each wave, and a miss only costs the streak." : {
@@ -470,9 +476,6 @@
     "%lld seconds left" : {
 
     },
-    "%lld ships left" : {
-
-    },
     "%lld still hidden" : {
 
     },
@@ -488,9 +491,6 @@
           }
         }
       }
-    },
-    "%llds" : {
-
     },
     "•" : {
 
@@ -517,6 +517,9 @@
           }
         }
       }
+    },
+    "+%@ Arcade XP" : {
+
     },
     "+%@ coins" : {
 
@@ -556,10 +559,10 @@
     "+1" : {
 
     },
-    "×%@" : {
+    "+2 Arcade XP" : {
 
     },
-    "×%lld" : {
+    "×%@" : {
 
     },
     "×5" : {
@@ -1219,6 +1222,9 @@
     "Endless with today's pieces, dealt the same to everyone all day. Scores count toward your Endless best." : {
 
     },
+    "Enemies" : {
+
+    },
     "Erases everything, prestige and achievements included." : {
 
     },
@@ -1312,6 +1318,9 @@
     "Full Blocks" : {
 
     },
+    "FULL HOUSE!" : {
+
+    },
     "Game Over" : {
 
     },
@@ -1400,9 +1409,6 @@
 
     },
     "How to Play %@" : {
-
-    },
-    "In use" : {
 
     },
     "Includes %@ for moves left" : {
@@ -1534,8 +1540,18 @@
     "Lock Screen and Widgets" : {
 
     },
-    "Locked: %@" : {
+    "Locked: reach %@" : {
 
+    },
+    "Locked: reach %@, or earn the %@ achievement at %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Locked: reach %1$@, or earn the %2$@ achievement at %3$@"
+          }
+        }
+      }
     },
     "Locked: win level %lld first" : {
 
@@ -1736,6 +1752,9 @@
         }
       }
     },
+    "No Arcade XP: today's casino XP is used up" : {
+
+    },
     "No blackjack: insurance of %@ %@ lost" : {
       "localizations" : {
         "en" : {
@@ -1840,6 +1859,16 @@
     },
     "Owned %@" : {
 
+    },
+    "Owned %@ · %@ coins per second" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Owned %1$@ · %2$@ coins per second"
+          }
+        }
+      }
     },
     "Paddle shrunk for %lld seconds" : {
 
