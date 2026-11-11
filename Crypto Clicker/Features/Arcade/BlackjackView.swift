@@ -574,7 +574,7 @@ struct PlayingCardView: View {
             if isFaceDown {
                 CardBack()
             } else {
-                CardFace(card: card)
+                CardFace(card: card, width: size.width)
             }
         }
         .frame(width: size.width, height: size.height)
@@ -588,34 +588,35 @@ struct PlayingCardView: View {
     }
 }
 
+/// A card's face: its rank and suit in two corners and a big suit in the middle, all sized to the
+/// card, so the corners keep clear of the middle on the small cards of a long hand or a split.
 private struct CardFace: View {
     let card: Card
+    let width: CGFloat
 
     var body: some View {
         let color = card.suit.isRed ? Color(red: 0.85, green: 0.1, blue: 0.15) : Color.black
         ZStack {
             Color.white
             Text(card.suit.symbol)
-                .font(.system(size: 34))
-            VStack(spacing: -2) {
-                Text(card.label)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                Text(card.suit.symbol)
-                    .font(.system(size: 13))
-            }
-            .padding(5)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            VStack(spacing: -2) {
-                Text(card.label)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                Text(card.suit.symbol)
-                    .font(.system(size: 13))
-            }
-            .padding(5)
-            .rotationEffect(.degrees(180))
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .font(.system(size: width * 0.44))
+            corner
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            corner
+                .rotationEffect(.degrees(180))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
         .foregroundStyle(color)
+    }
+
+    private var corner: some View {
+        VStack(spacing: -width * 0.035) {
+            Text(card.label)
+                .font(.system(size: width * 0.25, weight: .bold, design: .rounded))
+            Text(card.suit.symbol)
+                .font(.system(size: width * 0.19))
+        }
+        .padding(width * 0.07)
     }
 }
 

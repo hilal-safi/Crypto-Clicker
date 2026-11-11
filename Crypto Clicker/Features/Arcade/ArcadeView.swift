@@ -234,8 +234,8 @@ struct MiniGameRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            // 18 points between the text and the buttons (the row's gap and this), half what it was.
-            .padding(.trailing, 4)
+            // 16 points between the text and the buttons (the row's gap of 14 and this).
+            .padding(.trailing, 2)
             if isUnlocked {
                 VStack(spacing: 8) {
                     NavigationLink(value: miniGame) {
