@@ -58,7 +58,7 @@ struct VideoPokerView: View {
             ScrollView {
                 VStack(spacing: 10) {
                     PayTable(bet: shownBet, unit: shownUnit, highlighted: phase == .betting ? result?.hand : nil)
-                        .padding(.bottom, 1) // 11 points to the cards.
+                        .padding(.bottom, 6) // 16 points to the cards.
                     cardRow(cardWidth: cardWidth)
                     outcomeSpace
                 }
