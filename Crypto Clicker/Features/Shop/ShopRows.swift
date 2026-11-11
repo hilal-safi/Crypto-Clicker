@@ -55,7 +55,11 @@ struct MinerRow: View {
                 }
                 // Tapping the icon shows what the miner is, since the line under its name turns into
                 // its income once one is owned.
-                Button { store.shopInfoMiner = miner } label: {
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) {
+                        store.shopInfoMiner = store.shopInfoMiner == miner ? nil : miner
+                    }
+                } label: {
                     Text(miner.emoji)
                         .font(.system(size: 30))
                         .frame(width: 52, height: 52)
@@ -63,6 +67,8 @@ struct MinerRow: View {
                         .contentShape(.circle)
                 }
                 .buttonStyle(.plain)
+                // Where the Shop points its info pop-up from.
+                .anchorPreference(key: MinerIconAnchors.self, value: .bounds) { [miner: $0] }
                 .accessibilityLabel("About \(miner.name)")
                 if legacy > 1 {
                     Label(CoinFormat.multiplier(legacy), systemImage: "clock.arrow.circlepath")
@@ -147,47 +153,123 @@ struct MinerRow: View {
     }
 }
 
-/// What a miner is, in a small sheet from its icon in the Shop: the description that gives way to
-/// its income once one is owned. The Shop presents it (not the row), so a row redrawing as the
-/// numbers change can't stop it opening.
-struct MinerInfoSheet: View {
-    let miner: MinerID
+/// Where each miner's icon is in the Shop, for the info pop-up to point at.
+struct MinerIconAnchors: PreferenceKey {
+    static let defaultValue: [MinerID: Anchor<CGRect>] = [:]
+
+    static func reduce(value: inout [MinerID: Anchor<CGRect>], nextValue: () -> [MinerID: Anchor<CGRect>]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
+/// The miner info pop-up, drawn over the whole Shop list rather than inside a row: the rows redraw
+/// as the numbers change, which can stop a system popover attached to one from appearing, so this
+/// works the same way for every miner. It points at the tapped icon from just below it; a tap on
+/// it, the icon or anywhere else puts it away.
+struct MinerInfoLayer: View {
+    let anchors: [MinerID: Anchor<CGRect>]
     @Environment(GameStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
-    @State private var height: CGFloat = 200
+
+    var body: some View {
+        GeometryReader { proxy in
+            if let miner = store.shopInfoMiner, let anchor = anchors[miner] {
+                let icon = proxy[anchor]
+                let width = min(320, proxy.size.width)
+                let left = min(max(0, icon.minX - 6), max(0, proxy.size.width - width))
+                ZStack(alignment: .topLeading) {
+                    // A tap anywhere else closes it, like a popover.
+                    Color.clear
+                        .contentShape(.rect)
+                        .onTapGesture(perform: close)
+                        .accessibilityHidden(true)
+                    MinerInfoBubble(miner: miner, arrowX: icon.midX - left, close: close)
+                        .frame(width: width)
+                        .offset(x: left, y: icon.maxY + 2)
+                        .transition(.scale(scale: 0.85, anchor: UnitPoint(x: (icon.midX - left) / width, y: 0))
+                            .combined(with: .opacity))
+                        .id(miner)
+                }
+            }
+        }
+    }
+
+    private func close() {
+        withAnimation(.snappy(duration: 0.2)) { store.shopInfoMiner = nil }
+    }
+}
+
+/// What a miner is: the description that gives way to its income once one is owned, and what the
+/// ones owned earn.
+private struct MinerInfoBubble: View {
+    let miner: MinerID
+    /// Where the arrow points, from the bubble's left edge.
+    let arrowX: CGFloat
+    let close: () -> Void
+    @Environment(GameStore.self) private var store
 
     var body: some View {
         let game = store.game
         let owned = game.owned(miner)
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
                 Text(miner.emoji)
-                    .font(.system(size: 30))
-                    .frame(width: 52, height: 52)
-                    .background(Theme.shop.opacity(0.14), in: .circle)
+                    .font(.title3)
                     .accessibilityHidden(true)
                 Text(miner.name)
-                    .font(.title3.bold())
+                    .font(.headline)
                 Spacer(minLength: 0)
-                Button("Done", systemImage: "xmark") { dismiss() }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.glass)
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.subtext)
+                    .accessibilityHidden(true)
             }
             Text(miner.blurb)
-                .font(.body)
+                .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
             if owned > 0 {
                 Text("Owned \(CoinFormat.grouped(owned)) · \(CoinFormat.rate(game.rate(of: miner))) coins per second")
-                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .font(.footnote.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
-        .presentationDetents([.height(height)])
-        .presentationDragIndicator(.visible)
+        .padding(.horizontal, 14)
+        .padding(.bottom, 12)
+        .padding(.top, 12 + Callout.arrow.height)
+        .background {
+            Callout(arrowX: arrowX)
+                .fill(.regularMaterial)
+                .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
+        }
+        .overlay { Callout(arrowX: arrowX).stroke(.primary.opacity(0.12), lineWidth: 1) }
+        .contentShape(Callout(arrowX: arrowX))
+        .onTapGesture(perform: close)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isModal)
+        .accessibilityAction(named: "Close", close)
+        .onAppear {
+            AccessibilityNotification.Announcement("\(miner.name). \(miner.blurb)").post()
+        }
+    }
+}
+
+/// A rounded box with an arrow on top pointing up at `arrowX`.
+private struct Callout: Shape {
+    static let arrow = CGSize(width: 18, height: 9)
+    var arrowX: CGFloat
+    var radius: CGFloat = 16
+
+    func path(in rect: CGRect) -> Path {
+        let box = CGRect(x: rect.minX, y: rect.minY + Self.arrow.height,
+                         width: rect.width, height: rect.height - Self.arrow.height)
+        let half = Self.arrow.width / 2
+        let x = min(max(rect.minX + arrowX, box.minX + radius + half), box.maxX - radius - half)
+        var tip = Path()
+        tip.move(to: CGPoint(x: x - half, y: box.minY + 1))
+        tip.addLine(to: CGPoint(x: x, y: rect.minY))
+        tip.addLine(to: CGPoint(x: x + half, y: box.minY + 1))
+        tip.closeSubpath()
+        return Path(roundedRect: box, cornerRadius: radius, style: .continuous).union(tip)
     }
 }
 

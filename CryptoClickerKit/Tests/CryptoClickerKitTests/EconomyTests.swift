@@ -253,14 +253,17 @@ struct ProductionTests {
             #expect(price > previous, "level \(level)")
             previous = price
         }
-        // Levels 2 to 15 cost 10% more than the curve: within the 5-minute steps (levels 10 to 19) each
-        // level grows by the same factor, except into and out of the premium.
+        // Levels 2 to 15 cost 10% more than the curve, and 2 to 10 another 5%: within the 5-minute
+        // steps (levels 10 to 19) each level grows by the same factor, except where a premium ends.
         let price = GameState.offlineMiningListPrice(level:)
-        let step = price(11) / price(10)
+        let step = price(12) / price(11)
+        #expect(approx(price(11) / price(10) * Tuning.offlineMiningEarliestPremium, step))
         #expect(approx(price(15) / price(14), step))
         #expect(approx(price(16) / price(15) * Tuning.offlineMiningEarlyPremium, step))
         #expect(approx(price(17) / price(16), step))
-        #expect(price(16) > price(15))
+        #expect((1...Tuning.offlineMiningMaxLevel - 1).allSatisfy { price($0 + 1) > price($0) })
+        // The first minutes: within the 1-minute steps, the same growth from level 2 to 9.
+        #expect(approx(price(3) / price(2), price(9) / price(8)))
         #expect(Tuning.scaledPrice(price(1)) == 3_500) // The first level keeps its price.
         #expect(approx(GameState.offlineMiningListPrice(level: 19), 8e4)) // An hour.
         #expect(approx(GameState.offlineMiningListPrice(level: 41), 1.3e11)) // Ten hours.

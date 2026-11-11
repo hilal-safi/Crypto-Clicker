@@ -378,7 +378,8 @@ extension GameState {
     public static func offlineMiningListPrice(level: Int) -> Double {
         let hours = offlineCap(level: level) / 3_600
         let prices = Tuning.offlineMiningPrices
-        let premium = Tuning.offlineMiningEarlyPremiumLevels.contains(level) ? Tuning.offlineMiningEarlyPremium : 1
+        let premium = (Tuning.offlineMiningEarlyPremiumLevels.contains(level) ? Tuning.offlineMiningEarlyPremium : 1)
+            * (Tuning.offlineMiningEarliestPremiumLevels.contains(level) ? Tuning.offlineMiningEarliestPremium : 1)
         guard let next = prices.firstIndex(where: { $0.hours >= hours }) else { return (prices.last?.price ?? 0) * premium }
         guard next > 0 else { return prices[next].price * premium }
         let from = prices[next - 1], to = prices[next]

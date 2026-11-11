@@ -200,11 +200,29 @@ struct MiniGameRow: View {
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var refusals = 0
 
+    /// The icon's width and the gap after it, which the records line up under the name with.
+    private static let iconWidth: CGFloat = 58
+    private static let gap: CGFloat = 14
+
     var body: some View {
-        HStack(spacing: 14) {
+        // The records run under the buttons too, to the card's edge, so a long one ("BEST HAND
+        // Jacks or Better") keeps to one line.
+        VStack(alignment: .leading, spacing: 6) {
+            mainRow
+            if isUnlocked && !record.isEmpty {
+                RecordLine(facts: record, tint: miniGame.textColor(in: colorScheme))
+                    .padding(.leading, Self.iconWidth + Self.gap)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .rowCard()
+    }
+
+    private var mainRow: some View {
+        HStack(spacing: Self.gap) {
             Text(miniGame.icon)
                 .font(.system(size: 32))
-                .frame(width: 58, height: 58)
+                .frame(width: Self.iconWidth, height: Self.iconWidth)
                 .background(miniGame.color.opacity(0.18), in: .rect(cornerRadius: 16))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
@@ -214,10 +232,6 @@ struct MiniGameRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
-                if isUnlocked {
-                    RecordLine(facts: record, tint: miniGame.textColor(in: colorScheme))
-                        .padding(.top, 1)
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             // 18 points between the text and the buttons (the row's gap and this), half what it was.
@@ -261,7 +275,6 @@ struct MiniGameRow: View {
                 .accessibilityLabel("Unlock \(miniGame.name) for \(CoinFormat.cost(miniGame.unlockCost)) coins")
             }
         }
-        .rowCard()
     }
 }
 

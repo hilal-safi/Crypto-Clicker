@@ -33,6 +33,9 @@ struct VideoPokerView: View {
     @State private var wins = 0
     @State private var effects = Effects()
     @State private var showingHelp = false
+    /// The height of the table, the HODL row and the result's space: what the cards share the
+    /// screen with.
+    @State private var chromeHeight: CGFloat = 300
 
     enum Phase {
         /// Choosing a bet (and, after a hand, showing how it went).
@@ -48,24 +51,25 @@ struct VideoPokerView: View {
     var body: some View {
         let game = store.game
         GeometryReader { proxy in
-            // Centered when it fits; scrolls on small phones rather than squeezing the cards.
+            // The pay table right under the title, then the cards and the result, all above the bet
+            // panel: the cards take whatever height the rest leaves (up to the width's limit), so
+            // nothing needs scrolling. It scrolls only if even the smallest cards don't fit.
+            let cardWidth = fittedCardWidth(in: proxy.size)
             ScrollView {
-                // Sits high, so the result (and its XP) keeps clear of the bet panel below.
-                VStack(spacing: 14) {
-                    Spacer(minLength: 0)
-                        .frame(maxHeight: 8)
+                VStack(spacing: 10) {
                     PayTable(bet: shownBet, unit: shownUnit, highlighted: phase == .betting ? result?.hand : nil)
-                    cardRow(width: min(proxy.size.width, 560))
-                    outcome
-                        .frame(minHeight: 60)
-                        // A result tucks up into the empty HODL row under the cards (no card is held
-                        // between hands), about half as far from them as the instructions sit.
-                        .padding(.top, phase == .betting && result != nil ? -22 : 0)
-                    Spacer(minLength: 28)
+                    cardRow(cardWidth: cardWidth)
+                    outcomeSpace
                 }
-                .padding(16)
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                .padding(.bottom, 8)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                    // Everything but the cards, which is the same whatever size they are.
+                    chromeHeight = height - Self.cardHeight(cardWidth)
+                }
                 .frame(maxWidth: 560)
-                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+                .frame(maxWidth: .infinity)
             }
             .scrollBounceBehavior(.basedOnSize)
         }
@@ -102,9 +106,44 @@ struct VideoPokerView: View {
         (phase == .betting ? isPracticing : roundIsPractice) ? "chips" : token.ticker
     }
 
-    private func cardRow(width: CGFloat) -> some View {
-        let cardWidth = min(92, max(44, (width - 32 - 4 * 8) / 5))
-        let size = CGSize(width: cardWidth, height: cardWidth * 1.42)
+    private static func cardHeight(_ width: CGFloat) -> CGFloat { width * 1.42 }
+
+    /// The widest cards that fit five across the screen and, with the rest, its height.
+    private func fittedCardWidth(in size: CGSize) -> CGFloat {
+        let rowWidth: CGFloat = min(size.width, 560) - 64 // The side padding, and 8 between cards.
+        let byWidth: CGFloat = rowWidth / 5
+        let room: CGFloat = size.height - chromeHeight - 1
+        let byHeight: CGFloat = room / 1.42
+        let fitted: CGFloat = min(byWidth, byHeight)
+        return min(92, max(44, fitted))
+    }
+
+    /// The result (or the instructions), in a space kept as tall as the tallest result, so the
+    /// cards don't change size when one appears. A result moves up into the empty HODL row under
+    /// the cards (no card is held between hands), about half as far from them as the instructions.
+    private var outcomeSpace: some View {
+        ZStack(alignment: .top) {
+            VStack(spacing: 4) {
+                Text("FULL HOUSE!")
+                    .font(.system(size: 28, weight: .heavy, design: .rounded))
+                HStack(spacing: 10) {
+                    Text("+1")
+                        .font(.headline)
+                    Text("+2 Arcade XP")
+                        .font(.subheadline.weight(.heavy))
+                        .padding(.vertical, 5)
+                }
+            }
+            .hidden()
+            .accessibilityHidden(true)
+            outcome
+                .offset(y: phase == .betting && result != nil ? -22 : 0)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func cardRow(cardWidth: CGFloat) -> some View {
+        let size = CGSize(width: cardWidth, height: Self.cardHeight(cardWidth))
         let winning = winningCards
         return HStack(spacing: 8) {
             ForEach(0..<VideoPoker.handSize, id: \.self) { index in
@@ -140,18 +179,10 @@ struct VideoPokerView: View {
                     .shadow(color: result.hand >= .twoPair ? Theme.gold.opacity(0.6) : .clear, radius: 10)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                if result.isWin {
-                    HStack(spacing: 10) {
-                        Text(result.net > 0 ? "+\(CoinFormat.grouped(result.net)) \(roundIsPractice ? "chips" : result.token.ticker)" : "Bet back")
-                            .font(.headline)
-                        if result.bonus > 0 {
-                            CoinAmount(amount: result.bonus, font: .headline, iconSize: 18)
-                                .foregroundStyle(Theme.gold)
-                        }
-                    }
-                }
-                if !roundIsPractice {
-                    ArcadeXPEarned(award: handXP, compact: true)
+                // What it paid and the XP on one line when they fit side by side.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) { resultDetails(result) }
+                    VStack(spacing: 4) { resultDetails(result) }
                 }
             }
             .foregroundStyle(.white)
@@ -162,6 +193,25 @@ struct VideoPokerView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.75))
                 .multilineTextAlignment(.center)
+        }
+    }
+
+    @ViewBuilder
+    private func resultDetails(_ result: PokerResult) -> some View {
+        if result.isWin {
+            HStack(spacing: 10) {
+                Text(result.net > 0 ? "+\(CoinFormat.grouped(result.net)) \(roundIsPractice ? "chips" : result.token.ticker)" : "Bet back")
+                    .font(.headline)
+                if result.bonus > 0 {
+                    CoinAmount(amount: result.bonus, font: .headline, iconSize: 18)
+                        .foregroundStyle(Theme.gold)
+                }
+            }
+            .fixedSize()
+        }
+        if !roundIsPractice {
+            ArcadeXPEarned(award: handXP, compact: true)
+                .fixedSize()
         }
     }
 
@@ -470,14 +520,15 @@ private struct PayTable: View {
                     Spacer()
                     Text(CoinFormat.grouped(hand.payout * bet))
                 }
-                .font(.system(size: 13, weight: .heavy, design: .rounded).monospacedDigit())
+                .font(.system(size: 12, weight: .heavy, design: .rounded).monospacedDigit())
                 .foregroundStyle(isLit ? Color.black : Theme.gold)
                 .padding(.horizontal, 10)
-                .padding(.vertical, 2)
+                .padding(.vertical, 1.5)
                 .background(isLit ? Theme.gold : Color.clear, in: .rect(cornerRadius: 6))
             }
         }
-        .padding(10)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .background(.black.opacity(0.35), in: .rect(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)

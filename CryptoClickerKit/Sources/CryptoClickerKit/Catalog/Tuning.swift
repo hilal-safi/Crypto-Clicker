@@ -104,9 +104,12 @@ public enum Tuning {
         (2.0 / 60, 1_702.64), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
     ]
     /// Levels 2 to 15 (3 to 40 minutes) cost this much more than the curve, so the first stretch
-    /// of time away isn't bought up too quickly.
+    /// of time away isn't bought up too quickly...
     public static let offlineMiningEarlyPremium = 1.1
     public static let offlineMiningEarlyPremiumLevels = 2...15
+    /// ...and levels 2 to 10 (3 to 15 minutes) this much more again (15.5% over the curve in all).
+    public static let offlineMiningEarliestPremium = 1.05
+    public static let offlineMiningEarliestPremiumLevels = 2...10
 
     // MARK: Steps
     /// Lifetime taps needed before steps can be connected, so early coins come from playing.
