@@ -323,7 +323,7 @@ struct InvadersPlayView: View {
                 GamePanel(title: "Game Over", buttonTitle: "Play Again", action: start) {
                     GameOverSummary(score: result.score, isNewBest: result.isNewBest,
                                     best: store.game.stats.invadersBestScore, reward: result.reward,
-                                    details: summaryDetails, challenge: result.challenge)
+                                    details: summaryDetails, challenge: result.challenge, xp: result.xp)
                 }
             } else {
                 GamePanel(title: "Wave \(startWave)", buttonTitle: "Start", action: start) {
@@ -420,7 +420,7 @@ struct InvadersPlayView: View {
                                           whales: game.whalesHit, bosses: game.bossesDefeated, powerUps: game.powerUpsCaught,
                                           bestStreak: game.bestStreak, volleys: game.volleysFired, volleysHit: game.volleysHit,
                                           startWave: startWave)
-        result = GameResult(score: game.score, payout: payout, detail: game.invadersDestroyed)
+        result = GameResult(score: game.score, payout: payout, detail: game.invadersDestroyed, xp: store.lastArcadeAward)
     }
 }
 

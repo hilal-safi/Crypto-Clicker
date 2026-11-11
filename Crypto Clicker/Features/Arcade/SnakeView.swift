@@ -271,7 +271,7 @@ struct SnakePlayView: View {
                                     details: ["\(game.eaten) coins · \(game.body.count) blocks · \(CoinFormat.stopwatch(game.time))",
                                               "\(game.powerUpsCollected) power-up\(game.powerUpsCollected == 1 ? "" : "s")"
                                                 + (game.mode == .classic ? " · \(game.arena.name)" : " · Coin Rush")],
-                                    challenge: result.challenge)
+                                    challenge: result.challenge, xp: result.xp)
                 }
             } else {
                 GamePanel(title: mode == .coinRush ? "Coin Rush" : arena.name, buttonTitle: "Start", action: start) {
@@ -361,7 +361,7 @@ struct SnakePlayView: View {
         isPaused = false
         let payout = store.finishSnake(score: game.score, length: game.body.count, coins: game.eaten, time: game.time,
                                        powerUps: game.powerUpsCollected, mode: game.mode)
-        result = GameResult(score: game.score, payout: payout, detail: game.body.count)
+        result = GameResult(score: game.score, payout: payout, detail: game.body.count, xp: store.lastArcadeAward)
     }
 }
 

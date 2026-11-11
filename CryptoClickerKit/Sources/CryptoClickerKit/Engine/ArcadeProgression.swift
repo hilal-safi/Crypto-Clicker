@@ -18,8 +18,36 @@ public struct ArcadeAward: Equatable, Sendable {
     public let rankAfter: Int
     /// Coins the week's variety goal paid, when this game reached it (0 otherwise).
     public let weeklyReward: Double
+    /// Where the XP came from, in the order it was earned, without the empty parts.
+    public var parts: [ArcadeXPPart] = []
+    /// Whether a casino round found today's casino XP already used up.
+    public var isCasinoCapReached = false
 
     public var rankedUp: Bool { rankAfter > rankBefore }
+}
+
+/// One reason a game earned Arcade XP, and how much it gave.
+public struct ArcadeXPPart: Equatable, Sendable, Identifiable {
+    public enum Reason: Int, Sendable, CaseIterable {
+        case played, casinoRound, firstToday, newBest, challenge, stars, weeklyGoal
+    }
+
+    public let reason: Reason
+    public let xp: Int
+
+    public var id: Reason { reason }
+
+    public var name: String {
+        switch reason {
+        case .played: localized("Game played")
+        case .casinoRound: localized("Casino round")
+        case .firstToday: localized("First today")
+        case .newBest: localized("New best")
+        case .challenge: localized("Daily challenge")
+        case .stars: localized("Stars")
+        case .weeklyGoal: localized("Weekly goal")
+        }
+    }
 }
 
 /// Arcade Rank and the weekly variety goal. XP comes from finishing games, with more for a new best
@@ -78,9 +106,13 @@ extension GameState {
         let rankBefore = arcadeRank
         // Counted without overflowing, however large the numbers (a 32-bit `Int` on Apple Watch).
         var xp = 0
-        func add(_ count: Int, times each: Int) {
+        var earned: [ArcadeXPPart.Reason: Int] = [:]
+        var isCasinoCapReached = false
+        func add(_ count: Int, times each: Int, for reason: ArcadeXPPart.Reason) {
             let (product, overflow) = max(0, count).multipliedReportingOverflow(by: each)
-            xp = xp.addingCount(overflow ? .max : product)
+            let amount = overflow ? Int.max : product
+            xp = xp.addingCount(amount)
+            earned[reason, default: 0] = earned[reason, default: 0].addingCount(amount)
         }
         for game in finished {
             let count = after.played[game, default: 0] - before.played[game, default: 0]
@@ -89,17 +121,18 @@ extension GameState {
                 let room = max(0, Tuning.arcadeCasinoXPPerDay - arcade.casinoXPToday)
                 let casino = min(min(count, room) * Tuning.arcadeXPPerCasinoRound, room)
                 arcade.casinoXPToday += casino
-                add(casino, times: 1)
+                if casino == 0 { isCasinoCapReached = true }
+                add(casino, times: 1, for: .casinoRound)
             } else {
-                add(count, times: Tuning.arcadeXPPerGame)
-                if after.best[game, default: 0] > before.best[game, default: 0] { add(1, times: Tuning.arcadeXPNewBest) }
+                add(count, times: Tuning.arcadeXPPerGame, for: .played)
+                if after.best[game, default: 0] > before.best[game, default: 0] { add(1, times: Tuning.arcadeXPNewBest, for: .newBest) }
             }
-            if arcade.gamesToday.insert(game).inserted { add(1, times: Tuning.arcadeXPFirstPlayToday) }
+            if arcade.gamesToday.insert(game).inserted { add(1, times: Tuning.arcadeXPFirstPlayToday, for: .firstToday) }
         }
         let fasterSprint = after.bestSprint > 0 && (before.bestSprint == 0 || after.bestSprint < before.bestSprint)
-        if fasterSprint || after.bestRush > before.bestRush { add(1, times: Tuning.arcadeXPNewBest) }
-        add(challenges, times: Tuning.arcadeXPChallenge)
-        add(stars, times: Tuning.arcadeXPPerStar)
+        if fasterSprint || after.bestRush > before.bestRush { add(1, times: Tuning.arcadeXPNewBest, for: .newBest) }
+        add(challenges, times: Tuning.arcadeXPChallenge, for: .challenge)
+        add(stars, times: Tuning.arcadeXPPerStar, for: .stars)
 
         // The week's variety goal.
         var weeklyReward = 0.0
@@ -114,10 +147,14 @@ extension GameState {
             arcade.isWeekPaid = true
             arcade.weeklyGoals += 1
             weeklyReward = payDailyCoins(seconds: Tuning.weeklyVarietySeconds)
-            add(1, times: Tuning.arcadeXPWeeklyGoal)
+            add(1, times: Tuning.arcadeXPWeeklyGoal, for: .weeklyGoal)
         }
         arcade.xp = arcade.xp.addingCount(xp)
-        return ArcadeAward(xp: xp, rankBefore: rankBefore, rankAfter: arcadeRank, weeklyReward: weeklyReward)
+        let parts = ArcadeXPPart.Reason.allCases.compactMap { reason in
+            earned[reason].flatMap { $0 > 0 ? ArcadeXPPart(reason: reason, xp: $0) : nil }
+        }
+        return ArcadeAward(xp: xp, rankBefore: rankBefore, rankAfter: arcadeRank, weeklyReward: weeklyReward,
+                           parts: parts, isCasinoCapReached: isCasinoCapReached)
     }
 
     /// Arcade XP for play before Arcade Rank existed, given once to a save that has none: arcade
@@ -148,7 +185,7 @@ extension GameState {
         switch cosmetic.unlock {
         case .free: true
         case .rank(let rank): arcadeRank >= rank
-        case .achievement(let id, let tier): achievementTiers[id, default: 0] > tier
+        case .achievement(let id, let tier, let rank): achievementTiers[id, default: 0] > tier || arcadeRank >= rank
         }
     }
 
@@ -165,16 +202,27 @@ extension GameState {
         return true
     }
 
-    /// What unlocks a cosmetic, for the locked card.
+    /// The Arcade Rank that unlocks a cosmetic, for the locked card ("Free" for the defaults).
     public func unlockText(_ cosmetic: Cosmetic) -> String {
-        switch cosmetic.unlock {
-        case .free:
-            return localized("Free")
-        case .rank(let rank):
-            return localized("Arcade Rank \(rank)")
-        case .achievement(let id, let tier):
-            let name = AchievementCatalog.all.first { $0.id == id }?.name ?? id
-            return "\(name) · \(AchievementCatalog.tierNames[min(max(0, tier), AchievementCatalog.tierNames.count - 1)])"
+        guard let rank = cosmetic.unlock.rank else { return localized("Free") }
+        return localized("Arcade Rank \(rank)")
+    }
+
+    /// The achievement tier that unlocks a cosmetic sooner than its rank, if any: "Card Shark · Silver".
+    public func achievementUnlockText(_ cosmetic: Cosmetic) -> String? {
+        guard case .achievement(let id, let tier, _) = cosmetic.unlock else { return nil }
+        let name = AchievementCatalog.all.first { $0.id == id }?.name ?? id
+        return "\(name) · \(AchievementCatalog.tierNames[min(max(0, tier), AchievementCatalog.tierNames.count - 1)])"
+    }
+
+    /// The cosmetics that reaching ranks after `rankBefore` (up to the current rank) unlocked, leaving
+    /// out any an achievement had unlocked already.
+    public func cosmeticsUnlocked(sinceRank rankBefore: Int) -> [Cosmetic] {
+        let rank = arcadeRank
+        guard rank > rankBefore else { return [] }
+        return (rankBefore + 1...rank).flatMap { Cosmetic.unlocked(atRank: $0) }.filter { cosmetic in
+            guard case .achievement(let id, let tier, _) = cosmetic.unlock else { return true }
+            return achievementTiers[id, default: 0] <= tier
         }
     }
 }

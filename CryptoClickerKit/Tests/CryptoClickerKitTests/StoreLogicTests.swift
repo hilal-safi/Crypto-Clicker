@@ -115,7 +115,7 @@ struct AirdropScheduleTests {
     @Test func noneFallBeforeTheFirstMinerOrDuringAGame() {
         var schedule = AirdropSchedule(nextAt: t0)
         #expect(schedule.update(at: at(1), game: GameState.make(), isInGame: false, kindRoll: 0, delayRoll: 0) == nil)
-        // Nor before 20,000 coins have been mined, so a lucky airdrop can't rush the opening.
+        // Nor before 50,000 coins have been mined, so a lucky airdrop can't rush the opening.
         var early = player()
         early.stats.lifetimeCoins = Tuning.airdropUnlockCoins - 1
         #expect(!early.areAirdropsUnlocked)

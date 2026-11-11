@@ -197,7 +197,7 @@ public enum Tuning {
     // MARK: Airdrops
     /// Airdrops start once this many coins have been mined in all, so a lucky one in the first
     /// minutes can't rush the opening.
-    public static let airdropUnlockCoins = 20_000.0
+    public static let airdropUnlockCoins = 50_000.0
     public static let airdropInterval: ClosedRange<TimeInterval> = 180...360
     public static let airdropLifetime: TimeInterval = 20
     /// With the Airdrop Radar perk.

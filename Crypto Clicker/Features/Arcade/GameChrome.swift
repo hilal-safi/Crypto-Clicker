@@ -453,6 +453,8 @@ struct GameOverSummary: View {
     var details: [String] = []
     /// Set when this game completed the daily challenge.
     var challenge: ChallengeReward? = nil
+    /// What the game earned toward Arcade Rank.
+    var xp: ArcadeAward? = nil
 
     var body: some View {
         VStack(spacing: 10) {
@@ -489,6 +491,46 @@ struct GameOverSummary: View {
                 CoinAmount(amount: reward, font: .title.bold(), iconSize: 30)
             }
             .padding(.top, 6)
+            ArcadeXPEarned(award: xp)
+        }
+    }
+}
+
+/// The Arcade XP a game or round earned, with where it came from ("Game played 10 · First today
+/// 15") and a new rank when it brought one. Casino rounds past the day's XP say so instead.
+struct ArcadeXPEarned: View {
+    let award: ArcadeAward?
+    /// One line, for the casino's result banners.
+    var compact = false
+
+    var body: some View {
+        if let award, award.xp > 0 {
+            VStack(spacing: 3) {
+                Label("+\(CoinFormat.grouped(award.xp)) Arcade XP", systemImage: "gamecontroller.fill")
+                    .font(compact ? .subheadline.weight(.bold) : .headline)
+                    .foregroundStyle(Theme.arcade)
+                if !compact, award.parts.count > 1 {
+                    Text(award.parts.map { "\($0.name) +\(CoinFormat.grouped($0.xp))" }.joined(separator: " · "))
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.subtext)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if award.rankedUp {
+                    Text("Arcade Rank \(award.rankAfter) reached!")
+                        .font(compact ? .footnote.weight(.bold) : .subheadline.weight(.bold))
+                        .foregroundStyle(Theme.arcade)
+                }
+            }
+            .padding(.vertical, compact ? 4 : 8)
+            .padding(.horizontal, 12)
+            .background(Theme.arcade.opacity(0.14), in: .rect(cornerRadius: 12))
+            .accessibilityElement(children: .combine)
+        } else if award?.isCasinoCapReached == true {
+            Label("No Arcade XP: today's casino XP is used up", systemImage: "gamecontroller")
+                .font(compact ? .footnote.weight(.semibold) : .subheadline.weight(.semibold))
+                .foregroundStyle(.subtext)
+                .multilineTextAlignment(.center)
         }
     }
 }

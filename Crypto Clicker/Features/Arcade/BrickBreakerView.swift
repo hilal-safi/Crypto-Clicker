@@ -254,7 +254,7 @@ struct BrickBreakerPlayView: View {
                                                    ? " · \(game.bossesDefeated) " + "whale\(game.bossesDefeated == 1 ? "" : "s")" + " beaten"
                                                    : "")
                                                 + " · best streak \(game.bestLevelStreak)"],
-                                    challenge: result.challenge)
+                                    challenge: result.challenge, xp: result.xp)
                 }
             } else {
                 GamePanel(title: "Level \(startLevel)", buttonTitle: "Start", action: start) {
@@ -294,7 +294,7 @@ struct BrickBreakerPlayView: View {
         let payout = store.finishBrickBreaker(score: game.score, bricks: game.bricksBroken, level: game.level,
                                               bosses: game.bossesDefeated, powerUps: game.powerUpsCaught,
                                               bestStreak: game.bestLevelStreak, startLevel: startLevel)
-        result = GameResult(score: game.score, payout: payout, detail: game.bricksBroken)
+        result = GameResult(score: game.score, payout: payout, detail: game.bricksBroken, xp: store.lastArcadeAward)
     }
 }
 

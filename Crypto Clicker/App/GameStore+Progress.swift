@@ -85,7 +85,7 @@ extension GameStore {
         }
         let rank = game.arcadeRank
         guard rank > rankBefore else { return }
-        let unlocked = (rankBefore + 1...rank).flatMap { Cosmetic.unlocked(atRank: $0) }
+        let unlocked = game.cosmeticsUnlocked(sinceRank: rankBefore)
         show(Toast(icon: "🕹️", title: "Arcade Rank \(rank) · \(game.arcadeTitle)",
                    message: unlocked.isEmpty ? "Keep playing to rank up" : "New look: " + unlocked.map(\.name).joined(separator: ", ")))
     }
@@ -95,9 +95,11 @@ extension GameStore {
         guard !earned.isEmpty else { return }
         publish()
         for earned in earned {
+            let xp = AchievementCatalog.arcadeIDs.contains(earned.achievement.id)
+                ? " · +\(Tuning.arcadeXPPerAchievementTier) Arcade XP" : ""
             show(Toast(icon: earned.achievement.emoji ?? "🏆",
                        title: "\(earned.achievement.name) · \(earned.tierName)",
-                       message: "Achievement unlocked · +\(CoinFormat.percent(game.productionPerAchievementTier)) production"))
+                       message: "Achievement unlocked · +\(CoinFormat.percent(game.productionPerAchievementTier)) production\(xp)"))
         }
     }
 }

@@ -149,8 +149,8 @@ private struct HowToChapter: Identifiable {
         HowToTopic("gamecontroller.fill", "Arcade", "Games unlock one at a time, from a few thousand coins up to about one and a half trillion.", [
             "Arcade games pay coins for every point, and half as much again for a new best.",
             "A minute of good play pays about two minutes of income.",
-            "Playing earns XP for your Arcade Rank, and six different games in a week pay half an hour of income.",
-            "Arcade Rank and achievements unlock looks for every game in Style, on the Arcade's rank card.",
+            "Playing earns XP for your Arcade Rank: each game shows what it earned, with more for a new best, the first game of each kind each day and the daily challenge. Casino rounds earn a little, up to a daily limit. Six different games in a week pay half an hour of income.",
+            "Arcade Rank unlocks looks for every game in Style, on the Arcade's rank card. Some also come sooner with a game's achievement.",
             "Stats under a game's Play button shows its records before you start.",
             "Every game has a How to Play button with its full rules.",
         ]),

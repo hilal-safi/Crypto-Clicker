@@ -29,6 +29,7 @@ struct MinerRow: View {
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var purchases = 0
     @State private var refusals = 0
+    @State private var showsInfo = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -53,11 +54,21 @@ struct MinerRow: View {
                         .padding(.vertical, 1)
                         .background(Theme.accent.opacity(0.16), in: .capsule)
                 }
-                Text(miner.emoji)
-                    .font(.system(size: 30))
-                    .frame(width: 52, height: 52)
-                    .background(Theme.shop.opacity(0.14), in: .circle)
-                    .accessibilityHidden(true)
+                // Tapping the icon shows what the miner is, since the line under its name turns into
+                // its income once one is owned.
+                Button { showsInfo = true } label: {
+                    Text(miner.emoji)
+                        .font(.system(size: 30))
+                        .frame(width: 52, height: 52)
+                        .background(Theme.shop.opacity(0.14), in: .circle)
+                        .contentShape(.circle)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("About \(miner.name)")
+                .popover(isPresented: $showsInfo) {
+                    ShopItemInfo(emoji: miner.emoji, title: miner.name, text: miner.blurb,
+                                 detail: owned > 0 ? "Owned \(CoinFormat.grouped(owned)) · \(CoinFormat.rate(rate)) coins per second" : nil)
+                }
                 if legacy > 1 {
                     Label(CoinFormat.multiplier(legacy), systemImage: "clock.arrow.circlepath")
                         .font(.subheadline.weight(.bold).monospacedDigit())
@@ -138,6 +149,40 @@ struct MinerRow: View {
             }
             .fixedSize()
         }
+    }
+}
+
+/// What a Shop item is, in a popover from its icon: the description that gives way to its numbers
+/// once it's bought.
+struct ShopItemInfo: View {
+    let emoji: String
+    let title: String
+    let text: String
+    var detail: String? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Text(emoji)
+                    .font(.system(size: 28))
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(.headline)
+            }
+            Text(text)
+                .font(.subheadline)
+                .fixedSize(horizontal: false, vertical: true)
+            if let detail {
+                Text(detail)
+                    .font(.footnote.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(16)
+        .frame(idealWidth: 280, maxWidth: 320, alignment: .leading)
+        .presentationCompactAdaptation(.popover)
+        .accessibilityElement(children: .combine)
     }
 }
 

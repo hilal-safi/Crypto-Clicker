@@ -24,6 +24,8 @@ struct VideoPokerView: View {
     @State private var faceUp: Set<Int> = []
     @State private var held: Set<Int> = []
     @State private var result: PokerResult?
+    /// A hand counts (and earns its XP) when it's dealt; shown with its result.
+    @State private var handXP: ArcadeAward?
     /// A drawn hand whose cards are still turning over.
     @State private var pending: PokerResult?
     @State private var flipTask: Task<Void, Never>?
@@ -142,6 +144,9 @@ struct VideoPokerView: View {
                                 .foregroundStyle(Theme.gold)
                         }
                     }
+                }
+                if !roundIsPractice {
+                    ArcadeXPEarned(award: handXP, compact: true)
                 }
             }
             .foregroundStyle(.white)
@@ -271,9 +276,11 @@ struct VideoPokerView: View {
             let dealt = VideoPoker.deal(using: &rng)
             round = PokerRound(token: token, bet: practiceBet, cards: dealt.cards, drawPile: dealt.drawPile)
             practiceRound = round
+            handXP = nil
         } else {
             guard let dealt = store.dealPoker(token, bet: bet) else { return }
             round = dealt
+            handXP = store.lastArcadeAward
         }
         roundIsPractice = isPracticing
         flipTask?.cancel()

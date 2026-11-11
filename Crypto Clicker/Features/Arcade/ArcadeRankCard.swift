@@ -102,6 +102,13 @@ struct StyleView: View {
         }
     }
 
+    private func lockedText(_ cosmetic: Cosmetic, game: GameState) -> String {
+        if let achievement = game.achievementUnlockText(cosmetic) {
+            return String(localized: "Locked: \(game.unlockText(cosmetic)) or \(achievement)")
+        }
+        return String(localized: "Locked: \(game.unlockText(cosmetic))")
+    }
+
     private func row(_ cosmetic: Cosmetic, game: GameState) -> some View {
         let isUnlocked = game.isUnlocked(cosmetic)
         let isEquipped = game.equipped(cosmetic.slot) == cosmetic
@@ -121,6 +128,11 @@ struct StyleView: View {
                         Label(game.unlockText(cosmetic), systemImage: "lock.fill")
                             .font(.subheadline)
                             .foregroundStyle(.subtext)
+                        if let achievement = game.achievementUnlockText(cosmetic) {
+                            Text("or \(achievement)")
+                                .font(.footnote)
+                                .foregroundStyle(.subtext)
+                        }
                     }
                 }
                 Spacer()
@@ -135,7 +147,7 @@ struct StyleView: View {
         .buttonStyle(.plain)
         .disabled(!isUnlocked)
         .accessibilityLabel(cosmetic.name)
-        .accessibilityValue(isEquipped ? "In use" : isUnlocked ? "" : "Locked: \(game.unlockText(cosmetic))")
+        .accessibilityValue(isEquipped ? "In use" : isUnlocked ? "" : lockedText(cosmetic, game: game))
         .accessibilityAddTraits(isEquipped ? .isSelected : [])
     }
 }
