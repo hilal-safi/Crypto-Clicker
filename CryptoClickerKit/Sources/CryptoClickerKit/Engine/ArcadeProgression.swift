@@ -208,11 +208,13 @@ extension GameState {
         return localized("Arcade Rank \(rank)")
     }
 
-    /// The achievement tier that unlocks a cosmetic sooner than its rank, if any: "Card Shark · Silver".
-    public func achievementUnlockText(_ cosmetic: Cosmetic) -> String? {
+    /// The achievement and tier that unlock a cosmetic sooner than its rank, if any: ("Card Shark",
+    /// "Silver"), and whether that tier is already earned.
+    public func achievementUnlock(_ cosmetic: Cosmetic) -> (name: String, tier: String, isEarned: Bool)? {
         guard case .achievement(let id, let tier, _) = cosmetic.unlock else { return nil }
         let name = AchievementCatalog.all.first { $0.id == id }?.name ?? id
-        return "\(name) · \(AchievementCatalog.tierNames[min(max(0, tier), AchievementCatalog.tierNames.count - 1)])"
+        return (name, AchievementCatalog.tierNames[min(max(0, tier), AchievementCatalog.tierNames.count - 1)],
+                achievementTiers[id, default: 0] > tier)
     }
 
     /// The cosmetics that reaching ranks after `rankBefore` (up to the current rank) unlocked, leaving

@@ -103,10 +103,10 @@ struct StyleView: View {
     }
 
     private func lockedText(_ cosmetic: Cosmetic, game: GameState) -> String {
-        if let achievement = game.achievementUnlockText(cosmetic) {
-            return String(localized: "Locked: \(game.unlockText(cosmetic)) or \(achievement)")
+        if let achievement = game.achievementUnlock(cosmetic) {
+            return String(localized: "Locked: reach \(game.unlockText(cosmetic)), or earn the \(achievement.name) achievement at \(achievement.tier)")
         }
-        return String(localized: "Locked: \(game.unlockText(cosmetic))")
+        return String(localized: "Locked: reach \(game.unlockText(cosmetic))")
     }
 
     private func row(_ cosmetic: Cosmetic, game: GameState) -> some View {
@@ -125,13 +125,16 @@ struct StyleView: View {
                         .font(.headline)
                         .foregroundStyle(.primary)
                     if !isUnlocked {
-                        Label(game.unlockText(cosmetic), systemImage: "lock.fill")
+                        Label("Reach \(game.unlockText(cosmetic))", systemImage: "lock.fill")
                             .font(.subheadline)
                             .foregroundStyle(.subtext)
-                        if let achievement = game.achievementUnlockText(cosmetic) {
-                            Text("or \(achievement)")
-                                .font(.footnote)
+                        if let achievement = game.achievementUnlock(cosmetic) {
+                            // The other way in: a game achievement, earned in Trophies.
+                            Label("or earn the \(achievement.name) achievement at \(achievement.tier)",
+                                  systemImage: "trophy.fill")
+                                .font(.subheadline)
                                 .foregroundStyle(.subtext)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }

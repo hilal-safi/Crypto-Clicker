@@ -50,13 +50,15 @@ struct VideoPokerView: View {
         GeometryReader { proxy in
             // Centered when it fits; scrolls on small phones rather than squeezing the cards.
             ScrollView {
-                VStack(spacing: 16) {
+                // Sits high, so the result (and its XP) keeps clear of the bet panel below.
+                VStack(spacing: 14) {
                     Spacer(minLength: 0)
+                        .frame(maxHeight: 8)
                     PayTable(bet: shownBet, unit: shownUnit, highlighted: phase == .betting ? result?.hand : nil)
                     cardRow(width: min(proxy.size.width, 560))
                     outcome
                         .frame(minHeight: 60)
-                    Spacer(minLength: 0)
+                    Spacer(minLength: 28)
                 }
                 .padding(16)
                 .frame(maxWidth: 560)

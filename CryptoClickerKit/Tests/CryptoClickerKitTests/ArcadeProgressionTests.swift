@@ -157,7 +157,7 @@ struct ArcadeProgressionTests {
         #expect(!game.isWeeklyGoalPaid(inWeekOf: "2026-11-02"))
     }
 
-    @Test func cosmeticsUnlockByRankAndAchievement() {
+    @Test func cosmeticsUnlockByRankAndAchievement() throws {
         var game = player()
         #expect(game.equipped(.cardBack) == .cardBackClassic)
         #expect(game.isUnlocked(.cardBackClassic))
@@ -176,9 +176,10 @@ struct ArcadeProgressionTests {
         game.refreshAchievements()
         #expect(game.isUnlocked(.reelsNeon))
         #expect(game.unlockText(.cardBackGold) == "Arcade Rank 28")
-        #expect(game.achievementUnlockText(.cardBackGold) == "Card Shark · Silver")
+        let cardShark = try #require(game.achievementUnlock(.cardBackGold))
+        #expect(cardShark.name == "Card Shark" && cardShark.tier == "Silver" && !cardShark.isEarned)
         #expect(game.unlockText(.reelsGold) == "Arcade Rank 10")
-        #expect(game.achievementUnlockText(.reelsGold) == nil)
+        #expect(game.achievementUnlock(.reelsGold) == nil)
         // A look an achievement unlocks also comes with its rank, whichever is first.
         #expect(!game.isUnlocked(.cardBackGold))
         game.arcade.xp = ArcadeRank.xpNeeded(forRank: 28)
