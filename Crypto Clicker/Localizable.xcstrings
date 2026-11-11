@@ -281,6 +281,9 @@
     "%@ steps today" : {
 
     },
+    "%@ taps!" : {
+
+    },
     "%@ well" : {
 
     },
@@ -1044,8 +1047,15 @@
     "Combo of %lld lost" : {
 
     },
-    "Combo, taps earn %@" : {
-
+    "Combo of %lld quick taps, taps earn %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Combo of %1$lld quick taps, taps earn %2$@"
+          }
+        }
+      }
     },
     "Connect Apple Health" : {
 
@@ -1438,7 +1448,7 @@
     "Keeps" : {
 
     },
-    "Keeps miners earning while the app is closed: five more minutes a level up to an hour, then half an hour a level, up to three days." : {
+    "Keeps miners earning while the app is closed, up to three days." : {
 
     },
     "Kept when you prestige" : {
