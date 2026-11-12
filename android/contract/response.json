@@ -1,0 +1,224 @@
+{
+  "bought": true,
+  "error": "Unknown command nonsense.",
+  "game": {
+    "debugTools": true,
+    "errorMessage": "Your progress couldn't be saved.",
+    "purchaseNote": {
+      "effects": "Biggest combo ×2.5",
+      "id": 3,
+      "lifetime": 9,
+      "more": "+1 more",
+      "names": "Desktop ×2, Chromebook",
+      "perSecond": {
+        "added": "+4.5",
+        "total": "now 12"
+      },
+      "perTap": {
+        "added": "+1",
+        "total": "now 2"
+      },
+      "remaining": 8.5,
+      "stamp": 2,
+      "title": "3 items purchased!"
+    },
+    "shop": {
+      "lockedMiner": {
+        "needsPrestige": false,
+        "text": "Buy a GPU Rig to reveal"
+      },
+      "miners": [
+        {
+          "buy": [
+            {
+              "canAfford": true,
+              "count": 1,
+              "label": "Buy 1",
+              "price": "1.2K"
+            },
+            {
+              "canAfford": true,
+              "count": 10,
+              "label": "Buy 10",
+              "price": "25.3K"
+            },
+            {
+              "canAfford": false,
+              "count": 100,
+              "label": "Buy 100",
+              "price": "1.25B"
+            },
+            {
+              "canAfford": true,
+              "count": 42,
+              "label": "Buy 42",
+              "price": "980K"
+            }
+          ],
+          "emoji": "💻",
+          "id": "chromebook",
+          "isBestValue": true,
+          "legacy": "×5",
+          "legacyProgress": {
+            "fraction": 0.3,
+            "text": "70 more to boost Chromebook ×5"
+          },
+          "line": "15 coins per second",
+          "milestone": {
+            "fraction": 0.2,
+            "text": "20 more for ×2 output"
+          },
+          "mk": "Mk II",
+          "name": "Chromebook",
+          "nextOne": "Next one: +0.5/s",
+          "owned": 30,
+          "ownedText": "Owned 30",
+          "upgrade": {
+            "canAfford": true,
+            "detail": "Doubles what your Chromebooks mine",
+            "name": "Chromebook Mk III",
+            "price": "50K"
+          }
+        }
+      ],
+      "minersDetail": "120 per second",
+      "offlineMining": {
+        "canAfford": true,
+        "next": "2m",
+        "now": "1m",
+        "price": "10K",
+        "subtitle": "Level 1"
+      },
+      "powerUps": [
+        {
+          "canAfford": true,
+          "id": "comboBooster",
+          "level": 1,
+          "locked": "Opens when Combo Booster reaches level 6",
+          "maxLevel": 6,
+          "name": "Combo Booster",
+          "next": "×3",
+          "now": "×2.5",
+          "price": "25K",
+          "subtitle": "Level 1 of 6",
+          "summary": "Raises the biggest combo.",
+          "symbol": "flame.fill",
+          "valueName": "Biggest combo"
+        }
+      ],
+      "purchased": [
+        {
+          "canAfford": false,
+          "category": "tapping",
+          "id": "coinClicker",
+          "name": "Coin Clicker",
+          "price": "110",
+          "summary": "Taps earn more.",
+          "symbol": "hand.tap.fill"
+        }
+      ],
+      "upgrades": [
+        {
+          "canAfford": true,
+          "category": "production",
+          "id": "overclocking",
+          "name": "Overclocking",
+          "price": "8.5K",
+          "summary": "Miners produce twice as much.",
+          "symbol": "speedometer"
+        }
+      ],
+      "upgradesDetail": "3 still hidden",
+      "upgradesEmpty": "Keep mining to discover more upgrades."
+    },
+    "unreadableSave": {
+      "message": "Part of the save file is damaged, so your progress can't be opened right now.",
+      "title": "Your saved game couldn't be read"
+    },
+    "welcomeBack": {
+      "away": "You were away for 6h.",
+      "earned": "1.2M",
+      "highlights": [
+        {
+          "icon": "🏆",
+          "text": "Big Spender · Bronze"
+        }
+      ],
+      "id": 7,
+      "multiplierTotal": "×2",
+      "multipliers": [
+        {
+          "title": "Upgrades",
+          "value": "×2"
+        }
+      ],
+      "offlineNote": {
+        "button": "Upgrade Offline Mining",
+        "text": "Offline Mining paid for 1m of that. Level it up to earn for longer."
+      },
+      "sources": [
+        {
+          "coins": "900K",
+          "detail": "×30",
+          "emoji": "💻",
+          "fraction": 0.75,
+          "name": "Chromebook",
+          "share": "75%"
+        }
+      ],
+      "suggestion": {
+        "bought": false,
+        "canAfford": true,
+        "detail": "+6 coins per second · pays for itself in 8m 20s",
+        "name": "GPU Rig",
+        "price": "3K"
+      },
+      "time": [
+        {
+          "title": "Away",
+          "value": "6h"
+        }
+      ],
+      "total": "1.2M"
+    }
+  },
+  "info": {
+    "debugTools": true,
+    "saveVersion": 8,
+    "secondsFromGMT": -18000,
+    "timeZone": "America/Toronto"
+  },
+  "live": {
+    "balance": "1,234",
+    "balanceExact": "1,234",
+    "bullRun": {
+      "multiplier": "×2",
+      "remaining": "4m 3s",
+      "title": "BULL RUN ×2"
+    },
+    "coins": 1234.5,
+    "combo": {
+      "isMax": false,
+      "taps": "24 taps!",
+      "title": "Combo ×1.5"
+    },
+    "income": "12.5",
+    "incomeExact": "12.5",
+    "tap": "3",
+    "tapExact": "3"
+  },
+  "ok": true,
+  "revision": 42,
+  "tap": {
+    "earned": "+3",
+    "earnedExact": "+3"
+  },
+  "toasts": [
+    {
+      "icon": "⏱️",
+      "id": 12,
+      "message": "+1.2K coins while you were away",
+      "title": "Welcome back"
+    }
+  ]
+}

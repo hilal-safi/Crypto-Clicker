@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and earlier: back up the game's save. -->
+<full-backup-content>
+    <include domain="file" path="CryptoClicker/" />
+    <include domain="sharedpref" path="preferences.xml" />
+</full-backup-content>

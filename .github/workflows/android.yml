@@ -1,0 +1,152 @@
+# The Android app. Three checks, side by side:
+#   - the game's rules (CryptoClickerKit) and the Android bridge, tested on an Android emulator;
+#   - the bridge tested on Linux, including the JSON contract with the Kotlin side;
+#   - the app built as Android Studio builds it (Swift for each ABI, then Gradle), its JVM tests,
+#     its instrumented tests on an emulator, and a debug APK to download and install.
+name: Android
+
+on:
+  push:
+    branches: [main, android, "android/**"]
+    paths:
+      - "android/**"
+      - "CryptoClickerKit/**"
+      - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "android/**"
+      - "CryptoClickerKit/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The host toolchain and the Swift SDK for Android must be the same release.
+  SWIFT_VERSION: "6.4.2"
+  SWIFT_ANDROID_SDK_URL: "https://download.swift.org/swift-6.4.2-release/android-sdk/swift-6.4.2-RELEASE/swift-6.4.2-RELEASE_android.artifactbundle.tar.gz"
+  SWIFT_ANDROID_SDK_CHECKSUM: "4d6ad63ea74becd58e123ff58b1b48c3be5ec0db0dff0ea5abe37ac007dd3233"
+
+jobs:
+  swift-on-android:
+    name: Swift tests on Android (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [CryptoClickerKit, android/swift]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test on an Android emulator
+        uses: skiptools/swift-android-action@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+          package-path: ${{ matrix.package }}
+
+  bridge-on-linux:
+    name: Bridge tests on Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: swift:6.4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        working-directory: android/swift
+        run: swift test
+
+  app:
+    name: Android app
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Swift ${{ env.SWIFT_VERSION }} and the Swift SDK for Android
+        run: |
+          curl -fsSL -O "https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz"
+          tar zxf "swiftly-$(uname -m).tar.gz"
+          ./swiftly init --quiet-shell-followup --assume-yes --skip-install
+          . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
+          swiftly install "$SWIFT_VERSION" --use --post-install-file post-install.sh
+          # Any system libraries the toolchain still needs (the runner usually has them all).
+          if [ -f post-install.sh ]; then sudo apt-get update -q && sudo bash post-install.sh; fi
+          echo "${SWIFTLY_BIN_DIR:-$HOME/.local/share/swiftly/bin}" >> "$GITHUB_PATH"
+          swift --version
+          swift sdk install "$SWIFT_ANDROID_SDK_URL" --checksum "$SWIFT_ANDROID_SDK_CHECKSUM"
+          swift sdk list
+
+      - name: Install the Android NDK (r30, as the Swift SDK needs)
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          NDK_PACKAGE=$("$SDKMANAGER" --list 2>/dev/null | grep -oE 'ndk;30\.[0-9]+\.[0-9]+' | sort -V | tail -1)
+          if [ -z "$NDK_PACKAGE" ]; then echo "NDK r30 isn't offered by sdkmanager"; exit 1; fi
+          echo "Installing $NDK_PACKAGE"
+          yes | "$SDKMANAGER" --install "$NDK_PACKAGE" > /dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_PACKAGE#ndk;}" >> "$GITHUB_ENV"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build the debug app and run the JVM tests
+        working-directory: android
+        run: ./gradlew assembleDebug testDebugUnitTest --stacktrace
+
+      - name: Check the native libraries (both ABIs, 16 KB pages)
+        working-directory: android
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          unzip -l "$APK" | grep "lib/"
+          rm -rf /tmp/apk && mkdir /tmp/apk && unzip -q "$APK" 'lib/*' -d /tmp/apk
+          for abi in arm64-v8a x86_64; do
+            for lib in libCryptoClickerJNI.so libc++_shared.so; do
+              test -f "/tmp/apk/lib/$abi/$lib" || { echo "Missing lib/$abi/$lib"; exit 1; }
+            done
+          done
+          status=0
+          # Each library's LOAD segments are aligned for 16 KB pages...
+          for so in /tmp/apk/lib/*/*.so; do
+            for align in $(readelf -lW "$so" | awk '$1 == "LOAD" { print $NF }'); do
+              if [ $((align)) -lt 16384 ]; then echo "$so: LOAD segment aligned to $align, not 16 KB"; status=1; fi
+            done
+          done
+          # ...and stored uncompressed at 16 KB boundaries in the APK.
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          if ! "$BUILD_TOOLS/zipalign" -c -P 16 -v 4 "$APK" > /tmp/zipalign.txt; then status=1; fi
+          grep "lib/" /tmp/zipalign.txt || true
+          tail -1 /tmp/zipalign.txt
+          ls -la /tmp/apk/lib/*/
+          exit $status
+
+      - name: Upload the debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: crypto-clicker-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Instrumented tests on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          working-directory: android
+          script: ./gradlew connectedDebugAndroidTest --stacktrace
+
+      - name: Build the release bundle (Google Play format, unsigned)
+        working-directory: android
+        run: ./gradlew bundleRelease --stacktrace

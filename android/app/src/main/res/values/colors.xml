@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The iOS app icon's background, behind the coin of the adaptive icon. -->
+    <color name="ic_launcher_background">#120E0A</color>
+    <color name="window_light">#F2F2F7</color>
+    <color name="window_dark">#0A0D1A</color>
+</resources>

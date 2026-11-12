@@ -1,0 +1,21 @@
+# Gradle and Android Studio
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+captures/
+.kotlin/
+.externalNativeBuild/
+.cxx/
+
+# Swift builds for Android (one folder per ABI and configuration)
+swift/.build/
+swift/.build-android/
+swift/.swiftpm/
+swift/Package.resolved
+
+# Signing for Google Play: never commit these
+keystore.properties
+*.jks
+*.keystore
