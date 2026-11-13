@@ -264,12 +264,21 @@ struct ProductionTests {
         let list = GameState.offlineMiningListPrice(level:)
         let curve = GameState.offlineMiningCurvePrice(level:)
         let discount: (Int) -> Double = { $0 <= 30 ? 1 : $0 <= 50 ? 0.85 : $0 <= 80 ? 0.9 : 0.95 }
-        // From level 42 to 80 the step eases from 45% to 18% instead.
-        let eased: (Int) -> Double? = { (42...80).contains($0) ? 1.45 - 0.27 * Double($0 - 42) / 38 : nil }
-        for level in 29...Tuning.offlineMiningMaxLevel {
+        // From level 42 to 50 the step eases from 45% by 0.27/38 a level instead.
+        let eased: (Int) -> Double? = { (42...50).contains($0) ? 1.45 - 0.27 * Double($0 - 42) / 38 : nil }
+        for level in 29...50 {
             let step = (eased(level) ?? list(level) / list(level - 1)) * discount(level) / discount(level - 1)
             #expect(abs(price(level) / price(level - 1) - step) < 1e-6, "level \(level)")
         }
+        #expect(price(50) == 9_059_165_713_293) // Fourteen and a half hours (unchanged from before).
+        // Then it keeps easing to level 105 and holds, so the last level costs 200 sextillion.
+        let full: (Int) -> Double = { price($0) / discount($0) }
+        let steps = (51...Tuning.offlineMiningMaxLevel).map { full($0) / full($0 - 1) }
+        #expect(abs(steps[0] - (1.45 - 0.27 * 9 / 38)) < 1e-9) // Carries on from the first easing.
+        #expect(zip(steps, steps.dropFirst()).prefix(54).allSatisfy { $0 > $1 }) // Gentler each level to 105.
+        #expect(steps.suffix(60).allSatisfy { abs($0 - steps[54]) < 1e-9 }) // Then steady.
+        #expect((1.17...1.2).contains(steps[54])) // About 18%.
+        #expect(abs(price(Tuning.offlineMiningMaxLevel) / 2e23 - 1) < 1e-9)
         #expect(price(30) == 78_581_989) // Full price.
         #expect(price(31) == 135_519_188) // 15% off.
         for level in 28...Tuning.offlineMiningMaxLevel {

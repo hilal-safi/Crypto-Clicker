@@ -94,7 +94,8 @@ struct ArcadeBalanceTests {
     /// the pay a little either way: Fast scores quicker, Slow slower.
     @Test func brickBreakerOptionsPayAboutTheSame() {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
-        let seeds: [UInt64] = [11, 22, 33, 44, 55, 66]
+        // Two dozen games each: the classic walls are the same every game, so fewer swing too much.
+        let seeds = (1...24).map { UInt64($0) * 11 }
         func income(_ levels: BrickBreakerGame.LevelStyle, _ speed: GameSpeed) -> Double {
             let points = seeds.map { BrickBot.pointsPerMinute(seed: $0, levels: levels, speed: speed) }.reduce(0, +) / Double(seeds.count)
             return points * MiniGame.brickBreaker.secondsPerPoint
@@ -730,8 +731,8 @@ enum InvadersBot {
 
     static func isBlocked(_ x: Double, in game: InvadersGame) -> Bool {
         game.firewalls.contains { wall in
-            (0..<InvadersGame.Firewall.rows).contains { row in
-                (0..<InvadersGame.Firewall.columns).contains { column in
+            (0..<wall.rows).contains { row in
+                (0..<wall.columns).contains { column in
                     let block = wall.blockFrame(row: row, column: column)
                     return wall.isStanding(row: row, column: column) && x + 0.005 > block.minX && x - 0.005 < block.maxX
                 }

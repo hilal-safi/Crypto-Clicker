@@ -72,7 +72,8 @@ public struct ArcadeRun: Codable, Equatable, Sendable {
         /// Pump and Dump: the board's side (3, 4 or 5; 0 in runs held before the bigger boards,
         /// which were all 3×3).
         public var board: Int
-        /// Bubble Market: 1 for a Flash Market game.
+        /// Bubble Market: 1 for a Flash Market game. Hash Smash and Scam Invaders: 1 for random walls
+        /// or waves.
         public var mode: Int
         /// Hash Smash and Scam Invaders: the level or wave the game started at (1 from the start).
         public var start: Int

@@ -326,6 +326,50 @@ enum InvadersArt {
                             .offsetBy(dx: -cockpit.width * 0.12, dy: -cockpit.height * 0.15)), with: .color(.white.opacity(0.8)))
     }
 
+    /// Battle damage over the ship, worse the more of its hits it has taken (`share`, 0 to 1):
+    /// `cracks` jagged cracks across the hull, scorch marks, and from half its hits on a trail of
+    /// smoke and, near the end, sparks.
+    static func drawDamage(_ share: Double, cracks: Int, in rect: CGRect, context: inout GraphicsContext, time: TimeInterval) {
+        let w = rect.width, h = rect.height
+        func at(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * w, y: rect.minY + y * h) }
+        // Scorch marks on a wing, then both.
+        let scorches = [CGRect(x: rect.minX + w * 0.16, y: rect.minY + h * 0.55, width: w * 0.24, height: h * 0.32),
+                        CGRect(x: rect.minX + w * 0.6, y: rect.minY + h * 0.6, width: w * 0.24, height: h * 0.3)]
+        for scorch in scorches.prefix(max(1, cracks)) {
+            context.fill(Path(ellipseIn: scorch), with: .color(.black.opacity(0.35 + 0.25 * share)))
+        }
+        // Cracks, each a jagged line from the hull's edge in.
+        let lines: [[CGPoint]] = [
+            [at(0.36, 0.3), at(0.45, 0.45), at(0.4, 0.58), at(0.5, 0.74)],
+            [at(0.64, 0.38), at(0.55, 0.52), at(0.6, 0.66), at(0.52, 0.86)],
+            [at(0.47, 0.12), at(0.53, 0.26), at(0.48, 0.36)],
+        ]
+        for points in lines.prefix(cracks) {
+            var crack = Path()
+            crack.addLines(points)
+            context.stroke(crack, with: .color(.black.opacity(0.85)), style: StrokeStyle(lineWidth: max(1.2, w * 0.035), lineCap: .round, lineJoin: .round))
+            context.stroke(crack.offsetBy(dx: 0.6, dy: 0), with: .color(.orange.opacity(0.55)),
+                           style: StrokeStyle(lineWidth: max(0.5, w * 0.012), lineCap: .round, lineJoin: .round))
+        }
+        guard share >= 0.5 else { return }
+        // Smoke drifting back from the hull.
+        for puff in 0..<4 {
+            let phase = (time * 1.4 + Double(puff) / 4).truncatingRemainder(dividingBy: 1)
+            let radius = h * (0.12 + 0.3 * phase)
+            let center = CGPoint(x: rect.midX + w * 0.14 * sin(Double(puff) * 2.1 + time * 2), y: rect.midY + h * (0.2 + 1.3 * phase))
+            context.fill(Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)),
+                         with: .color(Color(white: 0.55).opacity(0.5 * (1 - phase))))
+        }
+        guard share > 0.6 else { return }
+        // Sparks flickering at the cracks.
+        for spark in 0..<3 where Int(time * 12 + Double(spark) * 3) % 3 == 0 {
+            let point = lines[spark % lines.count][1]
+            let size = w * 0.06
+            context.fill(Path(ellipseIn: CGRect(x: point.x - size / 2, y: point.y - size / 2, width: size, height: size)),
+                         with: .color(spark % 2 == 0 ? .yellow : .orange))
+        }
+    }
+
     // MARK: Firewalls
 
     /// One block of a server rack (the firewalls): a slice of a server, each row one machine. The rack's posts are darker, and two status lights per server blink.

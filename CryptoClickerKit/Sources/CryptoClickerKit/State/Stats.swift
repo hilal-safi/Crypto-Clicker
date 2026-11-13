@@ -77,6 +77,9 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var brickBreakerBestScore = 0
     public internal(set) var bricksBroken = 0
     public internal(set) var brickBreakerBestLevel = 0
+    /// The furthest level reached in the classic walls: the levels a game can start at. Random walls
+    /// don't count toward it.
+    public internal(set) var brickBreakerClassicBestLevel = 0
     /// Levels cleared over all games, bosses beaten and power-ups caught.
     public internal(set) var brickBreakerLevelsCleared = 0
     public internal(set) var brickBreakerBosses = 0
@@ -146,6 +149,9 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var invadersGames = 0
     public internal(set) var invadersBestScore = 0
     public internal(set) var invadersBestWave = 0
+    /// The furthest wave reached in the classic formations: the waves a game can start at. Random
+    /// waves don't count toward it.
+    public internal(set) var invadersClassicBestWave = 0
     /// Invaders shot down, in every game.
     public internal(set) var invadersDestroyed = 0
     public internal(set) var invadersWhales = 0
@@ -222,6 +228,7 @@ public struct Stats: Codable, Equatable, Sendable {
         case airdropsMissed, bullRuns, bestAirdrop
         case invadersGames, invadersBestScore, invadersBestWave, invadersDestroyed, invadersWhales, invadersBosses
         case invadersPowerUps, invadersBestStreak, invadersVolleys, invadersVolleysHit
+        case invadersClassicBestWave, brickBreakerClassicBestLevel
         case prestiges = "forksPerformed" // Saved under its old Hard Fork name.
         case earnedFromTaps, earnedFromIdle, earnedOffline, earnedFromSteps, earnedFromGames, earnedFromAirdrops
         case earnedFromDaily, challengesCompleted
@@ -284,6 +291,9 @@ public struct Stats: Codable, Equatable, Sendable {
         invadersGames = c.value(.invadersGames, default: 0)
         invadersBestScore = c.value(.invadersBestScore, default: 0)
         invadersBestWave = c.value(.invadersBestWave, default: 0)
+        // Saves from before the classic best was kept apart start it at the overall best, so no wave
+        // reached is locked again.
+        invadersClassicBestWave = c.value(.invadersClassicBestWave, default: invadersBestWave)
         invadersDestroyed = c.value(.invadersDestroyed, default: 0)
         invadersWhales = c.value(.invadersWhales, default: 0)
         invadersBosses = c.value(.invadersBosses, default: 0)
@@ -321,6 +331,7 @@ public struct Stats: Codable, Equatable, Sendable {
         snakeRushBestScore = c.value(.snakeRushBestScore, default: 0)
         snakeRushes = c.value(.snakeRushes, default: 0)
         brickBreakerBestLevel = c.value(.brickBreakerBestLevel, default: 0)
+        brickBreakerClassicBestLevel = c.value(.brickBreakerClassicBestLevel, default: brickBreakerBestLevel)
         brickBreakerLevelsCleared = c.value(.brickBreakerLevelsCleared, default: 0)
         brickBreakerBosses = c.value(.brickBreakerBosses, default: 0)
         brickBreakerPowerUps = c.value(.brickBreakerPowerUps, default: 0)
@@ -419,6 +430,7 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(invadersGames, forKey: .invadersGames)
         try c.encode(invadersBestScore, forKey: .invadersBestScore)
         try c.encode(invadersBestWave, forKey: .invadersBestWave)
+        try c.encode(invadersClassicBestWave, forKey: .invadersClassicBestWave)
         try c.encode(invadersDestroyed, forKey: .invadersDestroyed)
         try c.encode(invadersWhales, forKey: .invadersWhales)
         try c.encode(invadersBosses, forKey: .invadersBosses)
@@ -455,6 +467,7 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(snakeRushBestScore, forKey: .snakeRushBestScore)
         try c.encode(snakeRushes, forKey: .snakeRushes)
         try c.encode(brickBreakerBestLevel, forKey: .brickBreakerBestLevel)
+        try c.encode(brickBreakerClassicBestLevel, forKey: .brickBreakerClassicBestLevel)
         try c.encode(brickBreakerLevelsCleared, forKey: .brickBreakerLevelsCleared)
         try c.encode(brickBreakerBosses, forKey: .brickBreakerBosses)
         try c.encode(brickBreakerPowerUps, forKey: .brickBreakerPowerUps)

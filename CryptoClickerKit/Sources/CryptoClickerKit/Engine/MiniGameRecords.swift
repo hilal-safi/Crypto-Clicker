@@ -101,9 +101,11 @@ extension GameState {
 // MARK: Levels to start from
 
 extension GameState {
-    /// The Hash Smash levels a game can start at: level 1 up to the furthest level reached.
-    public var brickBreakerStartLevels: ClosedRange<Int> { 1...max(1, stats.brickBreakerBestLevel) }
+    /// The Hash Smash levels a game can start at: level 1 up to the furthest classic level reached
+    /// (random walls don't unlock levels).
+    public var brickBreakerStartLevels: ClosedRange<Int> { 1...max(1, stats.brickBreakerClassicBestLevel) }
 
-    /// The Scam Invaders waves a game can start at: wave 1 up to the furthest wave reached.
-    public var invadersStartWaves: ClosedRange<Int> { 1...max(1, stats.invadersBestWave) }
+    /// The Scam Invaders waves a game can start at: wave 1 up to the furthest classic wave reached
+    /// (random waves don't unlock waves).
+    public var invadersStartWaves: ClosedRange<Int> { 1...max(1, stats.invadersClassicBestWave) }
 }

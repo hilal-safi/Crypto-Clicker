@@ -32,6 +32,8 @@ enum Preferences {
     static let snakeArenaKey = "snakeArena"
     static let tetrisSpeedKey = "speed.tetris"
     static let invadersSpeedKey = "speed.invaders"
+    /// Scam Invaders' difficulty: hits a ship takes, and the speed.
+    static let invadersDifficultyKey = "difficulty.invaders"
     /// The level Hash Smash's Levels and the wave Scam Invaders' Waves start at, picked on their
     /// start screens from those reached.
     static let brickBreakerStartKey = "start.brickBreaker"

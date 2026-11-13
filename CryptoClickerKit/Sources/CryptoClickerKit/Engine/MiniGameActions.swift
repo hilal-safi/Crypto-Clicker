@@ -353,7 +353,7 @@ extension GameState {
                                  mode: run.stage == ArcadeRun.coinRushStage ? .coinRush : .classic)
         case .brickBreaker: finishBrickBreaker(score: run.score, bricks: run.detail, level: run.extra, bosses: records.bosses,
                                                powerUps: records.powerUps, bestStreak: records.bestStreak,
-                                               startLevel: records.start)
+                                               startLevel: records.start, levels: records.mode == 1 ? .generated : .classic)
         case .bubbleBlaster: finishBubbleBlaster(score: run.score, popped: run.detail, bestShot: run.extra, wave: run.stage,
                                                  bestStreak: records.bestStreak, bonuses: records.bonuses,
                                                  mode: records.mode == 1 ? .flash : .waves)
@@ -367,7 +367,8 @@ extension GameState {
         case .tokenSwap: finishTokenSwap(score: run.score, tokens: run.detail, bestChain: run.extra, blasts: records.specials)
         case .invaders: finishInvaders(score: run.score, destroyed: run.detail, wave: max(1, run.extra), whales: records.bonuses,
                                        bosses: records.bosses, powerUps: records.powerUps, bestStreak: records.bestStreak,
-                                       volleys: records.volleys, volleysHit: records.volleysHit, startWave: records.start)
+                                       volleys: records.volleys, volleysHit: records.volleysHit, startWave: records.start,
+                                       waves: records.mode == 1 ? .generated : .classic)
         case .blackjack, .slots, .moon, .videoPoker: ArcadePayout(coins: 0, isNewBest: false)
         }
         unfinishedRun = nil
@@ -434,13 +435,15 @@ extension GameState {
     /// points (`Tuning.startPayShare`).
     @discardableResult
     public mutating func finishBrickBreaker(score: Int, bricks: Int, level: Int, bosses: Int = 0, powerUps: Int = 0,
-                                            bestStreak: Int = 0, startLevel: Int = 1) -> ArcadePayout {
+                                            bestStreak: Int = 0, startLevel: Int = 1,
+                                            levels: BrickBreakerGame.LevelStyle = .classic) -> ArcadePayout {
         let start = max(1, min(startLevel, level))
         let isNewBest = score > stats.brickBreakerBestScore
         stats.brickBreakerGames += 1
         stats.brickBreakerBestScore = max(stats.brickBreakerBestScore, score)
         stats.bricksBroken = stats.bricksBroken.addingCount(bricks)
         stats.brickBreakerBestLevel = max(stats.brickBreakerBestLevel, level)
+        if levels == .classic { stats.brickBreakerClassicBestLevel = max(stats.brickBreakerClassicBestLevel, level) }
         stats.brickBreakerLevelsCleared = stats.brickBreakerLevelsCleared.addingCount(max(0, level - start))
         stats.brickBreakerBosses = stats.brickBreakerBosses.addingCount(bosses)
         stats.brickBreakerPowerUps = stats.brickBreakerPowerUps.addingCount(powerUps)
@@ -456,11 +459,13 @@ extension GameState {
     @discardableResult
     public mutating func finishInvaders(score: Int, destroyed: Int, wave: Int, whales: Int = 0, bosses: Int = 0,
                                         powerUps: Int = 0, bestStreak: Int = 0, volleys: Int = 0,
-                                        volleysHit: Int = 0, startWave: Int = 1) -> ArcadePayout {
+                                        volleysHit: Int = 0, startWave: Int = 1,
+                                        waves: InvadersGame.WaveStyle = .classic) -> ArcadePayout {
         let isNewBest = score > stats.invadersBestScore
         stats.invadersGames += 1
         stats.invadersBestScore = max(stats.invadersBestScore, score)
         stats.invadersBestWave = max(stats.invadersBestWave, wave)
+        if waves == .classic { stats.invadersClassicBestWave = max(stats.invadersClassicBestWave, wave) }
         stats.invadersDestroyed = stats.invadersDestroyed.addingCount(destroyed)
         stats.invadersWhales = stats.invadersWhales.addingCount(whales)
         stats.invadersBosses = stats.invadersBosses.addingCount(bosses)

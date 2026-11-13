@@ -121,6 +121,7 @@ struct BrickBreakerOptionTests {
 
     @Test func randomWallsAreMirroredWallsOfAFairSize() {
         var classicHits = 0, generatedHits = 0
+        var bonusCounts = Set<Int>(), firstLevelBonus = Set<Int>()
         for seed in UInt64(1)...40 {
             var game = BrickBreakerGame(seed: seed, levels: .generated)
             var classic = BrickBreakerGame(seed: seed)
@@ -132,8 +133,11 @@ struct BrickBreakerOptionTests {
                 #expect(game.bricks.allSatisfy { (0..<8).contains($0.row) && (0..<BrickBreakerGame.columns).contains($0.column) })
                 #expect(game.bricks.allSatisfy { cells.contains("\($0.row),\(BrickBreakerGame.columns - 1 - $0.column)") },
                         "seed \(seed) level \(level) isn't mirrored")
-                // Specials from the very first level.
-                #expect(game.bricks.contains { $0.kind == .bonus }, "seed \(seed) level \(level)")
+                // Specials from the very first level: one to a few bonus bricks.
+                let bonus = game.bricks.filter { $0.kind == .bonus }.count
+                #expect((1...max(3, 2 + level / 2)).contains(bonus), "seed \(seed) level \(level): \(bonus) bonus")
+                bonusCounts.insert(bonus)
+                if level == 1 { firstLevelBonus.insert(bonus) }
                 let hits = game.bricks.reduce(0) { $0 + $1.maxHits }
                 if level > 1 { #expect(Double(hits) >= 0.45 * Double(BrickBreakerGame.fullWallHits(level: level)), "seed \(seed) level \(level)") }
                 generatedHits += hits
@@ -143,6 +147,8 @@ struct BrickBreakerOptionTests {
         // Made-up walls take about as many hits as the classic ones, level for level.
         print("Hits: generated \(generatedHits), classic \(classicHits)")
         #expect(Double(generatedHits) >= 0.9 * Double(classicHits) && Double(generatedHits) <= 1.2 * Double(classicHits))
+        #expect(firstLevelBonus == [1, 2, 3])
+        #expect(bonusCounts.count >= 6)
     }
 
     @Test func randomWallsAreRarelyTheSame() {
@@ -153,14 +159,14 @@ struct BrickBreakerOptionTests {
             layouts.insert(game.bricks.map { "\($0.row),\($0.column)" }.sorted().joined(separator: " "))
         }
         #expect(layouts.count >= 25)
-        // Classic walls come from eight shapes.
+        // Classic walls are the same every game.
         var classic = Set<String>()
         for seed in UInt64(1)...30 {
             var game = BrickBreakerGame(seed: seed)
             game.jump(toLevel: 3)
             classic.insert(game.bricks.map { "\($0.row),\($0.column)" }.sorted().joined(separator: " "))
         }
-        #expect(classic.count < layouts.count)
+        #expect(classic.count == 1)
         // Bosses stay bosses.
         var boss = BrickBreakerGame(seed: 5, levels: .generated)
         boss.jump(toLevel: 5)

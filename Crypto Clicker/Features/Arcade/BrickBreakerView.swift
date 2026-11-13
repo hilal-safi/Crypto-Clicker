@@ -28,14 +28,14 @@ struct BrickBreakerView: View {
         ScrollView {
             VStack(spacing: 14) {
                 ModeCard(tint: tint, icon: "square.grid.3x2.fill", title: "Levels",
-                         status: stats.brickBreakerGames == 0
+                         status: stats.brickBreakerClassicBestLevel == 0
                             ? "Start at level 1"
-                            : "Best: level \(CoinFormat.grouped(stats.brickBreakerBestLevel)) · \(CoinFormat.grouped(bosses)) "
+                            : "Best: level \(CoinFormat.grouped(stats.brickBreakerClassicBestLevel)) · \(CoinFormat.grouped(bosses)) "
                                 + "whale\(bosses == 1 ? "" : "s")" + " beaten",
-                         detail: "The classic walls: cold storage, liquidation and airdrop blocks, and the whale every fifth level. Start at level 1 or any level you've reached.",
+                         detail: "The classic walls, the same every time you play them: cold storage, liquidation and airdrop blocks, and the whale every fifth level. Start at level 1 or any level you've reached here.",
                          note: nil) {
                     VStack(spacing: 12) {
-                        LevelTrack(best: stats.brickBreakerBestLevel, bossEvery: BrickBreakerGame.bossEvery, tint: tint,
+                        LevelTrack(best: stats.brickBreakerClassicBestLevel, bossEvery: BrickBreakerGame.bossEvery, tint: tint,
                                    bossSymbol: "fish.fill", noun: "level",
                                    bossNote: "The whale every fifth level.",
                                    selection: Binding(get: { startLevel }, set: { pickedStart = $0 }))
@@ -48,7 +48,7 @@ struct BrickBreakerView: View {
                     }
                 }
                 ModeCard(tint: tint, icon: "dice.fill", title: "Random Walls", status: "A new wall every level",
-                         detail: "Walls made up for every level, never the same twice. They take about as many hits and pay about the same, and the whale still comes every fifth level.",
+                         detail: "Walls made up for every level, never the same twice, with one to a few airdrop blocks. They take about as many hits and pay about the same, and the whale still comes every fifth level. Levels reached here don't unlock Levels.",
                          note: nil) {
                     NavigationLink(value: BrickBreakerRoute.play(.generated)) {
                         Label("Play Random Walls", systemImage: "play.fill")
@@ -196,7 +196,7 @@ struct BrickBreakerPlayView: View {
     private var heldRun: ArcadeRun {
         ArcadeRun(game: .brickBreaker, score: game.score, detail: game.bricksBroken, extra: game.level,
                   records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated, bestStreak: game.bestLevelStreak,
-                                 start: startLevel))
+                                 mode: levels == .generated ? 1 : 0, start: startLevel))
     }
 
     private var field: some View {
@@ -295,7 +295,7 @@ struct BrickBreakerPlayView: View {
         isPaused = false
         let payout = store.finishBrickBreaker(score: game.score, bricks: game.bricksBroken, level: game.level,
                                               bosses: game.bossesDefeated, powerUps: game.powerUpsCaught,
-                                              bestStreak: game.bestLevelStreak, startLevel: startLevel)
+                                              bestStreak: game.bestLevelStreak, startLevel: startLevel, levels: levels)
         result = GameResult(score: game.score, payout: payout, detail: game.bricksBroken, xp: store.lastArcadeAward)
     }
 }

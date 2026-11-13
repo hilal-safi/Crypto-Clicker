@@ -146,21 +146,21 @@ extension GameStore {
 
     @discardableResult
     func finishInvaders(score: Int, destroyed: Int, wave: Int, whales: Int, bosses: Int, powerUps: Int, bestStreak: Int,
-                        volleys: Int, volleysHit: Int, startWave: Int) -> ArcadePayout {
+                        volleys: Int, volleysHit: Int, startWave: Int, waves: InvadersGame.WaveStyle) -> ArcadePayout {
         let payout = perform { game, _ in
             game.finishInvaders(score: score, destroyed: destroyed, wave: wave, whales: whales, bosses: bosses,
                                 powerUps: powerUps, bestStreak: bestStreak, volleys: volleys, volleysHit: volleysHit,
-                                startWave: startWave)
+                                startWave: startWave, waves: waves)
         }
         save()
         return payout
     }
 
     func finishBrickBreaker(score: Int, bricks: Int, level: Int, bosses: Int, powerUps: Int, bestStreak: Int,
-                            startLevel: Int) -> ArcadePayout {
+                            startLevel: Int, levels: BrickBreakerGame.LevelStyle) -> ArcadePayout {
         let payout = perform { game, _ in
             game.finishBrickBreaker(score: score, bricks: bricks, level: level, bosses: bosses, powerUps: powerUps,
-                                    bestStreak: bestStreak, startLevel: startLevel)
+                                    bestStreak: bestStreak, startLevel: startLevel, levels: levels)
         }
         save()
         return payout

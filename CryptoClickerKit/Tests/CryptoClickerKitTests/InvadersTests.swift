@@ -6,9 +6,10 @@ import Testing
 struct InvadersTests {
     typealias Game = InvadersGame
 
-    /// A game past its opening banner, with the invaders holding their fire and their ground.
-    func quiet(seed: UInt64 = 7, speed: GameSpeed = .normal) -> Game {
-        var game = Game(seed: seed, speed: speed)
+    /// A game past its opening banner, with the invaders holding their fire and their ground. Hard
+    /// by default (one hit loses a ship), at Normal speed.
+    func quiet(seed: UInt64 = 7, speed: GameSpeed = .normal, difficulty: Game.Difficulty = .hard) -> Game {
+        var game = Game(seed: seed, difficulty: difficulty, speed: speed)
         game.skipBanner()
         game.holdFire()
         game.holdMarch()
@@ -49,6 +50,70 @@ struct InvadersTests {
         #expect(state.invadersStartWaves == 1...6)
         state.finishInvaders(score: 10, destroyed: 1, wave: 1)
         #expect(state.invadersStartWaves == 1...6)
+    }
+
+    @Test func randomWavesDontUnlockClassicWaves() throws {
+        var state = GameState.make()
+        state.finishInvaders(score: 1_000, destroyed: 60, wave: 9, waves: .generated)
+        #expect(state.invadersStartWaves == 1...1)
+        #expect(state.stats.invadersBestWave == 9) // Still the furthest wave reached, for records.
+        // A random game paid on the next launch doesn't either.
+        state.holdArcadeRun(ArcadeRun(game: .invaders, score: 500, detail: 30, extra: 11, records: .init(mode: 1)))
+        state.payUnfinishedRun()
+        #expect(state.invadersStartWaves == 1...1 && state.stats.invadersBestWave == 11)
+        state.finishInvaders(score: 1_000, destroyed: 60, wave: 4)
+        #expect(state.invadersStartWaves == 1...4)
+        // Saves from before keep every wave they had unlocked.
+        let old = try GameCoding.decoder().decode(Stats.self, from: Data(#"{"invadersBestWave":7}"#.utf8))
+        #expect(old.invadersClassicBestWave == 7)
+    }
+
+    @Test func eachDifficultyTakesItsOwnHitsAndSpeed() {
+        #expect(Game.Difficulty.allCases.map(\.hitsPerShip) == [3, 2, 1])
+        #expect(Game.Difficulty.allCases.map(\.speed) == [.slow, .normal, .fast])
+        #expect(Game(seed: 1).difficulty == .regular && Game(seed: 1).gameSpeed == .normal)
+        #expect(Game(seed: 1, difficulty: .easy).gameSpeed == .slow)
+        for difficulty in Game.Difficulty.allCases {
+            var game = quiet(difficulty: difficulty)
+            #expect(game.health == difficulty.hitsPerShip && game.maxHealth == difficulty.hitsPerShip)
+            game.moveShip(to: 0.5)
+            // Every hit but the last leaves the ship flying, damaged, and blinking for a moment.
+            for left in stride(from: difficulty.hitsPerShip - 1, through: 1, by: -1) {
+                game.dropEnemyShot(at: Vector2(x: 0.5, y: 1.3))
+                run(&game, for: 0.5) { $0.health == left }
+                #expect(game.health == left && game.lives == Game.startingLives && game.phase == .playing, "\(difficulty)")
+                #expect(game.invulnerableFor > 0)
+                // A second shot right behind passes through.
+                game.dropEnemyShot(at: Vector2(x: 0.5, y: 1.3))
+                run(&game, for: 0.3)
+                #expect(game.health == left)
+                run(&game, for: 1)
+            }
+            #expect(game.hitsTaken == difficulty.hitsPerShip - 1)
+            game.dropEnemyShot(at: Vector2(x: 0.5, y: 1.3))
+            run(&game, for: 0.5) { $0.phase != .playing }
+            #expect(game.lives == Game.startingLives - 1 && game.phase == .shipLost, "\(difficulty)")
+            // The next ship comes in whole.
+            #expect(game.health == difficulty.hitsPerShip)
+        }
+    }
+
+    @Test func theShieldIsAnExtraHitThatMendsADamagedShipFirst() {
+        var game = quiet(difficulty: .regular)
+        game.moveShip(to: 0.5)
+        game.give(.shield)
+        #expect(game.health == 3 && game.hasShield)
+        game.give(.shield) // Never more than one over full.
+        #expect(game.health == 3)
+        game.dropEnemyShot(at: Vector2(x: 0.5, y: 1.3))
+        run(&game, for: 0.5) { !$0.hasShield }
+        #expect(game.health == 2 && game.shieldSaves == 1 && game.lives == Game.startingLives)
+        run(&game, for: 1)
+        game.dropEnemyShot(at: Vector2(x: 0.5, y: 1.3))
+        run(&game, for: 0.5) { $0.health == 1 }
+        #expect(game.health == 1 && game.shieldSaves == 1)
+        game.give(.shield) // Mends the damage.
+        #expect(game.health == 2 && !game.hasShield)
     }
 
     @Test func aGameStartedFurtherInPaysASmallerShare() {
@@ -401,6 +466,7 @@ struct InvadersRandomWaveTests {
 
     @Test func randomWavesAreMirroredFormationsOfAFairSize() {
         var points = 0, count = 0, classicPoints = 0
+        var goldenCounts = Set<Int>(), rackShapes = Set<String>()
         for seed in UInt64(1)...40 {
             var game = Game(seed: seed, waves: .generated)
             var classic = Game(seed: seed)
@@ -417,9 +483,18 @@ struct InvadersRandomWaveTests {
                 #expect(invaders.allSatisfy { kinds["\($0.row),\(Game.columns - 1 - $0.column)"] == $0.kind }, "\(label) isn't mirrored")
                 // On the classic formation's bottom row, so it comes down no later.
                 #expect(invaders.map(\.row).max() == Game.rows - 1, "\(label)")
-                // Every kind, and a golden invader from the very first wave.
+                // Every kind, and one to three golden invaders (four from wave 6) from the very first wave.
                 #expect(Set(invaders.map(\.kind)).count == Game.InvaderKind.allCases.count, "\(label)")
-                #expect(invaders.filter(\.isGolden).count == 1, "\(label)")
+                let golden = invaders.filter(\.isGolden).count
+                #expect((1...(wave >= 6 ? 4 : 3)).contains(golden), "\(label): \(golden) golden")
+                goldenCounts.insert(golden)
+                // Server racks of their own: two to five, inside the field, apart, above the ship.
+                let racks = game.firewalls
+                #expect((2...5).contains(racks.count), "\(label)")
+                #expect(racks.allSatisfy { $0.frame.minX > 0 && $0.frame.maxX < Game.width && $0.frame.maxY < Game.shipTop - 0.05 })
+                #expect(zip(racks, racks.dropFirst()).allSatisfy { $0.frame.maxX < $1.frame.minX }, "\(label) racks overlap")
+                #expect(racks.allSatisfy { $0.standing == $0.rows * $0.columns })
+                rackShapes.insert(racks.map { "\($0.rows)x\($0.columns)@\(Int($0.frame.minX * 100))" }.joined(separator: " "))
                 points += invaders.reduce(0) { $0 + $1.kind.points }
                 count += invaders.count
                 classicPoints += classic.invaders.reduce(0) { $0 + $1.kind.points }
@@ -431,6 +506,25 @@ struct InvadersRandomWaveTests {
         print("Random waves: \(Double(count) / 400) invaders a wave, \(perInvader) points each")
         #expect(abs(perInvader - 18) < 1)
         #expect(Double(points) >= 0.7 * Double(classicPoints) && Double(points) <= 0.9 * Double(classicPoints))
+        #expect(goldenCounts == [1, 2, 3, 4])
+        #expect(rackShapes.count > 300) // Racks differ from wave to wave.
+    }
+
+    @Test func classicWavesAreTheSameEveryGame() {
+        for wave in 1...12 {
+            var first = Game(seed: 1)
+            first.jump(toWave: wave)
+            let golden = first.invaders.filter(\.isGolden).map { "\($0.row),\($0.column)" }
+            #expect(golden.count == (wave == 1 ? 0 : 1), "wave \(wave)")
+            #expect(first.firewalls.count == 4 && first.firewalls.allSatisfy { $0.rows == 5 && $0.columns == 8 })
+            for seed in UInt64(2)...15 {
+                var other = Game(seed: seed)
+                other.jump(toWave: wave)
+                #expect(Self.layout(other) == Self.layout(first), "wave \(wave)")
+                #expect(other.invaders.filter(\.isGolden).map { "\($0.row),\($0.column)" } == golden, "wave \(wave) seed \(seed)")
+                #expect(other.firewalls.map(\.frame) == first.firewalls.map(\.frame))
+            }
+        }
     }
 
     @Test func randomWavesAreRarelyTheSameAndBossesStayBosses() {

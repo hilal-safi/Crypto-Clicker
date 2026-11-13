@@ -379,8 +379,8 @@ extension GameState {
 
     /// What Offline Mining's `level` (the first is 1) costs in the Shop, in whole coins: the opening
     /// price, then a steady climb a level up to three and a half hours (`Tuning.offlineMiningGrowth`),
-    /// the curve's step to ten hours, an easing step to 29.5 hours (`Tuning.offlineMiningEasing`) and
-    /// the curve's step after; less the discount (`Tuning.offlineMiningDiscounts`).
+    /// the curve's step to ten hours, then a step that eases (`Tuning.offlineMiningEasing` and
+    /// `Tuning.offlineMiningLateEasing`); less the discount (`Tuning.offlineMiningDiscounts`).
     public static func offlineMiningShopPrice(level: Int) -> Double {
         let level = min(max(1, level), Tuning.offlineMiningMaxLevel)
         return Tuning.whole(offlineMiningFullPrices[level - 1] * offlineMiningDiscount(level: level))
@@ -389,23 +389,40 @@ extension GameState {
     /// Every level's price before the discount, worked out once.
     static let offlineMiningFullPrices: [Double] = {
         let opening = Tuning.offlineMiningOpeningPrices
+        let late = Tuning.offlineMiningLateEasing
+        let maxLevel = Tuning.offlineMiningMaxLevel
         var prices = opening
-        for level in (opening.count + 1)...Tuning.offlineMiningMaxLevel {
+        for level in (opening.count + 1)..<late.levels.lowerBound {
             prices.append(prices[level - 2] * offlineMiningStep(level: level))
+        }
+        // From the late easing on, the step (in logs) falls in a straight line from where the early
+        // easing would take it to a steady step, which then holds to the last level; the steady step
+        // is the one that makes the last level cost `lastPrice` in the Shop.
+        let start = log(earlyEasingStep(level: late.levels.lowerBound))
+        let easing = Double(late.levels.count)
+        let steady = Double(maxLevel - late.levels.upperBound)
+        let climb = log(late.lastPrice / offlineMiningDiscount(level: maxLevel) / prices[prices.count - 1])
+        let end = (climb - easing * start / 2) / (easing / 2 + steady)
+        for level in late.levels.lowerBound...maxLevel {
+            let step = level <= late.levels.upperBound
+                ? start + (end - start) * Double(level - late.levels.lowerBound) / (easing - 1)
+                : end
+            prices.append(prices[level - 2] * exp(step))
         }
         return prices
     }()
 
-    /// How many times the level before `level` costs (before the discount).
+    /// How many times the level before `level` costs (before the discount), up to the late easing.
     static func offlineMiningStep(level: Int) -> Double {
         if let band = Tuning.offlineMiningGrowth.first(where: { $0.levels.contains(level) }) { return band.factor }
-        let easing = Tuning.offlineMiningEasing
-        if easing.levels.contains(level) {
-            let progress = Double(level - easing.levels.lowerBound)
-                / Double(easing.levels.upperBound - easing.levels.lowerBound)
-            return easing.from + (easing.to - easing.from) * progress
-        }
+        if Tuning.offlineMiningEasing.levels.contains(level) { return earlyEasingStep(level: level) }
         return offlineMiningListPrice(level: level) / offlineMiningListPrice(level: level - 1)
+    }
+
+    /// The early easing's step at `level` (carried on past its last level).
+    static func earlyEasingStep(level: Int) -> Double {
+        let easing = Tuning.offlineMiningEasing
+        return easing.from - easing.perLevel * Double(level - easing.levels.lowerBound)
     }
 
     /// The share of the price the Shop charges at `level` (`Tuning.offlineMiningDiscounts`).
