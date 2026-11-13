@@ -122,6 +122,7 @@ struct BrickBreakerOptionTests {
     @Test func randomWallsAreMirroredWallsOfAFairSize() {
         var classicHits = 0, generatedHits = 0
         var bonusCounts = Set<Int>(), firstLevelBonus = Set<Int>()
+        var armorShares = Set<Int>()
         for seed in UInt64(1)...40 {
             var game = BrickBreakerGame(seed: seed, levels: .generated)
             var classic = BrickBreakerGame(seed: seed)
@@ -142,17 +143,24 @@ struct BrickBreakerOptionTests {
                     // Armored bricks from the first level too.
                     #expect(game.bricks.contains { $0.kind == .armored }, "seed \(seed) level 1")
                 }
-                #expect(game.bricks.filter { $0.kind == .armored }.count >= 2, "seed \(seed) level \(level)")
+                // A mix: some armored, mostly plain bricks around them, and the specials.
+                let armored = game.bricks.filter { $0.kind == .armored }.count
+                let plain = game.bricks.filter { $0.kind == .normal }.count
+                #expect(armored >= 2 && Double(armored) <= 0.45 * Double(game.bricks.count) + 1, "seed \(seed) level \(level): \(armored) armored")
+                #expect(Double(plain) >= 0.3 * Double(game.bricks.count), "seed \(seed) level \(level): \(plain) plain of \(game.bricks.count)")
+                armorShares.insert(Int(Double(armored) / Double(game.bricks.count) * 10))
                 let hits = game.bricks.reduce(0) { $0 + $1.maxHits }
-                if level > 1 { #expect(Double(hits) >= 0.45 * Double(BrickBreakerGame.fullWallHits(level: level)), "seed \(seed) level \(level)") }
+                #expect(Double(hits) >= 0.35 * Double(BrickBreakerGame.fullWallHits(level: level)), "seed \(seed) level \(level)")
                 generatedHits += hits
                 classicHits += classic.bricks.reduce(0) { $0 + $1.maxHits }
             }
         }
-        // Made-up walls take about as many hits as the classic ones, level for level.
+        // Made-up walls take a little fewer hits than the classic ones (which armor heavily to make up
+        // for their gaps), and pay about the same a minute (see the arcade balance tests).
         print("Hits: generated \(generatedHits), classic \(classicHits)")
-        #expect(Double(generatedHits) >= 0.9 * Double(classicHits) && Double(generatedHits) <= 1.2 * Double(classicHits))
+        #expect(Double(generatedHits) >= 0.7 * Double(classicHits) && Double(generatedHits) <= 1.1 * Double(classicHits))
         #expect(firstLevelBonus == [1, 2, 3])
+        #expect(armorShares.count >= 3) // How much is armored varies from wall to wall.
         #expect(bonusCounts.count >= 6)
     }
 
