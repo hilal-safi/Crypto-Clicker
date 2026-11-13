@@ -12,10 +12,12 @@ struct MoonView: View {
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var token = TokenID.shibaInu
     @State private var bet = 1
-    /// Cash out by itself on reaching this, if it gets there.
-    @State private var autoCashOut: Double? = 2
     /// The rocket the next flight rides.
     @AppStorage("moonRocket") private var rocket = MoonRocket.doubling
+    /// Each rocket's automatic cash-out, remembered between visits (0 is off): 2× on the 2× rocket
+    /// and 5× on the 5× one to start, so the faster rocket doesn't stop at the slow one's target.
+    @AppStorage("moonAutoCashOutDoubling") private var autoDoubling = 2.0
+    @AppStorage("moonAutoCashOutFivefold") private var autoFivefold = 5.0
     @State private var launchDate: Date?
     /// The flight's end, for the frozen chart: seconds after launch.
     @State private var endedAfter: TimeInterval = 0
@@ -45,28 +47,41 @@ struct MoonView: View {
     /// The rocket on the chart: the flight's while it flies or was last flown, else the one picked.
     private var shownRocket: MoonRocket { activeRound?.rocket ?? result?.rocket ?? rocket }
 
+    /// Cash out by itself on reaching this, if it gets there: the picked rocket's.
+    private var autoCashOut: Double? {
+        let target = rocket == .doubling ? autoDoubling : autoFivefold
+        return target > 0 ? target : nil
+    }
+
+    private var autoCashOutChoice: Binding<Double?> {
+        Binding {
+            autoCashOut
+        } set: { target in
+            if rocket == .doubling { autoDoubling = target ?? 0 } else { autoFivefold = target ?? 0 }
+        }
+    }
+
     var body: some View {
         let game = store.game
+        // Fits above the controls without scrolling: the chart takes what the title and the
+        // status line leave, so the text never runs into the controls.
         GeometryReader { proxy in
-            ScrollView {
-                VStack(spacing: 14) {
-                    Spacer(minLength: 0)
-                    Text("TO THE MOON")
-                        .font(.system(size: 28, weight: .black, design: .rounded))
-                        .tracking(2)
-                        .foregroundStyle(Theme.gold.gradient)
-                        .shadow(color: Theme.gold.opacity(0.5), radius: 12)
-                    chart
-                        .frame(height: min(320, max(220, proxy.size.height * 0.42)))
-                    status(game: game)
-                        .frame(minHeight: 56)
-                    Spacer(minLength: 0)
-                }
-                .padding(16)
-                .frame(maxWidth: 560)
-                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            VStack(spacing: 10) {
+                Text("TO THE MOON")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .tracking(2)
+                    .foregroundStyle(Theme.gold.gradient)
+                    .shadow(color: Theme.gold.opacity(0.5), radius: 12)
+                chart
+                    .frame(height: min(320, max(140, proxy.size.height - 150)))
+                status(game: game)
+                    .frame(maxWidth: .infinity, minHeight: 64, alignment: .top)
+                Spacer(minLength: 0)
             }
-            .scrollBounceBehavior(.basedOnSize)
+            .padding(.horizontal, 16)
+            .padding(.top, 6)
+            .frame(maxWidth: 560)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .safeAreaInset(edge: .bottom) {
             controls(game: game)
@@ -186,7 +201,7 @@ struct MoonView: View {
         } else {
             Text(rocket == .doubling
                  ? "The multiplier doubles every \(Int(MoonFlight.doublingTime)) seconds until the market crashes. Every target pays back \(CoinFormat.percent(rocket.returnToPlayer)) on average: it's luck, so bet what you can lose."
-                 : "The 5× rocket climbs fivefold every \(Int(MoonFlight.doublingTime)) seconds and crashes a little more often: every target pays back \(CoinFormat.percent(rocket.returnToPlayer)) on average, but wins pay \(CoinFormat.percent(Tuning.moonFivefoldBonus - 1)) more coins.")
+                 : "The 5× rocket climbs fivefold every \(Int(MoonFlight.doublingTime)) seconds and crashes a little more often.")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
@@ -236,7 +251,7 @@ struct MoonView: View {
                 }
                 HStack {
                     Menu {
-                        Picker("Automatic cash-out", selection: $autoCashOut) {
+                        Picker("Automatic cash-out", selection: autoCashOutChoice) {
                             Text("Off").tag(Double?.none)
                             ForEach(MoonFlight.autoCashOutChoices, id: \.self) { target in
                                 Text(CoinFormat.flight(target)).tag(Double?.some(target))
@@ -249,7 +264,9 @@ struct MoonView: View {
                     }
                     Spacer()
                     if !isPracticing {
-                        Text("At 2×: +\(CoinFormat.short(game.moonBonus(bet: bet, token: token, multiplier: 2, rocket: rocket))) coins")
+                        // What a cash-out at the automatic target (or 2×) pays on top of the tokens.
+                        let target = autoCashOut ?? 2
+                        Text("At \(CoinFormat.flight(target)): +\(CoinFormat.short(game.moonBonus(bet: bet, token: token, multiplier: target, rocket: rocket))) coins")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.gold)
                     }

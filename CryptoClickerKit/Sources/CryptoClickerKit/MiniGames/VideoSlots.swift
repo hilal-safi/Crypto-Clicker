@@ -66,13 +66,14 @@ public struct SlotLineWin: Equatable, Sendable {
     }
 }
 
-/// The video machine: five reels on the classic machine's strip, each showing three rows, and five
-/// pay lines (the three rows, a V and an upside-down V). The bet is per line, so a spin stakes five
-/// times the bet. A line pays for three, four or five of the same token from the left reel, and
-/// every winning line pays. Bitcoins are also scatters: three or more anywhere win free spins at the
-/// same bet. Bitcoins on the middle row go into the classic machine's collection. Over time it
-/// returns about 95.5% of the tokens bet, free spins included (`returnToPlayer` works it out
-/// exactly from the strip and the pay table).
+/// The video machine: five reels on their own strip, each showing three rows, and five pay lines
+/// (the three rows, a V and an upside-down V). The bet is per line, so a spin stakes five times
+/// the bet. A line pays for three, four or five of the same token from the left reel, and every
+/// winning line pays. Bitcoins are also scatters: three or more anywhere win free spins at the
+/// same bet. Bitcoins on the middle reel go into the same collection as the classic machine's
+/// line, three positions each, so it fills at the same pace. Over time it returns about 95.9% of
+/// the tokens bet, free spins included (`returnToPlayer` works it out exactly from the strip and
+/// the pay table), and about one spin in five wins a line.
 public enum VideoSlots {
     public static let reelCount = 5
     public static let rowCount = 3
@@ -83,16 +84,23 @@ public enum VideoSlots {
         [1, 1, 1, 1, 1], [0, 0, 0, 0, 0], [2, 2, 2, 2, 2], [0, 1, 2, 1, 0], [2, 1, 0, 1, 2],
     ]
 
-    /// Every reel uses the classic machine's strip.
-    public static var strip: [TokenID] { SlotMachine.strip }
+    /// One reel's 24 stops: seven Shiba Inu, five Dogecoin, four XRP, three Cardano, two Solana,
+    /// two Ethereum and one Bitcoin, spread so no two neighbouring stops match, even where the reel
+    /// wraps.
+    public static let strip: [TokenID] = [
+        .dogecoin, .shibaInu, .xrp, .cardano, .shibaInu, .ethereum,
+        .solana, .dogecoin, .shibaInu, .xrp, .cardano, .bitcoin,
+        .dogecoin, .shibaInu, .xrp, .shibaInu, .dogecoin, .ethereum,
+        .solana, .shibaInu, .cardano, .xrp, .dogecoin, .shibaInu,
+    ]
 
     /// What three, four or five of `token` in a row from the left pay, in line bets (stake included).
     public static func pays(_ token: TokenID, count: Int) -> Int {
         guard (3...5).contains(count) else { return 0 }
         let table: [Int]
         switch token {
-        case .shibaInu: table = [10, 25, 50]
-        case .dogecoin: table = [15, 35, 100]
+        case .shibaInu: table = [8, 20, 50]
+        case .dogecoin: table = [11, 30, 100]
         case .xrp: table = [20, 60, 150]
         case .cardano, .solana: table = [40, 100, 200]
         case .ethereum: table = [100, 250, 1_000]
@@ -157,9 +165,10 @@ public enum VideoSlots {
         }
     }
 
-    /// Bitcoins on the middle row, which go into the collection.
-    public static func middleRowBitcoins(stops: [Int]) -> Int {
-        stops.filter { symbol(stop: $0, row: 1) == .bitcoin }.count
+    /// Bitcoins on the middle reel (any row), which go into the collection.
+    public static func middleReelBitcoins(stops: [Int]) -> Int {
+        guard stops.count == reelCount else { return 0 }
+        return (0..<rowCount).filter { symbol(stop: stops[reelCount / 2], row: $0) == .bitcoin }.count
     }
 
     /// Average a line pays per line bet. The reels are independent and every row of a reel shows

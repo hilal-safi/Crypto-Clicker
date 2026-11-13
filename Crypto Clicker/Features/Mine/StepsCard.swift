@@ -25,10 +25,10 @@ struct StepsCard: View {
         let game = store.game
         if store.canTrackSteps && game.areStepsUnlocked {
             if game.steps.isConnected {
-                // After the first prestige the steps take three quarters of the row and the prestige
-                // points the last quarter; until then the steps have it all.
+                // After the first prestige the steps take two thirds of the row and the prestige
+                // points the last third; until then the steps have it all.
                 if game.stats.prestiges > 0 {
-                    QuarterSplit {
+                    ThirdSplit {
                         StepsTodayCard(fillsHeight: true)
                         PrestigeBadge(fillsHeight: true)
                     }
@@ -144,7 +144,7 @@ private struct StepsTodayCard: View {
     }
 }
 
-/// The prestige points, shown on the home screen once the first prestige is done: a quarter of the
+/// The prestige points, shown on the home screen once the first prestige is done: a third of the
 /// steps row, or a row of its own (`isWide`) for a player without steps.
 struct PrestigeBadge: View {
     var isWide = false
@@ -201,9 +201,9 @@ struct PrestigeBadge: View {
     }
 }
 
-/// Two views side by side, the first three quarters of the width and the second a quarter, both as
+/// Two views side by side, the first two thirds of the width and the second a third, both as
 /// tall as the taller one.
-private struct QuarterSplit: Layout {
+private struct ThirdSplit: Layout {
     var spacing: CGFloat = 8
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
@@ -225,7 +225,7 @@ private struct QuarterSplit: Layout {
 
     private func widths(for width: CGFloat, count: Int) -> [CGFloat] {
         let room = max(0, width - spacing)
-        return count == 2 ? [room * 0.75, room * 0.25] : Array(repeating: width, count: count)
+        return count == 2 ? [room * 2 / 3, room / 3] : Array(repeating: width, count: count)
     }
 }
 

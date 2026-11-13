@@ -102,7 +102,7 @@ extension MiniGame {
             ],
             scoring: [
                 localized("Three of a kind pays: \(threes) your bet."),
-                localized("Two Bitcoins pay \(SlotMachine.twoBitcoins)×, a pair on the first two reels pays \(SlotMachine.pairOnFirstTwo)×, and a single Bitcoin returns your bet."),
+                localized("Two Bitcoins pay \(SlotMachine.twoBitcoins)×, a pair on the first two reels or two Shiba Inu on the last two pay \(SlotMachine.pairOnFirstTwo)×, and a single Bitcoin returns your bet."),
                 tokenBets,
             ],
             items: [
@@ -113,7 +113,7 @@ extension MiniGame {
                 .init(id: "slots.video", symbol: "square.grid.3x3.fill", name: localized("Video machine"),
                       detail: localized("Three, four or five of a token in a row from the left reel pay on any of five lines, and every winning line pays. Three or more Bitcoins anywhere win free spins. Wins are rarer and bigger.")),
                 .init(id: "slots.collection", symbol: "bitcoinsign.square.fill", name: localized("Bitcoin collection"),
-                      detail: localized("Every Bitcoin on the line (the middle row on the video machine) is collected; every \(SlotMachine.bitcoinsPerPrize) pay a coin prize.")),
+                      detail: localized("Every Bitcoin on the line (the middle reel on the video machine) is collected; every \(SlotMachine.bitcoinsPerPrize) pay a coin prize.")),
             ],
             ending: localized("Every spin is settled the moment the reels stop: the bet is taken and the win paid in one step."),
             tips: [

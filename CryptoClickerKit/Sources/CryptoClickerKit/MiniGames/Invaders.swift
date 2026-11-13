@@ -206,7 +206,7 @@ public struct InvadersGame: Sendable {
     static let dropY = 0.032
     public static let shipSize = (width: 0.1, height: 0.05)
     public static let shipTop = 1.37
-    public static let startingLives = 3
+    public static let startingLives = 5
     /// Every this many waves is a boss wave.
     public static let bossEvery = 5
     public static let shotSize = (width: 0.008, height: 0.034)

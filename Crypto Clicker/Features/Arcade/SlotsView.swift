@@ -45,27 +45,26 @@ struct SlotsView: View {
     var body: some View {
         let game = store.game
         let counts = heldCounts ?? Dictionary(uniqueKeysWithValues: TokenID.allCases.map { ($0, game.tokenCount($0)) })
-        GeometryReader { proxy in
-            // Centered when it fits; scrolls on small phones rather than squeezing the reels.
-            ScrollView {
-                VStack(spacing: 16) {
-                    Spacer(minLength: 0)
-                    Text("CRYPTO SLOTS")
-                        .font(.system(size: 30, weight: .black, design: .rounded))
-                        .tracking(2)
-                        .foregroundStyle(Theme.gold.gradient)
-                        .shadow(color: Theme.gold.opacity(0.5), radius: 12)
-                    reels
-                    outcome
-                        .frame(minHeight: 56)
-                    Spacer(minLength: 0)
-                }
-                .padding(16)
-                .frame(maxWidth: 520)
-                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+        // From the top, with a fixed space for the result under the reels, so the machine stays
+        // put whether a result is showing or not. Scrolls on small phones rather than squeezing it.
+        ScrollView {
+            VStack(spacing: 14) {
+                Text("CRYPTO SLOTS")
+                    .font(.system(size: 30, weight: .black, design: .rounded))
+                    .tracking(2)
+                    .foregroundStyle(Theme.gold.gradient)
+                    .shadow(color: Theme.gold.opacity(0.5), radius: 12)
+                reels
+                VStack(spacing: 6) { outcome }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 132, alignment: .top)
             }
-            .scrollBounceBehavior(.basedOnSize)
+            .padding(.horizontal, 16)
+            .padding(.top, 6)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
         }
+        .scrollBounceBehavior(.basedOnSize)
         .safeAreaInset(edge: .bottom) {
             controls(counts: counts, game: game)
                 .padding(.horizontal, 16)
@@ -203,7 +202,7 @@ struct SlotsView: View {
             ArcadeXPEarned(award: revealedXP, compact: true)
         } else {
             Text(isSpinning ? "Good luck!" : machine == .classic
-                 ? "Three of a kind wins. Bitcoin pays the most."
+                 ? "Three of a kind wins big, and pairs and Bitcoins pay too."
                  : "Three or more in a row from the left reel win, on any of five lines. Three Bitcoins anywhere win free spins.")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.7))
@@ -577,6 +576,7 @@ private struct PaytableView: View {
         Section {
             row([.bitcoin, .bitcoin], "×\(SlotMachine.twoBitcoins)", note: "Any two Bitcoins")
             row([.dogecoin, .dogecoin], "×\(SlotMachine.pairOnFirstTwo)", note: "First two reels match")
+            row([.shibaInu, .shibaInu], "×\(SlotMachine.pairOnFirstTwo)", note: "Shiba Inu on the last two reels")
             row([.bitcoin], "×\(SlotMachine.oneBitcoin)", note: "Any Bitcoin returns your bet")
         } header: {
             Text("More ways to win")
@@ -622,7 +622,7 @@ private struct PaytableView: View {
         } header: {
             Text("Free spins")
         } footer: {
-            SettingsNote("Three or more Bitcoins anywhere on the reels win free spins at the same bet, and they can win more. About 1 spin in \(Int((1 / VideoSlots.freeSpinChance).rounded())) wins them.\n\nBitcoins on the middle row go into your collection. Over time the machine returns about \(CoinFormat.percent(VideoSlots.returnToPlayer)) of the tokens bet, free spins included. Wins are rarer and bigger than on the classic machine. Every spin is independent.")
+            SettingsNote("Three or more Bitcoins anywhere on the reels win free spins at the same bet, and they can win more. About 1 spin in \(Int((1 / VideoSlots.freeSpinChance).rounded())) wins them.\n\nBitcoins on the middle reel go into your collection. Over time the machine returns about \(CoinFormat.percent(VideoSlots.returnToPlayer)) of the tokens bet, free spins included. Wins are rarer and bigger than on the classic machine. Every spin is independent.")
         }
     }
 

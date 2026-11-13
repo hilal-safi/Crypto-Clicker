@@ -595,8 +595,8 @@ struct AchievementTests {
             #expect(Set(achievement.thresholds).count == 4)
             #expect((achievement.emoji == nil) != (achievement.imageName == nil))
         }
-        #expect(all.first { $0.id == "upgrader" }?.thresholds.last == 23) // Every upgrade.
-        #expect(UpgradeID.allCases.count == 23)
+        #expect(all.first { $0.id == "upgrader" }?.thresholds.last == 24) // Every upgrade.
+        #expect(UpgradeID.allCases.count == 24)
         #expect(all.first { $0.id == "own-spaceColony" }?.detail == "Own Space Mining Colonies at once")
         // Every coin finish can be unlocked.
         #expect(CoinFinish.allCases.allSatisfy { $0.starsNeeded <= AchievementCatalog.tierCount })

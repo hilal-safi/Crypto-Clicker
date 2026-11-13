@@ -8,8 +8,8 @@ struct MarketTests {
     let noon = Date(timeIntervalSince1970: 1_790_000_000)
 
     @Test func pricesStayInRangeAndMove() {
-        let range = Tuning.marketPriceRange
         for token in TokenID.allCases {
+            let range = token.priceRange
             var lowest = Double.infinity
             var highest = 0.0
             for tick in 0..<(10 * Market.ticksPerDay) {
@@ -24,8 +24,9 @@ struct MarketTests {
                 continue
             }
             // Over ten days every other token moves, by at least a tenth, but no token runs away.
-            #expect(highest / lowest > 1.1, "\(token) barely moved")
-            #expect(highest / lowest < 1.8, "\(token) swung too far")
+            // The volatile ones move a lot: by half or more.
+            #expect(highest / lowest > (token.volatilityLevel == .volatile ? 1.5 : 1.1), "\(token) barely moved")
+            #expect(highest / lowest < (token.volatilityLevel == .volatile ? 3.6 : 1.8), "\(token) swung too far")
         }
     }
 
@@ -68,7 +69,7 @@ struct MarketTests {
         // The price jumps the way the news says the moment it breaks.
         let before = Market.priceFactor(story.token, at: story.date.addingTimeInterval(-1))
         let after = Market.priceFactor(story.token, at: story.date)
-        let range = Tuning.marketPriceRange
+        let range = story.token.priceRange
         if !range.contains(before * 1.04) || !range.contains(before / 1.04) { return } // Near a limit.
         #expect(story.isGood ? after > before : after < before)
     }
@@ -134,19 +135,22 @@ struct MarketTests {
         // Not on the slot reels: it would change what the machine pays.
         #expect(!SlotMachine.strip.contains(.safeMoon))
         #expect(SlotMachine.threeOfAKind(.safeMoon) == 0)
-        // Its price stays in the market's range, like every token's.
+        // Its price stays in the volatile tokens' wider range.
+        #expect(TokenID.safeMoon.priceRange == Tuning.volatilePriceRange)
+        #expect(TokenID.bitcoin.priceRange == Tuning.marketPriceRange)
         for hour in stride(from: 0.0, to: 24 * 30, by: 7) {
             let date = Date(timeIntervalSince1970: 1_790_000_000 + hour * 3_600)
-            #expect(Tuning.marketPriceRange.contains(Market.priceFactor(.safeMoon, at: date)))
+            #expect(Tuning.volatilePriceRange.contains(Market.priceFactor(.safeMoon, at: date)))
         }
     }
 
     /// Prices and news are seeded by each token's name, so adding SafeMoon (first in the list)
-    /// left every other token's market exactly as it was: these are the prices from before it.
+    /// left every other token's market exactly as it was: these are the prices from before it (but
+    /// for Shiba Inu and Dogecoin, which have swung harder since, as volatile tokens).
     @Test func addingATokenLeavesTheOthersPricesAlone() {
         let early = Date(timeIntervalSince1970: 1_790_000_000), late = Date(timeIntervalSince1970: 1_800_000_000)
         let before: [TokenID: (Double, Double)] = [
-            .shibaInu: (1_062, 1_233), .tether: (10_011, 10_027), .dogecoin: (102_852, 99_874),
+            .tether: (10_011, 10_027),
             .xrp: (9_678_458, 11_461_001), .bnb: (45_559_598, 48_719_392), .monero: (199_903_496, 187_742_978),
             .cardano: (1_168_248_191, 907_347_852), .solana: (99_674_998_931, 101_609_276_832),
             .ethereum: (9_783_099_588_791, 9_123_334_646_435), .bitcoin: (1_034_124_902_388_354, 1_042_730_824_033_083),

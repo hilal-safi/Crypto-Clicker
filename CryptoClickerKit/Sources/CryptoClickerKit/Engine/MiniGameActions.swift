@@ -148,7 +148,7 @@ extension GameState {
             lineWins = VideoSlots.lineWins(stops: stops)
             multiple = lineWins.reduce(0) { $0.addingCount($1.pays) }
             won = VideoSlots.freeSpins(scatters: VideoSlots.scatters(stops: stops))
-            bitcoins = VideoSlots.middleRowBitcoins(stops: stops)
+            bitcoins = VideoSlots.middleReelBitcoins(stops: stops)
         }
         var spin = SlotsSpin(stops: stops, token: token, bet: bet, multiple: multiple, bonus: 0, machine: machine)
         spin.lineWins = lineWins
@@ -197,13 +197,15 @@ extension GameState {
     // MARK: To the Moon
 
     /// Coins a cash-out pays on top of its tokens: a share of the stake's coin value for each
-    /// multiple above 1×, up to `Tuning.moonWinSeconds` of income per multiple. The 5× rocket pays
-    /// `Tuning.moonFivefoldBonus` times as much.
+    /// multiple above 1×, capped for the whole flight at `Tuning.moonWinSecondsPerFlightSecond` of
+    /// income for each second it took to get there, so no target or rocket earns coins faster than
+    /// the flights take. The 5× rocket pays `Tuning.moonFivefoldBonus` times as much.
     public func moonBonus(bet: Int, token: TokenID, multiplier: Double, rocket: MoonRocket = .doubling) -> Double {
         guard multiplier > 1, multiplier.isFinite else { return 0 }
         let stakeValue = Double(max(0, bet)) * token.price
-        let perMultiple = min(stakeValue * Tuning.moonStakeShare, Tuning.moonWinSeconds * rewardIncome)
-        return Self.wholeCoins(perMultiple * (multiplier - 1) * miniGameMultiplier * rocket.bonusFactor)
+        let cap = Tuning.moonWinSecondsPerFlightSecond * MoonFlight.time(toReach: multiplier, rocket: rocket) * rewardIncome
+        let bonus = min(stakeValue * Tuning.moonStakeShare * (multiplier - 1), cap)
+        return Self.wholeCoins(bonus * miniGameMultiplier * rocket.bonusFactor)
     }
 
     /// Takes the bet and launches a flight on `rocket`, drawing where it will crash. `autoCashOut`

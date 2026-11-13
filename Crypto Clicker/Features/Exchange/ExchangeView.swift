@@ -30,12 +30,14 @@ struct TokensPage: View {
                                affordable: Int(min((game.coins / max(1, quote.price)).rounded(.down), 1_000_000)),
                                saleRate: game.marketSellRate, quantity: quantity)
             }
-            Text("Prices drift within about a quarter of each token's usual price, and news nudges them up or down. Bet tokens at the casino games in the Arcade, or sell them back for coins. Tokens reset when you prestige.")
+            Text("Most prices drift within about a third of each token's usual price, volatile ones much further and faster, and news nudges them up or down. Tap a token's icon to see how it moves. Bet tokens at the casino games in the Arcade, or sell them back for coins. Tokens reset when you prestige.")
                 .font(.subheadline)
                 .foregroundStyle(.subtext)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
         }
+        // The volatility pop-up floats over the page, pointing at the tapped icon.
+        .overlayPreferenceValue(VolatilityIconAnchors.self) { VolatilityInfoLayer(anchors: $0) }
     }
 }
 

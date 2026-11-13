@@ -31,13 +31,16 @@ struct VideoSlotsTests {
         #expect(tokens.allSatisfy { VideoSlots.pays($0, count: 3) < VideoSlots.pays($0, count: 4) })
         #expect(VideoSlots.pays(.bitcoin, count: 2) == 0 && VideoSlots.pays(.safeMoon, count: 5) == 0)
         // The window is the stop with its neighbours above and below, as the classic reel shows.
-        #expect(VideoSlots.window(stops: [0, 0, 0, 0, 0])[0] == [SlotMachine.strip[23], SlotMachine.strip[0], SlotMachine.strip[1]])
+        #expect(VideoSlots.window(stops: [0, 0, 0, 0, 0])[0] == [VideoSlots.strip[23], VideoSlots.strip[0], VideoSlots.strip[1]])
+        // Its own strip: no two neighbouring stops match, and the Bitcoin is on it once.
+        #expect(VideoSlots.strip.count == 24)
+        #expect(VideoSlots.strip.indices.allSatisfy { VideoSlots.strip[$0] != VideoSlots.strip[($0 + 1) % 24] })
+        #expect(VideoSlots.strip.filter { $0 == .bitcoin }.count == 1)
     }
 
     @Test func theMachineReturnsAboutNinetyFivePercentFreeSpinsIncluded() {
         #expect((0.94...0.97).contains(VideoSlots.returnToPlayer), "\(VideoSlots.returnToPlayer)")
-        #expect((0.04...0.08).contains(VideoSlots.freeSpinChance) == false) // Rarer than one spin in 25...
-        #expect((0.01...0.03).contains(VideoSlots.freeSpinChance)) // ...about one in 60.
+        #expect((0.01...0.03).contains(VideoSlots.freeSpinChance)) // About one spin in 60.
         // Played out, the machine returns what the math says.
         var rng = SeededGenerator(seed: 7)
         var paid = 0.0, spins = 0.0
@@ -51,8 +54,8 @@ struct VideoSlotsTests {
 
     @Test func linesPayRunsFromTheLeftReel() {
         // Find stops showing three Shiba Inu on the middle row from the left, then a different token.
-        let shiba = SlotMachine.strip.indices.filter { SlotMachine.strip[$0] == .shibaInu }
-        let other = SlotMachine.strip.indices.first { SlotMachine.strip[$0] == .xrp }!
+        let shiba = VideoSlots.strip.indices.filter { VideoSlots.strip[$0] == .shibaInu }
+        let other = VideoSlots.strip.indices.first { VideoSlots.strip[$0] == .xrp }!
         let stops = [shiba[0], shiba[1], shiba[2], other, other]
         let wins = VideoSlots.lineWins(stops: stops)
         let middle = wins.first { $0.line == 0 }
@@ -122,10 +125,12 @@ struct VideoSlotsTests {
         #expect(decoded == video)
     }
 
-    @Test func middleRowBitcoinsGoIntoTheCollection() throws {
-        let bitcoin = SlotMachine.strip.firstIndex(of: .bitcoin)!
-        #expect(VideoSlots.middleRowBitcoins(stops: [bitcoin, bitcoin, 0, 0, 0]) == 2)
-        #expect(VideoSlots.middleRowBitcoins(stops: [bitcoin + 1, 0, 0, 0, 0]) == 0) // Top row.
+    @Test func middleReelBitcoinsGoIntoTheCollection() throws {
+        let bitcoin = VideoSlots.strip.firstIndex(of: .bitcoin)!
+        // The middle reel's three positions, as many as the classic machine's line.
+        #expect(VideoSlots.middleReelBitcoins(stops: [0, 0, bitcoin, 0, 0]) == 1)
+        #expect(VideoSlots.middleReelBitcoins(stops: [0, 0, bitcoin + 1, 0, 0]) == 1) // Top row.
+        #expect(VideoSlots.middleReelBitcoins(stops: [bitcoin, bitcoin, 0, bitcoin, bitcoin]) == 0)
         #expect(VideoSlots.scatters(stops: [bitcoin + 1, bitcoin, bitcoin - 1, 0, 0]) == 3)
     }
 }

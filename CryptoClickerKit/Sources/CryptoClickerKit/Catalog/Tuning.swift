@@ -2,11 +2,12 @@ import Foundation
 
 /// Every balance number in one place. Tuned with simulated players who catch airdrops, claim the
 /// dailies, play some arcade and earn achievements (see `PacingTests`): someone who keeps playing
-/// buys a Data Center after a little over an hour; casual play (four ten-minute visits a day)
-/// reaches the Data Center in about two days, the first prestige point in under four, every
-/// mini-game and the tenth miner in about six and the first suggested prestige at about six and a
-/// half, then nine prestiges and about 5,000 points in three weeks, with perks arriving all the
-/// way. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here
+/// buys a Data Center after a little over an hour; casual play (four ten-minute visits a day,
+/// walking 5,000 steps) reaches the Data Center in about two days, the first prestige point in
+/// under four, every mini-game and the tenth miner in about six and the first suggested prestige
+/// at about six and a half, then nine prestiges and about 5,000 points in three weeks, with perks
+/// arriving all the way. Walking 2,500 steps takes the first prestige to about seven days, 10,000
+/// to about six, and not walking to about seven and a half. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here
 /// are whole numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
@@ -105,19 +106,18 @@ public enum Tuning {
     public static let offlineMiningPrices: [(hours: Double, price: Double)] = [
         (2.0 / 60, 1_702.64), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
     ]
-    /// How much more than the curve each stretch of levels costs, so time away isn't bought up
-    /// too quickly early on: levels 3 to 8 half as much again as before, 9 to 15 40% more, 16 to 20
-    /// 30%, 21 to 30 20% and the rest 10%, on top of the earlier premiums (15.5% for levels 2 to
-    /// 10, 10% for 11 to 15). The first level stays at 3,500 coins. A level never costs less than
-    /// `offlineMiningMinimumStep` times the one before, which matters only where a premium drops
-    /// between two one-minute levels (8 to 9).
+    /// Up to three hours (levels 2 to 27), each level costs a steady step more than the one before,
+    /// so every level is a real purchase: a quarter more for each extra minute up to 10 minutes,
+    /// 28% more for each 5 minutes up to an hour and 45% more for each 15 minutes up to three
+    /// hours, with half as much again where the step grows (10 and 20). The first level stays at
+    /// 3,500 coins, and the half-hour levels from 28 on follow `offlineMiningPrices`.
+    public static let offlineMiningGrowth: [(levels: ClosedRange<Int>, factor: Double)] = [
+        (2...9, 1.25), (10...10, 1.5), (11...19, 1.28), (20...20, 1.5), (21...27, 1.45),
+    ]
+    /// How much more than the curve the half-hour levels cost: 20% for levels 28 to 30 and 10% for
+    /// the rest. A level never costs less than `offlineMiningMinimumStep` times the one before.
     public static let offlineMiningPremiums: [(levels: ClosedRange<Int>, factor: Double)] = [
-        (2...2, 1.155 * 1.1),
-        (3...8, 1.155 * 1.5),
-        (9...10, 1.155 * 1.4),
-        (11...15, 1.1 * 1.4),
-        (16...20, 1.3),
-        (21...30, 1.2),
+        (28...30, 1.2),
         (31...offlineMiningMaxLevel, 1.1),
     ]
     public static let offlineMiningMinimumStep = 1.02
@@ -125,8 +125,9 @@ public enum Tuning {
     // MARK: Steps
     /// Lifetime taps needed before steps can be connected, so early coins come from playing.
     public static let stepsUnlockTaps = 2_000
-    /// One step is worth this many seconds of idle income (before step upgrades).
-    public static let stepSeconds = 0.06
+    /// One step is worth this many seconds of idle income (before step upgrades): enough that a
+    /// daily walk moves the first prestige by a day between 2,500 and 10,000 steps.
+    public static let stepSeconds = 0.3
     /// A step is never worth less than this many coins (before step upgrades).
     public static let minimumStepValue = 1.0
     /// Income used for step and mini-game rewards never drops below this, so they matter on day one.
@@ -275,6 +276,11 @@ public enum Tuning {
     public static let marketTick: TimeInterval = 5 * 60
     /// ...between these factors of a token's list price.
     public static let marketPriceRange: ClosedRange<Double> = 0.7...1.4
+    /// Volatile tokens (SafeMoon, Shiba Inu, Dogecoin) range further: from half to 1.8 times.
+    public static let volatilePriceRange: ClosedRange<Double> = 0.5...1.8
+    /// How much a volatile token's price also jumps from one ten-minute stretch to the next, before
+    /// its volatility.
+    public static let volatileJitter = 0.3
     /// Chance per tick that news breaks for a token.
     public static let marketNewsChance = 0.0025
     /// How far a story moves a price at first, in log terms: 0.04 is about 4%, 0.1 about 10%.
@@ -303,8 +309,9 @@ public enum Tuning {
     public static let slotsCollectionSeconds = 90.0
     /// A To the Moon cash-out pays this share of its stake's coin value for each multiple above 1×...
     public static let moonStakeShare = 0.08
-    /// ...up to this many seconds of idle income for each multiple above 1×.
-    public static let moonWinSeconds = 24.0
+    /// ...up to this many seconds of idle income in all for each second the flight took, so quick
+    /// flights to high targets (on the 5× rocket above all) can't earn faster than the time played.
+    public static let moonWinSecondsPerFlightSecond = 6.0
     /// The 5× rocket's cash-outs pay this many times the coin bonus (it crashes a little more often).
     public static let moonFivefoldBonus = 1.25
     /// A Video Poker hand of two pair or better pays this share of its stake's coin value for each

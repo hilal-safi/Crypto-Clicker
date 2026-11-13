@@ -125,8 +125,8 @@ struct InvadersPlayView: View {
             .gameBackdrop(.invaders)
     }
 
-    /// The score bar, then the field just under it with the ships left (and the streak) down its
-    /// left and the power-ups running down its right.
+    /// The score bar (with the streak's combo beside the enemies left), then the field just under it
+    /// with the ships left down its left and the power-ups running down its right.
     private var layout: some View {
         VStack(spacing: 8) {
             HStack(spacing: 14) {
@@ -134,6 +134,7 @@ struct InvadersPlayView: View {
                 GameStat(title: "Wave", value: game.isBossWave ? "\(game.wave) · Boss" : "\(game.wave)")
                 GameStat(title: "Enemies", value: CoinFormat.grouped(enemiesLeft))
                     .accessibilityLabel("\(enemiesLeft) enemies left")
+                InvadersComboStat(game: game)
                 Spacer(minLength: 0)
                 ArcadeButton(title: isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill", size: 40) {
                     if isPlaying { isPaused.toggle() }
@@ -144,11 +145,8 @@ struct InvadersPlayView: View {
             .padding(.horizontal, SideColumn.barInset)
             field
                 .sideColumns {
-                    VStack(spacing: 8) {
-                        LivesColumn(lives: game.lives, total: InvadersGame.startingLives, symbol: "arrowtriangle.up.fill",
-                                    emptySymbol: "arrowtriangle.up", color: Theme.gold, label: "\(game.lives) ships left")
-                        InvadersStreakBadge(game: game)
-                    }
+                    LivesColumn(lives: game.lives, total: InvadersGame.startingLives, symbol: "arrowtriangle.up.fill",
+                                emptySymbol: "arrowtriangle.up", color: Theme.gold, label: "\(game.lives) ships left")
                 } trailing: {
                     InvadersPowerUpColumn(game: game)
                 }
@@ -487,7 +485,7 @@ private struct InvadersBanner: View {
     }
 }
 
-/// The power-ups running, each with its time left, the shield, and the streak.
+/// The power-ups running, each with its time left, and the shield.
 private struct InvadersPowerUpColumn: View {
     let game: InvadersGame
 
@@ -508,27 +506,33 @@ private struct InvadersPowerUpColumn: View {
     }
 }
 
-/// The hit streak's point multiplier, under the ships once two hits run together.
-private struct InvadersStreakBadge: View {
+/// The hit streak's point multiplier in the score bar: ×1 until two hits run together, gold from
+/// double. Always there, so the bar doesn't shift as streaks start and end.
+private struct InvadersComboStat: View {
     let game: InvadersGame
 
     var body: some View {
-        if game.streak >= 2 {
-            VStack(spacing: 2) {
+        let multiplier = game.streak >= 2 ? game.streakMultiplier : 1
+        VStack(alignment: .leading, spacing: 1) {
+            Text("Combo")
+                .font(.footnote.weight(.heavy))
+                .foregroundStyle(Theme.accent)
+                .textCase(.uppercase)
+            HStack(spacing: 3) {
                 Image(systemName: "flame.fill")
-                    .font(.subheadline)
-                Text("×\(CoinFormat.compact(game.streakMultiplier))")
-                    .font(.caption2.weight(.heavy).monospacedDigit())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                    .font(.caption)
+                    .opacity(game.streak >= 2 ? 1 : 0.35)
+                Text("×\(CoinFormat.compact(multiplier))")
+                    .font(.headline.monospacedDigit())
+                    .contentTransition(.numericText())
             }
-            .foregroundStyle(game.streakMultiplier >= 2 ? Theme.gold : .orange)
-            .padding(.vertical, 8)
-            .frame(width: SideColumn.width)
-            .glassEffect(.regular, in: .capsule)
-            .transition(.scale.combined(with: .opacity))
-            .accessibilityLabel("Streak \(game.streak), points times \(CoinFormat.compact(game.streakMultiplier))")
+            .foregroundStyle(multiplier >= 2 ? AnyShapeStyle(Theme.gold) : game.streak >= 2 ? AnyShapeStyle(.orange) : AnyShapeStyle(.primary))
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
         }
+        .animation(.snappy, value: multiplier)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(game.streak >= 2 ? "Streak \(game.streak), points times \(CoinFormat.compact(multiplier))" : "No streak")
     }
 }
 

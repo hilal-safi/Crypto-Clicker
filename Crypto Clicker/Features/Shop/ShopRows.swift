@@ -273,8 +273,8 @@ private struct MinerInfoBubble: View {
     }
 }
 
-/// A rounded box with an arrow on top pointing up at `arrowX`.
-private struct Callout: Shape {
+/// A rounded box with an arrow on top pointing up at `arrowX`, for the Shop's pop-ups.
+struct Callout: Shape {
     static let arrow = CGSize(width: 18, height: 9)
     var arrowX: CGFloat
     var radius: CGFloat = 16

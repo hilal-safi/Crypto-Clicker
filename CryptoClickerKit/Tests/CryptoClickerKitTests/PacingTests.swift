@@ -361,21 +361,22 @@ struct PacingTests {
               "| prestiges", player.prestigeTimes.map(days), "| every game by", days(lastGame),
               "| points", player.game.prestigePoints, "| offline", CoinFormat.duration(player.game.offlineCap),
               "| Immersion Cooling", days(player.firstUpgrade[.immersionCooling]))
-        // The Data Center takes about two days (the Server and the Data Center cost more, and the
-        // first production upgrades give less). Immersion Cooling picks the pace up from the third
-        // day: the first prestige point (15 billion mined) comes in under four days, the tenth tier
-        // in about six, and the Shop suggests the first prestige at about six and a half.
+        // Without steps: the Data Center takes about two days (the Server and the Data Center cost
+        // more, and the first production upgrades give less). Immersion Cooling picks the pace up
+        // from the third day: the first prestige point (15 billion mined) comes in about four days,
+        // the tenth tier in about seven, and the Shop suggests the first prestige at about seven
+        // and a half (a walker gets there sooner: see the walking test).
         #expect(player.firstBought[.dataCenter].map { (1.5 * 86_400...2.5 * 86_400).contains($0) } == true)
         #expect(player.firstUpgrade[.immersionCooling].map { (2 * 86_400...4 * 86_400).contains($0) } == true)
         #expect(player.firstPointAt.map { (3 * 86_400...4.5 * 86_400).contains($0) } == true)
         let tenthTier = player.firstBought[.spaceColony]
-        #expect(tenthTier.map { (5.5 * 86_400...7 * 86_400).contains($0) } == true)
-        #expect(player.firstPrestigeAt.map { (6 * 86_400...7.25 * 86_400).contains($0) } == true)
+        #expect(tenthTier.map { (6 * 86_400...7.5 * 86_400).contains($0) } == true)
+        #expect(player.firstPrestigeAt.map { (7 * 86_400...8 * 86_400).contains($0) } == true)
         #expect((1...2).contains(player.prestigeTimes.count))
-        // Every game within the week, and the whole first ladder before the first prestige (which
-        // opens the three tiers beyond it).
+        // Every game within about a week, and the whole first ladder before the first prestige
+        // (which opens the three tiers beyond it).
         #expect(player.gamesUnlockedAt.count == MiniGame.allCases.count)
-        #expect(lastGame.map { $0 < 7 * 86_400 } == true)
+        #expect(lastGame.map { $0 < 7.5 * 86_400 } == true)
         #expect(tenthTier.map { $0 <= (player.firstPrestigeAt ?? 0) } == true)
         // Offline Mining covers the longest absence (ten hours) within the first week.
         #expect(player.game.offlineCap >= 10 * 3_600)
@@ -398,13 +399,14 @@ struct PacingTests {
         print("Casual 21 days: prestiges", player.prestigeTimes.map(days), "| points", player.game.prestigePoints,
               "| Lunar Base", days(player.firstBought[.lunarBase]), "| Galactic Hashnet", days(player.firstBought[.galacticHashnet]),
               "| perks", perks.joined(separator: ", "))
-        // About nine prestiges and five thousand points in three weeks: later prestiges wait until
-        // they would nearly double production, so each is a bigger jump than the first.
-        #expect((8...10).contains(player.prestigeTimes.count))
-        #expect((3_500...7_000).contains(player.game.prestigePoints))
+        // Without steps, about eight prestiges and a few thousand points in three weeks (the
+        // 5,000-step walker makes nine and about five thousand): later prestiges wait until they
+        // would nearly double production, so each is a bigger jump than the first.
+        #expect((7...9).contains(player.prestigeTimes.count))
+        #expect((1_500...5_000).contains(player.game.prestigePoints))
         // The cheap perks come with the first prestige, the dearest ones after two weeks or more,
         // and the last miner tier within the three weeks.
-        #expect(player.perksBoughtAt[.headStart].map { $0 < 7.5 * 86_400 } == true)
+        #expect(player.perksBoughtAt[.headStart].map { $0 < 8 * 86_400 } == true)
         #expect(player.firstBought[.lunarBase] != nil)
         #expect(player.firstBought[.galacticHashnet] != nil)
         #expect(player.perksBoughtAt[.engineeringTeam].map { $0 > 14 * 86_400 } ?? true)
@@ -412,9 +414,11 @@ struct PacingTests {
         #expect(player.perksBoughtAt.count >= 10)
     }
 
-    /// The casual player again, walking 2,500, 5,000 or 10,000 steps a day: steps help, more for
-    /// bigger walkers, but they don't change the shape of the game. Runs with the balance tests.
-    @Test(arguments: [2_500, 5_000, 10_000]) func walkersGetAheadButNotFarAhead(steps: Int) {
+    /// The casual player again, walking 2,500, 5,000 or 10,000 steps a day: walking matters, about
+    /// half a day of the first prestige for each doubling. The 5,000-step walker sets the pace (the
+    /// first prestige at about six and a half days, nine prestiges in three weeks); 2,500 steps take
+    /// about seven days and 10,000 about six. Runs with the balance tests.
+    @Test(arguments: [2_500, 5_000, 10_000]) func walkingMovesTheFirstPrestigeByAboutHalfADayADoubling(steps: Int) {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
         let walker = casualPlayer(days: 21, stepsPerDay: steps)
         let stats = walker.game.stats
@@ -423,10 +427,18 @@ struct PacingTests {
               "| first prestige", days(walker.firstPrestigeAt), "| prestiges", walker.prestigeTimes.count,
               "| points", walker.game.prestigePoints, "| steps paid", String(format: "%.1f%%", share * 100),
               "| boosters", UpgradeID.allCases.filter { $0.category == .steps }.map { days(walker.firstUpgrade[$0]) })
-        #expect(stats.earnedFromSteps > 0)
-        #expect(share < 0.15)
-        #expect(walker.firstPrestigeAt.map { (5.5 * 86_400...7.5 * 86_400).contains($0) } == true)
-        #expect((8...11).contains(walker.prestigeTimes.count))
+        let firstPrestige: ClosedRange<Double> = switch steps {
+        case ..<5_000: 6.75...7.25
+        case 5_000: 6.25...6.75
+        default: 5.5...6.25
+        }
+        #expect(walker.firstPrestigeAt.map { firstPrestige.contains($0 / 86_400) } == true)
+        #expect((steps >= 10_000 ? 9...11 : 8...10).contains(walker.prestigeTimes.count))
+        // Steps pay a real share, but mining still pays most.
+        #expect(share > Double(steps) / 100_000)
+        #expect(share < 0.5)
+        // Every booster arrives within the first run.
+        #expect(UpgradeID.allCases.filter { $0.category == .steps }.allSatisfy { walker.firstUpgrade[$0].map { $0 < 5 * 86_400 } == true })
     }
 
     @Test func offlineMiningIsEarnedInTheFirstSessionsNotGivenAtTheStart() {

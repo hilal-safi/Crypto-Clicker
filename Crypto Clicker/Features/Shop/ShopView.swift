@@ -85,8 +85,8 @@ struct ShopView: View {
                     showPowerUpsIfAsked(scroller)
                 }
                 .onChange(of: powerUpRequests) { _, _ in showPowerUpsIfAsked(scroller) }
-                .onChange(of: page) { _, _ in store.shopInfoMiner = nil }
-                .onDisappear { store.shopInfoMiner = nil }
+                .onChange(of: page) { _, _ in store.shopInfoMiner = nil; store.shopInfoToken = nil }
+                .onDisappear { store.shopInfoMiner = nil; store.shopInfoToken = nil }
                 .onChange(of: tokenRequests) { _, _ in showTokensIfAsked(scroller) }
             }
             .background { AppBackground(tint: page == .tokens ? .green : Theme.shop) }

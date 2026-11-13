@@ -2,8 +2,9 @@ import Foundation
 
 /// A three-reel slot machine whose symbols are the exchange's crypto tokens. Every reel uses the
 /// same strip, where rarer tokens pay more. A Cardano, a Solana and an Ethereum on the line, in any
-/// order, win free spins at the same bet. With them it returns about 95.6% of the tokens bet over
-/// time (`returnToPlayer` works it out exactly from the strip and the pay table).
+/// order, win free spins at the same bet. With them it returns about 96.8% of the tokens bet over
+/// time (`returnToPlayer` works it out exactly from the strip and the pay table), and about two
+/// spins in nine pay at least double.
 ///
 /// Every Bitcoin that lands on the line goes into a collection, and every `bitcoinsPerPrize` of
 /// them pays a coin prize; it never changes the odds of a spin.
@@ -29,18 +30,18 @@ public enum SlotMachine {
         switch token {
         case .shibaInu: 4
         case .dogecoin: 8
-        case .xrp: 15
-        case .cardano: 25
-        case .solana: 40
-        case .ethereum: 100
+        case .xrp: 12
+        case .cardano: 20
+        case .solana: 30
+        case .ethereum: 80
         case .bitcoin: 500
         case .safeMoon, .tether, .bnb, .monero: 0 // Not on the reels.
         }
     }
 
     /// Any two Bitcoins on the line.
-    public static let twoBitcoins = 25
-    /// The first two reels match.
+    public static let twoBitcoins = 20
+    /// The first two reels match, or two Shiba Inu sit on the last two.
     public static let pairOnFirstTwo = 2
     /// A single Bitcoin anywhere returns the bet.
     public static let oneBitcoin = 1
@@ -51,9 +52,14 @@ public enum SlotMachine {
         if line[0] == line[1] && line[1] == line[2] { return threeOfAKind(line[0]) }
         let bitcoins = line.filter { $0 == .bitcoin }.count
         if bitcoins == 2 { return twoBitcoins }
-        if line[0] == line[1] { return pairOnFirstTwo }
+        if line[0] == line[1] || isShibaPairOnLastTwo(line) { return pairOnFirstTwo }
         if bitcoins == 1 { return oneBitcoin }
         return 0
+    }
+
+    /// Two Shiba Inu on the last two reels (the first two matching is the usual pair).
+    public static func isShibaPairOnLastTwo(_ line: [TokenID]) -> Bool {
+        line.count == reelCount && line[1] == .shibaInu && line[2] == .shibaInu
     }
 
     /// The jackpot: three Bitcoins.
@@ -204,6 +210,7 @@ public struct SlotsSpin: Equatable, Sendable {
         let bitcoins = line.indices.filter { line[$0] == .bitcoin }
         if bitcoins.count == 2 { return bitcoins }
         if line[0] == line[1] { return [0, 1] }
+        if SlotMachine.isShibaPairOnLastTwo(line) { return [1, 2] }
         if bitcoins.count == 1 { return bitcoins }
         if SlotMachine.triggersFreeSpins(line) { return [0, 1, 2] }
         return []

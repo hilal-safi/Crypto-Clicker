@@ -26,11 +26,14 @@ struct SlotsTests {
 
     @Test(arguments: [
         ([TokenID.bitcoin, .bitcoin, .bitcoin], 500),
-        ([TokenID.ethereum, .ethereum, .ethereum], 100),
+        ([TokenID.ethereum, .ethereum, .ethereum], 80),
         ([TokenID.shibaInu, .shibaInu, .shibaInu], 4),
-        ([TokenID.bitcoin, .xrp, .bitcoin], 25),
-        ([TokenID.bitcoin, .bitcoin, .solana], 25),
+        ([TokenID.bitcoin, .xrp, .bitcoin], 20),
+        ([TokenID.bitcoin, .bitcoin, .solana], 20),
         ([TokenID.dogecoin, .dogecoin, .bitcoin], 2),
+        ([TokenID.xrp, .shibaInu, .shibaInu], 2), // Two Shiba Inu on the last two reels.
+        ([TokenID.shibaInu, .xrp, .shibaInu], 0), // Not side by side.
+        ([TokenID.dogecoin, .xrp, .xrp], 0), // Only Shiba Inu pair on the last two.
         ([TokenID.xrp, .solana, .bitcoin], 1),
         ([TokenID.xrp, .solana, .xrp], 0),
         ([TokenID.cardano, .solana, .ethereum], 0),
@@ -39,15 +42,15 @@ struct SlotsTests {
         #expect(SlotMachine.payout(for: line) == multiple)
     }
 
-    @Test func theMachineReturnsAboutNinetyFivePercentFreeSpinsIncluded() {
+    @Test func theMachineReturnsAboutNinetySevenPercentFreeSpinsIncluded() {
         // One order of the trio: 3 Cardano × 3 Solana × 2 Ethereum stops; six orders.
         let chance: Double = 6.0 * 18.0 / 13_824.0
         #expect(SlotMachine.freeSpinChance == chance)
         let perTrigger: Double = 3.0 / (1.0 - 3.0 * chance)
         #expect(abs(SlotMachine.freeSpinsPerTrigger - perTrigger) < 1e-12)
-        #expect(abs(SlotMachine.paytableReturn - 0.933_883) < 1e-5)
+        #expect(abs(SlotMachine.paytableReturn - 0.945_312) < 1e-5)
         let rtp = SlotMachine.returnToPlayer
-        #expect(rtp > 0.95 && rtp < 0.96)
+        #expect(rtp > 0.96 && rtp < 0.97)
         let expected: Double = SlotMachine.paytableReturn * (1.0 + chance * perTrigger)
         #expect(abs(rtp - expected) < 1e-12)
     }
@@ -162,8 +165,8 @@ struct SlotsTests {
         game.tokens = [.shibaInu: 10]
         let result = game.spinSlots(.shibaInu, bet: 1, using: &rng)
         let spin = try #require(result)
-        #expect(spin.multiple == 15)
-        #expect(game.stats.slotsBiggestWin == Double(15 - 1) * TokenID.shibaInu.price + spin.bonus)
+        #expect(spin.multiple == 12)
+        #expect(game.stats.slotsBiggestWin == Double(12 - 1) * TokenID.shibaInu.price + spin.bonus)
     }
 
     @Test func spinsLandOnTheStrip() {

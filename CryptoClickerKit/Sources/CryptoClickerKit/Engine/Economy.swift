@@ -85,6 +85,10 @@ extension GameState {
         return max(minimum, value.rounded())
     }
 
+    /// The upgrades owned, in catalog order, so the products of their multipliers come out exactly
+    /// the same however the set happens to be ordered (after a save and a load, say).
+    var orderedUpgrades: [UpgradeID] { UpgradeID.allCases.filter(upgrades.contains) }
+
     // MARK: Miner Mk upgrades
 
     /// Mk upgrades bought for `miner` this run.
@@ -124,7 +128,7 @@ extension GameState {
     }
 
     public var upgradeProductionMultiplier: Double {
-        upgrades.reduce(1) { result, upgrade in
+        orderedUpgrades.reduce(1) { result, upgrade in
             if case .production(let factor) = upgrade.effect { return result * factor }
             return result
         }
@@ -211,7 +215,7 @@ extension GameState {
     // MARK: Tapping
 
     var tapFlatTotal: Double {
-        upgrades.reduce(1) { result, upgrade in
+        orderedUpgrades.reduce(1) { result, upgrade in
             if case .tapFlat(let value) = upgrade.effect { return result + value }
             return result
         }
@@ -219,14 +223,14 @@ extension GameState {
 
     /// Share of a second's production each tap also earns.
     public var tapShare: Double {
-        upgrades.reduce(0) { result, upgrade in
+        orderedUpgrades.reduce(0) { result, upgrade in
             if case .tapPercent(let share) = upgrade.effect { return result + share }
             return result
         }
     }
 
     public var autoTapsPerSecond: Double {
-        upgrades.reduce(0) { result, upgrade in
+        orderedUpgrades.reduce(0) { result, upgrade in
             if case .autoTaps(let rate) = upgrade.effect { return result + rate }
             return result
         }
@@ -373,15 +377,20 @@ extension GameState {
         return Double(min(level, 48)) * 1_800 + Double(max(0, level - 48)) * 3_600
     }
 
-    /// List price of Offline Mining's `level` (the first is 1), read off `Tuning.offlineMiningPrices`
-    /// by the limit it reaches.
+    /// List price of Offline Mining's `level` (the first is 1): a steady climb from the first level up
+    /// to three hours (`Tuning.offlineMiningGrowth`), then read off `Tuning.offlineMiningPrices` by
+    /// the limit it reaches.
     public static func offlineMiningListPrice(level: Int) -> Double {
         let level = min(max(1, level), Tuning.offlineMiningMaxLevel)
-        // Each level at least a step above the one before (see `Tuning.offlineMiningMinimumStep`).
         var price = 0.0
         for step in 1...level {
-            price = max(offlineMiningCurvePrice(level: step) * offlineMiningPremium(level: step),
-                        price * Tuning.offlineMiningMinimumStep)
+            if step > 1, let growth = Tuning.offlineMiningGrowth.first(where: { $0.levels.contains(step) })?.factor {
+                price *= growth
+            } else {
+                // Each level at least a step above the one before (see `Tuning.offlineMiningMinimumStep`).
+                price = max(offlineMiningCurvePrice(level: step) * offlineMiningPremium(level: step),
+                            price * Tuning.offlineMiningMinimumStep)
+            }
         }
         return price
     }
@@ -442,7 +451,7 @@ extension GameState {
     // MARK: Side rewards
 
     public var stepMultiplier: Double {
-        let upgradeFactor = upgrades.reduce(1.0) { result, upgrade in
+        let upgradeFactor = orderedUpgrades.reduce(1.0) { result, upgrade in
             if case .steps(let factor) = upgrade.effect { return result * factor }
             return result
         }
@@ -450,7 +459,7 @@ extension GameState {
     }
 
     public var miniGameMultiplier: Double {
-        let upgradeFactor = upgrades.reduce(1.0) { result, upgrade in
+        let upgradeFactor = orderedUpgrades.reduce(1.0) { result, upgrade in
             if case .miniGames(let factor) = upgrade.effect { return result * factor }
             return result
         }

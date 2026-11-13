@@ -69,7 +69,7 @@ struct InvadersTests {
         #expect(game.invaders.filter { $0.row >= 3 }.allSatisfy { $0.kind == .memeCoin })
         #expect(!game.invaders.contains { $0.isGolden }) // Golden invaders come from wave 2.
         #expect(game.firewalls.count == 4 && game.firewalls.allSatisfy { $0.standing == 40 }) // Solid server racks, 5 by 8.
-        #expect(game.lives == 3 && game.wave == 1 && game.score == 0)
+        #expect(game.lives == 5 && game.wave == 1 && game.score == 0)
         // The banner holds for a moment, then the march begins.
         #expect(game.phase == .incoming)
         run(&game, for: 1.3)
@@ -221,7 +221,7 @@ struct InvadersTests {
         game.give(.rapidFire)
         game.dropEnemyShot(at: Vector2(x: 0.5, y: 1.3))
         run(&game, for: 0.5) { $0.phase != .playing }
-        #expect(game.lives == 2 && game.shipsLost == 1)
+        #expect(game.lives == 4 && game.shipsLost == 1)
         #expect(game.phase == .shipLost)
         #expect(!game.isActive(.rapidFire)) // Power-ups go with the ship.
         run(&game, for: 1.4)
@@ -229,14 +229,14 @@ struct InvadersTests {
         // While it blinks, shots pass through.
         game.dropEnemyShot(at: Vector2(x: 0.5, y: 1.3))
         run(&game, for: 0.4)
-        #expect(game.lives == 2)
+        #expect(game.lives == 4)
         run(&game, for: 1.5)
         game.give(.shield)
         game.dropEnemyShot(at: Vector2(x: 0.5, y: 1.3))
         run(&game, for: 0.5)
-        #expect(game.lives == 2 && game.shieldSaves == 1 && !game.hasShield)
+        #expect(game.lives == 4 && game.shieldSaves == 1 && !game.hasShield)
         // The last ship ends the game.
-        for _ in 0..<2 {
+        for _ in 0..<4 {
             run(&game, for: 3.2)
             game.dropEnemyShot(at: Vector2(x: 0.5, y: 1.3))
             run(&game, for: 0.5) { $0.phase != .playing }
@@ -313,7 +313,7 @@ struct InvadersTests {
         game.dropEnemyShot(at: Vector2(x: game.shipX, y: 1.3))
         run(&game, for: 0.5) { $0.phase == .shipLost }
         run(&game, for: 3.2)
-        #expect(game.lives == 2)
+        #expect(game.lives == 4)
         game.setBossHits(1)
         game.keepInvaders(at: [])
         // Wait for the boss to slide over the ship, then fire.
@@ -321,7 +321,7 @@ struct InvadersTests {
         run(&game, for: 6) { abs($0.boss!.frame.midX - 0.5) < 0.05 }
         game.isFiring = true
         run(&game, for: 2) { $0.boss == nil }
-        #expect(game.bossesDefeated == 1 && game.lives == 3)
+        #expect(game.bossesDefeated == 1 && game.lives == 5)
         #expect(game.score >= 500)
         #expect(game.phase == .waveCleared)
     }

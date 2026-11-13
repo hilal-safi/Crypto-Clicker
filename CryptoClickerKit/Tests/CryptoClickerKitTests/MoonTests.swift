@@ -92,15 +92,17 @@ struct MoonTests {
         #expect(result.isWin)
         #expect(result.cashedOutAt == 2.5)
         #expect(result.tokensWon == 25)
-        // 10 Shiba stake 10,000 coins: 8% is 800, capped at 24 seconds of income (240) per multiple above 1×.
-        #expect(result.bonus == 360)
+        // 10 Shiba stake 10,000 coins: 8% is 800 per multiple above 1× (1,200 at 2.5×), capped for
+        // the flight at 6 seconds of income for each second it took (6.6 seconds to 2.5×): 397.
+        #expect(result.bonus == GameState.wholeCoins(6 * MoonFlight.time(toReach: 2.5) * 10))
+        #expect(result.bonus == 397)
         #expect(game.tokenCount(.shibaInu) == 115)
-        #expect(game.coins == 360)
+        #expect(game.coins == 397)
         #expect(game.moonRound == nil)
         #expect(game.stats.moonCashOuts == 1)
         #expect(game.stats.moonBestMultiplier == 2.5)
         #expect(game.stats.moonPaidOut == 25_000)
-        #expect(game.stats.moonBiggestWin == 15_360)
+        #expect(game.stats.moonBiggestWin == 15_397)
         #expect(game.settleMoon(after: 1) == nil) // Settled once.
     }
 
@@ -159,9 +161,10 @@ struct MoonTests {
         let round = try #require(game.moonRound)
         #expect(round.rocket == .fivefold)
         #expect(round.multiplier(after: 5) == 5)
-        let doubling = game.moonBonus(bet: 10, token: .shibaInu, multiplier: 2)
+        // It reaches 2× in 2.2 seconds, not 5, so its cap is smaller, but it pays a quarter more.
+        let flight = MoonFlight.time(toReach: 2, rocket: .fivefold)
         #expect(game.moonBonus(bet: 10, token: .shibaInu, multiplier: 2, rocket: .fivefold)
-                == GameState.wholeCoins(doubling * Tuning.moonFivefoldBonus))
+                == GameState.wholeCoins(min(10_000 * Tuning.moonStakeShare, 6 * flight * game.rewardIncome) * Tuning.moonFivefoldBonus))
         guard round.crashPoint > 1.01 else { return }
         let settled = game.settleMoon(after: round.time(toReach: 1.01))
         let result = try #require(settled)

@@ -9,7 +9,7 @@ No real cryptocurrency, no ads, no purchases.
 - **Mining.** Tap for coins and build quick-tap combos, then buy 13 miners from a Chromebook to a
   Galactic Hashnet. Each unit costs 15% more, milestones and Mk upgrades double output, and the Shop
   marks the best value.
-- **Upgrades and power-ups.** 23 one-time upgrades, combo power-ups, and Offline Mining, which keeps
+- **Upgrades and power-ups.** 24 one-time upgrades, combo power-ups, and Offline Mining, which keeps
   miners earning while the app is closed, for up to three days.
 - **Prestige.** After 15 billion coins mined, start a new run for points that add 5% production each
   and buy permanent perks.

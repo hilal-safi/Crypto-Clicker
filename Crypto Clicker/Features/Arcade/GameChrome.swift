@@ -588,7 +588,7 @@ struct LivesColumn: View {
     let label: String
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: total > 3 ? 7 : 10) {
             ForEach(0..<total, id: \.self) { life in
                 Image(systemName: life < lives ? symbol : emptySymbol)
                     .foregroundStyle(life < lives ? AnyShapeStyle(color) : AnyShapeStyle(.subtext))
