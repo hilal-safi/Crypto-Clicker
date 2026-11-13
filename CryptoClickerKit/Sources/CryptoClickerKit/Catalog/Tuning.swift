@@ -36,9 +36,10 @@ public enum Tuning {
     public static let minerUpgradeUnits = 10.0
 
     // MARK: Tapping
-    /// An automatic tap earns this share of a tap's value, so tapping yourself stays the best way to
-    /// mine while the app is open: late in the game a tap is worth a whole second of production.
-    public static let autoTapStrength = 0.25
+    /// An automatic tap earns this share of a tap's value (half: a quarter was too weak to notice),
+    /// so tapping yourself stays the best way to mine while the app is open: late in the game a tap
+    /// is worth a whole second of production. Auto Clicker Pro doubles it.
+    public static let autoTapStrength = 0.5
     /// A tap within this long of the previous one keeps a combo going.
     public static let comboWindow: TimeInterval = 0.6
     /// A combo climbs by this much (+0.1)...
@@ -103,13 +104,22 @@ public enum Tuning {
     public static let offlineMiningPrices: [(hours: Double, price: Double)] = [
         (2.0 / 60, 1_702.64), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
     ]
-    /// Levels 2 to 15 (3 to 40 minutes) cost this much more than the curve, so the first stretch
-    /// of time away isn't bought up too quickly...
-    public static let offlineMiningEarlyPremium = 1.1
-    public static let offlineMiningEarlyPremiumLevels = 2...15
-    /// ...and levels 2 to 10 (3 to 15 minutes) this much more again (15.5% over the curve in all).
-    public static let offlineMiningEarliestPremium = 1.05
-    public static let offlineMiningEarliestPremiumLevels = 2...10
+    /// How much more than the curve each stretch of levels costs, so time away isn't bought up
+    /// too quickly early on: levels 3 to 8 half as much again as before, 9 to 15 40% more, 16 to 20
+    /// 30%, 21 to 30 20% and the rest 10%, on top of the earlier premiums (15.5% for levels 2 to
+    /// 10, 10% for 11 to 15). The first level stays at 3,500 coins. A level never costs less than
+    /// `offlineMiningMinimumStep` times the one before, which matters only where a premium drops
+    /// between two one-minute levels (8 to 9).
+    public static let offlineMiningPremiums: [(levels: ClosedRange<Int>, factor: Double)] = [
+        (2...2, 1.155 * 1.1),
+        (3...8, 1.155 * 1.5),
+        (9...10, 1.155 * 1.4),
+        (11...15, 1.1 * 1.4),
+        (16...20, 1.3),
+        (21...30, 1.2),
+        (31...offlineMiningMaxLevel, 1.1),
+    ]
+    public static let offlineMiningMinimumStep = 1.02
 
     // MARK: Steps
     /// Lifetime taps needed before steps can be connected, so early coins come from playing.
@@ -165,9 +175,11 @@ public enum Tuning {
         min(max(log10(price / low) / log10(high / low), 0), 1)
     }
 
-    /// A Shop price: the list price with the pace and the Shop's premium, in whole coins.
-    public static func shopPrice(_ listPrice: Double) -> Double {
-        whole(listPrice * priceScale(forListPrice: listPrice) * shopPremium(forListPrice: listPrice))
+    /// A Shop price: the list price with the pace and the Shop's premium, in whole coins, then
+    /// `adjustment` for an item tuned on its own (the Server 20% dearer, the combo power-ups 10%
+    /// cheaper), so the change is exactly that share of what the Shop showed.
+    public static func shopPrice(_ listPrice: Double, adjustedBy adjustment: Double = 1) -> Double {
+        whole(listPrice * priceScale(forListPrice: listPrice) * shopPremium(forListPrice: listPrice) * adjustment)
     }
 
     /// Rounds a price up to a whole coin, ignoring floating-point noise just above a whole number.

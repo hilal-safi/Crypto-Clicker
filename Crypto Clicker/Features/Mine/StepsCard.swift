@@ -16,11 +16,26 @@ struct StepsCard: View {
         canTrackSteps && game.areStepsUnlocked && (game.steps.isConnected || !inviteDismissed)
     }
 
+    /// Whether it shows today's steps (rather than the invitation, or nothing).
+    static func showsCounter(_ game: GameState, canTrackSteps: Bool) -> Bool {
+        canTrackSteps && game.areStepsUnlocked && game.steps.isConnected
+    }
+
     var body: some View {
         let game = store.game
         if store.canTrackSteps && game.areStepsUnlocked {
             if game.steps.isConnected {
-                StepsTodayCard()
+                // After the first prestige the steps take three quarters of the row and the prestige
+                // points the last quarter; until then the steps have it all.
+                if game.stats.prestiges > 0 {
+                    QuarterSplit {
+                        StepsTodayCard(fillsHeight: true)
+                        PrestigeBadge(fillsHeight: true)
+                    }
+                    .transition(.opacity)
+                } else {
+                    StepsTodayCard()
+                }
             } else if !inviteDismissed {
                 invitation
             }
@@ -71,6 +86,8 @@ struct StepsCard: View {
 
 /// Today's steps and what they pay: as they're walked, or tomorrow on the game's first day.
 private struct StepsTodayCard: View {
+    /// Fills the row's height, beside the prestige badge.
+    var fillsHeight = false
     @Environment(GameStore.self) private var store
 
     var body: some View {
@@ -88,11 +105,22 @@ private struct StepsTodayCard: View {
                 Text("\(CoinFormat.grouped(isToday ? game.steps.todaySteps : 0)) steps today")
                     .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
-                Text(pending > 0 ? "Pays about +\(CoinFormat.short(pending)) tomorrow"
-                     : game.stepsPaidNextDay(today: today) ? "Every step pays \(perStep) tomorrow"
-                     : "Every step pays \(perStep) as you walk")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Theme.steps)
+                // Beside the prestige badge, a shorter line that fits the narrower card.
+                Group {
+                    if fillsHeight {
+                        Text(pending > 0 ? "About +\(CoinFormat.short(pending)) tomorrow"
+                             : game.stepsPaidNextDay(today: today) ? "\(perStep) a step tomorrow"
+                             : "\(perStep) a step")
+                    } else {
+                        Text(pending > 0 ? "Pays about +\(CoinFormat.short(pending)) tomorrow"
+                             : game.stepsPaidNextDay(today: today) ? "Every step pays \(perStep) tomorrow"
+                             : "Every step pays \(perStep) as you walk")
+                    }
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Theme.steps)
+                .lineLimit(fillsHeight ? 1 : nil)
+                .minimumScaleFactor(fillsHeight ? 0.8 : 1)
             }
             Spacer(minLength: 0)
             Button {
@@ -111,8 +139,93 @@ private struct StepsTodayCard: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil)
         .glassEffect(.regular.tint(Theme.steps.opacity(0.18)), in: .rect(cornerRadius: 18))
+    }
+}
+
+/// The prestige points, shown on the home screen once the first prestige is done: a quarter of the
+/// steps row, or a row of its own (`isWide`) for a player without steps.
+struct PrestigeBadge: View {
+    var isWide = false
+    /// Fills the row's height, beside the steps.
+    var fillsHeight = false
+    @Environment(GameStore.self) private var store
+
+    var body: some View {
+        let game = store.game
+        let points = game.prestigePoints
+        let count = points < 100_000 ? CoinFormat.grouped(points) : CoinFormat.short(Double(points))
+        let unit = points == 1 ? String(localized: "point") : String(localized: "points")
+        Group {
+            if isWide {
+                HStack(spacing: 10) {
+                    Image(systemName: "sparkles")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 24)
+                    Text("Prestige \(CoinFormat.grouped(game.stats.prestiges))")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer(minLength: 8)
+                    Text("\(count) \(unit) · \(CoinFormat.multiplier(game.prestigeBonus))")
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.accent)
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            } else {
+                VStack(spacing: 0) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "sparkles")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Theme.accent)
+                        Text(count)
+                            .font(.subheadline.weight(.bold))
+                            .monospacedDigit()
+                    }
+                    Text(unit)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            }
+        }
+        .padding(.horizontal, isWide ? 12 : 6)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil)
+        .glassEffect(.regular.tint(Theme.gold.opacity(0.2)), in: .rect(cornerRadius: 18))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Prestige: \(points) \(unit), production \(CoinFormat.multiplier(game.prestigeBonus))")
+    }
+}
+
+/// Two views side by side, the first three quarters of the width and the second a quarter, both as
+/// tall as the taller one.
+private struct QuarterSplit: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 360
+        let height = zip(subviews, widths(for: width, count: subviews.count))
+            .map { $0.sizeThatFits(ProposedViewSize(width: $1, height: nil)).height }
+            .max() ?? 0
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        for (subview, width) in zip(subviews, widths(for: bounds.width, count: subviews.count)) {
+            subview.place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading,
+                          proposal: ProposedViewSize(width: width, height: bounds.height))
+            x += width + spacing
+        }
+    }
+
+    private func widths(for width: CGFloat, count: Int) -> [CGFloat] {
+        let room = max(0, width - spacing)
+        return count == 2 ? [room * 0.75, room * 0.25] : Array(repeating: width, count: count)
     }
 }
 

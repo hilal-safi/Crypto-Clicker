@@ -202,7 +202,7 @@ struct BrickBreakerPlayView: View {
     private var field: some View {
         TimelineView(.animation(minimumInterval: nil, paused: !isRunning || game.phase != .playing)) { timeline in
             BrickField(game: game, time: timeline.date.timeIntervalSinceReferenceDate, reduceMotion: reduceMotion,
-                       paddle: store.game.equipped(.paddle))
+                       paddle: store.game.equipped(.paddle), ball: store.game.equipped(.ball))
                 .onChange(of: timeline.date) { _, date in advance(to: date) }
         }
         .aspectRatio(BrickBreakerGame.width / BrickBreakerGame.height, contentMode: .fit)
@@ -357,6 +357,8 @@ private struct BrickField: View {
     let reduceMotion: Bool
     /// The paddle picked in Style.
     var paddle = Cosmetic.paddleGold
+    /// The ball picked in Style.
+    var ball = Cosmetic.ballBitcoin
     static let rowColors: [Color] = [.red, .orange, .yellow, .green, .mint, .cyan, .blue, .purple]
 
     var body: some View {
@@ -407,12 +409,11 @@ private struct BrickField: View {
             drawPaddle(rect(game.paddle), in: &context)
             if game.phase != .over {
                 let radius = BrickBreakerGame.ballRadius * scale * 1.25
-                var glow = context
-                glow.addFilter(.shadow(color: Theme.gold.opacity(0.8), radius: 6))
                 let coin = context.resolve(Image("CoinSmall"))
-                for ball in game.balls {
-                    glow.draw(coin, in: CGRect(x: ball.position.x * scale - radius, y: ball.position.y * scale - radius,
-                                               width: radius * 2, height: radius * 2))
+                for coinBall in game.balls {
+                    ball.drawBall(in: CGRect(x: coinBall.position.x * scale - radius, y: coinBall.position.y * scale - radius,
+                                             width: radius * 2, height: radius * 2),
+                                  coin: coin, context: &context)
                 }
             }
         }

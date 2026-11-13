@@ -62,12 +62,22 @@ struct ArcadeRankCard: View {
     }
 }
 
-/// Looks for the games, at least one kind for every game: card backs, the tables, slot reels, the
-/// moon ride, coins, tiles, the chain, the paddle, bubbles, the Pump and Dump board and the ship.
-/// Each kind is headed by its games' icons. Locked looks say what unlocks them.
+/// Looks for the games, two kinds for every game (the card games share their card backs), each
+/// game's kinds together in the order the Arcade lists the games. Each kind is headed by its games'
+/// icons. Locked looks say what unlocks them.
 struct StyleView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+
+    /// Each game's kinds of look together, in the order the Arcade lists the games (a kind shared by
+    /// two games goes with the first).
+    static var slotsInArcadeOrder: [CosmeticSlot] {
+        let games = MiniGame.byPrice
+        func place(_ slot: CosmeticSlot) -> Int { slot.games.compactMap { games.firstIndex(of: $0) }.min() ?? games.count }
+        return CosmeticSlot.allCases.enumerated()
+            .sorted { (place($0.element), $0.offset) < (place($1.element), $1.offset) }
+            .map(\.element)
+    }
 
     var body: some View {
         let game = store.game
@@ -78,7 +88,7 @@ struct StyleView: View {
                         .font(.subheadline)
                         .foregroundStyle(.subtext)
                 }
-                ForEach(CosmeticSlot.allCases) { slot in
+                ForEach(Self.slotsInArcadeOrder) { slot in
                     Section {
                         ForEach(Cosmetic.all(in: slot)) { cosmetic in
                             row(cosmetic, game: game)

@@ -83,7 +83,8 @@ struct DailyQuestTests {
 
     @Test func rewardsCanBeTokensOrABullRun() {
         var game = GameState.make(miners: [.server: 100]) // Tens of thousands of coins per second.
-        #expect(game.tokenReward(worth: 4_000) == nil) // Not even five Shiba Inu.
+        #expect(game.tokenReward(worth: 400) == nil) // Not even five SafeMoon.
+        #expect(game.tokenReward(worth: 4_000) == .tokens(.safeMoon, 40)) // SafeMoon below five Shiba Inu.
         #expect(game.tokenReward(worth: 5_000) == .tokens(.shibaInu, 5))
         #expect(game.tokenReward(worth: 2e6) == .tokens(.dogecoin, 20))
         #expect(game.tokenReward(worth: 1e40) == .tokens(.bitcoin, 500))
@@ -249,7 +250,8 @@ struct DailyRewardTests {
         #expect(game.streakReward(day: 14) == .coins(seconds: 3_600))
         // Day 3 pays a quarter of an hour of income in tokens, once that buys five or more.
         #expect(game.streakReward(day: 3) == .tokens(.shibaInu, 9))
-        #expect(GameState.make().streakReward(day: 3) == .coins(seconds: 900))
+        // Even a new player's quarter hour buys five SafeMoon, the cheapest token (100 coins).
+        #expect(GameState.make().streakReward(day: 3) == .tokens(.safeMoon, 9))
         game.daily.streak = 9
         game.daily.lastRewardDay = "2026-10-01"
         #expect(game.claimDailyReward(today: "2026-10-02", yesterday: "2026-10-01", at: t0) == .tokens(.shibaInu, 9))

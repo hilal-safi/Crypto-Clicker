@@ -69,7 +69,10 @@ struct MoonView: View {
                 .padding(.bottom, 8)
                 .frame(maxWidth: 560)
         }
-        .background { SpaceBackground() }
+        .background {
+            MoonSkyBackground(look: store.game.equipped(.moonSky))
+                .ignoresSafeArea()
+        }
         .overlay { EffectsLayer(effects: effects).ignoresSafeArea() }
         .environment(\.colorScheme, .dark)
         .navigationTitle("To the Moon")
@@ -374,24 +377,3 @@ private struct FlightChart: View {
 }
 
 /// Deep space with a scatter of stars.
-private struct SpaceBackground: View {
-    var body: some View {
-        RadialGradient(colors: [Color(red: 0.16, green: 0.12, blue: 0.40), Color(red: 0.02, green: 0.02, blue: 0.08)],
-                       center: .top, startRadius: 40, endRadius: 820)
-            .overlay {
-                Canvas { context, size in
-                    var rng = SeededGenerator(seed: 42)
-                    for _ in 0..<90 {
-                        let x = Double.random(in: 0...1, using: &rng) * size.width
-                        let y = Double.random(in: 0...1, using: &rng) * size.height
-                        let radius = Double.random(in: 0.5...1.6, using: &rng)
-                        let opacity = Double.random(in: 0.2...0.8, using: &rng)
-                        context.fill(Path(ellipseIn: CGRect(x: x, y: y, width: radius * 2, height: radius * 2)),
-                                     with: .color(.white.opacity(opacity)))
-                    }
-                }
-            }
-            .ignoresSafeArea()
-            .accessibilityHidden(true)
-    }
-}

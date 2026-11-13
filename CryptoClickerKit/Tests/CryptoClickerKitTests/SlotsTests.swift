@@ -10,8 +10,9 @@ struct SlotsTests {
         let counts = Dictionary(strip.map { ($0, 1) }, uniquingKeysWith: +)
         #expect(counts[.shibaInu] == 6)
         #expect(counts[.bitcoin] == 1)
-        // Tether, BNB and Monero are traded and bet, but aren't on the reels (and pay nothing there).
-        let offReels: Set<TokenID> = [.tether, .bnb, .monero]
+        // SafeMoon, Tether, BNB and Monero are traded and bet, but aren't on the reels (and pay
+        // nothing there).
+        let offReels: Set<TokenID> = [.safeMoon, .tether, .bnb, .monero]
         #expect(Set(strip) == Set(TokenID.allCases).subtracting(offReels))
         #expect(offReels.allSatisfy { SlotMachine.threeOfAKind($0) == 0 })
         // Rarer tokens pay more.

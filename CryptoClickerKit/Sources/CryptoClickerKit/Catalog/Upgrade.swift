@@ -138,8 +138,9 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .neuralInterface: .tapPercent(0.20)
         case .hapticEngine: .tapPercent(0.25)
         case .satoshisTouch: .tapPercent(0.35)
-        // The first two are a little weaker, so the opening goes slower.
-        case .overclocking, .liquidCooling: .production(1.75)
+        // The first two are weaker, so the opening and the second day go slower.
+        case .overclocking: .production(1.25)
+        case .liquidCooling: .production(1.5)
         case .fiberUplink, .solarFarm, .fusionReactor, .dysonSwarm: .production(2)
         case .asicChips, .geothermalPlant: .production(1.5)
         case .stepBooster, .upgradedStepBooster: .steps(2)

@@ -101,7 +101,7 @@ private struct HowToChapter: Identifiable {
         ]),
         HowToTopic("sparkles", "Upgrades", "One-time purchases in the Shop.", [
             "Multiply production and power up taps.",
-            "Add automatic taps, each worth a quarter of a tap.",
+            "Add automatic taps, each worth half a tap.",
             "Boost steps and mini-games.",
         ]),
         HowToTopic("moon.zzz.fill", "Offline Mining", "Keeps your miners earning while the app is closed.", [

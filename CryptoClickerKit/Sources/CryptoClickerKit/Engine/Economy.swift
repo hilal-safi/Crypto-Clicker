@@ -376,14 +376,29 @@ extension GameState {
     /// List price of Offline Mining's `level` (the first is 1), read off `Tuning.offlineMiningPrices`
     /// by the limit it reaches.
     public static func offlineMiningListPrice(level: Int) -> Double {
+        let level = min(max(1, level), Tuning.offlineMiningMaxLevel)
+        // Each level at least a step above the one before (see `Tuning.offlineMiningMinimumStep`).
+        var price = 0.0
+        for step in 1...level {
+            price = max(offlineMiningCurvePrice(level: step) * offlineMiningPremium(level: step),
+                        price * Tuning.offlineMiningMinimumStep)
+        }
+        return price
+    }
+
+    /// The price curve at a level's cap: log-interpolated between `Tuning.offlineMiningPrices`.
+    static func offlineMiningCurvePrice(level: Int) -> Double {
         let hours = offlineCap(level: level) / 3_600
         let prices = Tuning.offlineMiningPrices
-        let premium = (Tuning.offlineMiningEarlyPremiumLevels.contains(level) ? Tuning.offlineMiningEarlyPremium : 1)
-            * (Tuning.offlineMiningEarliestPremiumLevels.contains(level) ? Tuning.offlineMiningEarliestPremium : 1)
-        guard let next = prices.firstIndex(where: { $0.hours >= hours }) else { return (prices.last?.price ?? 0) * premium }
-        guard next > 0 else { return prices[next].price * premium }
+        guard let next = prices.firstIndex(where: { $0.hours >= hours }) else { return prices.last?.price ?? 0 }
+        guard next > 0 else { return prices[next].price }
         let from = prices[next - 1], to = prices[next]
-        return from.price * pow(to.price / from.price, (hours - from.hours) / (to.hours - from.hours)) * premium
+        return from.price * pow(to.price / from.price, (hours - from.hours) / (to.hours - from.hours))
+    }
+
+    /// How much more than the curve a level costs (see `Tuning.offlineMiningPremiums`).
+    static func offlineMiningPremium(level: Int) -> Double {
+        Tuning.offlineMiningPremiums.first { $0.levels.contains(level) }?.factor ?? 1
     }
 
     /// How long miners keep earning while the app is closed: nothing until Offline Mining is bought.

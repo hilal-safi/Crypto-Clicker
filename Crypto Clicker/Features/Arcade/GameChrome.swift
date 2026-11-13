@@ -721,9 +721,12 @@ struct FeltBackground: View {
 
 /// Deep velvet for the slot machine.
 struct VelvetBackground: View {
+    /// The backdrop picked in Style: purple velvet, a ruby or an emerald lounge.
+    var look = Cosmetic.slotsVelvet
+
     var body: some View {
-        RadialGradient(colors: [Color(red: 0.36, green: 0.12, blue: 0.48), Color(red: 0.09, green: 0.03, blue: 0.16)],
-                       center: .top, startRadius: 40, endRadius: 760)
+        let colors = look.slotsBackdropColors
+        RadialGradient(colors: [colors.center, colors.edge], center: .top, startRadius: 40, endRadius: 760)
             .ignoresSafeArea()
             .accessibilityHidden(true)
     }

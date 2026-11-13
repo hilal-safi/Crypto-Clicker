@@ -288,8 +288,8 @@ struct PacingTests {
         #expect((6...8).contains(player.firstBought.count))
         #expect(player.firstPointAt.map { $0 >= 1.5 * 3_600 } ?? true)
         #expect(player.prestigeTimes.isEmpty)
-        // New games keep coming: more than half of them in the first three hours, the rest later.
-        #expect((6...9).contains(player.gamesUnlockedAt.count))
+        // New games keep coming: about half of them in the first three hours, the rest later.
+        #expect((5...8).contains(player.gamesUnlockedAt.count))
         // Nobody who stays in the app needs Offline Mining.
         #expect(player.game.offlineMiningLevel == 0)
     }
@@ -325,26 +325,27 @@ struct PacingTests {
         #expect(player.game.offlineCap <= 10 * 60)
     }
 
-    @Test func aCasualPlayerReachesTheTenthTierAndAPrestigeInAboutAWeek() {
-        let player = casualPlayer(days: 8)
+    @Test func aCasualPlayerReachesTheTenthTierAndAPrestigeInUnderTenDays() {
+        let player = casualPlayer(days: 10)
         let tiers = MinerID.allCases.map { "\($0.name) \(days(player.firstBought[$0]))" }
         let lastGame = player.gamesUnlockedAt.values.max()
-        print("Casual 8 days:", tiers.joined(separator: ", "), "| first point", days(player.firstPointAt),
+        print("Casual 10 days:", tiers.joined(separator: ", "), "| first point", days(player.firstPointAt),
               "| prestiges", player.prestigeTimes.map(days), "| every game by", days(lastGame),
               "| points", player.game.prestigePoints, "| offline", CoinFormat.duration(player.game.offlineCap))
-        // The Data Center takes a day or more, and the middle of the climb about twice as long as
-        // the start: the first prestige point (15 billion mined) comes around day three, the tenth
-        // tier in about six days, and the Shop suggests the first prestige within the week.
-        #expect(player.firstBought[.dataCenter].map { (1 * 86_400...2 * 86_400).contains($0) } == true)
-        #expect(player.firstPointAt.map { (2 * 86_400...3.5 * 86_400).contains($0) } == true)
+        // The Data Center takes about two days (the Server and the Data Center cost more, and the
+        // first production upgrades give less), and the middle of the climb longer: the first
+        // prestige point (15 billion mined) comes around day four, the tenth tier in about eight
+        // days, and the Shop suggests the first prestige a little after.
+        #expect(player.firstBought[.dataCenter].map { (1.5 * 86_400...2.5 * 86_400).contains($0) } == true)
+        #expect(player.firstPointAt.map { (3 * 86_400...5 * 86_400).contains($0) } == true)
         let tenthTier = player.firstBought[.spaceColony]
-        #expect(tenthTier.map { (5 * 86_400...7 * 86_400).contains($0) } == true)
-        #expect(player.firstPrestigeAt.map { (5.5 * 86_400...7.25 * 86_400).contains($0) } == true)
+        #expect(tenthTier.map { (7 * 86_400...9 * 86_400).contains($0) } == true)
+        #expect(player.firstPrestigeAt.map { (7.5 * 86_400...10 * 86_400).contains($0) } == true)
         #expect((1...2).contains(player.prestigeTimes.count))
-        // Every game within the week, and the whole first ladder before the first prestige (which
-        // opens the three tiers beyond it).
+        // Every game within about eight days, and the whole first ladder before the first prestige
+        // (which opens the three tiers beyond it).
         #expect(player.gamesUnlockedAt.count == MiniGame.allCases.count)
-        #expect(lastGame.map { $0 < 7 * 86_400 } == true)
+        #expect(lastGame.map { $0 < 9 * 86_400 } == true)
         #expect(tenthTier.map { $0 <= (player.firstPrestigeAt ?? 0) } == true)
         // Offline Mining covers the longest absence (ten hours) within the first week.
         #expect(player.game.offlineCap >= 10 * 3_600)
@@ -369,12 +370,12 @@ struct PacingTests {
               "| perks", perks.joined(separator: ", "))
         // The cheap perks come with the first prestige, the dearest ones after two weeks or more,
         // and the last miner tier within the three weeks.
-        #expect(player.perksBoughtAt[.headStart].map { $0 < 7.5 * 86_400 } == true)
+        #expect(player.perksBoughtAt[.headStart].map { $0 < 10 * 86_400 } == true)
         #expect(player.firstBought[.lunarBase] != nil)
         #expect(player.firstBought[.galacticHashnet] != nil)
         #expect(player.perksBoughtAt[.engineeringTeam].map { $0 > 14 * 86_400 } ?? true)
         #expect(player.perksBoughtAt[.compoundInterest].map { $0 > 18 * 86_400 } ?? true)
-        #expect(player.perksBoughtAt.count >= 13)
+        #expect(player.perksBoughtAt.count >= 8)
     }
 
     @Test func offlineMiningIsEarnedInTheFirstSessionsNotGivenAtTheStart() {
@@ -386,12 +387,13 @@ struct PacingTests {
     }
 
     @Test func tapsStayWorthHavingAllGameLong() {
-        // An hour in, three taps a second add more than half again to idle income...
+        // An hour in, three taps a second add a fifth or more to idle income (the Mechanical
+        // Keyboard, which makes taps count for more, comes a little later now)...
         var early = SimulatedPlayer(tapsPerSecond: 3)
         early.play(seconds: 60 * 60)
         let earlyGame = early.game
-        #expect(3 * earlyGame.tapValue(at: early.now) >= 0.5 * earlyGame.baseIdleIncome)
-        // ...and days in, a single tap is worth most of a second of production.
+        #expect(3 * earlyGame.tapValue(at: early.now) >= 0.2 * earlyGame.baseIdleIncome)
+        // ...and days in, a single tap is worth a good part of a second of production.
         var late = SimulatedPlayer(tapsPerSecond: 3, awayHours: [3, 4, 5, 10])
         late.prestigesWhenSuggested = false
         for _ in 0..<5 {
@@ -400,8 +402,10 @@ struct PacingTests {
                 late.leave(for: gap * 3_600 - 600)
             }
         }
-        // (Four of the five tapping upgrades by then, 65%: Satoshi's Touch comes later.)
-        #expect(late.game.tapValue(at: late.now) >= 0.6 * late.game.baseProduction)
-        #expect(3 * late.game.tapValue(at: late.now) >= late.game.baseIdleIncome)
+        // (Three of the five tapping upgrades by then, 40%: the Haptic Engine and Satoshi's Touch
+        // come later. Automatic taps, now worth half a tap, are part of idle income, so three taps a
+        // second still add most of it again.)
+        #expect(late.game.tapValue(at: late.now) >= 0.35 * late.game.baseProduction)
+        #expect(3 * late.game.tapValue(at: late.now) >= 0.75 * late.game.baseIdleIncome)
     }
 }

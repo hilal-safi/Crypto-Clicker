@@ -231,7 +231,7 @@ struct InvadersPlayView: View {
     private var fieldClock: some View {
         TimelineView(.animation(minimumInterval: nil, paused: !isRunning && popups.isEmpty)) { timeline in
             InvadersField(game: game, time: timeline.date, reduceMotion: reduceMotion, look: store.game.equipped(.ship),
-                          popups: popups, bossHitAt: bossHitAt)
+                          shots: store.game.equipped(.shots), popups: popups, bossHitAt: bossHitAt)
                 .onChange(of: timeline.date) { _, date in advance(to: date) }
         }
     }
@@ -539,6 +539,8 @@ private struct InvadersField: View {
     let time: Date
     let reduceMotion: Bool
     let look: Cosmetic
+    /// The shots picked in Style.
+    var shots = Cosmetic.shotsGold
     let popups: [InvadersPopup]
     let bossHitAt: Date?
 
@@ -630,8 +632,9 @@ private struct InvadersField: View {
     }
 
     private func drawShots(in context: inout GraphicsContext, scale: CGFloat, point: (Vector2) -> CGPoint) {
+        let colors = shots.shotColors
         var glow = context
-        glow.addFilter(.shadow(color: Theme.gold.opacity(0.9), radius: 4))
+        glow.addFilter(.shadow(color: colors.glow.opacity(0.9), radius: 4))
         for shot in game.shots {
             let center = point(shot.position)
             if shot.isLaser {
@@ -644,7 +647,7 @@ private struct InvadersField: View {
             } else {
                 let width = InvadersGame.shotSize.width * scale, height = InvadersGame.shotSize.height * scale
                 glow.fill(Path(roundedRect: CGRect(x: center.x - width / 2, y: center.y - height / 2, width: width, height: height),
-                               cornerRadius: width / 2), with: .color(Theme.gold))
+                               cornerRadius: width / 2), with: .color(colors.fill))
             }
         }
         for shot in game.enemyShots {

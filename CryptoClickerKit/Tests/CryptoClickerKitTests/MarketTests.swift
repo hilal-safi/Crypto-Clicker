@@ -108,8 +108,8 @@ struct MarketTests {
         #expect(game.tokenCount(.dogecoin) == 0)
     }
 
-    @Test func theLadderClimbsFromShibaToBitcoin() {
-        let ladder: [TokenID] = [.shibaInu, .tether, .dogecoin, .xrp, .bnb, .monero, .cardano, .solana, .ethereum, .bitcoin]
+    @Test func theLadderClimbsFromSafeMoonToBitcoin() {
+        let ladder: [TokenID] = [.safeMoon, .shibaInu, .tether, .dogecoin, .xrp, .bnb, .monero, .cardano, .solana, .ethereum, .bitcoin]
         #expect(TokenID.allCases == ladder)
         #expect(zip(ladder, ladder.dropFirst()).allSatisfy { $0.price < $1.price })
         // The original seven keep their prices, so tokens already owned keep their value.
@@ -117,5 +117,43 @@ struct MarketTests {
                 == [1e3, 1e5, 1e7, 1e9, 1e11, 1e13, 1e15])
         #expect(Set(TokenID.allCases.map(\.ticker)).count == ladder.count)
         #expect(Set(TokenID.allCases.map(\.imageName)).count == ladder.count)
+    }
+
+    @Test func safeMoonIsTheCheapestTokenAndSwingsTheMost() {
+        #expect(TokenID.allCases.first == .safeMoon)
+        #expect(TokenID.safeMoon.price == 100)
+        #expect(TokenID.allCases.dropFirst().allSatisfy { $0.price > TokenID.safeMoon.price })
+        #expect(TokenID.allCases.map(\.price) == TokenID.allCases.map(\.price).sorted()) // Cheapest first.
+        #expect(TokenID.allCases.allSatisfy { $0 == .safeMoon || $0.volatility < TokenID.safeMoon.volatility })
+        #expect(TokenID.safeMoon.ticker == "SFM")
+        // The Tokens page tags each by how much it moves.
+        #expect(TokenID.tether.volatilityLevel == .stable)
+        #expect(TokenID.allCases.filter { $0.volatilityLevel == .volatile } == [.safeMoon, .shibaInu, .dogecoin])
+        #expect([TokenID.bnb, .xrp, .monero, .cardano, .solana, .ethereum, .bitcoin].allSatisfy { $0.volatilityLevel == .moderate })
+        #expect(TokenID.safeMoon.imageName == "safemoon_image")
+        // Not on the slot reels: it would change what the machine pays.
+        #expect(!SlotMachine.strip.contains(.safeMoon))
+        #expect(SlotMachine.threeOfAKind(.safeMoon) == 0)
+        // Its price stays in the market's range, like every token's.
+        for hour in stride(from: 0.0, to: 24 * 30, by: 7) {
+            let date = Date(timeIntervalSince1970: 1_790_000_000 + hour * 3_600)
+            #expect(Tuning.marketPriceRange.contains(Market.priceFactor(.safeMoon, at: date)))
+        }
+    }
+
+    /// Prices and news are seeded by each token's name, so adding SafeMoon (first in the list)
+    /// left every other token's market exactly as it was: these are the prices from before it.
+    @Test func addingATokenLeavesTheOthersPricesAlone() {
+        let early = Date(timeIntervalSince1970: 1_790_000_000), late = Date(timeIntervalSince1970: 1_800_000_000)
+        let before: [TokenID: (Double, Double)] = [
+            .shibaInu: (1_062, 1_233), .tether: (10_011, 10_027), .dogecoin: (102_852, 99_874),
+            .xrp: (9_678_458, 11_461_001), .bnb: (45_559_598, 48_719_392), .monero: (199_903_496, 187_742_978),
+            .cardano: (1_168_248_191, 907_347_852), .solana: (99_674_998_931, 101_609_276_832),
+            .ethereum: (9_783_099_588_791, 9_123_334_646_435), .bitcoin: (1_034_124_902_388_354, 1_042_730_824_033_083),
+        ]
+        for (token, prices) in before {
+            #expect(Market.price(token, at: early) == prices.0, "\(token)")
+            #expect(Market.price(token, at: late) == prices.1, "\(token)")
+        }
     }
 }

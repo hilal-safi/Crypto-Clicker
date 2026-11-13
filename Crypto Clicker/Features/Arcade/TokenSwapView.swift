@@ -92,6 +92,7 @@ struct TokenSwapView: View {
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.tokenSwap, isPresented: $showingHelp)
         .environment(\.swapTiles, store.game.equipped(.swapTiles))
+        .environment(\.swapBoard, store.game.equipped(.swapBoard))
         .gameBackdrop(.tokenSwap)
     }
 

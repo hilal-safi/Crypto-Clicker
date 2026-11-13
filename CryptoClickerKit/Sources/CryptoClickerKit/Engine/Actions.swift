@@ -292,14 +292,14 @@ extension GameState {
     public func powerUpPrice(_ powerUp: PowerUpID) -> Double? {
         let level = powerUpLevel(powerUp)
         guard level < powerUp.maxLevel else { return nil }
-        return Tuning.shopPrice(powerUp.listPrice(afterLevel: level))
+        return powerUp.shopPrice(afterLevel: level)
     }
 
     /// Whether the Shop shows a power-up: once lifetime coins reach a tenth of its first level's
     /// price, and for Combo Overdrive, once Combo Booster is at its last level.
     public func isRevealed(_ powerUp: PowerUpID) -> Bool {
         if let required = powerUp.requires, powerUpLevel(required) < required.maxLevel { return false }
-        return powerUpLevel(powerUp) > 0 || stats.lifetimeCoins >= Tuning.shopPrice(powerUp.listPrice(afterLevel: 0)) * 0.1
+        return powerUpLevel(powerUp) > 0 || stats.lifetimeCoins >= powerUp.shopPrice(afterLevel: 0) * 0.1
     }
 
     /// Buys a power-up's next level.

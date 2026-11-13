@@ -163,6 +163,7 @@ extension TokenID {
     /// prices drift rather than jump.
     var volatility: Double {
         switch self {
+        case .safeMoon: 0.28
         case .shibaInu: 0.24
         case .tether: 0.006
         case .dogecoin: 0.22
@@ -173,6 +174,16 @@ extension TokenID {
         case .solana: 0.18
         case .ethereum: 0.15
         case .bitcoin: 0.12
+        }
+    }
+
+    /// How much the price moves, in a word for the Tokens page: Tether is stable, the meme coins
+    /// (SafeMoon, Shiba Inu, Dogecoin) volatile, and the rest in between.
+    public var volatilityLevel: TokenVolatility {
+        switch volatility {
+        case ..<0.05: .stable
+        case ..<0.21: .moderate
+        default: .volatile
         }
     }
 
@@ -223,5 +234,18 @@ extension GameState {
         stats.tokensSold += quantity
         stats.coinsFromSales += value
         return value
+    }
+}
+
+/// How much a token's price moves, for the Tokens page.
+public enum TokenVolatility: String, CaseIterable, Sendable {
+    case stable, moderate, volatile
+
+    public var name: String {
+        switch self {
+        case .stable: localized("Stable")
+        case .moderate: localized("Moderate")
+        case .volatile: localized("Volatile")
+        }
     }
 }

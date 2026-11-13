@@ -23,6 +23,8 @@ struct TokenSwapBoardView: View {
 
     @State private var dragStart: Position?
     @State private var dragSwapped = false
+    /// The board picked in Style.
+    @Environment(\.swapBoard) private var board
 
     struct Nudge: Equatable {
         let first: Int
@@ -43,7 +45,7 @@ struct TokenSwapBoardView: View {
             let side = min(proxy.size.width, proxy.size.height)
             let cell = side / CGFloat(TokenSwapGame.size)
             ZStack(alignment: .topLeading) {
-                Checkerboard(cell: cell)
+                Checkerboard(cell: cell, color: board.swapBoardColors.checker)
                 crateLayer(cell: cell)
                 tileLayer(cell: cell)
                 obstacleLayer(cell: cell)
@@ -52,11 +54,11 @@ struct TokenSwapBoardView: View {
                     .accessibilityHidden(true)
             }
             .frame(width: side, height: side, alignment: .topLeading)
-            .background(Color(red: 0.03, green: 0.12, blue: 0.11).opacity(0.85))
+            .background(board.swapBoardColors.fill)
             .clipShape(.rect(cornerRadius: 18))
             .overlay {
                 RoundedRectangle(cornerRadius: 18)
-                    .strokeBorder(MiniGame.tokenSwap.color.opacity(0.6), lineWidth: 1)
+                    .strokeBorder(board.swapBoardColors.rim, lineWidth: 1)
                     .allowsHitTesting(false)
             }
             .contentShape(.rect)
@@ -570,13 +572,15 @@ struct ObstacleOverlay: View {
 
 private struct Checkerboard: View {
     let cell: CGFloat
+    /// The lighter squares, in the board picked in Style.
+    var color = Color.white.opacity(0.05)
 
     var body: some View {
         Canvas { context, _ in
             for row in 0..<TokenSwapGame.size {
                 for column in 0..<TokenSwapGame.size where (row + column) % 2 == 0 {
                     let rect = CGRect(x: CGFloat(column) * cell, y: CGFloat(row) * cell, width: cell, height: cell)
-                    context.fill(Path(rect), with: .color(.white.opacity(0.05)))
+                    context.fill(Path(rect), with: .color(color))
                 }
             }
         }

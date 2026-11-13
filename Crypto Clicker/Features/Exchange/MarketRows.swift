@@ -71,7 +71,10 @@ struct TokenMarketRow: View {
                         Text("\(isUp ? "▲" : "▼") \(CoinFormat.percent(abs(quote.change)))")
                             .font(.subheadline.weight(.bold).monospacedDigit())
                             .foregroundStyle(isUp ? Theme.gain : Theme.loss)
+                        VolatilityTag(level: token.volatilityLevel)
                     }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     Text(owned > 0 ? "Own \(CoinFormat.grouped(owned)) · worth \(CoinFormat.short(quote.price * Double(owned)))"
                                    : "None owned")
                         .font(.subheadline)
@@ -83,7 +86,7 @@ struct TokenMarketRow: View {
                     .accessibilityHidden(true)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(token.name), \(CoinFormat.cost(quote.price)) coins, \(isUp ? "up" : "down") \(CoinFormat.percent(abs(quote.change))) today, \(owned) owned")
+            .accessibilityLabel("\(token.name), \(token.volatilityLevel.name), \(CoinFormat.cost(quote.price)) coins, \(isUp ? "up" : "down") \(CoinFormat.percent(abs(quote.change))) today, \(owned) owned")
             let buyCount = quantity.count(affordable: affordable)
             let sellCount = quantity.sellCount(owned: owned)
             let canBuy = affordable > 0 && buyCount <= affordable
@@ -152,6 +155,28 @@ struct Sparkline: View {
                 if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
             }
             context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+        }
+    }
+}
+
+/// How much a token's price moves: Stable, Moderate or Volatile, in a small tag.
+private struct VolatilityTag: View {
+    let level: TokenVolatility
+
+    var body: some View {
+        Text(level.name)
+            .font(.caption.weight(.bold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 1)
+            .background(color.opacity(0.15), in: .capsule)
+    }
+
+    private var color: Color {
+        switch level {
+        case .stable: Theme.gain
+        case .moderate: Theme.shop
+        case .volatile: Theme.accent
         }
     }
 }

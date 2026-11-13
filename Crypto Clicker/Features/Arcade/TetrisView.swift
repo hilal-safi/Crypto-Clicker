@@ -170,7 +170,8 @@ struct TetrisPlayView: View {
                     .disabled(!isRunning)
                 }
                 .frame(width: Self.columnWidth)
-                TetrisBoard(game: game, flashRows: flashRows, skin: store.game.equipped(.tetris))
+                TetrisBoard(game: game, flashRows: flashRows, skin: store.game.equipped(.tetris),
+                            board: store.game.equipped(.tetrisBoard))
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { boardWidth = $0 }
                     .gesture(boardGesture)
                     .overlay(alignment: .top) { bannerView }
@@ -505,6 +506,8 @@ struct TetrisBoard: View {
     var flashRows: [Int] = []
     /// The blocks picked in Style.
     var skin: Cosmetic = .tetrisClassic
+    /// The board picked in Style.
+    var board: Cosmetic = .tetrisBoardNight
 
     var body: some View {
         Canvas { context, size in
@@ -567,8 +570,14 @@ struct TetrisBoard: View {
         }
         .aspectRatio(CGFloat(TetrisGame.width) / CGFloat(game.height), contentMode: .fit)
         .padding(4)
-        .background(Color(red: 0.02, green: 0.05, blue: 0.1).opacity(0.7),
-                    in: .rect(cornerRadius: 14))
+        .background { BoardBackdrop(look: board.boardLook, cornerRadius: 14) }
+        .overlay {
+            if board.boardLook.rimWidth > 0 {
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(board.boardLook.rim, lineWidth: board.boardLook.rimWidth)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 }
 

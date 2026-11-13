@@ -111,6 +111,10 @@ struct MineView: View {
             GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openDaily: openDaily, openHowToPlay: openHowToPlay)
             InventoryStrip(game: game, market: store.market, openShop: openShop, openTokens: openTokens)
             StepsCard(learnMore: { showingStepsIntro = true })
+            // Without today's steps to sit beside, the prestige points get a row of their own.
+            if game.stats.prestiges > 0 && !StepsCard.showsCounter(game, canTrackSteps: store.canTrackSteps) {
+                PrestigeBadge(isWide: true)
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, topPadding)
@@ -119,6 +123,7 @@ struct MineView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(.smooth, value: game.areStepsUnlocked)
         .animation(.smooth, value: game.steps.isConnected)
+        .animation(.smooth, value: game.stats.prestiges > 0)
     }
 }
 

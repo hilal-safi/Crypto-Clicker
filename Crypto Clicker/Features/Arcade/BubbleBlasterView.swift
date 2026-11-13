@@ -277,7 +277,8 @@ struct BubblePlayView: View {
     private var field: some View {
         // Waves only need frames while a shot flies; Flash Market's clock always runs.
         TimelineView(.animation(minimumInterval: nil, paused: !isRunning || (game.shot == nil && game.mode == .waves))) { timeline in
-            BubbleField(game: game, guide: game.shot == nil ? aim.map(guide) : nil, finish: store.game.equipped(.bubbles))
+            BubbleField(game: game, guide: game.shot == nil ? aim.map(guide) : nil, finish: store.game.equipped(.bubbles),
+                        board: store.game.equipped(.bubbleBoard))
                 .onChange(of: timeline.date) { _, date in advance(to: date) }
         }
         .aspectRatio(BubbleShooterGame.width / BubbleShooterGame.height, contentMode: .fit)
@@ -630,6 +631,8 @@ private struct BubbleField: View {
     let guide: Guide?
     /// The bubbles picked in Style.
     var finish = Cosmetic.bubblesGlossy
+    /// The board picked in Style.
+    var board = Cosmetic.bubbleBoardDeepSea
     /// Where the next bubble waits, left of the launcher.
     static let nextPosition = Vector2(x: 1.1, y: BubbleShooterGame.launcher.y)
 
@@ -665,10 +668,10 @@ private struct BubbleField: View {
             context.draw(Text("NEXT").font(.system(size: max(8, scale * 0.28), weight: .bold)).foregroundStyle(.white.opacity(0.7)),
                          at: CGPoint(x: Self.nextPosition.x * scale, y: (Self.nextPosition.y - 0.62) * scale))
         }
-        .background(Color(red: 0.05, green: 0.07, blue: 0.18).opacity(0.92), in: .rect(cornerRadius: 16))
+        .background { BoardBackdrop(look: board.boardLook, cornerRadius: 16) }
         .overlay {
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+                .strokeBorder(board.boardLook.rim, lineWidth: 1)
         }
     }
 

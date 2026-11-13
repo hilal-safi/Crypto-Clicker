@@ -56,6 +56,14 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         self == .comboOverdrive ? .comboBooster : nil
     }
 
+    /// What the Shop charges for the level after `level`: the list price with the pace and the
+    /// Shop's premium, less 10% (the tapping power-ups were cut to help tapping keep up).
+    public func shopPrice(afterLevel level: Int) -> Double {
+        Tuning.shopPrice(listPrice(afterLevel: level), adjustedBy: Self.priceAdjustment)
+    }
+
+    static let priceAdjustment = 0.9
+
     /// The list price of the level after `level` (so `0` is the first level's), before the pace
     /// and the Shop's premium (see `Tuning.shopPrice`).
     public func listPrice(afterLevel level: Int) -> Double {

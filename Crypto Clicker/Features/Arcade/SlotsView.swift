@@ -63,7 +63,7 @@ struct SlotsView: View {
                 .padding(.bottom, 8)
                 .frame(maxWidth: 520)
         }
-        .background { VelvetBackground() }
+        .background { VelvetBackground(look: store.game.equipped(.slotsBackdrop)) }
         .overlay { EffectsLayer(effects: effects).ignoresSafeArea() }
         .environment(\.colorScheme, .dark)
         .navigationTitle("Crypto Slots")

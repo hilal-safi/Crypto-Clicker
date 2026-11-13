@@ -24,7 +24,7 @@ public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
                          pitch: localized("Spin three reels of crypto. Three Bitcoins pay 500 times your bet."),
                          color: .init(red: 0.60, green: 0.20, blue: 0.75))
         case .moon:
-            MiniGameInfo(name: localized("To the Moon"), icon: "🚀", category: .casino, listCost: 10e9,
+            MiniGameInfo(name: localized("To the Moon"), icon: "🚀", category: .casino, listCost: 250e9,
                          pitch: localized("Ride the chart as the multiplier climbs. Cash out before the market crashes."),
                          color: .init(red: 0.24, green: 0.22, blue: 0.62))
         case .tetris:
@@ -33,7 +33,7 @@ public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
                          color: .init(red: 0.00, green: 0.46, blue: 0.62),
                          secondsPerPoint: Tuning.tetrisSecondsPerPoint)
         case .merge2048:
-            MiniGameInfo(name: localized("Merge Mining"), icon: "⛏️", category: .arcade, listCost: 1.2e9,
+            MiniGameInfo(name: localized("Merge Mining"), icon: "⛏️", category: .arcade, listCost: 150e6,
                          pitch: localized("Slide miners together to upgrade them, from a Chromebook up. Build a Lunar Base for a bonus."),
                          color: .init(red: 0.75, green: 0.13, blue: 0.42),
                          secondsPerPoint: Tuning.merge2048SecondsPerPoint)
@@ -48,7 +48,7 @@ public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
                          color: .init(red: 0.75, green: 0.33, blue: 0.00),
                          secondsPerPoint: Tuning.brickBreakerSecondsPerPoint)
         case .bubbleBlaster:
-            MiniGameInfo(name: localized("Bubble Market"), icon: "🫧", category: .arcade, listCost: 250e9,
+            MiniGameInfo(name: localized("Bubble Market"), icon: "🫧", category: .arcade, listCost: 10e9,
                          pitch: localized("Pop three token bubbles of a kind before the market sinks to the crash line."),
                          color: .init(red: 0.00, green: 0.40, blue: 0.90),
                          secondsPerPoint: Tuning.bubbleSecondsPerPoint)
@@ -67,7 +67,7 @@ public enum MiniGame: String, CaseIterable, Codable, Sendable, Identifiable {
                          color: .init(red: 0.32, green: 0.16, blue: 0.92),
                          secondsPerPoint: Tuning.invadersSecondsPerPoint)
         case .pumpDump:
-            MiniGameInfo(name: localized("Pump and Dump"), icon: "📈", category: .arcade, listCost: 150e6,
+            MiniGameInfo(name: localized("Pump and Dump"), icon: "📈", category: .arcade, listCost: 1.2e9,
                          pitch: localized("Tap the coins as they list before they're delisted. Dodge scam tokens and rug pulls."),
                          color: .init(red: 0.72, green: 0.10, blue: 0.16),
                          secondsPerPoint: Tuning.pumpDumpSecondsPerPoint)
