@@ -40,6 +40,23 @@ struct BrickBreakerTests {
         #expect(Game(seed: 3, startLevel: 0).level == 1 && Game(seed: 3, startLevel: -4).level == 1)
     }
 
+    @Test func theDifficultySetsThePaddleTheBallAndThePay() {
+        let regular = Game(seed: 1), easy = Game(seed: 1, difficulty: .easy), hard = Game(seed: 1, difficulty: .hard)
+        #expect(abs(easy.paddle.width - Game.paddleWidth * 1.2) < 1e-9 && abs(hard.paddle.width - Game.paddleWidth * 0.8) < 1e-9)
+        #expect(regular.paddle.width == Game.paddleWidth)
+        #expect(easy.gameSpeed == .slow && regular.gameSpeed == .normal && hard.gameSpeed == .fast)
+        var wide = hard
+        wide.give(.widePaddle)
+        #expect(abs(wide.paddle.width - Game.paddleWidth * 0.8 * 1.5) < 1e-9) // Power-ups work from the difficulty's paddle.
+        var state = GameState.make(miners: minersEarning(10))
+        state.finishBrickBreaker(score: 5_000, bricks: 300, level: 7) // A best to stay under.
+        #expect(state.finishBrickBreaker(score: 500, bricks: 30, level: 2).coins == state.arcadeReward(.brickBreaker, score: 500))
+        #expect(state.finishBrickBreaker(score: 500, bricks: 30, level: 2, difficulty: .easy).coins == state.arcadeReward(.brickBreaker, score: 400))
+        #expect(state.finishBrickBreaker(score: 500, bricks: 30, level: 2, difficulty: .hard).coins == state.arcadeReward(.brickBreaker, score: 600))
+        state.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: 500, detail: 30, extra: 2, records: .init(difficulty: .easy)))
+        #expect(state.payUnfinishedRun()?.payout.coins == state.arcadeReward(.brickBreaker, score: 400))
+    }
+
     @Test func randomWallsDontUnlockClassicLevels() throws {
         var state = GameState.make()
         state.finishBrickBreaker(score: 500, bricks: 80, level: 6, levels: .generated)

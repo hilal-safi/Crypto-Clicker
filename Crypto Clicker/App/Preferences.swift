@@ -34,6 +34,8 @@ enum Preferences {
     static let invadersSpeedKey = "speed.invaders"
     /// Scam Invaders' difficulty: hits a ship takes, and the speed.
     static let invadersDifficultyKey = "difficulty.invaders"
+    /// Hash Smash's difficulty: the paddle's width, and the ball's speed.
+    static let brickBreakerDifficultyKey = "difficulty.brickBreaker"
     /// The level Hash Smash's Levels and the wave Scam Invaders' Waves start at, picked on their
     /// start screens from those reached.
     static let brickBreakerStartKey = "start.brickBreaker"

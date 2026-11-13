@@ -20,8 +20,8 @@ import Foundation
 /// golden invaders (four from wave 6) from the very first wave, and server racks of their own sizes
 /// in their own places. Boss waves are the same in both, but for the racks.
 ///
-/// The difficulty's speed scales how fast everything moves and fires, so a point is worth the same
-/// at every speed. Everything moves in sub-steps of at most 1/240 s, so no shot passes through a
+/// The difficulty's speed scales how fast everything moves and fires; Easy pays 20% less a point
+/// and Hard 20% more. Everything moves in sub-steps of at most 1/240 s, so no shot passes through a
 /// block on a slow frame, and the rules never depend on the frame rate.
 public struct InvadersGame: Sendable {
     /// Which formations a game plays.
@@ -34,47 +34,9 @@ public struct InvadersGame: Sendable {
         public var id: String { rawValue }
     }
 
-    /// How forgiving a game is: how many hits a ship takes before it's lost, and how fast everything
-    /// moves.
-    public enum Difficulty: String, CaseIterable, Codable, Sendable, Identifiable {
-        case easy, regular, hard
-
-        public var id: String { rawValue }
-
-        public var name: String {
-            switch self {
-            case .easy: localized("Easy")
-            case .regular: localized("Regular")
-            case .hard: localized("Hard")
-            }
-        }
-
-        /// Hits a ship takes before it's lost.
-        public var hitsPerShip: Int {
-            switch self {
-            case .easy: 3
-            case .regular: 2
-            case .hard: 1
-            }
-        }
-
-        /// How fast the invaders march and everyone fires.
-        public var speed: GameSpeed {
-            switch self {
-            case .easy: .slow
-            case .regular: .normal
-            case .hard: .fast
-            }
-        }
-
-        public var summary: String {
-            switch self {
-            case .easy: localized("Ships take three hits, and the invaders march slowly.")
-            case .regular: localized("Ships take two hits, at the usual pace.")
-            case .hard: localized("One hit and the ship is lost, and the invaders march fast.")
-            }
-        }
-    }
+    /// How hard a game plays: how many hits a ship takes before it's lost, how fast everything
+    /// moves, and what a point pays.
+    public typealias Difficulty = ArcadeDifficulty
 
     public enum Phase: Equatable, Sendable {
         /// The wave's banner is up and the invaders are about to march.
@@ -418,8 +380,12 @@ public struct InvadersGame: Sendable {
 
     /// Seconds between invader shots on average: quicker each wave.
     var enemyFireInterval: TimeInterval {
-        max(0.4, 1.15 * pow(0.92, Double(min(wave, 12) - 1))) / gameSpeed.factor
+        max(0.4, 1.15 * pow(0.92, Double(min(wave, 12) - 1))) / Self.fireRate / gameSpeed.factor
     }
+
+    /// How much more often everyone fires than the waves were first tuned for: a little, to make up
+    /// for ships taking more than one hit.
+    static let fireRate = 1.05
 
     var maxEnemyShots: Int { min(2 + wave / 2, 6) }
 
@@ -814,7 +780,7 @@ public struct InvadersGame: Sendable {
 
     /// Seconds (at Normal speed) between the boss's volleys: a little quicker each boss.
     static func bossFireInterval(wave: Int) -> TimeInterval {
-        max(0.9, 1.8 - 0.2 * Double(wave / bossEvery - 1))
+        max(0.9, 1.8 - 0.2 * Double(wave / bossEvery - 1)) / fireRate
     }
 
     /// Hits each boss takes: more for every one after the first.
@@ -1261,4 +1227,42 @@ public struct InvadersGame: Sendable {
         boss?.hitsLeft = hits
     }
     #endif
+}
+
+extension ArcadeDifficulty {
+    /// Hits a Scam Invaders ship takes before it's lost.
+    public var hitsPerShip: Int {
+        switch self {
+        case .easy: 3
+        case .regular: 2
+        case .hard: 1
+        }
+    }
+
+    /// Scam Invaders' difficulty in a line.
+    public var invadersSummary: String {
+        switch self {
+        case .easy: localized("Ships take three hits, the invaders march slowly, and points pay 20% less.")
+        case .regular: localized("Ships take two hits, at the usual pace.")
+        case .hard: localized("One hit and the ship is lost, the invaders march fast, and points pay 20% more.")
+        }
+    }
+
+    /// How much wider Hash Smash's paddle is than Regular's.
+    public var paddleScale: Double {
+        switch self {
+        case .easy: 1.2
+        case .regular: 1
+        case .hard: 0.8
+        }
+    }
+
+    /// Hash Smash's difficulty in a line.
+    public var brickBreakerSummary: String {
+        switch self {
+        case .easy: localized("A wider paddle and a slower ball, and points pay 20% less.")
+        case .regular: localized("The usual paddle and ball.")
+        case .hard: localized("A narrower paddle and a faster ball, and points pay 20% more.")
+        }
+    }
 }

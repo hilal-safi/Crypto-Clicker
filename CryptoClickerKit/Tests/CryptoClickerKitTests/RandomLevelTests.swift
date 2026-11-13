@@ -137,7 +137,12 @@ struct BrickBreakerOptionTests {
                 let bonus = game.bricks.filter { $0.kind == .bonus }.count
                 #expect((1...max(3, 2 + level / 2)).contains(bonus), "seed \(seed) level \(level): \(bonus) bonus")
                 bonusCounts.insert(bonus)
-                if level == 1 { firstLevelBonus.insert(bonus) }
+                if level == 1 {
+                    firstLevelBonus.insert(bonus)
+                    // Armored bricks from the first level too.
+                    #expect(game.bricks.contains { $0.kind == .armored }, "seed \(seed) level 1")
+                }
+                #expect(game.bricks.filter { $0.kind == .armored }.count >= 2, "seed \(seed) level \(level)")
                 let hits = game.bricks.reduce(0) { $0 + $1.maxHits }
                 if level > 1 { #expect(Double(hits) >= 0.45 * Double(BrickBreakerGame.fullWallHits(level: level)), "seed \(seed) level \(level)") }
                 generatedHits += hits

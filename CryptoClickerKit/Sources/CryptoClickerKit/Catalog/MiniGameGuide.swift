@@ -287,7 +287,7 @@ extension MiniGame {
     private static var brickBreakerGuide: MiniGameGuide {
         typealias PowerUp = BrickBreakerGame.PowerUp
         func seconds(_ powerUp: PowerUp) -> Int { Int(powerUp.duration ?? 0) }
-        let startScreen = localized("On the start screen, Levels starts at level 1 or any level you've reached (tap it on the track; a later start pays \(Int((Tuning.startPayShare(level: 6, slope: Tuning.brickBreakerStartPaySlope) * 100).rounded()))% of its points from level 6, less the further in), Random Walls makes up a new wall for every level (never the same twice, and it doesn't unlock levels), and Settings sets the ball's speed. A level's wall is the same every time you play it.")
+        let startScreen = localized("On the start screen, Levels starts at level 1 or any level you've reached (tap it on the track; a later start pays \(Int((Tuning.startPayShare(level: 6, slope: Tuning.brickBreakerStartPaySlope) * 100).rounded()))% of its points from level 6, less the further in), Random Walls makes up a new wall for every level (never the same twice, and it doesn't unlock levels), and Difficulty sets the paddle and the ball: Easy has a paddle 20% wider and a slower ball and pays 20% less a point, Hard a paddle 20% narrower and a faster ball and pays 20% more. A level's wall is the same every time you play it.")
         let lives = localized("You have \(BrickBreakerGame.startingLives) lives. You lose one when the last ball falls past the paddle, along with any power-ups running; the game ends with the last life.")
         return MiniGameGuide(
             objective: localized("Bounce the coin ball off your paddle to smash every hash block and reach the next, faster level. Every \(BrickBreakerGame.bossEvery)th level the whale comes to dump on you."),
@@ -371,7 +371,7 @@ extension MiniGame {
                 localized("Drag anywhere to move your ship. It fires while your finger is down: lift it to hold fire."),
                 localized("Only two volleys can be in the air at once: shots that hit come back sooner than ones that fly off the top."),
                 localized("On the start screen, Waves starts at wave 1 or any wave you've reached (tap it on the track; a later start pays \(Int((Tuning.startPayShare(level: 6, slope: Tuning.invadersStartPaySlope) * 100).rounded()))% of its points from wave 6, less the further in), Random Waves makes up a new formation and new server racks for every wave (never the same twice, with the kinds mixed up; it doesn't unlock waves), and Difficulty sets how many hits your ship takes, and the speed."),
-                localized("Easy: a ship takes \(Game.Difficulty.easy.hitsPerShip) hits and the invaders march slowly. Regular: \(Game.Difficulty.regular.hitsPerShip) hits at the usual pace. Hard: \(Game.Difficulty.hard.hitsPerShip) hit and they march fast. The hearts beside the field show the hits your ship can still take, and it looks more battered with every one."),
+                localized("Easy: a ship takes \(Game.Difficulty.easy.hitsPerShip) hits and the invaders march slowly. Regular: \(Game.Difficulty.regular.hitsPerShip) hits at the usual pace. Hard: \(Game.Difficulty.hard.hitsPerShip) hit and they march fast. Easy pays 20% less a point, Hard 20% more. The hearts beside the field show the hits your ship can still take, and it looks more battered with every one."),
             ],
             scoring: [
                 localized("Meme coins score \(kinds.memeCoin.points), pump bots \(kinds.pumpBot.points) and rug pullers \(kinds.rugPuller.points)."),

@@ -7,12 +7,12 @@ enum BrickBreakerRoute: Hashable {
     case play(BrickBreakerGame.LevelStyle, startLevel: Int = 1)
 }
 
-/// Where Brick Breaker opens, like Token Swap: the classic levels, random walls and the speed
+/// Where Brick Breaker opens, like Token Swap: the classic levels, random walls and the difficulty
 /// setting, each on a card. Levels start at any level reached so far, picked on its track;
 /// random walls start at level 1.
 struct BrickBreakerView: View {
     @Environment(GameStore.self) private var store
-    @AppStorage(Preferences.brickBreakerSpeedKey) private var speed = GameSpeed.normal
+    @AppStorage(Preferences.brickBreakerDifficultyKey) private var difficulty = ArcadeDifficulty.regular
     @AppStorage(Preferences.brickBreakerStartKey) private var pickedStart = 1
 
     /// The picked level, kept within those reached.
@@ -32,7 +32,7 @@ struct BrickBreakerView: View {
                             ? "Start at level 1"
                             : "Best: level \(CoinFormat.grouped(stats.brickBreakerClassicBestLevel)) · \(CoinFormat.grouped(bosses)) "
                                 + "whale\(bosses == 1 ? "" : "s")" + " beaten",
-                         detail: "The classic walls, the same every time you play them: cold storage, liquidation and airdrop blocks, and the whale every fifth level. Start at level 1 or any level you've reached here.",
+                         detail: "The classic walls: cold storage, liquidation and airdrop blocks, and the whale every fifth level.",
                          note: nil) {
                     VStack(spacing: 12) {
                         LevelTrack(best: stats.brickBreakerClassicBestLevel, bossEvery: BrickBreakerGame.bossEvery, tint: tint,
@@ -48,7 +48,7 @@ struct BrickBreakerView: View {
                     }
                 }
                 ModeCard(tint: tint, icon: "dice.fill", title: "Random Walls", status: "A new wall every level",
-                         detail: "Walls made up for every level, never the same twice, with one to a few airdrop blocks. They take about as many hits and pay about the same, and the whale still comes every fifth level. Levels reached here don't unlock Levels.",
+                         detail: "A new wall every level, never the same twice. The whale still comes every fifth level.",
                          note: nil) {
                     NavigationLink(value: BrickBreakerRoute.play(.generated)) {
                         Label("Play Random Walls", systemImage: "play.fill")
@@ -56,15 +56,20 @@ struct BrickBreakerView: View {
                     }
                     .buttonStyle(.glassProminent)
                 }
-                ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Settings", status: "\(speed.name) speed",
-                         detail: "How fast the ball moves. A point is worth the same at every speed: Fast scores sooner, Slow is relaxed.",
+                ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Difficulty", status: difficulty.name,
+                         detail: "The paddle's width, the ball's speed, and what a point pays.",
                          note: nil) {
-                    Picker("Speed", selection: $speed) {
-                        ForEach(GameSpeed.allCases) { speed in
-                            Text(speed.name).tag(speed)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Picker("Difficulty", selection: $difficulty) {
+                            ForEach(ArcadeDifficulty.allCases) { level in
+                                Text(level.name).tag(level)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        Label(difficulty.brickBreakerSummary, systemImage: difficulty.speed.icon)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
-                    .pickerStyle(.segmented)
                 }
             }
             .padding(.horizontal, 16)
@@ -81,7 +86,7 @@ struct BrickBreakerView: View {
 
 /// Brick Breaker's game: drag anywhere on the field to move the paddle and lift your finger to
 /// launch. Bonus bricks drop power-ups to catch, explosive bricks break their neighbors, and every
-/// fifth level is a boss. The walls come from the start screen, and the ball's speed from its
+/// fifth level is a boss. The walls come from the start screen, and the difficulty from its
 /// setting. The physics runs on the display's frame clock while the ball is in play.
 struct BrickBreakerPlayView: View {
     /// Classic walls or random ones.
@@ -91,7 +96,7 @@ struct BrickBreakerPlayView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
-    @AppStorage(Preferences.brickBreakerSpeedKey) private var speed = GameSpeed.normal
+    @AppStorage(Preferences.brickBreakerDifficultyKey) private var difficulty = ArcadeDifficulty.regular
     @State private var game: BrickBreakerGame
     @State private var isPlaying = false
     @State private var isPaused = false
@@ -109,7 +114,9 @@ struct BrickBreakerPlayView: View {
     init(levels: BrickBreakerGame.LevelStyle, startLevel: Int = 1) {
         self.levels = levels
         self.startLevel = startLevel
-        _game = State(initialValue: BrickBreakerGame(levels: levels, startLevel: startLevel))
+        let saved = UserDefaults.standard.string(forKey: Preferences.brickBreakerDifficultyKey)
+        _game = State(initialValue: BrickBreakerGame(difficulty: saved.flatMap(ArcadeDifficulty.init(rawValue:)) ?? .regular,
+                                                     levels: levels, startLevel: startLevel))
     }
 
     var body: some View {
@@ -196,7 +203,7 @@ struct BrickBreakerPlayView: View {
     private var heldRun: ArcadeRun {
         ArcadeRun(game: .brickBreaker, score: game.score, detail: game.bricksBroken, extra: game.level,
                   records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated, bestStreak: game.bestLevelStreak,
-                                 mode: levels == .generated ? 1 : 0, start: startLevel))
+                                 mode: levels == .generated ? 1 : 0, start: startLevel, difficulty: game.difficulty))
     }
 
     private var field: some View {
@@ -261,7 +268,7 @@ struct BrickBreakerPlayView: View {
             } else {
                 GamePanel(title: "Level \(startLevel)", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.brickBreakerBestScore,
-                              detail: "\(levels == .generated ? "Random walls" : "Classic walls") · \(speed.name) speed"
+                              detail: "\(levels == .generated ? "Random walls" : "Classic walls") · \(difficulty.name)"
                                 + StartPay.note(start: startLevel, noun: "level", slope: Tuning.brickBreakerStartPaySlope, separator: " · "))
                 }
             }
@@ -282,7 +289,7 @@ struct BrickBreakerPlayView: View {
     }
 
     private func start() {
-        game = BrickBreakerGame(speed: speed, levels: levels, startLevel: startLevel)
+        game = BrickBreakerGame(difficulty: difficulty, levels: levels, startLevel: startLevel)
         result = nil
         isPaused = false
         lastFrame = nil
@@ -295,7 +302,8 @@ struct BrickBreakerPlayView: View {
         isPaused = false
         let payout = store.finishBrickBreaker(score: game.score, bricks: game.bricksBroken, level: game.level,
                                               bosses: game.bossesDefeated, powerUps: game.powerUpsCaught,
-                                              bestStreak: game.bestLevelStreak, startLevel: startLevel, levels: levels)
+                                              bestStreak: game.bestLevelStreak, startLevel: startLevel, levels: levels,
+                                              difficulty: game.difficulty)
         result = GameResult(score: game.score, payout: payout, detail: game.bricksBroken, xp: store.lastArcadeAward)
     }
 }

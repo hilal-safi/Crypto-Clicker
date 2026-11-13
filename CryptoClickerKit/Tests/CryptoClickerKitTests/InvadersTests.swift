@@ -68,6 +68,26 @@ struct InvadersTests {
         #expect(old.invadersClassicBestWave == 7)
     }
 
+    @Test func easyPaysLessAndHardPaysMore() {
+        var state = GameState.make(miners: minersEarning(10))
+        state.finishInvaders(score: 5_000, destroyed: 100, wave: 7) // A best to stay under.
+        let regular = state.finishInvaders(score: 1_000, destroyed: 20, wave: 2)
+        let easy = state.finishInvaders(score: 1_000, destroyed: 20, wave: 2, difficulty: .easy)
+        let hard = state.finishInvaders(score: 1_000, destroyed: 20, wave: 2, difficulty: .hard)
+        #expect(regular.coins == state.arcadeReward(.invaders, score: 1_000))
+        #expect(easy.coins == state.arcadeReward(.invaders, score: 800))
+        #expect(hard.coins == state.arcadeReward(.invaders, score: 1_200))
+        // A Hard game paid on the next launch too.
+        state.holdArcadeRun(ArcadeRun(game: .invaders, score: 1_000, detail: 20, extra: 2, records: .init(difficulty: .hard)))
+        #expect(state.payUnfinishedRun()?.payout.coins == state.arcadeReward(.invaders, score: 1_200))
+    }
+
+    @Test func everyoneFiresFivePercentMoreOften() {
+        let game = Game(seed: 1)
+        #expect(abs(game.enemyFireInterval - 1.15 / 1.05) < 1e-9)
+        #expect(abs(Game.bossFireInterval(wave: 5) - 1.8 / 1.05) < 1e-9)
+    }
+
     @Test func eachDifficultyTakesItsOwnHitsAndSpeed() {
         #expect(Game.Difficulty.allCases.map(\.hitsPerShip) == [3, 2, 1])
         #expect(Game.Difficulty.allCases.map(\.speed) == [.slow, .normal, .fast])

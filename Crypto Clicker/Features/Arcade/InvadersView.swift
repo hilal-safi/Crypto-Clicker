@@ -30,7 +30,7 @@ struct InvadersView: View {
                          status: stats.invadersClassicBestWave == 0
                             ? "Start at wave 1"
                             : "Best: wave \(CoinFormat.grouped(stats.invadersClassicBestWave)) · \(CoinFormat.grouped(stats.invadersBosses)) Bear\(stats.invadersBosses == 1 ? "" : "s") beaten",
-                         detail: "The classic formation, the same every time you play a wave: rug pullers on top, then pump bots and meme coins, marching a little faster and lower every wave. The Bear comes every fifth wave. Start at wave 1 or any wave you've reached here.",
+                         detail: "The classic formation: rug pullers on top, then pump bots and meme coins, marching a little faster and lower every wave. The Bear comes every fifth wave.",
                          note: nil) {
                     VStack(spacing: 12) {
                         LevelTrack(best: stats.invadersClassicBestWave, bossEvery: InvadersGame.bossEvery, tint: tint,
@@ -45,7 +45,7 @@ struct InvadersView: View {
                     }
                 }
                 ModeCard(tint: tint, icon: "dice.fill", title: "Random Waves", status: "A new formation every wave",
-                         detail: "Formations made up for every wave, never the same twice: diamonds, arrows, frames, skylines and more, with the three kinds mixed up, and server racks of their own sizes in their own places. They pay about the same, one to three golden invaders show up from the first wave, and the Bear still comes every fifth wave. Waves reached here don't unlock Waves.",
+                         detail: "New formations and server racks every wave, with golden invaders from the first. The Bear still comes every fifth wave.",
                          note: nil) {
                     NavigationLink(value: InvadersRoute.play(.generated)) {
                         Label("Play Random Waves", systemImage: "play.fill")
@@ -55,7 +55,7 @@ struct InvadersView: View {
                 }
                 ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Difficulty",
                          status: "\(difficulty.name) · \(difficulty.hitsPerShip) hit\(difficulty.hitsPerShip == 1 ? "" : "s") a ship",
-                         detail: "How many hits your ship takes before it's lost, and how fast the invaders march and everyone fires. A point is worth the same on every difficulty.",
+                         detail: "Hits your ship takes, how fast the invaders march and fire, and what a point pays.",
                          note: nil) {
                     VStack(alignment: .leading, spacing: 8) {
                         Picker("Difficulty", selection: $difficulty) {
@@ -64,7 +64,7 @@ struct InvadersView: View {
                             }
                         }
                         .pickerStyle(.segmented)
-                        Label(difficulty.summary, systemImage: difficulty.speed.icon)
+                        Label(difficulty.invadersSummary, systemImage: difficulty.speed.icon)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -224,7 +224,7 @@ struct InvadersPlayView: View {
         ArcadeRun(game: .invaders, score: game.score, detail: game.invadersDestroyed, extra: game.wave,
                   records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated, bestStreak: game.bestStreak,
                                  bonuses: game.whalesHit, volleys: game.volleysFired, volleysHit: game.volleysHit,
-                                 mode: waves == .generated ? 1 : 0, start: startWave))
+                                 mode: waves == .generated ? 1 : 0, start: startWave, difficulty: game.difficulty))
     }
 
     private var field: some View {
@@ -447,7 +447,7 @@ struct InvadersPlayView: View {
         let payout = store.finishInvaders(score: game.score, destroyed: game.invadersDestroyed, wave: game.wave,
                                           whales: game.whalesHit, bosses: game.bossesDefeated, powerUps: game.powerUpsCaught,
                                           bestStreak: game.bestStreak, volleys: game.volleysFired, volleysHit: game.volleysHit,
-                                          startWave: startWave, waves: waves)
+                                          startWave: startWave, waves: waves, difficulty: game.difficulty)
         result = GameResult(score: game.score, payout: payout, detail: game.invadersDestroyed, xp: store.lastArcadeAward)
     }
 }
