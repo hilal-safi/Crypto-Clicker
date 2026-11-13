@@ -321,30 +321,35 @@ extension BrickBreakerGame.PowerUp {
     }
 }
 
-/// The power-ups running, each with the time it has left, and the shrunk paddle's countdown.
+/// The power-ups running: extra balls on their own, and the timed ones (with the shrunk paddle's
+/// countdown) as bars side by side, so two at once show which runs out first.
 private struct BrickPowerUpColumn: View {
     let game: BrickBreakerGame
 
     var body: some View {
-        VStack(spacing: 8) {
-            ForEach(BrickBreakerGame.PowerUp.allCases, id: \.self) { kind in
-                if game.isActive(kind) {
-                    EffectMeter(symbol: kind.symbol, color: kind.color,
-                                fraction: game.effects[kind].flatMap { left in kind.duration.map { left / $0 } },
-                                label: kind.duration == nil ? "×\(game.balls.count)" : nil)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(kind.name)
-                        .accessibilityValue(game.effects[kind].map { "\(Int($0.rounded(.up))) seconds left" } ?? "\(game.balls.count) balls")
-                }
-            }
-            if game.shrunkFor > 0 {
-                EffectMeter(symbol: "arrow.right.and.line.vertical.and.arrow.left", color: Theme.loss,
-                            fraction: game.shrunkFor / BrickBreakerGame.shrinkTime)
+        let active = BrickBreakerGame.PowerUp.allCases.filter(game.isActive)
+        var timed: [EffectBars.Effect] = active.compactMap { kind in
+            guard let duration = kind.duration, let left = game.effects[kind] else { return nil }
+            return EffectBars.Effect(id: kind.name, symbol: kind.symbol, color: kind.color, name: kind.name,
+                                     secondsLeft: left, duration: duration)
+        }
+        if game.shrunkFor > 0 {
+            timed.append(EffectBars.Effect(id: "shrunk", symbol: "arrow.right.and.line.vertical.and.arrow.left", color: Theme.loss,
+                                           name: "Paddle shrunk", secondsLeft: game.shrunkFor,
+                                           duration: BrickBreakerGame.shrinkTime))
+        }
+        return VStack(spacing: 8) {
+            ForEach(active.filter { $0.duration == nil }, id: \.self) { kind in
+                EffectMeter(symbol: kind.symbol, color: kind.color, fraction: nil, label: "×\(game.balls.count)")
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Paddle shrunk for \(Int(game.shrunkFor.rounded(.up))) seconds")
+                    .accessibilityLabel(kind.name)
+                    .accessibilityValue("\(game.balls.count) balls")
+            }
+            if !timed.isEmpty {
+                EffectBars(effects: timed)
             }
         }
-        .animation(.snappy, value: BrickBreakerGame.PowerUp.allCases.filter(game.isActive))
+        .animation(.snappy, value: active)
         .animation(.snappy, value: game.shrunkFor > 0)
     }
 }

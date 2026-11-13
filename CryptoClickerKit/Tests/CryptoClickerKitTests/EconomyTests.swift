@@ -231,60 +231,45 @@ struct ProductionTests {
 
     @Test func offlineMiningLevelsCostMoreEachTimeAndStopAtTheMaximum() {
         var state = GameState.make(coins: 1_000)
-        // The first level (two minutes) costs 3,500: a list price of 1,702.64, about doubled for the
-        // opening's pace.
+        // The first level (two minutes) costs 3,500, the second 4,752.
         #expect(state.offlineMiningPrice == 3_500)
         state.coins = 1_000
         #expect(state.buyOfflineMining() == false) // Can't afford it yet.
-        let secondPrice = GameState.offlineMiningListPrice(level: 2)
-        #expect(secondPrice > GameState.offlineMiningListPrice(level: 1))
-        state.coins = 3_500 + Tuning.scaledPrice(secondPrice) + 100
+        let secondPrice = GameState.offlineMiningShopPrice(level: 2)
+        #expect(secondPrice == 4_752)
+        state.coins = 3_500 + secondPrice + 100
         let first = state.buyOfflineMining()
         #expect(first)
         #expect(state.offlineMiningLevel == 1)
         #expect(state.offlineCap == 2 * 60)
-        #expect(state.offlineMiningPrice == Tuning.scaledPrice(secondPrice))
+        #expect(state.offlineMiningPrice == secondPrice)
         let second = state.buyOfflineMining()
         #expect(second)
         #expect(state.coins == 100)
         #expect(state.offlineCap == 3 * 60)
-        // Every level costs more than the one before, steeply up to ten hours and more gently after.
-        var previous = 0.0
-        for level in 1...Tuning.offlineMiningMaxLevel {
-            let price = GameState.offlineMiningListPrice(level: level)
-            #expect(price > previous, "level \(level)")
-            previous = price
+        // Then 35% more a level to ten minutes (level 9), 24% more a level to three hours (level 27),
+        // in whole coins.
+        let price = GameState.offlineMiningShopPrice(level:)
+        for level in 3...27 {
+            let step = level <= 9 ? 1.35 : 1.24
+            #expect(price(level) == Tuning.whole(4_752 * pow(1.35, Double(min(level, 9) - 2)) * pow(1.24, Double(max(0, level - 9)))),
+                    "level \(level)")
+            #expect(abs(price(level) / price(level - 1) - step) < 0.001, "level \(level)")
         }
-        // Up to three hours each level costs a steady step more than the one before: a quarter more a
-        // minute to 10 minutes, 28% more for each 5 minutes to an hour, 45% more for each 15 minutes to
-        // three hours, and half as much again where the step grows. The first level keeps its price.
-        let price = GameState.offlineMiningListPrice(level:)
+        #expect(price(9) == 38_835) // Ten minutes.
+        // From three and a half hours the half-hour levels follow the curve, with the pace: 20% over
+        // it to level 30, 10% after.
         let curve = GameState.offlineMiningCurvePrice(level:)
-        let step: (Int) -> Double = { level in
-            switch level {
-            case 2...9: 1.25
-            case 10, 20: 1.5
-            case 11...19: 1.28
-            default: 1.45
-            }
-        }
-        #expect(Tuning.scaledPrice(price(1)) == 3_500)
-        #expect(approx(price(1), curve(1)))
-        for level in 2...27 {
-            #expect(approx(price(level), price(level - 1) * step(level)), "level \(level)")
-            // What the player sees grows by a fifth or more at every level.
-            #expect(Tuning.scaledPrice(price(level)) >= 1.2 * Tuning.scaledPrice(price(level - 1)), "level \(level)")
-        }
-        // From three and a half hours the half-hour levels follow the curve: 20% over it to level 30,
-        // 10% after, each well over half as much again as the level before.
         for level in 28...Tuning.offlineMiningMaxLevel {
-            #expect(approx(price(level), curve(level) * (level <= 30 ? 1.2 : 1.1)), "level \(level)")
+            #expect(price(level) == Tuning.scaledPrice(GameState.offlineMiningListPrice(level: level)), "level \(level)")
+            #expect(approx(GameState.offlineMiningListPrice(level: level), curve(level) * (level <= 30 ? 1.2 : 1.1)), "level \(level)")
         }
-        #expect(price(28) > 1.5 * price(27))
+        #expect(price(28) == 7_740_697)
+        // Every level costs more than the one before.
         #expect((1...Tuning.offlineMiningMaxLevel - 1).allSatisfy { price($0 + 1) > price($0) })
-        #expect(approx(price(41), 1.3e11 * 1.1)) // Ten hours.
-        #expect(approx(price(69), 1e16 * 1.1)) // A day.
-        #expect(approx(price(Tuning.offlineMiningMaxLevel), 1e23 * 1.1)) // Three days.
+        #expect(approx(GameState.offlineMiningListPrice(level: 41), 1.3e11 * 1.1)) // Ten hours.
+        #expect(approx(GameState.offlineMiningListPrice(level: 69), 1e16 * 1.1)) // A day.
+        #expect(approx(GameState.offlineMiningListPrice(level: Tuning.offlineMiningMaxLevel), 1e23 * 1.1)) // Three days.
         state.offlineMiningLevel = Tuning.offlineMiningMaxLevel
         state.coins = 1e300
         #expect(state.offlineMiningPrice == nil)
@@ -310,9 +295,9 @@ struct ProductionTests {
     }
 
     @Test func multipliersStackMultiplicatively() {
-        let state = GameState.make(upgrades: [.stepBooster, .upgradedStepBooster, .advancedStepBooster, .ultimateStepBooster,
+        let state = GameState.make(upgrades: [.stepBooster, .upgradedStepBooster, .ultimateStepBooster, .megaStepBooster,
                                               .bonusReward1, .bonusReward2, .bonusReward3])
-        #expect(state.stepMultiplier == 15.75) // 1.75 × 2 × 1.5 × 3
+        #expect(state.stepMultiplier == 15.75) // 1.75 × 2 × 3 × 1.5
         #expect(state.miniGameMultiplier == 3.75)
     }
 }

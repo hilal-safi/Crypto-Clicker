@@ -72,7 +72,6 @@ struct TokenMarketRow: View {
                         Text("\(isUp ? "▲" : "▼") \(CoinFormat.percent(abs(quote.change)))")
                             .font(.subheadline.weight(.bold).monospacedDigit())
                             .foregroundStyle(isUp ? Theme.gain : Theme.loss)
-                        VolatilityTag(level: token.volatilityLevel)
                     }
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -158,22 +157,6 @@ struct Sparkline: View {
             context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
         }
     }
-}
-
-/// How much a token's price moves: Stable, Moderate or Volatile, in a small tag.
-private struct VolatilityTag: View {
-    let level: TokenVolatility
-
-    var body: some View {
-        Text(level.name)
-            .font(.caption.weight(.bold))
-            .foregroundStyle(color)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1)
-            .background(color.opacity(0.15), in: .capsule)
-    }
-
-    private var color: Color { level.color }
 }
 
 /// A token's volatility icon, next to its name: a tap explains what its level means.

@@ -384,10 +384,10 @@ struct PacingTests {
 
     @Test func offlineMiningGrowsOverTheFirstWeekNotTheFirstDay() {
         let player = casualPlayer(days: 1)
-        // Five minutes a level up to the hour: most of an hour by the end of the first day, so the
-        // first nights pay only part of the time away.
+        // The first levels climb 35% each, so the first day ends with about ten minutes of time away
+        // and the first nights pay only part of it; the hour comes on the second day.
         print("Casual 1 day: offline", CoinFormat.duration(player.game.offlineCap), "| level", player.game.offlineMiningLevel)
-        #expect((30 * 60...2 * 3_600).contains(player.game.offlineCap))
+        #expect((5 * 60...2 * 3_600).contains(player.game.offlineCap))
     }
 
     /// Three weeks of casual play take a while to simulate, so this runs with the balance tests:
@@ -437,8 +437,10 @@ struct PacingTests {
         // Steps pay a real share, but mining still pays most.
         #expect(share > Double(steps) / 100_000)
         #expect(share < 0.5)
-        // Every booster arrives within the first run.
-        #expect(UpgradeID.allCases.filter { $0.category == .steps }.allSatisfy { walker.firstUpgrade[$0].map { $0 < 5 * 86_400 } == true })
+        // The first three boosters come in the first four days; the Mega Step Booster, in the
+        // trillions, near the end of the first run.
+        #expect([UpgradeID.stepBooster, .upgradedStepBooster, .ultimateStepBooster].allSatisfy { walker.firstUpgrade[$0].map { $0 < 4.5 * 86_400 } == true })
+        #expect(walker.firstUpgrade[.megaStepBooster].map { (5 * 86_400...8 * 86_400).contains($0) } == true)
     }
 
     @Test func offlineMiningIsEarnedInTheFirstSessionsNotGivenAtTheStart() {

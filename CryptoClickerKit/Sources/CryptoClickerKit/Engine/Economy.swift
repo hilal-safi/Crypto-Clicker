@@ -377,20 +377,32 @@ extension GameState {
         return Double(min(level, 48)) * 1_800 + Double(max(0, level - 48)) * 3_600
     }
 
-    /// List price of Offline Mining's `level` (the first is 1): a steady climb from the first level up
-    /// to three hours (`Tuning.offlineMiningGrowth`), then read off `Tuning.offlineMiningPrices` by
-    /// the limit it reaches.
-    public static func offlineMiningListPrice(level: Int) -> Double {
+    /// What Offline Mining's `level` (the first is 1) costs in the Shop: the opening prices, then a
+    /// steady climb a level up to three hours (`Tuning.offlineMiningGrowth`), in whole coins; from
+    /// three and a half hours, the curve's list price with the pace.
+    public static func offlineMiningShopPrice(level: Int) -> Double {
         let level = min(max(1, level), Tuning.offlineMiningMaxLevel)
+        let opening = Tuning.offlineMiningOpeningPrices
+        guard level > opening.count else { return opening[level - 1] }
+        guard let top = Tuning.offlineMiningGrowth.last?.levels.upperBound, level <= top else {
+            return Tuning.scaledPrice(offlineMiningListPrice(level: level))
+        }
+        var price = opening[opening.count - 1]
+        for step in (opening.count + 1)...level {
+            price *= Tuning.offlineMiningGrowth.first { $0.levels.contains(step) }?.factor ?? 1
+        }
+        return Tuning.whole(price)
+    }
+
+    /// List price of Offline Mining's `level` on the curve, read off `Tuning.offlineMiningPrices` by
+    /// the limit it reaches, with its premium. The Shop uses it from three and a half hours on.
+    static func offlineMiningListPrice(level: Int) -> Double {
+        let level = min(max(1, level), Tuning.offlineMiningMaxLevel)
+        // Each level at least a step above the one before (see `Tuning.offlineMiningMinimumStep`).
         var price = 0.0
         for step in 1...level {
-            if step > 1, let growth = Tuning.offlineMiningGrowth.first(where: { $0.levels.contains(step) })?.factor {
-                price *= growth
-            } else {
-                // Each level at least a step above the one before (see `Tuning.offlineMiningMinimumStep`).
-                price = max(offlineMiningCurvePrice(level: step) * offlineMiningPremium(level: step),
-                            price * Tuning.offlineMiningMinimumStep)
-            }
+            price = max(offlineMiningCurvePrice(level: step) * offlineMiningPremium(level: step),
+                        price * Tuning.offlineMiningMinimumStep)
         }
         return price
     }
@@ -421,7 +433,7 @@ extension GameState {
     /// sets it, with the pace but not the Shop's premium.
     public var offlineMiningPrice: Double? {
         guard offlineMiningLevel < Tuning.offlineMiningMaxLevel else { return nil }
-        return Tuning.scaledPrice(Self.offlineMiningListPrice(level: offlineMiningLevel + 1))
+        return Self.offlineMiningShopPrice(level: offlineMiningLevel + 1)
     }
 
     // MARK: Airdrops

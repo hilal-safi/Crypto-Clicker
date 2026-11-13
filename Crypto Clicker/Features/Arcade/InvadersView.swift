@@ -485,24 +485,30 @@ private struct InvadersBanner: View {
     }
 }
 
-/// The power-ups running, each with its time left, and the shield.
+/// The power-ups running: the shield on its own, and the timed ones as bars side by side, so two at
+/// once show which runs out first.
 private struct InvadersPowerUpColumn: View {
     let game: InvadersGame
 
     var body: some View {
+        let active = InvadersGame.PowerUp.allCases.filter(game.isActive)
+        let timed: [EffectBars.Effect] = active.compactMap { kind in
+            guard let duration = kind.duration, let left = game.effects[kind] else { return nil }
+            return EffectBars.Effect(id: kind.name, symbol: kind.symbol, color: kind.color, name: kind.name,
+                                     secondsLeft: left, duration: duration)
+        }
         VStack(spacing: 8) {
-            ForEach(InvadersGame.PowerUp.allCases, id: \.self) { kind in
-                if game.isActive(kind) {
-                    EffectMeter(symbol: kind.symbol, color: kind.color,
-                                fraction: game.effects[kind].flatMap { left in kind.duration.map { left / $0 } },
-                                label: nil)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(kind.name)
-                        .accessibilityValue(game.effects[kind].map { "\(Int($0.rounded(.up))) seconds left" } ?? "Ready")
-                }
+            ForEach(active.filter { $0.duration == nil }, id: \.self) { kind in
+                EffectMeter(symbol: kind.symbol, color: kind.color, fraction: nil, label: nil)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(kind.name)
+                    .accessibilityValue("Ready")
+            }
+            if !timed.isEmpty {
+                EffectBars(effects: timed)
             }
         }
-        .animation(.snappy, value: InvadersGame.PowerUp.allCases.filter(game.isActive))
+        .animation(.snappy, value: active)
     }
 }
 

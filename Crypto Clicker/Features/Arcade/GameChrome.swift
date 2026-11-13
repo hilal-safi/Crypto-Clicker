@@ -643,6 +643,59 @@ struct EffectMeter: View {
     }
 }
 
+/// The timed effects running, in one column: their symbols at the top, then a bar each, side by
+/// side and as tall as the column, emptying from the top as their time runs out. The bars share a
+/// scale (the longest of the effects' full times), so it reads at a glance which ends first and
+/// how far apart they are.
+struct EffectBars: View {
+    struct Effect: Identifiable {
+        let id: String
+        let symbol: String
+        let color: Color
+        let name: String
+        /// Seconds left, and the effect's full time.
+        let secondsLeft: Double
+        let duration: Double
+    }
+
+    let effects: [Effect]
+
+    var body: some View {
+        let scale = max(effects.map(\.duration).max() ?? 1, 0.001)
+        let count = CGFloat(max(1, effects.count))
+        let spacing: CGFloat = effects.count > 2 ? 2 : 4
+        let barWidth = min(8, (SideColumn.width - 10 - spacing * (count - 1)) / count)
+        VStack(spacing: 6) {
+            ForEach(effects) { effect in
+                Image(systemName: effect.symbol)
+                    .font(effects.count > 2 ? .caption.weight(.bold) : .subheadline.weight(.bold))
+                    .foregroundStyle(effect.color)
+            }
+            HStack(spacing: spacing) {
+                ForEach(effects) { effect in
+                    GeometryReader { proxy in
+                        Capsule()
+                            .fill(.white.opacity(0.15))
+                            .overlay(alignment: .bottom) {
+                                Capsule()
+                                    .fill(effect.color.gradient)
+                                    .frame(height: proxy.size.height * min(max(effect.secondsLeft / scale, 0), 1))
+                            }
+                    }
+                    .frame(width: barWidth)
+                }
+            }
+            .frame(minHeight: 30, maxHeight: .infinity)
+        }
+        .padding(.vertical, 8)
+        .frame(width: SideColumn.width)
+        .frame(maxHeight: .infinity)
+        .glassEffect(.regular, in: .capsule)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(effects.map { "\($0.name), \(Int($0.secondsLeft.rounded(.up))) seconds left" }.joined(separator: "; "))
+    }
+}
+
 /// "Daily challenge complete", with what it paid (and the week's bonus when it came too).
 struct ChallengeCompleteBadge: View {
     let reward: ChallengeReward
