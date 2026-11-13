@@ -393,7 +393,13 @@ extension GameState {
         if level > top {
             price *= offlineMiningListPrice(level: level) / offlineMiningListPrice(level: top)
         }
+        price *= offlineMiningDiscount(level: level)
         return Tuning.whole(price)
+    }
+
+    /// The share of the price the Shop charges at `level` (`Tuning.offlineMiningDiscounts`).
+    static func offlineMiningDiscount(level: Int) -> Double {
+        Tuning.offlineMiningDiscounts.first { $0.levels.contains(level) }?.factor ?? 1
     }
 
     /// List price of Offline Mining's `level` on the curve, read off `Tuning.offlineMiningPrices` by

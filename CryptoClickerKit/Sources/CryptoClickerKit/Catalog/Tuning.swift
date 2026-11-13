@@ -115,6 +115,11 @@ public enum Tuning {
     public static let offlineMiningGrowth: [(levels: ClosedRange<Int>, factor: Double)] = [
         (2...10, 1.4), (11...28, 1.35),
     ]
+    /// What the Shop takes off the price from four and a half hours on: 15% for levels 31 to 50, 10%
+    /// for levels 51 to 80 and 5% after.
+    public static let offlineMiningDiscounts: [(levels: ClosedRange<Int>, factor: Double)] = [
+        (31...50, 0.85), (51...80, 0.9), (81...offlineMiningMaxLevel, 0.95),
+    ]
     /// How much more than the curve the half-hour levels cost: 20% for levels 28 to 30 and 10% for
     /// the rest. A level never costs less than `offlineMiningMinimumStep` times the one before.
     public static let offlineMiningPremiums: [(levels: ClosedRange<Int>, factor: Double)] = [
