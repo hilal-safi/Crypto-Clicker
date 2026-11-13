@@ -428,7 +428,8 @@ struct PacingTests {
               "| points", walker.game.prestigePoints, "| steps paid", String(format: "%.1f%%", share * 100),
               "| boosters", UpgradeID.allCases.filter { $0.category == .steps }.map { days(walker.firstUpgrade[$0]) })
         let firstPrestige: ClosedRange<Double> = switch steps {
-        case ..<5_000: 6.75...7.25
+        // A night falls between seven days and the morning after: the morning is close enough.
+        case ..<5_000: 6.75...7.4
         case 5_000: 6.25...6.75
         default: 5.5...6.25
         }

@@ -106,13 +106,14 @@ public enum Tuning {
     public static let offlineMiningPrices: [(hours: Double, price: Double)] = [
         (2.0 / 60, 1_702.64), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
     ]
-    /// What the first two levels cost in the Shop: 3,500 and 4,752 coins...
-    public static let offlineMiningOpeningPrices: [Double] = [3_500, 4_752]
-    /// ...then each level up to three hours costs a steady step more than the one before: 35% more
-    /// a level up to 10 minutes (level 9) and 24% more a level up to three hours (level 27). From
-    /// three and a half hours (level 28) the prices follow `offlineMiningPrices`.
+    /// What the first level costs in the Shop: 3,500 coins...
+    public static let offlineMiningOpeningPrices: [Double] = [3_500]
+    /// ...then each level up to three and a half hours costs a steady step more than the one
+    /// before: 40% more a level up to 15 minutes (level 10) and 35% more a level up to three and a
+    /// half hours (level 28). After that each level keeps the step `offlineMiningPrices` takes
+    /// from the one before, carried on from level 28's price.
     public static let offlineMiningGrowth: [(levels: ClosedRange<Int>, factor: Double)] = [
-        (3...9, 1.35), (10...27, 1.24),
+        (2...10, 1.4), (11...28, 1.35),
     ]
     /// How much more than the curve the half-hour levels cost: 20% for levels 28 to 30 and 10% for
     /// the rest. A level never costs less than `offlineMiningMinimumStep` times the one before.
@@ -127,7 +128,7 @@ public enum Tuning {
     public static let stepsUnlockTaps = 2_000
     /// One step is worth this many seconds of idle income (before step upgrades): enough that a
     /// daily walk moves the first prestige by a day between 2,500 and 10,000 steps.
-    public static let stepSeconds = 0.4
+    public static let stepSeconds = 0.5
     /// A step is never worth less than this many coins (before step upgrades).
     public static let minimumStepValue = 1.0
     /// Income used for step and mini-game rewards never drops below this, so they matter on day one.

@@ -232,19 +232,19 @@ struct StepTests {
         game.upgrades = [.stepBooster]
         #expect(game.stepValue == 2) // Boosters multiply the one-coin floor too (1.75, a whole 2).
         game.miners = [.desktop: 50] // 400 coins per second.
-        #expect(game.stepValue == 280) // 0.4 × 400 × 1.75
+        #expect(game.stepValue == 350) // 0.5 × 400 × 1.75
         let credit = game.creditSteps([StepDay(key: today, steps: 1_000)], today: today, at: t0)
-        #expect(credit.coins == 280_000)
+        #expect(credit.coins == 350_000)
     }
 
     @Test func stepsAreWorthWholeCoins() {
         var game = connected()
         game.miners = minersEarning(2) // 2 coins per second (the reward floor is higher): never under a coin.
         #expect(game.stepValue == max(1, GameState.wholeCoins(Tuning.stepSeconds * game.rewardIncome)))
-        game.miners = minersEarning(21) // 21 coins per second: 8.4 coins a step, paid as 8.
-        #expect(game.stepValue == 8)
-        game.miners = [.gpuRig: 5] // 30 coins per second: 12 coins a step.
-        #expect(game.stepValue == 12)
+        game.miners = minersEarning(21) // 21 coins per second: 10.5 coins a step, paid as 11.
+        #expect(game.stepValue == 11)
+        game.miners = [.gpuRig: 5] // 30 coins per second: 15 coins a step.
+        #expect(game.stepValue == 15)
     }
 
     @Test func playersWhoConnectedBeforeStayUnlocked() {

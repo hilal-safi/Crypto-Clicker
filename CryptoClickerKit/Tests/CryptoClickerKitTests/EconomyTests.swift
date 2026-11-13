@@ -231,12 +231,12 @@ struct ProductionTests {
 
     @Test func offlineMiningLevelsCostMoreEachTimeAndStopAtTheMaximum() {
         var state = GameState.make(coins: 1_000)
-        // The first level (two minutes) costs 3,500, the second 4,752.
+        // The first level (two minutes) costs 3,500, the second 40% more.
         #expect(state.offlineMiningPrice == 3_500)
         state.coins = 1_000
         #expect(state.buyOfflineMining() == false) // Can't afford it yet.
         let secondPrice = GameState.offlineMiningShopPrice(level: 2)
-        #expect(secondPrice == 4_752)
+        #expect(secondPrice == 4_900)
         state.coins = 3_500 + secondPrice + 100
         let first = state.buyOfflineMining()
         #expect(first)
@@ -247,24 +247,27 @@ struct ProductionTests {
         #expect(second)
         #expect(state.coins == 100)
         #expect(state.offlineCap == 3 * 60)
-        // Then 35% more a level to ten minutes (level 9), 24% more a level to three hours (level 27),
-        // in whole coins.
+        // 40% more a level to 15 minutes (level 10), 35% more a level to three and a half hours
+        // (level 28), in whole coins.
         let price = GameState.offlineMiningShopPrice(level:)
-        for level in 3...27 {
-            let step = level <= 9 ? 1.35 : 1.24
-            #expect(price(level) == Tuning.whole(4_752 * pow(1.35, Double(min(level, 9) - 2)) * pow(1.24, Double(max(0, level - 9)))),
+        for level in 2...28 {
+            let step = level <= 10 ? 1.4 : 1.35
+            #expect(price(level) == Tuning.whole(3_500 * pow(1.4, Double(min(level, 10) - 1)) * pow(1.35, Double(max(0, level - 10)))),
                     "level \(level)")
             #expect(abs(price(level) / price(level - 1) - step) < 0.001, "level \(level)")
         }
-        #expect(price(9) == 38_835) // Ten minutes.
-        // From three and a half hours the half-hour levels follow the curve, with the pace: 20% over
-        // it to level 30, 10% after.
+        #expect(price(10) == 72_314) // Fifteen minutes.
+        #expect(price(28) == 16_040_881)
+        // After that each level is as many times the one before as on the curve, which is 20% over
+        // the curve to level 30 and 10% after.
+        let list = GameState.offlineMiningListPrice(level:)
         let curve = GameState.offlineMiningCurvePrice(level:)
-        for level in 28...Tuning.offlineMiningMaxLevel {
-            #expect(price(level) == Tuning.scaledPrice(GameState.offlineMiningListPrice(level: level)), "level \(level)")
-            #expect(approx(GameState.offlineMiningListPrice(level: level), curve(level) * (level <= 30 ? 1.2 : 1.1)), "level \(level)")
+        for level in 29...Tuning.offlineMiningMaxLevel {
+            #expect(abs(price(level) / price(level - 1) - list(level) / list(level - 1)) < 1e-6, "level \(level)")
         }
-        #expect(price(28) == 7_740_697)
+        for level in 28...Tuning.offlineMiningMaxLevel {
+            #expect(approx(list(level), curve(level) * (level <= 30 ? 1.2 : 1.1)), "level \(level)")
+        }
         // Every level costs more than the one before.
         #expect((1...Tuning.offlineMiningMaxLevel - 1).allSatisfy { price($0 + 1) > price($0) })
         #expect(approx(GameState.offlineMiningListPrice(level: 41), 1.3e11 * 1.1)) // Ten hours.

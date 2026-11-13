@@ -377,19 +377,21 @@ extension GameState {
         return Double(min(level, 48)) * 1_800 + Double(max(0, level - 48)) * 3_600
     }
 
-    /// What Offline Mining's `level` (the first is 1) costs in the Shop: the opening prices, then a
-    /// steady climb a level up to three hours (`Tuning.offlineMiningGrowth`), in whole coins; from
-    /// three and a half hours, the curve's list price with the pace.
+    /// What Offline Mining's `level` (the first is 1) costs in the Shop, in whole coins: the opening
+    /// price, then a steady climb a level up to three and a half hours (`Tuning.offlineMiningGrowth`),
+    /// then the curve's step from one level to the next.
     public static func offlineMiningShopPrice(level: Int) -> Double {
         let level = min(max(1, level), Tuning.offlineMiningMaxLevel)
         let opening = Tuning.offlineMiningOpeningPrices
         guard level > opening.count else { return opening[level - 1] }
-        guard let top = Tuning.offlineMiningGrowth.last?.levels.upperBound, level <= top else {
-            return Tuning.scaledPrice(offlineMiningListPrice(level: level))
-        }
+        let top = Tuning.offlineMiningGrowth.last?.levels.upperBound ?? opening.count
         var price = opening[opening.count - 1]
-        for step in (opening.count + 1)...level {
+        for step in (opening.count + 1)...min(level, top) {
             price *= Tuning.offlineMiningGrowth.first { $0.levels.contains(step) }?.factor ?? 1
+        }
+        // Past the steady climb, each level is as many times the one before as on the curve.
+        if level > top {
+            price *= offlineMiningListPrice(level: level) / offlineMiningListPrice(level: top)
         }
         return Tuning.whole(price)
     }
