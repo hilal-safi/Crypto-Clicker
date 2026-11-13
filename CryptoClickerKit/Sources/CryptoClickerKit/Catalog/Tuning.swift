@@ -2,10 +2,12 @@ import Foundation
 
 /// Every balance number in one place. Tuned with simulated players who catch airdrops, claim the
 /// dailies, play some arcade and earn achievements (see `PacingTests`): someone who keeps playing
-/// buys a Data Center after a little over an hour; casual play (four ten-minute visits a day)
-/// reaches the Data Center in about a day, the first prestige point around day two, every
-/// mini-game in about four days and the tenth miner and the first suggested prestige in about
-/// five, and prestiges and perks keep new things arriving for about three weeks. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here
+/// buys a Data Center after a little over an hour; casual play (four ten-minute visits a day,
+/// walking 5,000 steps) reaches the Data Center in about two days, the first prestige point in
+/// under four, every mini-game and the tenth miner in about six and the first suggested prestige
+/// at about six and a half, then nine prestiges and about 5,000 points in three weeks, with perks
+/// arriving all the way. Walking 2,500 steps takes the first prestige to about seven days, 10,000
+/// to about six, and not walking to about seven and a half. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here
 /// are whole numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
@@ -36,9 +38,10 @@ public enum Tuning {
     public static let minerUpgradeUnits = 10.0
 
     // MARK: Tapping
-    /// An automatic tap earns this share of a tap's value, so tapping yourself stays the best way to
-    /// mine while the app is open: late in the game a tap is worth a whole second of production.
-    public static let autoTapStrength = 0.25
+    /// An automatic tap earns this share of a tap's value (half: a quarter was too weak to notice),
+    /// so tapping yourself stays the best way to mine while the app is open: late in the game a tap
+    /// is worth a whole second of production. Auto Clicker Pro doubles it.
+    public static let autoTapStrength = 0.5
     /// A tap within this long of the previous one keeps a combo going.
     public static let comboWindow: TimeInterval = 0.6
     /// A combo climbs by this much (+0.1)...
@@ -103,19 +106,41 @@ public enum Tuning {
     public static let offlineMiningPrices: [(hours: Double, price: Double)] = [
         (2.0 / 60, 1_702.64), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
     ]
-    /// Levels 2 to 15 (3 to 40 minutes) cost this much more than the curve, so the first stretch
-    /// of time away isn't bought up too quickly...
-    public static let offlineMiningEarlyPremium = 1.1
-    public static let offlineMiningEarlyPremiumLevels = 2...15
-    /// ...and levels 2 to 10 (3 to 15 minutes) this much more again (15.5% over the curve in all).
-    public static let offlineMiningEarliestPremium = 1.05
-    public static let offlineMiningEarliestPremiumLevels = 2...10
+    /// What the first level costs in the Shop: 3,500 coins...
+    public static let offlineMiningOpeningPrices: [Double] = [3_500]
+    /// ...then each level up to three and a half hours costs a steady step more than the one
+    /// before: 40% more a level up to 15 minutes (level 10) and 35% more a level up to three and a
+    /// half hours (level 28). After that each level keeps the step `offlineMiningPrices` takes
+    /// from the one before, carried on from level 28's price.
+    public static let offlineMiningGrowth: [(levels: ClosedRange<Int>, factor: Double)] = [
+        (2...10, 1.4), (11...28, 1.35),
+    ]
+    /// From ten and a half hours (level 42) to fourteen and a half (level 50) the step from one level
+    /// to the next eases from 45% down by 0.71 points a level (to about 39%).
+    public static let offlineMiningEasing: (levels: ClosedRange<Int>, from: Double, perLevel: Double) = (42...50, 1.45, 0.27 / 38)
+    /// From level 51 the step keeps easing, evenly (in proportion), until level 105 (two days and
+    /// two hours), then holds to the last level. Where it lands is set by what the last level costs
+    /// in the Shop (three days, level 165): about 18% a level.
+    public static let offlineMiningLateEasing: (levels: ClosedRange<Int>, lastPrice: Double) = (51...105, 2e23)
+    /// What the Shop takes off the price from four and a half hours on: 15% for levels 31 to 50, 10%
+    /// for levels 51 to 80 and 5% after.
+    public static let offlineMiningDiscounts: [(levels: ClosedRange<Int>, factor: Double)] = [
+        (31...50, 0.85), (51...80, 0.9), (81...offlineMiningMaxLevel, 0.95),
+    ]
+    /// How much more than the curve the half-hour levels cost: 20% for levels 28 to 30 and 10% for
+    /// the rest. A level never costs less than `offlineMiningMinimumStep` times the one before.
+    public static let offlineMiningPremiums: [(levels: ClosedRange<Int>, factor: Double)] = [
+        (28...30, 1.2),
+        (31...offlineMiningMaxLevel, 1.1),
+    ]
+    public static let offlineMiningMinimumStep = 1.02
 
     // MARK: Steps
     /// Lifetime taps needed before steps can be connected, so early coins come from playing.
     public static let stepsUnlockTaps = 2_000
-    /// One step is worth this many seconds of idle income (before step upgrades).
-    public static let stepSeconds = 0.06
+    /// One step is worth this many seconds of idle income (before step upgrades): enough that a
+    /// daily walk moves the first prestige by a day between 2,500 and 10,000 steps.
+    public static let stepSeconds = 0.5
     /// A step is never worth less than this many coins (before step upgrades).
     public static let minimumStepValue = 1.0
     /// Income used for step and mini-game rewards never drops below this, so they matter on day one.
@@ -165,9 +190,11 @@ public enum Tuning {
         min(max(log10(price / low) / log10(high / low), 0), 1)
     }
 
-    /// A Shop price: the list price with the pace and the Shop's premium, in whole coins.
-    public static func shopPrice(_ listPrice: Double) -> Double {
-        whole(listPrice * priceScale(forListPrice: listPrice) * shopPremium(forListPrice: listPrice))
+    /// A Shop price: the list price with the pace and the Shop's premium, in whole coins, then
+    /// `adjustment` for an item tuned on its own (the Server 20% dearer, the combo power-ups 10%
+    /// cheaper), so the change is exactly that share of what the Shop showed.
+    public static func shopPrice(_ listPrice: Double, adjustedBy adjustment: Double = 1) -> Double {
+        whole(listPrice * priceScale(forListPrice: listPrice) * shopPremium(forListPrice: listPrice) * adjustment)
     }
 
     /// Rounds a price up to a whole coin, ignoring floating-point noise just above a whole number.
@@ -195,8 +222,12 @@ public enum Tuning {
     /// Prestige points stop counting here. Far beyond reach in play, and small enough for `Int`
     /// on Apple Watch, where `Int` is 32 bits.
     public static let maxPrestigePoints = 1_000_000_000
-    /// Prestiging is suggested once the new points would make production at least this much faster.
-    public static let prestigeRecommendedSpeedUp = 1.5
+    /// The first prestige is suggested once its points would make production at least this much
+    /// faster...
+    public static let firstPrestigeSpeedUp = 1.5
+    /// ...and every later one once they would make it this much faster, so later runs last longer
+    /// and each prestige is a bigger jump.
+    public static let prestigeRecommendedSpeedUp = 1.85
     /// What the Head Start perk gives at the start of every run.
     public static let headStartMiners: [MinerID: Int] = [.chromebook: 10, .desktop: 10, .gpuRig: 5]
     public static let productionPerAchievementTier = 0.01
@@ -238,6 +269,9 @@ public enum Tuning {
     public static let dailyRewardClaimCap = 2.0
     /// The login streak's rewards repeat after this many days.
     public static let streakCycle = 7
+    /// The very first streak day 1 and day 2 pay these shares of their usual reward (half, then two
+    /// thirds); from the first day 3 on, every day pays in full, even after a streak breaks.
+    public static let firstStreakDayShares = [0.5, 2.0 / 3]
     /// Income history for the Statistics chart: a sample every minute while the game is open, so
     /// the chart has a shape from the first minutes of a game...
     public static let incomeSampleInterval: TimeInterval = 60
@@ -255,6 +289,11 @@ public enum Tuning {
     public static let marketTick: TimeInterval = 5 * 60
     /// ...between these factors of a token's list price.
     public static let marketPriceRange: ClosedRange<Double> = 0.7...1.4
+    /// Volatile tokens (SafeMoon, Shiba Inu, Dogecoin) range further: from half to 1.8 times.
+    public static let volatilePriceRange: ClosedRange<Double> = 0.5...1.8
+    /// How much a volatile token's price also jumps from one ten-minute stretch to the next, before
+    /// its volatility.
+    public static let volatileJitter = 0.3
     /// Chance per tick that news breaks for a token.
     public static let marketNewsChance = 0.0025
     /// How far a story moves a price at first, in log terms: 0.04 is about 4%, 0.1 about 10%.
@@ -265,29 +304,34 @@ public enum Tuning {
     public static let marketSellFee = 0.1
 
     // MARK: Mini-games
+    // Casino bonuses: 21 Million's are a little smaller than they were (it paid by far the most),
+    // and the other three games' 60% bigger, so every table is worth a visit (see CasinoReturnTests).
     /// A winning Blackjack hand pays this share of its stake's coin value in coins...
-    public static let blackjackStakeShare = 0.5
+    public static let blackjackStakeShare = 0.42
     /// ...up to this many seconds of idle income, so bigger bets matter but can't run away.
-    public static let blackjackWinSeconds = 60.0
+    public static let blackjackWinSeconds = 50.0
     /// A natural pays this much more than an ordinary win.
     public static let blackjackNaturalBonus = 1.5
     /// The tough table (the dealer hits soft 17) pays this much more coin bonus for a win.
     public static let blackjackToughTableBonus = 1.1
     /// A winning slots spin pays this share of its stake's coin value for each multiple of the bet...
-    public static let slotsStakeShare = 0.05
+    public static let slotsStakeShare = 0.08
     /// ...up to this many seconds of idle income for each multiple.
-    public static let slotsWinSeconds = 3.0
+    public static let slotsWinSeconds = 5.0
     /// Every `SlotMachine.bitcoinsPerPrize` Bitcoins collected on the line pay this many seconds of income.
-    public static let slotsCollectionSeconds = 60.0
+    public static let slotsCollectionSeconds = 90.0
     /// A To the Moon cash-out pays this share of its stake's coin value for each multiple above 1×...
-    public static let moonStakeShare = 0.05
-    /// ...up to this many seconds of idle income for each multiple above 1×.
-    public static let moonWinSeconds = 15.0
+    public static let moonStakeShare = 0.08
+    /// ...up to this many seconds of idle income in all for each second the flight took, so quick
+    /// flights to high targets (on the 5× rocket above all) can't earn faster than the time played.
+    public static let moonWinSecondsPerFlightSecond = 6.0
+    /// The 5× rocket's cash-outs pay this many times the coin bonus (it crashes a little more often).
+    public static let moonFivefoldBonus = 1.25
     /// A Video Poker hand of two pair or better pays this share of its stake's coin value for each
     /// multiple of the bet...
-    public static let pokerStakeShare = 0.05
+    public static let pokerStakeShare = 0.08
     /// ...up to this many seconds of idle income for each multiple.
-    public static let pokerWinSeconds = 15.0
+    public static let pokerWinSeconds = 24.0
     /// Arcade games pay this many seconds of idle income per point when they end. Simulated skilled
     /// players (see ArcadeBalanceTests) earn about two minutes of income for each minute they play
     /// in any of them, on top of the mining that carries on meanwhile; an average player about one.

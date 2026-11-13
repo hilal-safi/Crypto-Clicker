@@ -31,13 +31,63 @@ struct BrickBreakerTests {
         let later = Game(seed: 3, startLevel: 4)
         #expect(later.level == 4 && later.lives == Game.startingLives && later.score == 0)
         #expect(later.phase == .serving && later.boss == nil)
-        #expect(Set(later.bricks.map(\.row)).count == Game.rows(for: 4))
+        #expect(Set(later.bricks.map(\.row)) == [0, 2, 4, 6]) // Level 4's stripes: every other row of its eight.
         #expect(later.speed > Game(seed: 3).speed) // As fast as level 4 always is.
         // A boss level starts with the whale.
         let whale = Game(seed: 3, startLevel: 5)
         #expect(whale.isBossLevel && whale.boss != nil)
         // Nonsense starts at level 1.
         #expect(Game(seed: 3, startLevel: 0).level == 1 && Game(seed: 3, startLevel: -4).level == 1)
+    }
+
+    @Test func theDifficultySetsThePaddleTheBallAndThePay() {
+        let regular = Game(seed: 1), easy = Game(seed: 1, difficulty: .easy), hard = Game(seed: 1, difficulty: .hard)
+        #expect(abs(easy.paddle.width - Game.paddleWidth * 1.2) < 1e-9 && abs(hard.paddle.width - Game.paddleWidth * 0.8) < 1e-9)
+        #expect(regular.paddle.width == Game.paddleWidth)
+        #expect(easy.gameSpeed == .slow && regular.gameSpeed == .normal && hard.gameSpeed == .fast)
+        var wide = hard
+        wide.give(.widePaddle)
+        #expect(abs(wide.paddle.width - Game.paddleWidth * 0.8 * 1.5) < 1e-9) // Power-ups work from the difficulty's paddle.
+        var state = GameState.make(miners: minersEarning(10))
+        state.finishBrickBreaker(score: 5_000, bricks: 300, level: 7) // A best to stay under.
+        #expect(state.finishBrickBreaker(score: 500, bricks: 30, level: 2).coins == state.arcadeReward(.brickBreaker, score: 500))
+        #expect(state.finishBrickBreaker(score: 500, bricks: 30, level: 2, difficulty: .easy).coins == state.arcadeReward(.brickBreaker, score: 400))
+        #expect(state.finishBrickBreaker(score: 500, bricks: 30, level: 2, difficulty: .hard).coins == state.arcadeReward(.brickBreaker, score: 600))
+        state.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: 500, detail: 30, extra: 2, records: .init(difficulty: .easy)))
+        #expect(state.payUnfinishedRun()?.payout.coins == state.arcadeReward(.brickBreaker, score: 400))
+    }
+
+    @Test func randomWallsDontUnlockClassicLevels() throws {
+        var state = GameState.make()
+        state.finishBrickBreaker(score: 500, bricks: 80, level: 6, levels: .generated)
+        #expect(state.brickBreakerStartLevels == 1...1 && state.stats.brickBreakerBestLevel == 6)
+        state.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: 300, detail: 40, extra: 8, records: .init(mode: 1)))
+        state.payUnfinishedRun()
+        #expect(state.brickBreakerStartLevels == 1...1 && state.stats.brickBreakerBestLevel == 8)
+        state.finishBrickBreaker(score: 500, bricks: 80, level: 3)
+        #expect(state.brickBreakerStartLevels == 1...3)
+        let old = try GameCoding.decoder().decode(Stats.self, from: Data(#"{"brickBreakerBestLevel":5}"#.utf8))
+        #expect(old.brickBreakerClassicBestLevel == 5)
+    }
+
+    @Test func classicLevelsAreTheSameEveryGame() {
+        func layout(_ game: Game) -> [String] {
+            game.bricks.map { "\($0.row),\($0.column),\($0.kind),\($0.maxHits)" }
+        }
+        var shapes = Set<[String]>()
+        for level in 1...14 {
+            var first = Game(seed: 1)
+            first.jump(toLevel: level)
+            shapes.insert(layout(first))
+            for seed in UInt64(2)...15 {
+                var other = Game(seed: seed)
+                other.jump(toLevel: level)
+                #expect(layout(other) == layout(first), "level \(level) seed \(seed)")
+            }
+            // Starting there plays the same wall as reaching it.
+            #expect(layout(Game(seed: 99, startLevel: level)) == layout(first), "level \(level)")
+        }
+        #expect(shapes.count >= 10) // The levels still differ from each other.
     }
 
     @Test func levelsUnlockAsFarAsTheBestLevelReached() {
@@ -201,24 +251,25 @@ struct BrickBreakerTests {
         #expect(game.bricks.contains { $0.maxHits == 2 })
     }
 
-    @Test func wallsTakeRandomShapesAfterLevelOne() {
+    @Test func classicWallsTakeEachShapeInTurnAfterLevelOne() {
+        var rng = SeededGenerator(seed: 1)
+        let level1 = Game.cells(level: 1, rows: Game.rows(for: 1), using: &rng)
+        #expect(level1.count == 5 * Game.columns)
         var shapes = Set<[Int]>()
-        for seed in UInt64(1)...40 {
-            var rng = SeededGenerator(seed: seed)
-            let level1 = Game.cells(level: 1, rows: Game.rows(for: 1), using: &rng)
-            #expect(level1.count == 5 * Game.columns)
-            for level in 2...6 {
-                let rows = Game.rows(for: level)
-                let cells = Game.cells(level: level, rows: rows, using: &rng)
-                #expect(cells.count >= 2 * Game.columns)
-                #expect(cells.allSatisfy { (0..<rows).contains($0.row) && (0..<Game.columns).contains($0.column) })
-                #expect(Set(cells.map { $0.row * Game.columns + $0.column }).count == cells.count)
-                shapes.insert(cells.map { $0.row * Game.columns + $0.column })
-            }
+        // Levels 2 to 11 hold eight walls (5 and 10 are bosses): every shape once.
+        for level in 2...11 where level % Game.bossEvery != 0 {
+            let rows = Game.rows(for: level)
+            var fixed = Game.classicGenerator(level: level)
+            let cells = Game.cells(level: level, rows: rows, using: &fixed)
+            #expect(cells.count >= 2 * Game.columns)
+            #expect(cells.allSatisfy { (0..<rows).contains($0.row) && (0..<Game.columns).contains($0.column) })
+            #expect(Set(cells.map { $0.row * Game.columns + $0.column }).count == cells.count)
+            shapes.insert(cells.map { $0.row * Game.columns + $0.column })
         }
-        #expect(shapes.count >= 10)
-        // A game's walls follow its seed, so the same seed plays the same game.
-        #expect(Game(seed: 7).bricks.map(\.frame) == Game(seed: 7).bricks.map(\.frame))
+        #expect(shapes.count == 8)
+        // Level 2 is a full wall, a row taller than level 1's.
+        var fixed = Game.classicGenerator(level: 2)
+        #expect(Game.cells(level: 2, rows: Game.rows(for: 2), using: &fixed).count == 6 * Game.columns)
     }
 
     @Test func everyWallFitsTheField() {

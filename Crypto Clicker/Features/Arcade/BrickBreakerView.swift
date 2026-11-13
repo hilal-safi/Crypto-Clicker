@@ -7,12 +7,12 @@ enum BrickBreakerRoute: Hashable {
     case play(BrickBreakerGame.LevelStyle, startLevel: Int = 1)
 }
 
-/// Where Brick Breaker opens, like Token Swap: the classic levels, random walls and the speed
+/// Where Brick Breaker opens, like Token Swap: the classic levels, random walls and the difficulty
 /// setting, each on a card. Levels start at any level reached so far, picked on its track;
 /// random walls start at level 1.
 struct BrickBreakerView: View {
     @Environment(GameStore.self) private var store
-    @AppStorage(Preferences.brickBreakerSpeedKey) private var speed = GameSpeed.normal
+    @AppStorage(Preferences.brickBreakerDifficultyKey) private var difficulty = ArcadeDifficulty.regular
     @AppStorage(Preferences.brickBreakerStartKey) private var pickedStart = 1
 
     /// The picked level, kept within those reached.
@@ -28,14 +28,14 @@ struct BrickBreakerView: View {
         ScrollView {
             VStack(spacing: 14) {
                 ModeCard(tint: tint, icon: "square.grid.3x2.fill", title: "Levels",
-                         status: stats.brickBreakerGames == 0
+                         status: stats.brickBreakerClassicBestLevel == 0
                             ? "Start at level 1"
-                            : "Best: level \(CoinFormat.grouped(stats.brickBreakerBestLevel)) · \(CoinFormat.grouped(bosses)) "
+                            : "Best: level \(CoinFormat.grouped(stats.brickBreakerClassicBestLevel)) · \(CoinFormat.grouped(bosses)) "
                                 + "whale\(bosses == 1 ? "" : "s")" + " beaten",
-                         detail: "The classic walls: cold storage, liquidation and airdrop blocks, and the whale every fifth level. Start at level 1 or any level you've reached.",
+                         detail: "The classic walls: cold storage, liquidation and airdrop blocks, and the whale every fifth level.",
                          note: nil) {
                     VStack(spacing: 12) {
-                        LevelTrack(best: stats.brickBreakerBestLevel, bossEvery: BrickBreakerGame.bossEvery, tint: tint,
+                        LevelTrack(best: stats.brickBreakerClassicBestLevel, bossEvery: BrickBreakerGame.bossEvery, tint: tint,
                                    bossSymbol: "fish.fill", noun: "level",
                                    bossNote: "The whale every fifth level.",
                                    selection: Binding(get: { startLevel }, set: { pickedStart = $0 }))
@@ -48,7 +48,7 @@ struct BrickBreakerView: View {
                     }
                 }
                 ModeCard(tint: tint, icon: "dice.fill", title: "Random Walls", status: "A new wall every level",
-                         detail: "Walls made up for every level, never the same twice. They take about as many hits and pay about the same, and the whale still comes every fifth level.",
+                         detail: "A new wall every level, never the same twice. The whale still comes every fifth level.",
                          note: nil) {
                     NavigationLink(value: BrickBreakerRoute.play(.generated)) {
                         Label("Play Random Walls", systemImage: "play.fill")
@@ -56,15 +56,20 @@ struct BrickBreakerView: View {
                     }
                     .buttonStyle(.glassProminent)
                 }
-                ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Settings", status: "\(speed.name) speed",
-                         detail: "How fast the ball moves. A point is worth the same at every speed: Fast scores sooner, Slow is relaxed.",
+                ModeCard(tint: tint, icon: "slider.horizontal.3", title: "Difficulty", status: difficulty.name,
+                         detail: "The paddle's width, the ball's speed, and what a point pays.",
                          note: nil) {
-                    Picker("Speed", selection: $speed) {
-                        ForEach(GameSpeed.allCases) { speed in
-                            Text(speed.name).tag(speed)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Picker("Difficulty", selection: $difficulty) {
+                            ForEach(ArcadeDifficulty.allCases) { level in
+                                Text(level.name).tag(level)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        Label(difficulty.brickBreakerSummary, systemImage: difficulty.speed.icon)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
-                    .pickerStyle(.segmented)
                 }
             }
             .padding(.horizontal, 16)
@@ -81,7 +86,7 @@ struct BrickBreakerView: View {
 
 /// Brick Breaker's game: drag anywhere on the field to move the paddle and lift your finger to
 /// launch. Bonus bricks drop power-ups to catch, explosive bricks break their neighbors, and every
-/// fifth level is a boss. The walls come from the start screen, and the ball's speed from its
+/// fifth level is a boss. The walls come from the start screen, and the difficulty from its
 /// setting. The physics runs on the display's frame clock while the ball is in play.
 struct BrickBreakerPlayView: View {
     /// Classic walls or random ones.
@@ -91,7 +96,7 @@ struct BrickBreakerPlayView: View {
     @Environment(GameStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(Preferences.hapticsKey) private var haptics = true
-    @AppStorage(Preferences.brickBreakerSpeedKey) private var speed = GameSpeed.normal
+    @AppStorage(Preferences.brickBreakerDifficultyKey) private var difficulty = ArcadeDifficulty.regular
     @State private var game: BrickBreakerGame
     @State private var isPlaying = false
     @State private var isPaused = false
@@ -109,7 +114,9 @@ struct BrickBreakerPlayView: View {
     init(levels: BrickBreakerGame.LevelStyle, startLevel: Int = 1) {
         self.levels = levels
         self.startLevel = startLevel
-        _game = State(initialValue: BrickBreakerGame(levels: levels, startLevel: startLevel))
+        let saved = UserDefaults.standard.string(forKey: Preferences.brickBreakerDifficultyKey)
+        _game = State(initialValue: BrickBreakerGame(difficulty: saved.flatMap(ArcadeDifficulty.init(rawValue:)) ?? .regular,
+                                                     levels: levels, startLevel: startLevel))
     }
 
     var body: some View {
@@ -196,13 +203,13 @@ struct BrickBreakerPlayView: View {
     private var heldRun: ArcadeRun {
         ArcadeRun(game: .brickBreaker, score: game.score, detail: game.bricksBroken, extra: game.level,
                   records: .init(powerUps: game.powerUpsCaught, bosses: game.bossesDefeated, bestStreak: game.bestLevelStreak,
-                                 start: startLevel))
+                                 mode: levels == .generated ? 1 : 0, start: startLevel, difficulty: game.difficulty))
     }
 
     private var field: some View {
         TimelineView(.animation(minimumInterval: nil, paused: !isRunning || game.phase != .playing)) { timeline in
             BrickField(game: game, time: timeline.date.timeIntervalSinceReferenceDate, reduceMotion: reduceMotion,
-                       paddle: store.game.equipped(.paddle))
+                       paddle: store.game.equipped(.paddle), ball: store.game.equipped(.ball))
                 .onChange(of: timeline.date) { _, date in advance(to: date) }
         }
         .aspectRatio(BrickBreakerGame.width / BrickBreakerGame.height, contentMode: .fit)
@@ -261,7 +268,7 @@ struct BrickBreakerPlayView: View {
             } else {
                 GamePanel(title: "Level \(startLevel)", buttonTitle: "Start", action: start) {
                     GameIntro(best: store.game.stats.brickBreakerBestScore,
-                              detail: "\(levels == .generated ? "Random walls" : "Classic walls") · \(speed.name) speed"
+                              detail: "\(levels == .generated ? "Random walls" : "Classic walls") · \(difficulty.name)"
                                 + StartPay.note(start: startLevel, noun: "level", slope: Tuning.brickBreakerStartPaySlope, separator: " · "))
                 }
             }
@@ -282,7 +289,7 @@ struct BrickBreakerPlayView: View {
     }
 
     private func start() {
-        game = BrickBreakerGame(speed: speed, levels: levels, startLevel: startLevel)
+        game = BrickBreakerGame(difficulty: difficulty, levels: levels, startLevel: startLevel)
         result = nil
         isPaused = false
         lastFrame = nil
@@ -295,7 +302,8 @@ struct BrickBreakerPlayView: View {
         isPaused = false
         let payout = store.finishBrickBreaker(score: game.score, bricks: game.bricksBroken, level: game.level,
                                               bosses: game.bossesDefeated, powerUps: game.powerUpsCaught,
-                                              bestStreak: game.bestLevelStreak, startLevel: startLevel)
+                                              bestStreak: game.bestLevelStreak, startLevel: startLevel, levels: levels,
+                                              difficulty: game.difficulty)
         result = GameResult(score: game.score, payout: payout, detail: game.bricksBroken, xp: store.lastArcadeAward)
     }
 }
@@ -321,30 +329,35 @@ extension BrickBreakerGame.PowerUp {
     }
 }
 
-/// The power-ups running, each with the time it has left, and the shrunk paddle's countdown.
+/// The power-ups running: extra balls on their own, and the timed ones (with the shrunk paddle's
+/// countdown) as bars side by side, so two at once show which runs out first.
 private struct BrickPowerUpColumn: View {
     let game: BrickBreakerGame
 
     var body: some View {
-        VStack(spacing: 8) {
-            ForEach(BrickBreakerGame.PowerUp.allCases, id: \.self) { kind in
-                if game.isActive(kind) {
-                    EffectMeter(symbol: kind.symbol, color: kind.color,
-                                fraction: game.effects[kind].flatMap { left in kind.duration.map { left / $0 } },
-                                label: kind.duration == nil ? "×\(game.balls.count)" : nil)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(kind.name)
-                        .accessibilityValue(game.effects[kind].map { "\(Int($0.rounded(.up))) seconds left" } ?? "\(game.balls.count) balls")
-                }
-            }
-            if game.shrunkFor > 0 {
-                EffectMeter(symbol: "arrow.right.and.line.vertical.and.arrow.left", color: Theme.loss,
-                            fraction: game.shrunkFor / BrickBreakerGame.shrinkTime)
+        let active = BrickBreakerGame.PowerUp.allCases.filter(game.isActive)
+        var timed: [EffectBars.Effect] = active.compactMap { kind in
+            guard let duration = kind.duration, let left = game.effects[kind] else { return nil }
+            return EffectBars.Effect(id: kind.name, symbol: kind.symbol, color: kind.color, name: kind.name,
+                                     secondsLeft: left, duration: duration)
+        }
+        if game.shrunkFor > 0 {
+            timed.append(EffectBars.Effect(id: "shrunk", symbol: "arrow.right.and.line.vertical.and.arrow.left", color: Theme.loss,
+                                           name: "Paddle shrunk", secondsLeft: game.shrunkFor,
+                                           duration: BrickBreakerGame.shrinkTime))
+        }
+        return VStack(spacing: 8) {
+            ForEach(active.filter { $0.duration == nil }, id: \.self) { kind in
+                EffectMeter(symbol: kind.symbol, color: kind.color, fraction: nil, label: "×\(game.balls.count)")
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Paddle shrunk for \(Int(game.shrunkFor.rounded(.up))) seconds")
+                    .accessibilityLabel(kind.name)
+                    .accessibilityValue("\(game.balls.count) balls")
+            }
+            if !timed.isEmpty {
+                EffectBars(effects: timed)
             }
         }
-        .animation(.snappy, value: BrickBreakerGame.PowerUp.allCases.filter(game.isActive))
+        .animation(.snappy, value: active)
         .animation(.snappy, value: game.shrunkFor > 0)
     }
 }
@@ -357,6 +370,8 @@ private struct BrickField: View {
     let reduceMotion: Bool
     /// The paddle picked in Style.
     var paddle = Cosmetic.paddleGold
+    /// The ball picked in Style.
+    var ball = Cosmetic.ballBitcoin
     static let rowColors: [Color] = [.red, .orange, .yellow, .green, .mint, .cyan, .blue, .purple]
 
     var body: some View {
@@ -407,12 +422,11 @@ private struct BrickField: View {
             drawPaddle(rect(game.paddle), in: &context)
             if game.phase != .over {
                 let radius = BrickBreakerGame.ballRadius * scale * 1.25
-                var glow = context
-                glow.addFilter(.shadow(color: Theme.gold.opacity(0.8), radius: 6))
                 let coin = context.resolve(Image("CoinSmall"))
-                for ball in game.balls {
-                    glow.draw(coin, in: CGRect(x: ball.position.x * scale - radius, y: ball.position.y * scale - radius,
-                                               width: radius * 2, height: radius * 2))
+                for coinBall in game.balls {
+                    ball.drawBall(in: CGRect(x: coinBall.position.x * scale - radius, y: coinBall.position.y * scale - radius,
+                                             width: radius * 2, height: radius * 2),
+                                  coin: coin, context: &context)
                 }
             }
         }

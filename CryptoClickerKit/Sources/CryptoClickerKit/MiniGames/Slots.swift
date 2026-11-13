@@ -2,8 +2,9 @@ import Foundation
 
 /// A three-reel slot machine whose symbols are the exchange's crypto tokens. Every reel uses the
 /// same strip, where rarer tokens pay more. A Cardano, a Solana and an Ethereum on the line, in any
-/// order, win free spins at the same bet. With them it returns about 95.6% of the tokens bet over
-/// time (`returnToPlayer` works it out exactly from the strip and the pay table).
+/// order, win free spins at the same bet. With them it returns about 96.8% of the tokens bet over
+/// time (`returnToPlayer` works it out exactly from the strip and the pay table), and about two
+/// spins in nine pay at least double.
 ///
 /// Every Bitcoin that lands on the line goes into a collection, and every `bitcoinsPerPrize` of
 /// them pays a coin prize; it never changes the odds of a spin.
@@ -29,18 +30,18 @@ public enum SlotMachine {
         switch token {
         case .shibaInu: 4
         case .dogecoin: 8
-        case .xrp: 15
-        case .cardano: 25
-        case .solana: 40
-        case .ethereum: 100
+        case .xrp: 12
+        case .cardano: 20
+        case .solana: 30
+        case .ethereum: 80
         case .bitcoin: 500
-        case .tether, .bnb, .monero: 0 // Not on the reels.
+        case .safeMoon, .tether, .bnb, .monero: 0 // Not on the reels.
         }
     }
 
     /// Any two Bitcoins on the line.
-    public static let twoBitcoins = 25
-    /// The first two reels match.
+    public static let twoBitcoins = 20
+    /// The first two reels match, or two Shiba Inu sit on the last two.
     public static let pairOnFirstTwo = 2
     /// A single Bitcoin anywhere returns the bet.
     public static let oneBitcoin = 1
@@ -51,9 +52,14 @@ public enum SlotMachine {
         if line[0] == line[1] && line[1] == line[2] { return threeOfAKind(line[0]) }
         let bitcoins = line.filter { $0 == .bitcoin }.count
         if bitcoins == 2 { return twoBitcoins }
-        if line[0] == line[1] { return pairOnFirstTwo }
+        if line[0] == line[1] || isShibaPairOnLastTwo(line) { return pairOnFirstTwo }
         if bitcoins == 1 { return oneBitcoin }
         return 0
+    }
+
+    /// Two Shiba Inu on the last two reels (the first two matching is the usual pair).
+    public static func isShibaPairOnLastTwo(_ line: [TokenID]) -> Bool {
+        line.count == reelCount && line[1] == .shibaInu && line[2] == .shibaInu
     }
 
     /// The jackpot: three Bitcoins.
@@ -120,57 +126,102 @@ public enum SlotMachine {
     }
 }
 
-/// Free spins waiting to be played, at the bet and token that won them. Saved with the game, so
-/// they're still there after the app closes.
+/// Free spins waiting to be played, on the machine and at the bet and token that won them. Saved
+/// with the game, so they're still there after the app closes.
 public struct SlotsFreeSpins: Codable, Equatable, Sendable {
     public let token: TokenID
+    /// The bet per line.
     public let bet: Int
     public internal(set) var left: Int
+    /// Free spins saved before the video machine were won on the classic one.
+    public var machine: SlotMachineKind = .classic
+
+    private enum CodingKeys: String, CodingKey {
+        case token, bet, left, machine
+    }
+}
+
+extension SlotsFreeSpins {
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        token = try c.decode(TokenID.self, forKey: .token)
+        bet = try c.decode(Int.self, forKey: .bet)
+        left = try c.decode(Int.self, forKey: .left)
+        machine = c.value(.machine, default: .classic)
+    }
 }
 
 /// One finished spin: where the reels stopped and what it paid.
 public struct SlotsSpin: Equatable, Sendable {
     public let stops: [Int]
     public let token: TokenID
+    /// The bet per line (the classic machine has one line).
     public let bet: Int
-    /// Tokens returned as a multiple of the bet (0 for a loss, 1 gives the bet back).
+    /// Tokens returned as a multiple of the bet per line (0 for a loss; on the classic machine 1
+    /// gives the bet back).
     public let multiple: Int
     /// Coins paid on top of the tokens for a winning spin.
     public let bonus: Double
+    public var machine: SlotMachineKind = .classic
+    /// The video machine's winning lines.
+    public var lineWins: [SlotLineWin] = []
     /// A free spin: no tokens were taken for it.
     public var isFree = false
     /// Free spins this spin won, and how many are left to play.
     public var freeSpinsWon = 0
     public var freeSpinsLeft = 0
-    /// Bitcoins on the line, added to the collection, and coins its prizes paid.
+    /// Bitcoins collected (on the line, or the video machine's middle row), and coins its prizes paid.
     public var bitcoins = 0
     public var collectionPrize = 0.0
 
-    public init(stops: [Int], token: TokenID, bet: Int, multiple: Int, bonus: Double) {
+    public init(stops: [Int], token: TokenID, bet: Int, multiple: Int, bonus: Double, machine: SlotMachineKind = .classic) {
         self.stops = stops
         self.token = token
         self.bet = bet
         self.multiple = multiple
         self.bonus = bonus
+        self.machine = machine
     }
 
+    /// The classic machine's pay line (the video machine's middle row).
     public var line: [TokenID] { SlotMachine.line(stops: stops) }
+    /// Tokens staked: the bet on every line.
+    public var stake: Int { SlotMachine.tokensPaid(bet: bet, multiple: machine.lines) }
     public var payout: Int { SlotMachine.tokensPaid(bet: bet, multiple: multiple) }
-    /// Tokens gained or lost: the payout less the bet (a free spin cost nothing).
-    public var net: Int { payout - (isFree ? 0 : bet) }
-    public var isWin: Bool { multiple >= 2 }
-    public var isJackpot: Bool { multiple == SlotMachine.jackpot }
+    /// Tokens gained or lost: the payout less the stake (a free spin cost nothing).
+    public var net: Int { payout - (isFree ? 0 : stake) }
+    /// Paid at least twice the stake (every winning line on the video machine does).
+    public var isWin: Bool { multiple >= 2 * machine.lines }
+    /// What it paid as a multiple of the stake.
+    public var stakeMultiple: Double { Double(multiple) / Double(machine.lines) }
+    public var isJackpot: Bool {
+        switch machine {
+        case .classic: multiple == SlotMachine.jackpot
+        case .video: lineWins.contains { $0.token == .bitcoin && $0.count == VideoSlots.reelCount }
+        }
+    }
 
-    /// Which reels make the win, for highlighting: all three for three of a kind, the Bitcoins for
-    /// Bitcoin pays, the first two for a pair, and the trio for free spins.
+    /// Which reels make the win on the classic machine, for highlighting: all three for three of a
+    /// kind, the Bitcoins for Bitcoin pays, the first two for a pair, and the trio for free spins.
     public var winningReels: [Int] {
+        guard machine == .classic else { return Array(Set(winningCells.map(\.reel))).sorted() }
         let line = line
         if line[0] == line[1] && line[1] == line[2] { return [0, 1, 2] }
         let bitcoins = line.indices.filter { line[$0] == .bitcoin }
         if bitcoins.count == 2 { return bitcoins }
         if line[0] == line[1] { return [0, 1] }
+        if SlotMachine.isShibaPairOnLastTwo(line) { return [1, 2] }
         if bitcoins.count == 1 { return bitcoins }
         if SlotMachine.triggersFreeSpins(line) { return [0, 1, 2] }
         return []
+    }
+
+    /// The video machine's reel positions that make the win: every winning line, and the Bitcoins
+    /// when they won free spins.
+    public var winningCells: Set<SlotCell> {
+        guard machine == .video else { return Set(winningReels.map { SlotCell(reel: $0, row: 1) }) }
+        var cells = Set(lineWins.flatMap(\.cells))
+        if freeSpinsWon > 0 { cells.formUnion(VideoSlots.scatterCells(stops: stops)) }
+        return cells
     }
 }

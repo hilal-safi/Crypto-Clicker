@@ -246,7 +246,7 @@ struct PumpDumpPlayView: View {
                     HoleView(target: target, time: game.time,
                              sink: target.map(sinkProgress) ?? 0,
                              flash: flash(at: hole), size: layout.cell, reduceMotion: reduceMotion,
-                             look: store.game.equipped(.pumpBoard))
+                             look: store.game.equipped(.pumpBoard), coins: store.game.equipped(.pumpCoins))
                         .frame(width: layout.cell, height: layout.cell)
                         .allowsHitTesting(false)
                         .accessibilityElement(children: .ignore)
@@ -484,6 +484,8 @@ struct PumpPiece: View {
     let size: CGFloat
     /// A rug pull about to turn: its rim goes solid and bright.
     var isWarning = false
+    /// The coin's artwork: the Bitcoin coin, or the token picked in Style.
+    var coinImage = "CoinSmall"
 
     var body: some View {
         switch look {
@@ -534,7 +536,7 @@ struct PumpPiece: View {
     }
 
     private func coin(scale: CGFloat) -> some View {
-        Image("CoinSmall")
+        Image(coinImage)
             .resizable()
             .scaledToFit()
             .frame(width: size * scale, height: size * scale)
@@ -566,13 +568,15 @@ private struct HoleView: View {
     let reduceMotion: Bool
     /// The board picked in Style.
     var look = Cosmetic.pumpExchange
+    /// The coins picked in Style.
+    var coins = Cosmetic.pumpCoinsBitcoin
 
     var body: some View {
         ZStack {
             listingSlot
             if let target {
                 let warning = target.isWarning(at: time)
-                PumpPiece(look: look(of: target), size: size, isWarning: warning)
+                PumpPiece(look: look(of: target), size: size, isWarning: warning, coinImage: coins.pumpCoinImage)
                     .rotationEffect(.degrees(warning && !reduceMotion ? sin(time * 60) * 14 : 0))
                     .scaleEffect(1 - 0.35 * sink, anchor: .bottom)
                     .opacity(1 - 0.5 * sink)

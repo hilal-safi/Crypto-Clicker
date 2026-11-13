@@ -14,8 +14,8 @@ public struct MarketNews: Equatable, Sendable, Identifiable {
 
 /// Token prices in the Shop's Tokens page. Each price follows two slow waves, some gentle noise and the
 /// occasional news story, all worked out from the clock: every device sees the same market, nothing
-/// needs saving, and the past can be charted. Prices stay within `Tuning.marketPriceRange` of the
-/// token's list price and move once per `Tuning.marketTick`.
+/// needs saving, and the past can be charted. Prices stay within the token's `priceRange` of its
+/// list price and move once per `Tuning.marketTick`.
 public enum Market {
     /// Ticks in a day.
     public static let ticksPerDay = Int(86_400 / Tuning.marketTick)
@@ -90,9 +90,13 @@ public enum Market {
         var logFactor = 0.55 * sin(2 * .pi * t / slowPeriod + slowPhase)
             + 0.25 * sin(2 * .pi * t / fastPeriod + fastPhase)
             + 0.2 * noise(seed, at: t / 12) // New random values every hour, blended smoothly.
+        if token.volatilityLevel == .volatile {
+            // Volatile tokens also jump about from one ten-minute stretch to the next.
+            logFactor += Tuning.volatileJitter * noise(StableHash.mix(seed, 3), at: t / 2)
+        }
         logFactor *= token.volatility
         logFactor += newsEffect(token, tick: tick)
-        let range = Tuning.marketPriceRange
+        let range = token.priceRange
         return min(max(exp(logFactor), range.lowerBound), range.upperBound)
     }
 
@@ -158,14 +162,15 @@ public enum Market {
 }
 
 extension TokenID {
-    /// How far the price swings, at most about this share either way before news: meme coins
-    /// swing a little more, Bitcoin least, and Tether, a stablecoin, hardly at all. Kept small so
-    /// prices drift rather than jump.
+    /// How far the price swings, at most about this share either way before news: the volatile
+    /// meme coins swing the most (and jump about too), Bitcoin least, and Tether, a stablecoin,
+    /// hardly at all. The others drift rather than jump.
     var volatility: Double {
         switch self {
-        case .shibaInu: 0.24
+        case .safeMoon: 0.42
+        case .shibaInu: 0.36
         case .tether: 0.006
-        case .dogecoin: 0.22
+        case .dogecoin: 0.33
         case .xrp: 0.20
         case .bnb: 0.17
         case .monero: 0.19
@@ -174,6 +179,21 @@ extension TokenID {
         case .ethereum: 0.15
         case .bitcoin: 0.12
         }
+    }
+
+    /// How much the price moves, in a word for the Tokens page: Tether is stable, the meme coins
+    /// (SafeMoon, Shiba Inu, Dogecoin) volatile, and the rest in between.
+    public var volatilityLevel: TokenVolatility {
+        switch volatility {
+        case ..<0.05: .stable
+        case ..<0.21: .moderate
+        default: .volatile
+        }
+    }
+
+    /// Where the price stays, as a share of the list price: wider for volatile tokens.
+    public var priceRange: ClosedRange<Double> {
+        volatilityLevel == .volatile ? Tuning.volatilePriceRange : Tuning.marketPriceRange
     }
 
     /// How hard news moves the price: a stablecoin holds its peg through almost anything.
@@ -223,5 +243,18 @@ extension GameState {
         stats.tokensSold += quantity
         stats.coinsFromSales += value
         return value
+    }
+}
+
+/// How much a token's price moves, for the Tokens page.
+public enum TokenVolatility: String, CaseIterable, Sendable {
+    case stable, moderate, volatile
+
+    public var name: String {
+        switch self {
+        case .stable: localized("Stable")
+        case .moderate: localized("Moderate")
+        case .volatile: localized("Volatile")
+        }
     }
 }

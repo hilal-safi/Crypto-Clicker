@@ -121,6 +121,8 @@ struct BrickBreakerOptionTests {
 
     @Test func randomWallsAreMirroredWallsOfAFairSize() {
         var classicHits = 0, generatedHits = 0
+        var bonusCounts = Set<Int>(), firstLevelBonus = Set<Int>()
+        var armorShares = Set<Int>()
         for seed in UInt64(1)...40 {
             var game = BrickBreakerGame(seed: seed, levels: .generated)
             var classic = BrickBreakerGame(seed: seed)
@@ -132,17 +134,34 @@ struct BrickBreakerOptionTests {
                 #expect(game.bricks.allSatisfy { (0..<8).contains($0.row) && (0..<BrickBreakerGame.columns).contains($0.column) })
                 #expect(game.bricks.allSatisfy { cells.contains("\($0.row),\(BrickBreakerGame.columns - 1 - $0.column)") },
                         "seed \(seed) level \(level) isn't mirrored")
-                // Specials from the very first level.
-                #expect(game.bricks.contains { $0.kind == .bonus }, "seed \(seed) level \(level)")
+                // Specials from the very first level: one to a few bonus bricks.
+                let bonus = game.bricks.filter { $0.kind == .bonus }.count
+                #expect((1...max(3, 2 + level / 2)).contains(bonus), "seed \(seed) level \(level): \(bonus) bonus")
+                bonusCounts.insert(bonus)
+                if level == 1 {
+                    firstLevelBonus.insert(bonus)
+                    // Armored bricks from the first level too.
+                    #expect(game.bricks.contains { $0.kind == .armored }, "seed \(seed) level 1")
+                }
+                // A mix: some armored, mostly plain bricks around them, and the specials.
+                let armored = game.bricks.filter { $0.kind == .armored }.count
+                let plain = game.bricks.filter { $0.kind == .normal }.count
+                #expect(armored >= 2 && Double(armored) <= 0.45 * Double(game.bricks.count) + 1, "seed \(seed) level \(level): \(armored) armored")
+                #expect(Double(plain) >= 0.3 * Double(game.bricks.count), "seed \(seed) level \(level): \(plain) plain of \(game.bricks.count)")
+                armorShares.insert(Int(Double(armored) / Double(game.bricks.count) * 10))
                 let hits = game.bricks.reduce(0) { $0 + $1.maxHits }
-                if level > 1 { #expect(Double(hits) >= 0.45 * Double(BrickBreakerGame.fullWallHits(level: level)), "seed \(seed) level \(level)") }
+                #expect(Double(hits) >= 0.35 * Double(BrickBreakerGame.fullWallHits(level: level)), "seed \(seed) level \(level)")
                 generatedHits += hits
                 classicHits += classic.bricks.reduce(0) { $0 + $1.maxHits }
             }
         }
-        // Made-up walls take about as many hits as the classic ones, level for level.
+        // Made-up walls take a little fewer hits than the classic ones (which armor heavily to make up
+        // for their gaps), and pay about the same a minute (see the arcade balance tests).
         print("Hits: generated \(generatedHits), classic \(classicHits)")
-        #expect(Double(generatedHits) >= 0.9 * Double(classicHits) && Double(generatedHits) <= 1.2 * Double(classicHits))
+        #expect(Double(generatedHits) >= 0.7 * Double(classicHits) && Double(generatedHits) <= 1.1 * Double(classicHits))
+        #expect(firstLevelBonus == [1, 2, 3])
+        #expect(armorShares.count >= 3) // How much is armored varies from wall to wall.
+        #expect(bonusCounts.count >= 6)
     }
 
     @Test func randomWallsAreRarelyTheSame() {
@@ -153,14 +172,14 @@ struct BrickBreakerOptionTests {
             layouts.insert(game.bricks.map { "\($0.row),\($0.column)" }.sorted().joined(separator: " "))
         }
         #expect(layouts.count >= 25)
-        // Classic walls come from eight shapes.
+        // Classic walls are the same every game.
         var classic = Set<String>()
         for seed in UInt64(1)...30 {
             var game = BrickBreakerGame(seed: seed)
             game.jump(toLevel: 3)
             classic.insert(game.bricks.map { "\($0.row),\($0.column)" }.sorted().joined(separator: " "))
         }
-        #expect(classic.count < layouts.count)
+        #expect(classic.count == 1)
         // Bosses stay bosses.
         var boss = BrickBreakerGame(seed: 5, levels: .generated)
         boss.jump(toLevel: 5)

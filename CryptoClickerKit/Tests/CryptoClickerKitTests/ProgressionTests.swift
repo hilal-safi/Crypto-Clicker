@@ -373,12 +373,14 @@ struct ComboTests {
         #expect(game.isRevealed(.comboBooster) && game.isRevealed(.quickCombos))
         #expect(!game.isRevealed(.comboOverdrive)) // Not until Combo Booster is at its last level.
         let first = try #require(game.powerUpPrice(.comboBooster))
-        #expect(first == Tuning.shopPrice(Tuning.comboBoosterBaseCost))
+        // The tapping power-ups cost 10% less than the Shop's usual price.
+        #expect(first == Tuning.shopPrice(Tuning.comboBoosterBaseCost, adjustedBy: 0.9))
+        #expect(approx(first, Tuning.shopPrice(Tuning.comboBoosterBaseCost) * 0.9, tolerance: 1e-4))
         let bought = game.buyPowerUp(.comboBooster)
         #expect(bought)
         #expect(game.powerUpLevel(.comboBooster) == 1 && game.comboMaxMultiplier == 2.5)
         #expect(game.coins == 1e15 - first)
-        #expect(game.powerUpPrice(.comboBooster) == Tuning.shopPrice(Tuning.comboBoosterBaseCost * Tuning.comboBoosterCostGrowth))
+        #expect(game.powerUpPrice(.comboBooster) == Tuning.shopPrice(Tuning.comboBoosterBaseCost * Tuning.comboBoosterCostGrowth, adjustedBy: 0.9))
         while game.buyPowerUp(.comboBooster) {}
         #expect(game.powerUpLevel(.comboBooster) == 6 && game.powerUpPrice(.comboBooster) == nil)
         #expect(game.isRevealed(.comboOverdrive))
@@ -423,7 +425,7 @@ struct ComboTests {
         #expect(game.comboWindow == Tuning.comboWindow)
         #expect(game.isRevealed(.comboKeeper))
         let first = try #require(game.powerUpPrice(.comboKeeper))
-        #expect(first == Tuning.shopPrice(Tuning.comboKeeperBaseCost))
+        #expect(first == Tuning.shopPrice(Tuning.comboKeeperBaseCost, adjustedBy: 0.9))
         let bought = game.buyPowerUp(.comboKeeper)
         #expect(bought)
         #expect(approx(game.comboWindow, 0.8))
@@ -582,17 +584,19 @@ struct AirdropTests {
 struct AchievementTests {
     @Test func catalogIsWellFormed() {
         let all = AchievementCatalog.all
-        #expect(all.count == 65)
+        // 66 with SafeMoon's "Exchanged" achievement.
+        #expect(all.count == 66)
         #expect(Set(all.map(\.id)).count == all.count)
-        #expect(AchievementCatalog.tierCount == 260)
+        #expect(AchievementCatalog.tierCount == 264)
+        #expect(all.contains { $0.id == "token-safeMoon" })
         for achievement in all {
             #expect(achievement.thresholds.count == 4)
             #expect(achievement.thresholds == achievement.thresholds.sorted())
             #expect(Set(achievement.thresholds).count == 4)
             #expect((achievement.emoji == nil) != (achievement.imageName == nil))
         }
-        #expect(all.first { $0.id == "upgrader" }?.thresholds.last == 22) // Every upgrade.
-        #expect(UpgradeID.allCases.count == 22)
+        #expect(all.first { $0.id == "upgrader" }?.thresholds.last == 24) // Every upgrade.
+        #expect(UpgradeID.allCases.count == 24)
         #expect(all.first { $0.id == "own-spaceColony" }?.detail == "Own Space Mining Colonies at once")
         // Every coin finish can be unlocked.
         #expect(CoinFinish.allCases.allSatisfy { $0.starsNeeded <= AchievementCatalog.tierCount })

@@ -98,6 +98,6 @@ struct CryptoArcadeTests {
     @Test func serverRacksStandSolid() {
         let racks = InvadersGame(seed: 3)
         #expect(racks.firewalls.count == 4)
-        #expect(racks.firewalls.allSatisfy { $0.standing == InvadersGame.Firewall.rows * InvadersGame.Firewall.columns })
+        #expect(racks.firewalls.allSatisfy { $0.standing == InvadersGame.Firewall.classicRows * InvadersGame.Firewall.classicColumns })
     }
 }

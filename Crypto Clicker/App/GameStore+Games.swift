@@ -23,12 +23,13 @@ extension GameStore {
         return bonus
     }
 
-    /// Spins Crypto Slots: the bet, the spin and the payout happen in one saved step.
+    /// Spins Crypto Slots on `machine` (`bet` is per line): the bet, the spin and the payout happen
+    /// in one saved step.
     @discardableResult
-    func spinSlots(_ token: TokenID, bet: Int) -> SlotsSpin? {
+    func spinSlots(_ token: TokenID, bet: Int, machine: SlotMachineKind) -> SlotsSpin? {
         let spin = perform { game, _ in
             var rng = SystemRandomNumberGenerator()
-            return game.spinSlots(token, bet: bet, using: &rng)
+            return game.spinSlots(token, bet: bet, machine: machine, using: &rng)
         }
         if spin != nil { save() }
         return spin
@@ -37,10 +38,10 @@ extension GameStore {
     /// Launches a To the Moon flight: the bet is taken and the flight saved at once, so a flight
     /// cut short by the app closing is refunded on the next launch.
     @discardableResult
-    func launchMoon(_ token: TokenID, bet: Int, autoCashOut: Double?) -> Bool {
+    func launchMoon(_ token: TokenID, bet: Int, autoCashOut: Double?, rocket: MoonRocket) -> Bool {
         let launched = perform { game, _ in
             var rng = SystemRandomNumberGenerator()
-            return game.launchMoon(token, bet: bet, autoCashOut: autoCashOut, using: &rng)
+            return game.launchMoon(token, bet: bet, autoCashOut: autoCashOut, rocket: rocket, using: &rng)
         }
         if launched { save() }
         return launched
@@ -145,21 +146,22 @@ extension GameStore {
 
     @discardableResult
     func finishInvaders(score: Int, destroyed: Int, wave: Int, whales: Int, bosses: Int, powerUps: Int, bestStreak: Int,
-                        volleys: Int, volleysHit: Int, startWave: Int) -> ArcadePayout {
+                        volleys: Int, volleysHit: Int, startWave: Int, waves: InvadersGame.WaveStyle,
+                        difficulty: ArcadeDifficulty) -> ArcadePayout {
         let payout = perform { game, _ in
             game.finishInvaders(score: score, destroyed: destroyed, wave: wave, whales: whales, bosses: bosses,
                                 powerUps: powerUps, bestStreak: bestStreak, volleys: volleys, volleysHit: volleysHit,
-                                startWave: startWave)
+                                startWave: startWave, waves: waves, difficulty: difficulty)
         }
         save()
         return payout
     }
 
     func finishBrickBreaker(score: Int, bricks: Int, level: Int, bosses: Int, powerUps: Int, bestStreak: Int,
-                            startLevel: Int) -> ArcadePayout {
+                            startLevel: Int, levels: BrickBreakerGame.LevelStyle, difficulty: ArcadeDifficulty) -> ArcadePayout {
         let payout = perform { game, _ in
             game.finishBrickBreaker(score: score, bricks: bricks, level: level, bosses: bosses, powerUps: powerUps,
-                                    bestStreak: bestStreak, startLevel: startLevel)
+                                    bestStreak: bestStreak, startLevel: startLevel, levels: levels, difficulty: difficulty)
         }
         save()
         return payout

@@ -83,7 +83,8 @@ struct DailyQuestTests {
 
     @Test func rewardsCanBeTokensOrABullRun() {
         var game = GameState.make(miners: [.server: 100]) // Tens of thousands of coins per second.
-        #expect(game.tokenReward(worth: 4_000) == nil) // Not even five Shiba Inu.
+        #expect(game.tokenReward(worth: 400) == nil) // Not even five SafeMoon.
+        #expect(game.tokenReward(worth: 4_000) == .tokens(.safeMoon, 40)) // SafeMoon below five Shiba Inu.
         #expect(game.tokenReward(worth: 5_000) == .tokens(.shibaInu, 5))
         #expect(game.tokenReward(worth: 2e6) == .tokens(.dogecoin, 20))
         #expect(game.tokenReward(worth: 1e40) == .tokens(.bitcoin, 500))
@@ -132,6 +133,7 @@ struct DailyQuestTests {
 
     @Test func theDailyRewardGrowsAtMostTwofoldAndTheChallengeThreefold() {
         var game = player()
+        game.stats.longestStreak = 7 // Past the first week, when day 1 pays in full.
         game.refreshDaily(today: "2026-10-24", canWalk: false, at: t0)
         earning(100, &game)
         // The daily reward is ready from the start of the day, so it waits at most twofold...
@@ -208,7 +210,8 @@ struct DailyRewardTests {
         game.refreshDaily(today: second, canWalk: false, at: at(86_400))
         #expect(game.daily.quests.count == 3)
         #expect(game.dailyChallenge(today: second) != nil)
-        #expect(game.claimDailyReward(today: second, yesterday: first, at: at(86_400)) == .coins(300))
+        // (The very first day 1 pays half: five minutes of the minimum income, halved.)
+        #expect(game.claimDailyReward(today: second, yesterday: first, at: at(86_400)) == .coins(150))
         #expect(game.daily.streak == 1)
         // The day is saved, and games begun before it was (with no first day) are never held back.
         let saved = try GameCoding.decoder().decode(GameState.self, from: GameCoding.encoder().encode(game))
@@ -223,6 +226,7 @@ struct DailyRewardTests {
 
     @Test func theStreakGrowsOnConsecutiveDaysAndRestartsAfterAGap() {
         var game = player()
+        game.stats.longestStreak = 7 // Past the first week: every day pays in full.
         #expect(game.isDailyRewardReady(today: "2026-10-01"))
         #expect(game.claimDailyReward(today: "2026-10-01", yesterday: "2026-09-30", at: t0) == .coins(3_000))
         #expect(game.daily.streak == 1)
@@ -236,7 +240,24 @@ struct DailyRewardTests {
         #expect(game.streakIfClaimed(today: "2026-10-04", yesterday: "2026-10-03") == 1)
         game.claimDailyReward(today: "2026-10-04", yesterday: "2026-10-03", at: t0)
         #expect(game.daily.streak == 1)
-        #expect(game.stats.longestStreak == 2)
+        #expect(game.stats.longestStreak == 7)
+    }
+
+    @Test func theVeryFirstDayOneAndDayTwoPayLessThenEveryDayPaysInFull() {
+        var game = player() // 10 coins a second: day 1 is usually 3,000 coins, day 2 6,000.
+        #expect(game.streakReward(day: 1) == .coins(seconds: 150))
+        #expect(game.streakReward(day: 2) == .coins(seconds: 400))
+        #expect(game.claimDailyReward(today: "2026-10-01", yesterday: "2026-09-30", at: t0) == .coins(1_500))
+        // A broken streak: day 1 has been claimed before, so it pays in full; day 2 never has.
+        #expect(game.claimDailyReward(today: "2026-10-03", yesterday: "2026-10-02", at: t0) == .coins(3_000))
+        #expect(game.claimDailyReward(today: "2026-10-04", yesterday: "2026-10-03", at: t0) == .coins(4_000))
+        game.claimDailyReward(today: "2026-10-05", yesterday: "2026-10-04", at: t0)
+        // From then on, also after the streak breaks or the week starts again, both pay in full.
+        #expect(game.streakReward(day: 1) == .coins(seconds: 300))
+        #expect(game.streakReward(day: 2) == .coins(seconds: 600))
+        #expect(game.claimDailyReward(today: "2026-10-07", yesterday: "2026-10-06", at: t0) == .coins(3_000))
+        #expect(game.claimDailyReward(today: "2026-10-08", yesterday: "2026-10-07", at: t0) == .coins(6_000))
+        #expect(game.streakReward(day: 8) == .coins(seconds: 300))
     }
 
     @Test func theWeekBuildsUpToABigSeventhDayAndRepeats() {
@@ -249,7 +270,8 @@ struct DailyRewardTests {
         #expect(game.streakReward(day: 14) == .coins(seconds: 3_600))
         // Day 3 pays a quarter of an hour of income in tokens, once that buys five or more.
         #expect(game.streakReward(day: 3) == .tokens(.shibaInu, 9))
-        #expect(GameState.make().streakReward(day: 3) == .coins(seconds: 900))
+        // Even a new player's quarter hour buys five SafeMoon, the cheapest token (100 coins).
+        #expect(GameState.make().streakReward(day: 3) == .tokens(.safeMoon, 9))
         game.daily.streak = 9
         game.daily.lastRewardDay = "2026-10-01"
         #expect(game.claimDailyReward(today: "2026-10-02", yesterday: "2026-10-01", at: t0) == .tokens(.shibaInu, 9))
@@ -258,6 +280,7 @@ struct DailyRewardTests {
 
     @Test func luckyStreakDoublesDailyRewards() {
         var game = player()
+        game.stats.longestStreak = 7
         game.perks = [.luckyStreak]
         #expect(game.claimDailyReward(today: "2026-10-01", yesterday: "2026-09-30", at: t0) == .coins(6_000))
         game.daily.quests = [Quest(kind: .tapCoin, target: 1, baseline: 0, reward: .tokens(.shibaInu, 5))]

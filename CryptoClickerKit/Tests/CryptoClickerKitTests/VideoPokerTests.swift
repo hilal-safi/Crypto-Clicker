@@ -154,15 +154,15 @@ struct VideoPokerTests {
         let result = game.drawPoker(holding: [0, 1, 2, 3, 4])
         #expect(result?.hand == .fullHouse)
         #expect(result?.tokensWon == 80)
-        // 10 Shiba stake 10,000 coins: 5% is 500, capped at 15 seconds of income (150) per multiple.
-        #expect(result?.bonus == 1_200)
-        #expect(game.coins == 1_200)
+        // 10 Shiba stake 10,000 coins: 8% is 800, capped at 24 seconds of income (240) per multiple.
+        #expect(result?.bonus == 1_920)
+        #expect(game.coins == 1_920)
         #expect(game.stats.pokerWins == 1)
         #expect(game.stats.pokerBestHand == PokerHand.fullHouse.rawValue)
-        #expect(game.stats.pokerBiggestWin == 70 * 1_000 + 1_200)
+        #expect(game.stats.pokerBiggestWin == 70 * 1_000 + 1_920)
         // Jacks or better returns the bet, with no bonus.
         #expect(game.pokerBonus(bet: 10, token: .shibaInu, hand: .jacksOrBetter) == 0)
-        #expect(game.pokerBonus(bet: 1, token: .shibaInu, hand: .twoPair) == 100) // 5% of 1,000, twice.
+        #expect(game.pokerBonus(bet: 1, token: .shibaInu, hand: .twoPair) == 160) // 8% of 1,000, twice.
         #expect(game.pokerBetForFullBonus(.shibaInu) == 3)
     }
 

@@ -3,15 +3,18 @@ import Foundation
 /// Brick Breaker: keep the ball in play with the paddle and clear every brick to reach the next,
 /// faster level. Three lives per game. The field is 1 unit wide and 1.5 units tall, y pointing down.
 ///
-/// Classic walls: level 1 is always a plain wall, and from level 2 each wall takes one of eight
-/// shapes (a full wall, a checkerboard, a pyramid, columns, stripes, a diamond, a frame or scattered
-/// bricks). Random walls are made up on the spot for every level (see `generatedCells`), so no two
-/// games look alike. Either way, armored bricks that take two hits (three from level 6) make up the
-/// difference, so every wall takes about as many hits as a full one. The ball's speed is one of the
-/// game's options (`GameSpeed`). Some bricks are explosive (they break the bricks around them) and some carry a
-/// bonus (they drop a power-up to catch with the paddle): Multi-ball, Wide Paddle, Slow Ball or
-/// Laser. Every fifth level is a boss: a big block that slides from side to side, takes many hits,
-/// and drops debris that shrinks the paddle for a while if it lands on it.
+/// Classic walls are fixed: level 1 is a plain wall, and from level 2 each level has its own shape
+/// (a full wall, a pyramid, stripes, a checkerboard, a diamond, scattered bricks, a frame or
+/// columns, in turn) and its own armored, explosive and bonus bricks, the same every time it's
+/// played; armored bricks (two hits, three from level 6) make up for the gaps, so every classic
+/// wall takes as many hits as a full one. Random walls are made up on the spot for every level (see
+/// `generatedCells`), a random mix from the first level: a fifth to two fifths armored, one to a
+/// few bonus bricks, the odd explosive one, and plain bricks for the rest, so no two games look
+/// alike. The ball's speed is the difficulty's (`ArcadeDifficulty`), which also sets the paddle's
+/// width. Explosive bricks break the bricks around them, and bonus bricks drop a power-up to catch
+/// with the paddle: Multi-ball, Wide Paddle, Slow Ball or Laser. Every fifth level is a boss: a big
+/// block that slides from side to side, takes many hits, and drops debris that shrinks the paddle
+/// for a while if it lands on it.
 ///
 /// Every ball moves in small sub-steps (never more than half its radius), as do the falling
 /// power-ups, laser bolts and debris, so nothing passes through anything on a slow frame. The
@@ -179,7 +182,9 @@ public struct BrickBreakerGame: Sendable {
     public private(set) var bossHits = 0
     /// Bricks that exploded in the last update, for effects.
     public private(set) var lastExplosions: [Box] = []
-    /// How fast the ball moves (the game's Speed option).
+    /// The paddle's width, the ball's speed, and what a point pays.
+    public let difficulty: ArcadeDifficulty
+    /// How fast the ball moves (the difficulty's speed).
     public let gameSpeed: GameSpeed
     /// Classic walls or walls made up for every level.
     public let levelStyle: LevelStyle
@@ -189,10 +194,12 @@ public struct BrickBreakerGame: Sendable {
     /// Shapes the walls and picks the power-ups.
     private var rng: SeededGenerator
 
-    /// `startLevel` starts the game further in, at a level the player has reached before.
-    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal, levels: LevelStyle = .classic,
-                startLevel: Int = 1) {
-        gameSpeed = speed
+    /// `startLevel` starts the game further in, at a level the player has reached before. `speed`
+    /// overrides the difficulty's speed.
+    public init(seed: UInt64 = .random(in: 0...UInt64.max), difficulty: ArcadeDifficulty = .regular, speed: GameSpeed? = nil,
+                levels: LevelStyle = .classic, startLevel: Int = 1) {
+        self.difficulty = difficulty
+        gameSpeed = speed ?? difficulty.speed
         levelStyle = levels
         level = max(1, startLevel)
         rng = SeededGenerator(seed: seed)
@@ -219,8 +226,11 @@ public struct BrickBreakerGame: Sendable {
         return isActive(.slowBall) ? base * Self.slowFactor : base
     }
 
+    /// The paddle's width before power-ups: 20% wider on Easy, 20% narrower on Hard.
+    public var basePaddleWidth: Double { Self.paddleWidth * difficulty.paddleScale }
+
     public var currentPaddleWidth: Double {
-        Self.paddleWidth * (isActive(.widePaddle) ? Self.wideFactor : 1) * (shrunkFor > 0 ? Self.shrinkFactor : 1)
+        basePaddleWidth * (isActive(.widePaddle) ? Self.wideFactor : 1) * (shrunkFor > 0 ? Self.shrinkFactor : 1)
     }
 
     public var paddle: Box {
@@ -594,32 +604,56 @@ public struct BrickBreakerGame: Sendable {
 
     /// Fills the wall for the current level: a classic shape or a made-up wall, with enough armored
     /// bricks to take about as many hits as a full wall, and a few explosive and bonus bricks among
-    /// the rest. Every fifth level brings a boss behind a low wall.
+    /// the rest. Every fifth level brings a boss behind a low wall. A classic level is laid out the
+    /// same every time (from `classicGenerator`); a random one from the game's own generator.
     private mutating func layOutLevel() {
         boss = nil
+        var generator = levelStyle == .classic ? Self.classicGenerator(level: level) : rng
         if isBossLevel {
-            layOutBossLevel()
-            return
+            layOutBossLevel(using: &generator)
+        } else {
+            layOutWall(using: &generator)
         }
+        if levelStyle == .generated { rng = generator }
+    }
+
+    /// What fixes a classic level's wall, the same every time it's played.
+    static func classicGenerator(level: Int) -> SeededGenerator {
+        SeededGenerator(seed: 0xB71C_5A3D &+ UInt64(max(1, level)) &* 0x9E37_79B9_7F4A_7C15)
+    }
+
+    private mutating func layOutWall<R: RandomNumberGenerator>(using rng: inout R) {
         let isGenerated = levelStyle == .generated
         let rows = isGenerated ? Self.generatedRows(level: level, using: &rng) : Self.rows(for: level)
-        // Made-up walls vary their specials too, and have a bonus brick from the very first level.
+        // Made-up walls vary their specials too: one to a few bonus bricks from the very first level.
         let wobble = isGenerated ? Int.random(in: -1...1, using: &rng) : 0
-        let bonusTarget = level == 1 ? (isGenerated ? 1 : 0) : max(1, 2 + level / 3 + wobble)
+        let bonusTarget = isGenerated ? Int.random(in: 1...max(3, 2 + level / 2), using: &rng)
+            : level == 1 ? 0 : 2 + level / 3
         // Made-up walls are denser, so an explosion reaches more bricks: they get one explosive fewer.
-        let explosiveTarget = level == 1 ? 0 : max(0, (isGenerated ? 0 : 1) + level / 2 - wobble)
+        let explosiveTarget = level == 1 && !isGenerated ? 0 : max(0, (isGenerated ? 0 : 1) + level / 2 - wobble)
         let armorHits = level >= 6 ? 3 : 2
-        // Made-up walls have enough bricks for armor to make up about two thirds of a full wall's
-        // hits (what the classic shapes average), and at least two fifths of their grid. Level 1
-        // has no armor, so its wall is nearly full, like the classic plain wall.
-        let needed = level == 1 ? Self.fullWallHits(level: 1) * 4 / 5
-            : (Self.fullWallHits(level: level) * 13 / 20 + armorHits - 1) / armorHits + bonusTarget + explosiveTarget
-        let cells = isGenerated ? Self.generatedCells(rows: rows, minimum: max(rows * Self.columns * 2 / 5, needed), using: &rng)
-                                : Self.cells(level: level, rows: rows, using: &rng)
-        let extraHits = level == 1 ? 0 : max(0, Self.fullWallHits(level: level) - cells.count)
-        // Made-up walls keep a few plain bricks for their specials.
-        let armorRoom = isGenerated ? max(0, cells.count - bonusTarget - explosiveTarget) : cells.count
-        let armoredCount = min(armorRoom, (extraHits + armorHits - 2) / (armorHits - 1))
+        let cells: [(row: Int, column: Int)]
+        let armoredCount: Int
+        if isGenerated {
+            // A made-up wall is a random mix: a fifth to two fifths of it armored (from the first
+            // level), the rest plain bricks and its specials, with enough bricks for the wall to take
+            // four fifths to all of a full wall's hits. From level 6 armor takes two or three hits.
+            let share = Double.random(in: 0.18...0.4, using: &rng)
+            let armorAverage = level >= 6 ? 2.5 : 2
+            let target = Double(Self.fullWallHits(level: level)) * Double.random(in: 0.8...1, using: &rng)
+            let grid = rows * Self.columns
+            let wanted = Int((target / (1 + share * (armorAverage - 1))).rounded())
+            cells = Self.generatedCells(rows: rows, minimum: min(grid, max(grid * 2 / 5, wanted, bonusTarget + explosiveTarget + 2)),
+                                        using: &rng)
+            armoredCount = min(max(0, cells.count - bonusTarget - explosiveTarget),
+                               max(2, Int((share * Double(cells.count)).rounded())))
+        } else {
+            // Classic walls take a full wall's hits: armor makes up for the bricks a shape leaves
+            // out. (Level 1 is a plain wall, with no armor.)
+            cells = Self.cells(level: level, rows: rows, using: &rng)
+            let extraHits = level == 1 ? 0 : max(0, Self.fullWallHits(level: level) - cells.count)
+            armoredCount = min(cells.count, (extraHits + armorHits - 2) / (armorHits - 1))
+        }
         let order = cells.indices.shuffled(using: &rng)
         let armored = Set(order.prefix(armoredCount))
         let rest = order.dropFirst(armoredCount)
@@ -635,7 +669,7 @@ public struct BrickBreakerGame: Sendable {
                             width: width, height: Self.brickHeight)
             let kind: BrickKind = armored.contains(index) ? .armored : bonus.contains(index) ? .bonus
                 : explosive.contains(index) ? .explosive : .normal
-            let hits = kind == .armored ? armorHits : 1
+            let hits = kind != .armored ? 1 : isGenerated && armorHits == 3 ? Int.random(in: 2...3, using: &rng) : armorHits
             bricks.append(Brick(id: newID(), row: cell.row, column: cell.column, frame: frame, maxHits: hits, hitsLeft: hits, kind: kind))
         }
     }
@@ -645,7 +679,7 @@ public struct BrickBreakerGame: Sendable {
     }
 
     /// The boss slides along the top behind two rows of bricks with gaps, two of them bonus bricks.
-    private mutating func layOutBossLevel() {
+    private mutating func layOutBossLevel<R: RandomNumberGenerator>(using rng: inout R) {
         let number = level / Self.bossEvery
         let frame = Box(minX: 0.32, minY: 0.12, width: 0.36, height: 0.1)
         boss = Boss(frame: frame, maxHits: 10 + 6 * number, hitsLeft: 10 + 6 * number,
@@ -664,13 +698,23 @@ public struct BrickBreakerGame: Sendable {
         }
     }
 
-    /// The cells with a brick on `level`, row by row. Every shape keeps at least two rows' worth.
+    /// The order the classic shapes come in from level 2, round and round (boss levels skipped): a
+    /// full wall, a pyramid, stripes, a checkerboard, a diamond, scattered bricks, a frame and
+    /// columns. The fuller walls come first, while the ball is slow.
+    static let classicShapes = [0, 2, 4, 1, 5, 7, 6, 3]
+
+    /// The cells with a brick on classic `level`, row by row: level 1 is a full wall, and each
+    /// level after takes the next shape in `classicShapes`, turned over every other time round.
+    /// Every shape keeps at least two rows' worth.
     static func cells<R: RandomNumberGenerator>(level: Int, rows: Int, using rng: inout R) -> [(row: Int, column: Int)] {
         let all = (0..<rows).flatMap { row in (0..<columns).map { (row: row, column: $0) } }
         guard level > 1 else { return all }
         let middle = columns / 2
-        let flip = Bool.random(using: &rng)
-        let shape = Int.random(in: 0..<8, using: &rng)
+        // Counting only the walls (boss levels have none).
+        let wall = max(0, level - 2 - level / bossEvery)
+        let lap = wall / classicShapes.count
+        let flip = lap % 2 == 1
+        let shape = classicShapes[wall % classicShapes.count]
         let scattered = Set(all.indices.filter { _ in Double.random(in: 0..<1, using: &rng) < 0.65 })
         let picked = all.enumerated().filter { index, cell in
             let (row, column) = cell

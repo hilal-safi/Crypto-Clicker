@@ -2,24 +2,27 @@ import Foundation
 
 /// Scam Invaders: rows of scam tokens march from side to side, stepping down each time they reach
 /// an edge, and fire back. Shoot every one to reach the next, faster wave, which starts a little
-/// lower; let one land and the game is over. Three ships per game. The field is 1 unit wide and
-/// 1.5 tall, y pointing down, like Brick Breaker's.
+/// lower; let one land and the game is over. Five ships per game, and each takes a hit or more
+/// before it's lost, by the difficulty (`Difficulty`): three on Easy, two on Regular, one on Hard.
+/// The field is 1 unit wide and 1.5 tall, y pointing down, like Brick Breaker's.
 ///
 /// The ship follows the finger and fires while it's down (`isFiring`), with at most two volleys in
 /// the air at once. Every hit adds 10% to what the next is worth, up to double, and a volley that
 /// hits nothing ends the streak, so aimed fire pays. Four firewalls (server racks) shield the ship:
 /// any shot chips a block away (an invader's chips two), and invaders marching through them crush
 /// what they touch.
-/// A whale crosses the top now and then: shoot it for bonus points and a power-up. From the second
-/// wave one invader in each glows gold and carries a power-up too. Every fifth wave is a boss.
+/// A whale crosses the top now and then: shoot it for bonus points and a power-up. Golden invaders
+/// carry a power-up too. Every fifth wave is a boss.
 ///
-/// Classic waves are the same formation every time: rug pullers on top, then pump bots, then meme
-/// coins. Random waves make up a new formation for every wave (see `generatedFormation`), with the
-/// kinds mixed up, and a golden invader from the very first wave. Boss waves are the same in both.
+/// Classic waves are fixed: the same formation, the same four server racks and, from the second
+/// wave, one golden invader in the same place every time a wave is played. Random waves make up a
+/// new formation for every wave (see `generatedFormation`) with the kinds mixed up, one to three
+/// golden invaders (four from wave 6) from the very first wave, and server racks of their own sizes
+/// in their own places. Boss waves are the same in both, but for the racks.
 ///
-/// The Speed option scales how fast everything moves and fires, so a point is worth the same at
-/// every speed. Everything moves in sub-steps of at most 1/240 s, so no shot passes through a block
-/// on a slow frame, and the rules never depend on the frame rate.
+/// The difficulty's speed scales how fast everything moves and fires; Easy pays 20% less a point
+/// and Hard 20% more. Everything moves in sub-steps of at most 1/240 s, so no shot passes through a
+/// block on a slow frame, and the rules never depend on the frame rate.
 public struct InvadersGame: Sendable {
     /// Which formations a game plays.
     public enum WaveStyle: String, CaseIterable, Codable, Sendable, Identifiable {
@@ -30,6 +33,10 @@ public struct InvadersGame: Sendable {
 
         public var id: String { rawValue }
     }
+
+    /// How hard a game plays: how many hits a ship takes before it's lost, how fast everything
+    /// moves, and what a point pays.
+    public typealias Difficulty = ArcadeDifficulty
 
     public enum Phase: Equatable, Sendable {
         /// The wave's banner is up and the invaders are about to march.
@@ -94,7 +101,7 @@ public struct InvadersGame: Sendable {
             }
         }
 
-        /// How long it lasts; the shield lasts until it takes a hit.
+        /// How long it lasts; the shield is an extra hit the ship can take, and lasts until it does.
         public var duration: TimeInterval? {
             switch self {
             case .rapidFire: 9
@@ -132,18 +139,30 @@ public struct InvadersGame: Sendable {
         public let shooter: InvaderKind?
     }
 
-    /// A wall of blocks between the ship and the invaders.
+    /// A wall of blocks (a server rack) between the ship and the invaders: a server to a row.
     public struct Firewall: Equatable, Sendable, Identifiable {
-        public static let rows = 5
-        public static let columns = 8
+        /// The classic rack: five servers, eight blocks across.
+        public static let classicRows = 5
+        public static let classicColumns = 8
 
         public let id: Int
         public let frame: Box
+        /// Servers stacked, and blocks across each.
+        public let rows: Int
+        public let columns: Int
         /// The blocks still standing, row by row from the top (`rows × columns` of them).
         public internal(set) var blocks: [Bool]
 
-        public var blockWidth: Double { frame.width / Double(Self.columns) }
-        public var blockHeight: Double { frame.height / Double(Self.rows) }
+        init(id: Int, frame: Box, rows: Int = classicRows, columns: Int = classicColumns) {
+            self.id = id
+            self.frame = frame
+            self.rows = rows
+            self.columns = columns
+            blocks = Array(repeating: true, count: rows * columns)
+        }
+
+        public var blockWidth: Double { frame.width / Double(columns) }
+        public var blockHeight: Double { frame.height / Double(rows) }
 
         public func blockFrame(row: Int, column: Int) -> Box {
             Box(minX: frame.minX + Double(column) * blockWidth, minY: frame.minY + Double(row) * blockHeight,
@@ -151,7 +170,7 @@ public struct InvadersGame: Sendable {
         }
 
         public func isStanding(row: Int, column: Int) -> Bool {
-            (0..<Self.rows).contains(row) && (0..<Self.columns).contains(column) && blocks[row * Self.columns + column]
+            (0..<rows).contains(row) && (0..<columns).contains(column) && blocks[row * columns + column]
         }
 
         public var standing: Int { blocks.filter { $0 }.count }
@@ -187,6 +206,8 @@ public struct InvadersGame: Sendable {
         case bossDefeated(at: Vector2, points: Int)
         case firewallHit(at: Vector2)
         case shieldHit(at: Vector2)
+        /// The ship took a hit and flies on, with `healthLeft` hits to go.
+        case shipDamaged(at: Vector2, healthLeft: Int)
         case shipHit(at: Vector2)
         case caught(PowerUp)
     }
@@ -206,10 +227,10 @@ public struct InvadersGame: Sendable {
     static let dropY = 0.032
     public static let shipSize = (width: 0.1, height: 0.05)
     public static let shipTop = 1.37
-    public static let startingLives = 3
+    public static let startingLives = 5
     /// Every this many waves is a boss wave.
     public static let bossEvery = 5
-    public static let shotSize = (width: 0.008, height: 0.034)
+    public static let shotSize = (width: 0.011, height: 0.036)
     public static let enemyShotSize = (width: 0.012, height: 0.03)
     public static let capsuleSize = (width: 0.085, height: 0.034)
     static let firewallTop = 1.18
@@ -226,6 +247,8 @@ public struct InvadersGame: Sendable {
     static let maxStreakBonus = 1.0
     static let shipLostHold: TimeInterval = 1.3
     static let invulnerableTime: TimeInterval = 1.6
+    /// The blink after a hit the ship survives, so one volley can't take two hits at once.
+    static let hitGrace: TimeInterval = 0.8
     static let clearedHold: TimeInterval = 1.0
     static let incomingHold: TimeInterval = 1.2
     static let maxStep: TimeInterval = 1.0 / 240
@@ -251,7 +274,8 @@ public struct InvadersGame: Sendable {
     public private(set) var bestStreak = 0
     /// Power-ups running, with the seconds left.
     public private(set) var effects: [PowerUp: TimeInterval] = [:]
-    public private(set) var hasShield = false
+    /// Hits the ship can still take; one more than `maxHealth` is the shield.
+    public private(set) var health: Int
     /// Seconds left of the blink after a new ship arrives, when shots pass through it.
     public private(set) var invulnerableFor: TimeInterval = 0
     /// Seconds left of the current banner (incoming, ship lost or wave cleared).
@@ -267,14 +291,17 @@ public struct InvadersGame: Sendable {
     public private(set) var volleysFired = 0
     /// Volleys that hit at least one thing.
     public private(set) var volleysHit = 0
-    /// Counts the ships lost and the shield's saves, for haptics.
+    /// Counts the ships lost, the hits survived and the shield's saves, for haptics.
     public private(set) var shipsLost = 0
+    public private(set) var hitsTaken = 0
     public private(set) var shieldSaves = 0
     /// What happened in the last update.
     public private(set) var events: [Event] = []
     /// The ship fires while this is on (the player's finger is down).
     public var isFiring = false
-    /// How fast everything moves (the game's Speed option).
+    /// Hits a ship takes, and the speed.
+    public let difficulty: Difficulty
+    /// How fast everything moves (the difficulty's speed).
     public let gameSpeed: GameSpeed
     /// Classic formations or ones made up for every wave.
     public let waveStyle: WaveStyle
@@ -292,10 +319,13 @@ public struct InvadersGame: Sendable {
     private var nextID = 0
     private var rng: SeededGenerator
 
-    /// `startWave` starts the game further in, at a wave the player has reached before.
-    public init(seed: UInt64 = .random(in: 0...UInt64.max), speed: GameSpeed = .normal, waves: WaveStyle = .classic,
-                startWave: Int = 1) {
-        gameSpeed = speed
+    /// `startWave` starts the game further in, at a wave the player has reached before. `speed`
+    /// overrides the difficulty's speed.
+    public init(seed: UInt64 = .random(in: 0...UInt64.max), difficulty: Difficulty = .regular, speed: GameSpeed? = nil,
+                waves: WaveStyle = .classic, startWave: Int = 1) {
+        self.difficulty = difficulty
+        gameSpeed = speed ?? difficulty.speed
+        health = difficulty.hitsPerShip
         waveStyle = waves
         wave = max(1, startWave)
         rng = SeededGenerator(seed: seed)
@@ -306,6 +336,12 @@ public struct InvadersGame: Sendable {
     // MARK: Reading the game
 
     public var isBossWave: Bool { wave % Self.bossEvery == 0 }
+
+    /// Hits a fresh ship takes.
+    public var maxHealth: Int { difficulty.hitsPerShip }
+
+    /// The ship has the shield's extra hit.
+    public var hasShield: Bool { health > maxHealth }
 
     public func isActive(_ powerUp: PowerUp) -> Bool {
         powerUp == .shield ? hasShield : (effects[powerUp] ?? 0) > 0
@@ -344,8 +380,12 @@ public struct InvadersGame: Sendable {
 
     /// Seconds between invader shots on average: quicker each wave.
     var enemyFireInterval: TimeInterval {
-        max(0.4, 1.15 * pow(0.92, Double(min(wave, 12) - 1))) / gameSpeed.factor
+        max(0.4, 1.15 * pow(0.92, Double(min(wave, 12) - 1))) / Self.fireRate / gameSpeed.factor
     }
+
+    /// How much more often everyone fires than the waves were first tuned for: a little, to make up
+    /// for ships taking more than one hit.
+    static let fireRate = 1.05
 
     var maxEnemyShots: Int { min(2 + wave / 2, 6) }
 
@@ -572,14 +612,12 @@ public struct InvadersGame: Sendable {
             let box = Self.box(around: shot.position, size: Self.enemyShotSize)
             if chipFirewall(touching: box, fromBelow: false) { continue }
             if box.overlaps(shipHitbox) && invulnerableFor <= 0 {
-                if hasShield {
-                    hasShield = false
-                    shieldSaves += 1
-                    events.append(.shieldHit(at: shot.position))
-                    continue
+                guard health > 1 else {
+                    loseShip()
+                    return
                 }
-                loseShip()
-                return
+                takeHit(at: shot.position)
+                continue
             }
             if shot.position.y - Self.enemyShotSize.height > Self.height || shot.position.x < -0.05 || shot.position.x > Self.width + 0.05 {
                 continue
@@ -587,6 +625,20 @@ public struct InvadersGame: Sendable {
             falling.append(shot)
         }
         enemyShots = falling
+    }
+
+    /// A hit the ship survives: the shield goes first, then the ship's own health, and it blinks for
+    /// a moment so the rest of a volley passes through.
+    private mutating func takeHit(at point: Vector2) {
+        if hasShield {
+            shieldSaves += 1
+            events.append(.shieldHit(at: point))
+        } else {
+            events.append(.shipDamaged(at: point, healthLeft: health - 1))
+        }
+        health -= 1
+        hitsTaken += 1
+        invulnerableFor = max(invulnerableFor, Self.hitGrace)
     }
 
     // MARK: Firewalls
@@ -598,21 +650,21 @@ public struct InvadersGame: Sendable {
         guard let wall = firewalls.firstIndex(where: { $0.frame.overlaps(box) }) else { return false }
         let firewall = firewalls[wall]
         var hit: (row: Int, column: Int)?
-        let rows = fromBelow ? Array((0..<Firewall.rows).reversed()) : Array(0..<Firewall.rows)
+        let rows = fromBelow ? Array((0..<firewall.rows).reversed()) : Array(0..<firewall.rows)
         search: for row in rows {
-            for column in 0..<Firewall.columns where firewall.isStanding(row: row, column: column)
+            for column in 0..<firewall.columns where firewall.isStanding(row: row, column: column)
                 && firewall.blockFrame(row: row, column: column).overlaps(box) {
                 hit = (row, column)
                 break search
             }
         }
         guard let hit else { return false }
-        firewalls[wall].blocks[hit.row * Firewall.columns + hit.column] = false
+        firewalls[wall].blocks[hit.row * firewall.columns + hit.column] = false
         if !fromBelow {
             let neighbors = [(hit.row + 1, hit.column), (hit.row, hit.column - 1), (hit.row, hit.column + 1)]
                 .filter { firewalls[wall].isStanding(row: $0.0, column: $0.1) }
             if let extra = neighbors.randomElement(using: &rng) {
-                firewalls[wall].blocks[extra.0 * Firewall.columns + extra.1] = false
+                firewalls[wall].blocks[extra.0 * firewall.columns + extra.1] = false
             }
         }
         let block = firewall.blockFrame(row: hit.row, column: hit.column)
@@ -622,9 +674,10 @@ public struct InvadersGame: Sendable {
 
     private mutating func crushFirewalls(under frame: Box) {
         for wall in firewalls.indices where firewalls[wall].frame.overlaps(frame) {
-            for row in 0..<Firewall.rows {
-                for column in 0..<Firewall.columns where firewalls[wall].blockFrame(row: row, column: column).overlaps(frame) {
-                    firewalls[wall].blocks[row * Firewall.columns + column] = false
+            let size = (rows: firewalls[wall].rows, columns: firewalls[wall].columns)
+            for row in 0..<size.rows {
+                for column in 0..<size.columns where firewalls[wall].blockFrame(row: row, column: column).overlaps(frame) {
+                    firewalls[wall].blocks[row * size.columns + column] = false
                 }
             }
         }
@@ -636,9 +689,37 @@ public struct InvadersGame: Sendable {
         return (0..<4).map { index in
             let frame = Box(minX: gap + Double(index) * (firewallSize.width + gap), minY: firewallTop,
                             width: firewallSize.width, height: firewallSize.height)
-            let blocks = Array(repeating: true, count: Firewall.rows * Firewall.columns)
-            return Firewall(id: startingID + index, frame: frame, blocks: blocks)
+            return Firewall(id: startingID + index, frame: frame)
         }
+    }
+
+    /// Racks for a random wave: two to five of them, each three to six servers tall and five to
+    /// eleven blocks across (blocks the classic size), spread across the field with gaps of their
+    /// own, at heights of their own.
+    static func madeUpFirewalls<R: RandomNumberGenerator>(startingID: Int, using rng: inout R) -> [Firewall] {
+        let block = (width: firewallSize.width / Double(Firewall.classicColumns),
+                     height: firewallSize.height / Double(Firewall.classicRows))
+        let count = Int.random(in: 2...5, using: &rng)
+        var sizes = (0..<count).map { _ in (rows: Int.random(in: 3...6, using: &rng), columns: Int.random(in: 5...11, using: &rng)) }
+        let minimumGap = 0.03
+        func total() -> Double { Double(sizes.reduce(0) { $0 + $1.columns }) * block.width + Double(count + 1) * minimumGap }
+        // Too wide for the field: trim the widest until they fit.
+        while total() > width, let widest = sizes.indices.max(by: { sizes[$0].columns < sizes[$1].columns }),
+              sizes[widest].columns > 3 {
+            sizes[widest].columns -= 1
+        }
+        let spare = max(0, width - total())
+        let shares = (0...count).map { _ in Double.random(in: 0.3...1, using: &rng) }
+        let sum = shares.reduce(0, +)
+        var x = minimumGap + spare * shares[0] / sum
+        var racks: [Firewall] = []
+        for (index, size) in sizes.enumerated() {
+            let frame = Box(minX: x, minY: Double.random(in: 1.12...1.2, using: &rng),
+                            width: Double(size.columns) * block.width, height: Double(size.rows) * block.height)
+            racks.append(Firewall(id: startingID + index, frame: frame, rows: size.rows, columns: size.columns))
+            x += frame.width + minimumGap + spare * shares[index + 1] / sum
+        }
+        return racks
     }
 
     // MARK: The whale
@@ -699,7 +780,7 @@ public struct InvadersGame: Sendable {
 
     /// Seconds (at Normal speed) between the boss's volleys: a little quicker each boss.
     static func bossFireInterval(wave: Int) -> TimeInterval {
-        max(0.9, 1.8 - 0.2 * Double(wave / bossEvery - 1))
+        max(0.9, 1.8 - 0.2 * Double(wave / bossEvery - 1)) / fireRate
     }
 
     /// Hits each boss takes: more for every one after the first.
@@ -752,7 +833,8 @@ public struct InvadersGame: Sendable {
         powerUpsCaught += 1
         events.append(.caught(kind))
         if kind == .shield {
-            hasShield = true
+            // One hit more, mending a damaged ship first; never more than one over full.
+            health = min(health + 1, maxHealth + 1)
         } else {
             effects[kind] = kind.duration
         }
@@ -770,8 +852,10 @@ public struct InvadersGame: Sendable {
         dropVolleys()
         capsules = []
         effects = [:]
-        hasShield = false
+        // The next ship comes in whole.
+        health = maxHealth
         if lives <= 0 {
+            health = 0
             endGame()
         } else {
             phase = .shipLost
@@ -837,17 +921,34 @@ public struct InvadersGame: Sendable {
             boss = nil
             cells = classic(rows: 0..<Self.rows)
         }
-        // One invader glows gold from the second wave, or from the first in random waves.
-        let golden = wave >= 2 || waveStyle == .generated ? cells.indices.randomElement(using: &rng) : nil
+        // Random waves have one to three golden invaders (four from wave 6) from the very first wave.
+        // Classic waves have one from the second, always in the same place on a wave.
+        let golden: Set<Int>
+        if waveStyle == .generated {
+            let count = Int.random(in: 1...(wave >= 6 ? 4 : 3), using: &rng)
+            golden = Set(cells.indices.shuffled(using: &rng).prefix(count))
+        } else if wave >= 2 {
+            var fixed = Self.classicGenerator(wave: wave)
+            golden = Set(cells.indices.randomElement(using: &fixed).map { [$0] } ?? [])
+        } else {
+            golden = []
+        }
         invaders = []
         for (index, cell) in cells.enumerated() {
-            invaders.append(Invader(id: newID(), row: cell.row, column: cell.column, kind: cell.kind, isGolden: index == golden))
+            invaders.append(Invader(id: newID(), row: cell.row, column: cell.column, kind: cell.kind, isGolden: golden.contains(index)))
         }
         formationSize = invaders.count
         // The first step comes one beat after the march begins.
         marchClock = marchInterval
-        firewalls = Self.freshFirewalls(startingID: newID())
-        nextID += 4
+        let firstRack = newID()
+        firewalls = waveStyle == .generated ? Self.madeUpFirewalls(startingID: firstRack, using: &rng)
+                                            : Self.freshFirewalls(startingID: firstRack)
+        nextID += firewalls.count
+    }
+
+    /// What fixes a classic wave's choices (its golden invader), the same every time it's played.
+    static func classicGenerator(wave: Int) -> SeededGenerator {
+        SeededGenerator(seed: 0x5CA3_1A7E &+ UInt64(max(1, wave)) &* 0x9E37_79B9_7F4A_7C15)
     }
 
     /// Clears the ship's shots when a wave or a ship ends. Volleys cut short before they hit
@@ -1126,4 +1227,42 @@ public struct InvadersGame: Sendable {
         boss?.hitsLeft = hits
     }
     #endif
+}
+
+extension ArcadeDifficulty {
+    /// Hits a Scam Invaders ship takes before it's lost.
+    public var hitsPerShip: Int {
+        switch self {
+        case .easy: 3
+        case .regular: 2
+        case .hard: 1
+        }
+    }
+
+    /// Scam Invaders' difficulty in a line.
+    public var invadersSummary: String {
+        switch self {
+        case .easy: localized("Ships take three hits, the invaders march slowly, and points pay 20% less.")
+        case .regular: localized("Ships take two hits, at the usual pace.")
+        case .hard: localized("One hit and the ship is lost, the invaders march fast, and points pay 20% more.")
+        }
+    }
+
+    /// How much wider Hash Smash's paddle is than Regular's.
+    public var paddleScale: Double {
+        switch self {
+        case .easy: 1.2
+        case .regular: 1
+        case .hard: 0.8
+        }
+    }
+
+    /// Hash Smash's difficulty in a line.
+    public var brickBreakerSummary: String {
+        switch self {
+        case .easy: localized("A wider paddle and a slower ball, and points pay 20% less.")
+        case .regular: localized("The usual paddle and ball.")
+        case .hard: localized("A narrower paddle and a faster ball, and points pay 20% more.")
+        }
+    }
 }

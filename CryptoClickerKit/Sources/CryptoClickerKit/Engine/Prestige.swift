@@ -53,9 +53,15 @@ extension GameState {
         (1 + prestigeGain(prestigePoints + claimablePrestigePoints)) / prestigeBonus
     }
 
-    /// Prestige is worth it once the new points would speed production up by at least half.
+    /// How much faster a prestige's points must make production before the Shop suggests it: half
+    /// as fast again for the first, nearly twice as fast for the later ones.
+    public var recommendedPrestigeSpeedUp: Double {
+        stats.prestiges == 0 ? Tuning.firstPrestigeSpeedUp : Tuning.prestigeRecommendedSpeedUp
+    }
+
+    /// Prestige is worth it once the new points would speed production up by enough.
     public var isPrestigeRecommended: Bool {
-        claimablePrestigePoints > 0 && prestigeSpeedUp >= Tuning.prestigeRecommendedSpeedUp
+        claimablePrestigePoints > 0 && prestigeSpeedUp >= recommendedPrestigeSpeedUp
     }
 
     // MARK: Prestiging

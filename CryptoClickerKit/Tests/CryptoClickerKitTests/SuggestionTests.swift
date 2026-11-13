@@ -7,11 +7,11 @@ struct SuggestionTests {
     @Test func theQuickestPaybackWins() throws {
         let game = GameState.make(coins: 10_000, miners: [.chromebook: 10, .desktop: 1])
         let best = try #require(game.bestPurchase)
-        // A Desktop (2 coins a second for 1,136) beats a Chromebook (a quarter coin for 401) and a GPU Rig.
+        // A Desktop (2 coins a second for 1,079) beats a Chromebook (a quarter coin for 361) and a GPU Rig.
         #expect(best.purchase == .miner(.desktop))
         #expect(best.name == "Desktop")
         #expect(best.price == game.price(of: .miner(.desktop)))
-        #expect(best.price == 1_136)
+        #expect(best.price == 1_079)
         #expect(best.incomeGain == 2)
         #expect(abs(best.payback - best.price / 2) < 1e-9)
     }
@@ -60,8 +60,10 @@ struct SuggestionTests {
 @Suite("Game records")
 struct GameRecordTests {
     @Test func theArcadeListsCasinoThenArcadeGamesCheapestFirst() {
-        #expect(MiniGame.byPrice == [.blackjack, .videoPoker, .slots, .moon, .tetris, .snake, .tokenSwap, .pumpDump, .merge2048,
-                                     .brickBreaker, .bubbleBlaster, .invaders])
+        // Merge Mining comes before Pump and Dump, and Bubble Market before Hash Smash (and To the
+        // Moon last of the casino).
+        #expect(MiniGame.byPrice == [.blackjack, .videoPoker, .slots, .moon, .tetris, .snake, .tokenSwap, .merge2048, .pumpDump,
+                                     .bubbleBlaster, .brickBreaker, .invaders])
         for game in MiniGame.allCases {
             #expect(game.isCasino == (game.secondsPerPoint == 0))
             #expect(!game.info.pitch.isEmpty)
@@ -102,8 +104,8 @@ struct GameRecordTests {
         game.settleBlackjack([loss], token: .shibaInu)
         #expect(game.stats.blackjackStreak == 0)
         #expect(game.stats.blackjackBestStreak == 3)
-        // Two winning hands: 4 tokens (4,000 coins) plus a 600-coin bonus each.
-        #expect(game.stats.blackjackBiggestWin == 5_200)
+        // Two winning hands: 4 tokens (4,000 coins) plus a 500-coin bonus each.
+        #expect(game.stats.blackjackBiggestWin == 5_000)
         #expect(game.recordLine(for: .blackjack) == "Wins 3 · Best streak 3")
 
         var rng = SeededGenerator(seed: 3)

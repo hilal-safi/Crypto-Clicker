@@ -232,6 +232,26 @@ private struct MinerInfoBubble: View {
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            // What lifts it: the next milestone, and Legacy from the newer tiers.
+            if let milestone = game.nextMilestone(for: miner) {
+                Text("At \(CoinFormat.grouped(milestone)) owned, they all earn \(CoinFormat.multiplier(Tuning.milestoneMultiplier)) more.")
+                    .font(.footnote)
+                    .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            let legacy = game.legacyTiers(for: miner)
+            if legacy > 0 {
+                Text("Legacy \(CoinFormat.multiplier(game.legacyMultiplier(miner))): \(CoinFormat.multiplier(Tuning.legacyMultiplier)) for each of \(legacy) newer \(legacy == 1 ? "tier" : "tiers") with \(CoinFormat.grouped(Tuning.legacyUnits)) or more owned.")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.legacy)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if miner.tier + Tuning.legacyTierGap < MinerID.allCases.count {
+                let first = MinerID.allCases[miner.tier + Tuning.legacyTierGap]
+                Text("Legacy: earns \(CoinFormat.multiplier(Tuning.legacyMultiplier)) more for each tier from \(first.name) up with \(CoinFormat.grouped(Tuning.legacyUnits)) owned.")
+                    .font(.footnote)
+                    .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.horizontal, 14)
         .padding(.bottom, 12)
@@ -253,8 +273,8 @@ private struct MinerInfoBubble: View {
     }
 }
 
-/// A rounded box with an arrow on top pointing up at `arrowX`.
-private struct Callout: Shape {
+/// A rounded box with an arrow on top pointing up at `arrowX`, for the Shop's pop-ups.
+struct Callout: Shape {
     static let arrow = CGSize(width: 18, height: 9)
     var arrowX: CGFloat
     var radius: CGFloat = 16

@@ -95,11 +95,14 @@ extension MiniGame {
             .map { "\($0.ticker) \(SlotMachine.threeOfAKind($0))×" }.joined(separator: ", ")
         let rtp = Int((SlotMachine.returnToPlayer * 100).rounded())
         return MiniGameGuide(
-            objective: localized("Spin three reels of crypto tokens and line up matches on the pay line."),
-            controls: [localized("Pick a token and a bet, then Spin. The reels that make a win light up, and the result shows your bet, the payout and the net.")],
+            objective: localized("Spin reels of crypto tokens and line up matches: three reels and one pay line on the classic machine, five reels and five lines on the video machine."),
+            controls: [
+                localized("Pick a machine, a token and a bet, then Spin. The reels that make a win light up, and the result shows your bet, the payout and the net."),
+                localized("On the video machine the bet is per line: a spin bets on all \(VideoSlots.paylines.count) lines."),
+            ],
             scoring: [
                 localized("Three of a kind pays: \(threes) your bet."),
-                localized("Two Bitcoins pay \(SlotMachine.twoBitcoins)×, a pair on the first two reels pays \(SlotMachine.pairOnFirstTwo)×, and a single Bitcoin returns your bet."),
+                localized("Two Bitcoins pay \(SlotMachine.twoBitcoins)×, a pair on the first two reels or two Shiba Inu on the last two pay \(SlotMachine.pairOnFirstTwo)×, and a single Bitcoin returns your bet."),
                 tokenBets,
             ],
             items: [
@@ -107,8 +110,10 @@ extension MiniGame {
                       detail: localized("The rarest symbol, one stop on each reel. Three of them is the \(SlotMachine.jackpot)× jackpot.")),
                 .init(id: "slots.free", symbol: "gift.fill", name: localized("Free spins"),
                       detail: localized("A Cardano, a Solana and an Ethereum on the line, in any order, win \(SlotMachine.freeSpinsAwarded) free spins at the same bet. They can win more, and they wait for you if you leave.")),
+                .init(id: "slots.video", symbol: "square.grid.3x3.fill", name: localized("Video machine"),
+                      detail: localized("Three, four or five of a token in a row from the left reel pay on any of five lines, and every winning line pays. Three or more Bitcoins anywhere win free spins. Wins are rarer and bigger.")),
                 .init(id: "slots.collection", symbol: "bitcoinsign.square.fill", name: localized("Bitcoin collection"),
-                      detail: localized("Every Bitcoin on the line is collected; every \(SlotMachine.bitcoinsPerPrize) pay a coin prize.")),
+                      detail: localized("Every Bitcoin on the line (the middle reel on the video machine) is collected; every \(SlotMachine.bitcoinsPerPrize) pay a coin prize.")),
             ],
             ending: localized("Every spin is settled the moment the reels stop: the bet is taken and the win paid in one step."),
             tips: [
@@ -123,7 +128,7 @@ extension MiniGame {
         return MiniGameGuide(
             objective: localized("Ride the multiplier up and cash out before the market crashes."),
             controls: [
-                localized("Pick a token and a bet, and if you like an automatic cash-out, then Launch. ") + practice,
+                localized("Pick a rocket, a token and a bet, and if you like an automatic cash-out, then Launch. ") + practice,
                 localized("Tap Cash Out at any time to take your bet times the multiplier. The screen shows what cashing out pays right now."),
             ],
             scoring: [
@@ -132,6 +137,8 @@ extension MiniGame {
                 tokenBets,
             ],
             items: [
+                .init(id: "moon.fivefold", symbol: "flame.fill", name: localized("5× Rocket"),
+                      detail: localized("Grows fivefold every \(Int(MoonFlight.doublingTime)) seconds and crashes a little more often: it returns \(Int((MoonRocket.fivefold.returnToPlayer * 100).rounded()))% of the bet on average, but its cash-outs pay \(Int(((Tuning.moonFivefoldBonus - 1) * 100).rounded()))% more coins.")),
                 .init(id: "moon.auto", symbol: "target", name: localized("Automatic cash-out"),
                       detail: localized("Cashes out by itself the moment the multiplier reaches your target.")),
                 .init(id: "moon.crash", symbol: "chart.line.downtrend.xyaxis", name: localized("The crash"),
@@ -139,7 +146,7 @@ extension MiniGame {
             ],
             ending: localized("A flight ends when you cash out or the market crashes. Leaving the screen cashes out."),
             tips: [
-                localized("Whatever target you pick, flights return \(rtp)% of the bet on average: aim for what's fun."),
+                localized("Whatever target you pick, flights on the 2× rocket return \(rtp)% of the bet on average: aim for what's fun."),
                 localized("Low targets win often and small; high targets win rarely and big."),
             ],
             controlHint: localized("Launch · Cash Out"))
@@ -280,7 +287,7 @@ extension MiniGame {
     private static var brickBreakerGuide: MiniGameGuide {
         typealias PowerUp = BrickBreakerGame.PowerUp
         func seconds(_ powerUp: PowerUp) -> Int { Int(powerUp.duration ?? 0) }
-        let startScreen = localized("On the start screen, Levels starts at level 1 or any level you've reached (tap it on the track; a later start pays \(Int((Tuning.startPayShare(level: 6, slope: Tuning.brickBreakerStartPaySlope) * 100).rounded()))% of its points from level 6, less the further in), Random Walls makes up a new wall for every level (never the same twice), and Settings sets the ball's speed.")
+        let startScreen = localized("On the start screen, Levels starts at level 1 or any level you've reached (tap it on the track; a later start pays \(Int((Tuning.startPayShare(level: 6, slope: Tuning.brickBreakerStartPaySlope) * 100).rounded()))% of its points from level 6, less the further in), Random Walls makes up a new wall for every level (never the same twice, and it doesn't unlock levels), and Difficulty sets the paddle and the ball: Easy has a paddle 20% wider and a slower ball and pays 20% less a point, Hard a paddle 20% narrower and a faster ball and pays 20% more. A level's wall is the same every time you play it.")
         let lives = localized("You have \(BrickBreakerGame.startingLives) lives. You lose one when the last ball falls past the paddle, along with any power-ups running; the game ends with the last life.")
         return MiniGameGuide(
             objective: localized("Bounce the coin ball off your paddle to smash every hash block and reach the next, faster level. Every \(BrickBreakerGame.bossEvery)th level the whale comes to dump on you."),
@@ -363,7 +370,8 @@ extension MiniGame {
             controls: [
                 localized("Drag anywhere to move your ship. It fires while your finger is down: lift it to hold fire."),
                 localized("Only two volleys can be in the air at once: shots that hit come back sooner than ones that fly off the top."),
-                localized("On the start screen, Waves starts at wave 1 or any wave you've reached (tap it on the track; a later start pays \(Int((Tuning.startPayShare(level: 6, slope: Tuning.invadersStartPaySlope) * 100).rounded()))% of its points from wave 6, less the further in), Random Waves makes up a new formation for every wave (never the same twice, with the kinds mixed up), and Settings sets the speed."),
+                localized("On the start screen, Waves starts at wave 1 or any wave you've reached (tap it on the track; a later start pays \(Int((Tuning.startPayShare(level: 6, slope: Tuning.invadersStartPaySlope) * 100).rounded()))% of its points from wave 6, less the further in), Random Waves makes up a new formation and new server racks for every wave (never the same twice, with the kinds mixed up; it doesn't unlock waves), and Difficulty sets how many hits your ship takes, and the speed."),
+                localized("Easy: a ship takes \(Game.Difficulty.easy.hitsPerShip) hits and the invaders march slowly. Regular: \(Game.Difficulty.regular.hitsPerShip) hits at the usual pace. Hard: \(Game.Difficulty.hard.hitsPerShip) hit and they march fast. Easy pays 20% less a point, Hard 20% more. The hearts beside the field show the hits your ship can still take, and it looks more battered with every one."),
             ],
             scoring: [
                 localized("Meme coins score \(kinds.memeCoin.points), pump bots \(kinds.pumpBot.points) and rug pullers \(kinds.rugPuller.points)."),
@@ -378,11 +386,11 @@ extension MiniGame {
                 .init(id: "invaders.rugPuller", symbol: "exclamationmark.triangle.fill", name: localized("Rug pullers"),
                       detail: localized("\(kinds.rugPuller.points) points each, in the top row of the classic formation.")),
                 .init(id: "invaders.golden", symbol: "star.circle.fill", name: localized("Golden tokens"),
-                      detail: localized("From wave 2 (wave 1 in Random Waves), one invader a wave glows gold: it's worth double and drops a power-up.")),
+                      detail: localized("From wave 2, one invader a wave glows gold: it's worth double and drops a power-up. Random Waves have one to three from wave 1, and up to four from wave 6.")),
                 .init(id: "invaders.whale", symbol: "fish.fill", name: localized("Whale"),
                       detail: localized("Swims across the top now and then: shoot it for 50 to 300 points and a power-up.")),
                 .init(id: "invaders.firewall", symbol: "server.rack", name: localized("Server racks"),
-                            detail: localized("Four racks that stop shots, yours and theirs: every hit knocks out a piece of a server, and invaders crush what they touch.")),
+                            detail: localized("Racks that stop shots, yours and theirs: every hit knocks out a piece of a server, and invaders crush what they touch. Waves have four; Random Waves have two to five, of their own sizes and in their own places.")),
                 .init(id: "invaders.rapidFire", symbol: "bolt.fill", name: PowerUp.rapidFire.name,
                       detail: localized("Fires twice as fast, with up to four volleys at once, for \(Int(PowerUp.rapidFire.duration ?? 0)) seconds.")),
                 .init(id: "invaders.spreadShot", symbol: "arrow.up.left.and.arrow.down.right", name: PowerUp.spreadShot.name,
@@ -390,11 +398,11 @@ extension MiniGame {
                 .init(id: "invaders.laser", symbol: "line.diagonal", name: PowerUp.laser.name,
                       detail: localized("For \(Int(PowerUp.laser.duration ?? 0)) seconds each shot burns through every invader in its path.")),
                 .init(id: "invaders.shield", symbol: "shield.fill", name: PowerUp.shield.name,
-                      detail: localized("Takes one hit for your ship.")),
+                      detail: localized("One more hit your ship can take: it mends a damaged ship first, and on a whole one shows as a bubble.")),
                 .init(id: "invaders.boss", symbol: "exclamationmark.octagon.fill", name: localized("The Bear"),
                       detail: localized("Every \(Game.bossEvery)th wave a giant bear-market bot slides along the top with a health bar, firing three shots at a time. Beating it gives back a lost ship.")),
             ],
-            ending: localized("You have \(Game.startingLives) ships. An invader's shot costs one, along with any power-ups running; the game ends with the last ship, or the moment an invader reaches your ship's line."),
+            ending: localized("You have \(Game.startingLives) ships. A ship is lost when it has taken all the hits it can (by the difficulty), along with any power-ups running; the next comes in whole. The game ends with the last ship, or the moment an invader reaches your ship's line."),
             tips: [
                 localized("Thin out the edge columns: the formation turns at the edges, so a narrow one takes longer to come down."),
                 localized("Lift your finger under a server rack: your own shots wear it down too."),

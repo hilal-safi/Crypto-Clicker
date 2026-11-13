@@ -12,7 +12,8 @@ struct TestingToolsView: View {
 
     private static let coinAmounts: [Double] = [1e6, 1e9, 1e12, 1e15, 1e18, 1e21]
     /// The rank that carries the last title, past every look a rank unlocks.
-    private static let legendRank = 30
+    /// The rank that unlocks the last look (48).
+    private static let legendRank = Cosmetic.highestRank
 
     var body: some View {
         let game = store.game

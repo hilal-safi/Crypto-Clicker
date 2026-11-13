@@ -10,8 +10,9 @@ struct SlotsTests {
         let counts = Dictionary(strip.map { ($0, 1) }, uniquingKeysWith: +)
         #expect(counts[.shibaInu] == 6)
         #expect(counts[.bitcoin] == 1)
-        // Tether, BNB and Monero are traded and bet, but aren't on the reels (and pay nothing there).
-        let offReels: Set<TokenID> = [.tether, .bnb, .monero]
+        // SafeMoon, Tether, BNB and Monero are traded and bet, but aren't on the reels (and pay
+        // nothing there).
+        let offReels: Set<TokenID> = [.safeMoon, .tether, .bnb, .monero]
         #expect(Set(strip) == Set(TokenID.allCases).subtracting(offReels))
         #expect(offReels.allSatisfy { SlotMachine.threeOfAKind($0) == 0 })
         // Rarer tokens pay more.
@@ -25,11 +26,14 @@ struct SlotsTests {
 
     @Test(arguments: [
         ([TokenID.bitcoin, .bitcoin, .bitcoin], 500),
-        ([TokenID.ethereum, .ethereum, .ethereum], 100),
+        ([TokenID.ethereum, .ethereum, .ethereum], 80),
         ([TokenID.shibaInu, .shibaInu, .shibaInu], 4),
-        ([TokenID.bitcoin, .xrp, .bitcoin], 25),
-        ([TokenID.bitcoin, .bitcoin, .solana], 25),
+        ([TokenID.bitcoin, .xrp, .bitcoin], 20),
+        ([TokenID.bitcoin, .bitcoin, .solana], 20),
         ([TokenID.dogecoin, .dogecoin, .bitcoin], 2),
+        ([TokenID.xrp, .shibaInu, .shibaInu], 2), // Two Shiba Inu on the last two reels.
+        ([TokenID.shibaInu, .xrp, .shibaInu], 0), // Not side by side.
+        ([TokenID.dogecoin, .xrp, .xrp], 0), // Only Shiba Inu pair on the last two.
         ([TokenID.xrp, .solana, .bitcoin], 1),
         ([TokenID.xrp, .solana, .xrp], 0),
         ([TokenID.cardano, .solana, .ethereum], 0),
@@ -38,15 +42,15 @@ struct SlotsTests {
         #expect(SlotMachine.payout(for: line) == multiple)
     }
 
-    @Test func theMachineReturnsAboutNinetyFivePercentFreeSpinsIncluded() {
+    @Test func theMachineReturnsAboutNinetySevenPercentFreeSpinsIncluded() {
         // One order of the trio: 3 Cardano × 3 Solana × 2 Ethereum stops; six orders.
         let chance: Double = 6.0 * 18.0 / 13_824.0
         #expect(SlotMachine.freeSpinChance == chance)
         let perTrigger: Double = 3.0 / (1.0 - 3.0 * chance)
         #expect(abs(SlotMachine.freeSpinsPerTrigger - perTrigger) < 1e-12)
-        #expect(abs(SlotMachine.paytableReturn - 0.933_883) < 1e-5)
+        #expect(abs(SlotMachine.paytableReturn - 0.945_312) < 1e-5)
         let rtp = SlotMachine.returnToPlayer
-        #expect(rtp > 0.95 && rtp < 0.96)
+        #expect(rtp > 0.96 && rtp < 0.97)
         let expected: Double = SlotMachine.paytableReturn * (1.0 + chance * perTrigger)
         #expect(abs(rtp - expected) < 1e-12)
     }
@@ -146,12 +150,12 @@ struct SlotsTests {
         game.tokens = [.shibaInu: 10]
         game.stats.slotsBitcoins = SlotMachine.bitcoinsPerPrize - 1
         #expect(game.slotsBitcoinsTowardPrize == SlotMachine.bitcoinsPerPrize - 1)
-        #expect(game.slotsCollectionPrize == 600) // 60 seconds.
+        #expect(game.slotsCollectionPrize == 900) // 90 seconds.
         let result = game.spinSlots(.shibaInu, bet: 1, using: &rng)
         let spin = try #require(result)
         #expect(spin.bitcoins == 1)
-        #expect(spin.collectionPrize == 600)
-        #expect(game.coins == spin.bonus + 600)
+        #expect(spin.collectionPrize == 900)
+        #expect(game.coins == spin.bonus + 900)
         #expect(game.slotsBitcoinsTowardPrize == 0)
     }
 
@@ -161,8 +165,8 @@ struct SlotsTests {
         game.tokens = [.shibaInu: 10]
         let result = game.spinSlots(.shibaInu, bet: 1, using: &rng)
         let spin = try #require(result)
-        #expect(spin.multiple == 15)
-        #expect(game.stats.slotsBiggestWin == Double(15 - 1) * TokenID.shibaInu.price + spin.bonus)
+        #expect(spin.multiple == 12)
+        #expect(game.stats.slotsBiggestWin == Double(12 - 1) * TokenID.shibaInu.price + spin.bonus)
     }
 
     @Test func spinsLandOnTheStrip() {
@@ -197,12 +201,12 @@ struct SlotsTests {
     @Test func theCoinBonusGrowsWithTheMultipleUpToAnIncomeCap() {
         var game = GameState.make(miners: minersEarning(10)) // 10 coins per second.
         game.tokens = [.shibaInu: 1]
-        // One Shiba Inu stakes 1,000 coins: 5% is 50 per multiple, capped at 3 seconds (30 coins) per multiple.
-        #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 5) == 150)
+        // One Shiba Inu stakes 1,000 coins: 8% is 80 per multiple, capped at 5 seconds (50 coins) per multiple.
+        #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 5) == 250)
         #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 1) == 0) // The bet back is not a win.
         #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 0) == 0)
         let newcomer = GameState.make() // The 1 coin per second floor.
-        #expect(newcomer.slotsBonus(bet: 1, token: .shibaInu, multiple: 500) == 1_500)
+        #expect(newcomer.slotsBonus(bet: 1, token: .shibaInu, multiple: 500) == 2_500)
     }
 
     @Test func aJackpotPaysFiveHundredTimesTheBet() throws {
@@ -218,7 +222,7 @@ struct SlotsTests {
         let spin = try #require(result)
         #expect(spin.isJackpot)
         #expect(game.tokenCount(.dogecoin) == 1_000)
-        #expect(spin.bonus == 15_000) // Capped at 30 coins per multiple.
+        #expect(spin.bonus == 25_000) // Capped at 50 coins per multiple.
         #expect(game.stats.slotsJackpots == 1)
         #expect(game.stats.slotsWins == 1)
     }

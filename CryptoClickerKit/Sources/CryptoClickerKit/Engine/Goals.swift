@@ -135,10 +135,11 @@ extension GameState {
     }
 
     /// New points a prestige needs before the Shop suggests it: enough to speed production up by
-    /// half (10, plus half the points already earned). A hair is taken off before rounding up, so
-    /// floating-point noise can't ask for one point too many.
+    /// `recommendedPrestigeSpeedUp` (10 for the first, then 17 plus 85% of the points already
+    /// earned). A hair is taken off before rounding up, so floating-point noise can't ask for one
+    /// point too many.
     var prestigePointsToRecommend: Int {
-        let needed = (Tuning.prestigeRecommendedSpeedUp - 1)
+        let needed = (recommendedPrestigeSpeedUp - 1)
             * (1 / Tuning.productionPerPrestigePoint + Double(prestigePoints))
         guard needed.isFinite else { return 1 }
         return max(1, Int(min(needed - 1e-6, Double(Tuning.maxPrestigePoints)).rounded(.up)))

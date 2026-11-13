@@ -182,6 +182,8 @@ final class GameStore {
     @ObservationIgnored private(set) var lastArcadeAward: ArcadeAward?
     /// The miner whose description the Shop is showing, from a tap on its icon.
     var shopInfoMiner: MinerID?
+    /// The token whose volatility the Tokens page is explaining, from a tap on its icon.
+    var shopInfoToken: TokenID?
     @ObservationIgnored private var lastSave = Date.now
     @ObservationIgnored var lastWatchPush = Date.distantPast
     @ObservationIgnored var lastBalanceShare = Date.distantPast

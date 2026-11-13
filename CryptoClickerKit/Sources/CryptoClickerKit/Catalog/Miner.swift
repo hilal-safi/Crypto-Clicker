@@ -77,8 +77,20 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
     }
 
     /// Price of the first unit: the list price, raised by the game's pace and the Shop's premium
-    /// (see `Tuning.shopPrice`).
-    public var baseCost: Double { Tuning.shopPrice(listCost) }
+    /// (see `Tuning.shopPrice`), then this miner's own adjustment. Mk upgrades follow it.
+    public var baseCost: Double { Tuning.shopPrice(listCost, adjustedBy: priceAdjustment) }
+
+    /// A miner tuned on its own: the first two a little cheaper so the opening flows, the Server
+    /// and the Data Center dearer so the second day doesn't race ahead.
+    public var priceAdjustment: Double {
+        switch self {
+        case .chromebook: 0.9
+        case .desktop: 0.95
+        case .server: 1.2
+        case .dataCenter: 1.1
+        default: 1
+        }
+    }
 
     /// Price of the first unit before the pace adjustment.
     public var listCost: Double {

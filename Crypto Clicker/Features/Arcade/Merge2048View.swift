@@ -75,6 +75,7 @@ struct Merge2048View: View {
         .navigationBarTitleDisplayMode(.inline)
         .gameHelp(.merge2048, isPresented: $showingHelp)
         .environment(\.mergeTiles, store.game.equipped(.mergeTiles))
+        .environment(\.mergeBoard, store.game.equipped(.mergeBoard))
         .gameBackdrop(.merge2048)
     }
 
@@ -148,6 +149,7 @@ struct Merge2048PlayView: View {
     var body: some View {
         withLifecycle(withFeedback(layout))
             .environment(\.mergeTiles, store.game.equipped(.mergeTiles))
+        .environment(\.mergeBoard, store.game.equipped(.mergeBoard))
             .gameBackdrop(.merge2048)
     }
 
@@ -612,6 +614,8 @@ struct Merge2048Board: View {
     let game: Merge2048Game
     var slideSpeed = GameSpeed.normal
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The board picked in Style.
+    @Environment(\.mergeBoard) private var board
 
     /// How long a slide takes at each speed.
     static func slideDuration(_ speed: GameSpeed) -> Double {
@@ -634,10 +638,10 @@ struct Merge2048Board: View {
             }
         }
         .aspectRatio(1, contentMode: .fit)
-        .background(Color(red: 0.07, green: 0.08, blue: 0.16).opacity(0.88), in: .rect(cornerRadius: 18))
+        .background { BoardBackdrop(look: board.boardLook, cornerRadius: 18) }
         .overlay {
             RoundedRectangle(cornerRadius: 18)
-                .strokeBorder(Theme.gold.opacity(0.35), lineWidth: 1)
+                .strokeBorder(board.boardLook.rim, lineWidth: 1)
         }
         .contentShape(.rect)
     }

@@ -588,7 +588,7 @@ struct LivesColumn: View {
     let label: String
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: total > 3 ? 7 : 10) {
             ForEach(0..<total, id: \.self) { life in
                 Image(systemName: life < lives ? symbol : emptySymbol)
                     .foregroundStyle(life < lives ? AnyShapeStyle(color) : AnyShapeStyle(.subtext))
@@ -640,6 +640,59 @@ struct EffectMeter: View {
         .frame(width: SideColumn.width)
         .frame(maxHeight: fraction == nil ? nil : .infinity)
         .glassEffect(.regular, in: .capsule)
+    }
+}
+
+/// The timed effects running, in one column: their symbols at the top, then a bar each, side by
+/// side and as tall as the column, emptying from the top as their time runs out. The bars share a
+/// scale (the longest of the effects' full times), so it reads at a glance which ends first and
+/// how far apart they are.
+struct EffectBars: View {
+    struct Effect: Identifiable {
+        let id: String
+        let symbol: String
+        let color: Color
+        let name: String
+        /// Seconds left, and the effect's full time.
+        let secondsLeft: Double
+        let duration: Double
+    }
+
+    let effects: [Effect]
+
+    var body: some View {
+        let scale = max(effects.map(\.duration).max() ?? 1, 0.001)
+        let count = CGFloat(max(1, effects.count))
+        let spacing: CGFloat = effects.count > 2 ? 2 : 4
+        let barWidth = min(8, (SideColumn.width - 10 - spacing * (count - 1)) / count)
+        VStack(spacing: 6) {
+            ForEach(effects) { effect in
+                Image(systemName: effect.symbol)
+                    .font(effects.count > 2 ? .caption.weight(.bold) : .subheadline.weight(.bold))
+                    .foregroundStyle(effect.color)
+            }
+            HStack(spacing: spacing) {
+                ForEach(effects) { effect in
+                    GeometryReader { proxy in
+                        Capsule()
+                            .fill(.white.opacity(0.15))
+                            .overlay(alignment: .bottom) {
+                                Capsule()
+                                    .fill(effect.color.gradient)
+                                    .frame(height: proxy.size.height * min(max(effect.secondsLeft / scale, 0), 1))
+                            }
+                    }
+                    .frame(width: barWidth)
+                }
+            }
+            .frame(minHeight: 30, maxHeight: .infinity)
+        }
+        .padding(.vertical, 8)
+        .frame(width: SideColumn.width)
+        .frame(maxHeight: .infinity)
+        .glassEffect(.regular, in: .capsule)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(effects.map { "\($0.name), \(Int($0.secondsLeft.rounded(.up))) seconds left" }.joined(separator: "; "))
     }
 }
 
@@ -721,9 +774,12 @@ struct FeltBackground: View {
 
 /// Deep velvet for the slot machine.
 struct VelvetBackground: View {
+    /// The backdrop picked in Style: purple velvet, a ruby or an emerald lounge.
+    var look = Cosmetic.slotsVelvet
+
     var body: some View {
-        RadialGradient(colors: [Color(red: 0.36, green: 0.12, blue: 0.48), Color(red: 0.09, green: 0.03, blue: 0.16)],
-                       center: .top, startRadius: 40, endRadius: 760)
+        let colors = look.slotsBackdropColors
+        RadialGradient(colors: [colors.center, colors.edge], center: .top, startRadius: 40, endRadius: 760)
             .ignoresSafeArea()
             .accessibilityHidden(true)
     }
@@ -776,8 +832,11 @@ struct PracticeBetControls: View {
 /// The casino's bet: the token (picked from a sheet showing every token's artwork) and how many.
 struct TokenBetControls: View {
     @Binding var token: TokenID
+    /// The bet per line.
     @Binding var bet: Int
     let counts: [TokenID: Int]
+    /// Lines the bet is placed on: the stake is the bet times this.
+    var lines = 1
     /// Disabled while a spin is revealed: the counts shown then are only for display.
     @Environment(\.isEnabled) private var isEnabled
     @State private var showsPicker = false
@@ -807,10 +866,11 @@ struct TokenBetControls: View {
             .accessibilityLabel("Token: \(token.name), \(owned) owned")
             .accessibilityHint("Choose another token")
             Spacer(minLength: 0)
-            Stepper(value: $bet, in: 1...max(1, owned)) {
-                Text("Bet \(CoinFormat.grouped(bet))")
+            Stepper(value: $bet, in: 1...max(1, owned / lines)) {
+                Text(lines == 1 ? "Bet \(CoinFormat.grouped(bet))" : "Bet \(CoinFormat.grouped(bet)) × \(lines)")
                     .font(.headline.monospacedDigit())
             }
+            .accessibilityValue(lines == 1 ? "\(bet)" : "\(bet) a line, \(bet * lines) in all")
             .fixedSize()
         }
         .sheet(isPresented: $showsPicker) {
@@ -820,12 +880,13 @@ struct TokenBetControls: View {
         .onChange(of: owned) { _, _ in fitBetToWallet() }
         .onChange(of: token) { _, _ in fitBetToWallet() }
         .onChange(of: isEnabled) { _, _ in fitBetToWallet() }
+        .onChange(of: lines) { _, _ in fitBetToWallet() }
     }
 
     /// Lowers the bet to what the wallet holds, but never while the controls are disabled.
     private func fitBetToWallet() {
         guard isEnabled else { return }
-        bet = min(bet, max(1, counts[token, default: 0]))
+        bet = min(bet, max(1, counts[token, default: 0] / lines))
     }
 }
 

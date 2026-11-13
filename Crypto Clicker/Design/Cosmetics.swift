@@ -245,6 +245,8 @@ struct CosmeticPreview: View {
             case .bubbles: BubblesPreview(look: cosmetic)
             case .pumpBoard: PumpBoardPreview(look: cosmetic)
             case .swapTiles: SwapTilesPreview(look: cosmetic)
+            case .slotsBackdrop, .moonSky, .tetrisBoard, .mergeBoard, .snakeBoard, .ball, .bubbleBoard, .pumpCoins, .swapBoard, .shots:
+                SecondLookPreview(look: cosmetic)
             }
         }
         .accessibilityHidden(true)

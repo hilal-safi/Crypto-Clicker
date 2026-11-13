@@ -90,15 +90,18 @@ public enum ArcadeRank {
         case 10..<15: localized("Pro")
         case 15..<20: localized("Expert")
         case 20..<30: localized("Master")
-        default: localized("Legend")
+        case 30..<40: localized("Legend")
+        default: localized("Mythic")
         }
     }
 }
 
-/// Where a cosmetic goes: at least one look for every game, in the order the Arcade lists them.
+/// Where a cosmetic goes: two kinds of look for every game (the card games share their card backs),
+/// each game's kinds together. The Style sheet lists them in the order the Arcade lists the games.
 public enum CosmeticSlot: String, CaseIterable, Codable, Sendable, Identifiable {
-    case cardBack, felt, pokerTable, reels, moonRide
-    case tetris, mergeTiles, snake, paddle, bubbles, pumpBoard, swapTiles, ship
+    case cardBack, felt, pokerTable, reels, slotsBackdrop, moonRide, moonSky
+    case tetris, tetrisBoard, mergeTiles, mergeBoard, snake, snakeBoard, paddle, ball
+    case bubbles, bubbleBoard, pumpBoard, pumpCoins, swapTiles, swapBoard, ship, shots
 
     public var id: String { rawValue }
 
@@ -108,15 +111,25 @@ public enum CosmeticSlot: String, CaseIterable, Codable, Sendable, Identifiable 
         case .felt: localized("\(MiniGame.blackjack.name) Table")
         case .pokerTable: localized("\(MiniGame.videoPoker.name) Table")
         case .reels: localized("Slot Reels")
+        case .slotsBackdrop: localized("Crypto Slots Backdrop")
         case .moonRide: localized("\(MiniGame.moon.name) Ride")
+        case .moonSky: localized("\(MiniGame.moon.name) Sky")
         case .tetris: localized("Block Chain Coins")
+        case .tetrisBoard: localized("Block Chain Board")
         case .mergeTiles: localized("Merge Mining Tiles")
+        case .mergeBoard: localized("Merge Mining Board")
         case .snake: localized("Hash Chain Blocks")
+        case .snakeBoard: localized("Hash Chain Board")
         case .paddle: localized("Hash Smash Paddle")
+        case .ball: localized("Hash Smash Ball")
         case .bubbles: localized("Bubble Market Bubbles")
+        case .bubbleBoard: localized("Bubble Market Board")
         case .pumpBoard: localized("Pump and Dump Board")
+        case .pumpCoins: localized("Pump and Dump Coins")
         case .swapTiles: localized("Token Swap Tiles")
+        case .swapBoard: localized("Token Swap Board")
         case .ship: localized("Invaders Ship")
+        case .shots: localized("Invaders Shots")
         }
     }
 
@@ -126,16 +139,16 @@ public enum CosmeticSlot: String, CaseIterable, Codable, Sendable, Identifiable 
         case .cardBack: [.blackjack, .videoPoker]
         case .felt: [.blackjack]
         case .pokerTable: [.videoPoker]
-        case .reels: [.slots]
-        case .moonRide: [.moon]
-        case .tetris: [.tetris]
-        case .mergeTiles: [.merge2048]
-        case .snake: [.snake]
-        case .paddle: [.brickBreaker]
-        case .bubbles: [.bubbleBlaster]
-        case .pumpBoard: [.pumpDump]
-        case .swapTiles: [.tokenSwap]
-        case .ship: [.invaders]
+        case .reels, .slotsBackdrop: [.slots]
+        case .moonRide, .moonSky: [.moon]
+        case .tetris, .tetrisBoard: [.tetris]
+        case .mergeTiles, .mergeBoard: [.merge2048]
+        case .snake, .snakeBoard: [.snake]
+        case .paddle, .ball: [.brickBreaker]
+        case .bubbles, .bubbleBoard: [.bubbleBlaster]
+        case .pumpBoard, .pumpCoins: [.pumpDump]
+        case .swapTiles, .swapBoard: [.tokenSwap]
+        case .ship, .shots: [.invaders]
         }
     }
 
@@ -146,15 +159,25 @@ public enum CosmeticSlot: String, CaseIterable, Codable, Sendable, Identifiable 
         case .felt: .feltGreen
         case .pokerTable: .pokerSapphire
         case .reels: .reelsClassic
+        case .slotsBackdrop: .slotsVelvet
         case .moonRide: .moonRocket
+        case .moonSky: .moonSkyDeepSpace
         case .tetris: .tetrisClassic
+        case .tetrisBoard: .tetrisBoardNight
         case .mergeTiles: .mergeClassic
+        case .mergeBoard: .mergeBoardNavy
         case .snake: .snakeGreen
+        case .snakeBoard: .snakeBoardLedger
         case .paddle: .paddleGold
+        case .ball: .ballBitcoin
         case .bubbles: .bubblesGlossy
+        case .bubbleBoard: .bubbleBoardDeepSea
         case .pumpBoard: .pumpExchange
+        case .pumpCoins: .pumpCoinsBitcoin
         case .swapTiles: .swapRounded
+        case .swapBoard: .swapBoardTeal
         case .ship: .shipClassic
+        case .shots: .shotsGold
         }
     }
 }
@@ -178,9 +201,10 @@ public enum CosmeticUnlock: Equatable, Sendable {
     }
 }
 
-/// A look for a game: card backs, the tables, slot reels, the moon ride, Block Chain's coins, Merge
-/// Mining's tiles, the chain, Hash Smash's paddle, Bubble Market's bubbles, Pump and Dump's board,
-/// Token Swap's tiles and the Scam Invaders ship.
+/// A look for a game: card backs, the tables, slot reels and the slot machine's backdrop, the moon
+/// ride and its sky, Block Chain's coins and board, Merge Mining's tiles and board, the chain and its
+/// board, Hash Smash's paddle and ball, Bubble Market's bubbles and board, Pump and Dump's board and
+/// coins, Token Swap's tiles and board, and the Scam Invaders ship and its shots.
 public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
     case cardBackClassic, cardBackMidnight, cardBackEmerald, cardBackGold
     case feltGreen, feltCrimson, feltBlue
@@ -195,6 +219,16 @@ public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
     case pumpExchange, pumpNeon, pumpGold
     case swapRounded, swapBubbles, swapGems
     case shipClassic, shipNeon, shipGold
+    case slotsVelvet, slotsRuby, slotsEmerald
+    case moonSkyDeepSpace, moonSkySunset, moonSkyAurora
+    case tetrisBoardNight, tetrisBoardCircuit, tetrisBoardSynthwave
+    case mergeBoardNavy, mergeBoardSlate, mergeBoardRuby
+    case snakeBoardLedger, snakeBoardMatrix, snakeBoardBlueprint
+    case ballBitcoin, ballPlasma, ballEmber
+    case bubbleBoardDeepSea, bubbleBoardSunset, bubbleBoardArctic
+    case pumpCoinsBitcoin, pumpCoinsEthereum, pumpCoinsDogecoin
+    case swapBoardTeal, swapBoardMidnight, swapBoardWalnut
+    case shotsGold, shotsPlasma, shotsRuby
 
     public var id: String { rawValue }
 
@@ -213,6 +247,16 @@ public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
         case .pumpExchange, .pumpNeon, .pumpGold: .pumpBoard
         case .swapRounded, .swapBubbles, .swapGems: .swapTiles
         case .shipClassic, .shipNeon, .shipGold: .ship
+        case .slotsVelvet, .slotsRuby, .slotsEmerald: .slotsBackdrop
+        case .moonSkyDeepSpace, .moonSkySunset, .moonSkyAurora: .moonSky
+        case .tetrisBoardNight, .tetrisBoardCircuit, .tetrisBoardSynthwave: .tetrisBoard
+        case .mergeBoardNavy, .mergeBoardSlate, .mergeBoardRuby: .mergeBoard
+        case .snakeBoardLedger, .snakeBoardMatrix, .snakeBoardBlueprint: .snakeBoard
+        case .ballBitcoin, .ballPlasma, .ballEmber: .ball
+        case .bubbleBoardDeepSea, .bubbleBoardSunset, .bubbleBoardArctic: .bubbleBoard
+        case .pumpCoinsBitcoin, .pumpCoinsEthereum, .pumpCoinsDogecoin: .pumpCoins
+        case .swapBoardTeal, .swapBoardMidnight, .swapBoardWalnut: .swapBoard
+        case .shotsGold, .shotsPlasma, .shotsRuby: .shots
         }
     }
 
@@ -258,13 +302,45 @@ public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
         case .shipClassic: localized("Classic")
         case .shipNeon: localized("Neon")
         case .shipGold: localized("Gold")
+        case .slotsVelvet: localized("Velvet")
+        case .slotsRuby: localized("Ruby Lounge")
+        case .slotsEmerald: localized("Emerald Lounge")
+        case .moonSkyDeepSpace: localized("Deep Space")
+        case .moonSkySunset: localized("Sunset")
+        case .moonSkyAurora: localized("Aurora")
+        case .tetrisBoardNight: localized("Night")
+        case .tetrisBoardCircuit: localized("Circuit")
+        case .tetrisBoardSynthwave: localized("Synthwave")
+        case .mergeBoardNavy: localized("Navy")
+        case .mergeBoardSlate: localized("Slate")
+        case .mergeBoardRuby: localized("Ruby")
+        case .snakeBoardLedger: localized("Ledger")
+        case .snakeBoardMatrix: localized("Matrix")
+        case .snakeBoardBlueprint: localized("Blueprint")
+        case .ballBitcoin: localized("Bitcoin")
+        case .ballPlasma: localized("Plasma")
+        case .ballEmber: localized("Ember")
+        case .bubbleBoardDeepSea: localized("Deep Sea")
+        case .bubbleBoardSunset: localized("Sunset")
+        case .bubbleBoardArctic: localized("Arctic")
+        case .pumpCoinsBitcoin: localized("Bitcoin")
+        case .pumpCoinsEthereum: localized("Ethereum")
+        case .pumpCoinsDogecoin: localized("Dogecoin")
+        case .swapBoardTeal: localized("Teal")
+        case .swapBoardMidnight: localized("Midnight")
+        case .swapBoardWalnut: localized("Walnut")
+        case .shotsGold: localized("Gold")
+        case .shotsPlasma: localized("Plasma")
+        case .shotsRuby: localized("Ruby")
         }
     }
 
     public var unlock: CosmeticUnlock {
         switch self {
         case .cardBackClassic, .feltGreen, .pokerSapphire, .reelsClassic, .moonRocket, .tetrisClassic, .mergeClassic,
-             .snakeGreen, .paddleGold, .bubblesGlossy, .pumpExchange, .swapRounded, .shipClassic: .free
+             .snakeGreen, .paddleGold, .bubblesGlossy, .pumpExchange, .swapRounded, .shipClassic,
+             .slotsVelvet, .moonSkyDeepSpace, .tetrisBoardNight, .mergeBoardNavy, .snakeBoardLedger, .ballBitcoin,
+             .bubbleBoardDeepSea, .pumpCoinsBitcoin, .swapBoardTeal, .shotsGold: .free
         case .swapBubbles: .rank(2)
         case .cardBackMidnight: .rank(3)
         case .cardBackEmerald: .achievement(id: "poker-face", tier: 0, orRank: 16)
@@ -292,6 +368,28 @@ public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
         case .swapGems: .achievement(id: "token-swapper", tier: 1, orRank: 21)
         case .shipNeon: .rank(7)
         case .shipGold: .achievement(id: "invader-hunter", tier: 1, orRank: 25)
+        // Each game's second kind of look: one at a rank from 29 to 38, in the Arcade's order, and
+        // one with another of the game's achievements, or at a rank from 39 to 48.
+        case .slotsRuby: .rank(29)
+        case .moonSkySunset: .rank(30)
+        case .tetrisBoardCircuit: .rank(31)
+        case .snakeBoardMatrix: .rank(32)
+        case .swapBoardMidnight: .rank(33)
+        case .mergeBoardSlate: .rank(34)
+        case .pumpCoinsEthereum: .rank(35)
+        case .bubbleBoardSunset: .rank(36)
+        case .ballPlasma: .rank(37)
+        case .shotsPlasma: .rank(38)
+        case .slotsEmerald: .achievement(id: "high-roller", tier: 2, orRank: 39)
+        case .moonSkyAurora: .achievement(id: "moonshot", tier: 2, orRank: 40)
+        case .tetrisBoardSynthwave: .achievement(id: "high-score", tier: 1, orRank: 41)
+        case .snakeBoardBlueprint: .achievement(id: "snake-charmer", tier: 2, orRank: 42)
+        case .swapBoardWalnut: .achievement(id: "star-collector", tier: 1, orRank: 43)
+        case .mergeBoardRuby: .achievement(id: "puzzle-solver", tier: 1, orRank: 44)
+        case .pumpCoinsDogecoin: .achievement(id: "whack-a-coin", tier: 2, orRank: 45)
+        case .bubbleBoardArctic: .achievement(id: "wave-rider", tier: 1, orRank: 46)
+        case .ballEmber: .achievement(id: "brick-smasher", tier: 2, orRank: 47)
+        case .shotsRuby: .achievement(id: "last-line", tier: 1, orRank: 48)
         }
     }
 
@@ -299,6 +397,9 @@ public enum Cosmetic: String, CaseIterable, Codable, Sendable, Identifiable {
     public static func all(in slot: CosmeticSlot) -> [Cosmetic] {
         allCases.filter { $0.slot == slot }
     }
+
+    /// The highest rank that unlocks a look (48): every look is unlocked by then.
+    public static var highestRank: Int { allCases.compactMap(\.unlock.rank).max() ?? 1 }
 
     /// The cosmetics a rank unlocks (including those an achievement may have unlocked already).
     public static func unlocked(atRank rank: Int) -> [Cosmetic] {

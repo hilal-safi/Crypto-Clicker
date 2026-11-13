@@ -9,16 +9,17 @@ No real cryptocurrency, no ads, no purchases.
 - **Mining.** Tap for coins and build quick-tap combos, then buy 13 miners from a Chromebook to a
   Galactic Hashnet. Each unit costs 15% more, milestones and Mk upgrades double output, and the Shop
   marks the best value.
-- **Upgrades and power-ups.** 22 one-time upgrades, combo power-ups, and Offline Mining, which keeps
+- **Upgrades and power-ups.** 24 one-time upgrades, combo power-ups, and Offline Mining, which keeps
   miners earning while the app is closed, for up to three days.
 - **Prestige.** After 15 billion coins mined, start a new run for points that add 5% production each
   and buy permanent perks.
 - **Daily play.** A daily reward streak, three quests a day, a daily challenge in one of your games,
   airdrops, whales and Bull Runs.
-- **Tokens.** Ten tokens whose prices drift with in-game news. Buy them to bet in the casino or sell
-  later.
-- **Casino.** 21 Million (blackjack), Crypto Slots, Diamond Hands (video poker) and To the Moon (a crash
-  game), played with tokens or practice chips.
+- **Tokens.** Eleven tokens, from SafeMoon at 100 coins to Bitcoin, whose prices drift with in-game
+  news; each is tagged Stable, Moderate or Volatile. Buy them to bet in the casino or sell later.
+- **Casino.** 21 Million (blackjack), Crypto Slots (a classic 3×1 machine or a 5×3 video machine with
+  five lines), Diamond Hands (video poker) and To the Moon (a crash game with a 2× or a riskier 5×
+  rocket), played with tokens or practice chips.
 - **Arcade.** Eight games that pay coins for points, each with its own modes, speeds, records and
   backdrop:
 
@@ -33,8 +34,9 @@ No real cryptocurrency, no ads, no purchases.
   | Pump and Dump | Tap coins as they list, on a 3×3, 4×4 or 5×5 board |
   | Token Swap | Match-three with 18 levels, a daily puzzle, random levels and Classic |
 
-- **Progress.** 65 achievements with four tiers (each star adds 1% production), an Arcade Rank, and
-  Style looks for the coin and every game. Goals shows what to aim for next, and Statistics charts your
+- **Progress.** 66 achievements with four tiers (each star adds 1% production), an Arcade Rank up to
+  Mythic, and Style looks for the coin and two kinds for every game (one look at each rank from 2 to
+  48, many sooner with a game's achievement). Goals shows what to aim for next, and Statistics charts your
   income and keeps every record.
 - **Beyond the app.** Steps from Apple Health, an Apple Watch app, Home Screen and Lock Screen widgets,
   a Live Activity, and a Siri shortcut for your balance.

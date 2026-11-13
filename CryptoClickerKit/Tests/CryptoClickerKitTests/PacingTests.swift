@@ -21,6 +21,9 @@ struct SimulatedPlayer {
     var arcadeSecondsPerTen = 90.0
     /// Prestiges as soon as the shop suggests it, then spends the points on perks.
     var prestigesWhenSuggested = true
+    /// Steps walked a day, spread evenly from 7 am to 10 pm. Above zero, the player connects Apple
+    /// Health as soon as steps unlock, syncs every check-in and buys the step upgrades.
+    var stepsPerDay = 0
     private(set) var firstBought: [MinerID: TimeInterval] = [:]
     private(set) var firstUpgrade: [UpgradeID: TimeInterval] = [:]
     /// Each power-up level bought: which, the level, and when.
@@ -107,10 +110,28 @@ struct SimulatedPlayer {
         notePrestige()
     }
 
+    /// Steps walked so far today: the day's steps spread evenly from 7 am to 10 pm.
+    func stepsSoFarToday() -> Int {
+        let sinceMidnight = now.timeIntervalSince(Calendar.current.startOfDay(for: now))
+        let share = min(1, max(0, (sinceMidnight - 7 * 3_600) / (15 * 3_600)))
+        return Int(Double(stepsPerDay) * share)
+    }
+
+    /// Connects Apple Health once steps unlock, then syncs: yesterday's full total and today's so far.
+    private mutating func syncSteps() {
+        guard stepsPerDay > 0 else { return }
+        let today = dayKey(0)
+        if !game.steps.isConnected { game.connectSteps(today: today) }
+        guard game.steps.isConnected else { return }
+        let days = [StepDay(key: dayKey(-1), steps: stepsPerDay), StepDay(key: today, steps: stepsSoFarToday())]
+        game.creditSteps(days, today: today, at: now)
+    }
+
     /// Today's quests, challenge and daily reward (from the second day on).
     private mutating func dailies() {
         let today = dayKey(0)
-        game.refreshDaily(today: today, canWalk: false, at: now)
+        syncSteps()
+        game.refreshDaily(today: today, canWalk: stepsPerDay > 0, at: now)
         game.claimDailyReward(today: today, yesterday: dayKey(-1), at: now)
         for quest in game.daily.quests where !quest.isClaimed && game.isComplete(quest) {
             game.claimQuest(quest.id, at: now)
@@ -199,7 +220,13 @@ struct SimulatedPlayer {
             }
             for upgrade in UpgradeID.allCases where !game.upgrades.contains(upgrade) && game.isRevealed(upgrade) {
                 switch upgrade.category {
-                case .steps: continue
+                case .steps:
+                    // A day's extra step coins, spread over the day's forty minutes of play.
+                    guard stepsPerDay > 0, game.steps.isConnected else { continue }
+                    var copy = game
+                    copy.upgrades.insert(upgrade)
+                    let extra = Double(stepsPerDay) * (copy.stepValue - game.stepValue)
+                    consider(cost: upgrade.cost, gain: extra / 2_400, upgrade: upgrade) { $0.buy(upgrade) }
                 case .miniGames:
                     // Worth about as much as a small production boost to someone who plays.
                     consider(cost: upgrade.cost, gain: current * 0.03, upgrade: upgrade) { $0.buy(upgrade) }
@@ -241,10 +268,11 @@ struct PacingTests {
     }
 
     /// Four ten-minute check-ins every 22 hours (away 3, 4, 5 and 10 hours), until `days` days
-    /// have passed.
-    func casualPlayer(days: Int) -> SimulatedPlayer {
+    /// have passed, walking `stepsPerDay` steps a day.
+    func casualPlayer(days: Int, stepsPerDay: Int = 0) -> SimulatedPlayer {
         let gaps: [Double] = [3, 4, 5, 10]
         var player = SimulatedPlayer(tapsPerSecond: 3, awayHours: gaps)
+        player.stepsPerDay = stepsPerDay
         while player.elapsed < Double(days) * 86_400 {
             for gap in gaps where player.elapsed < Double(days) * 86_400 {
                 player.play(seconds: 600)
@@ -288,8 +316,8 @@ struct PacingTests {
         #expect((6...8).contains(player.firstBought.count))
         #expect(player.firstPointAt.map { $0 >= 1.5 * 3_600 } ?? true)
         #expect(player.prestigeTimes.isEmpty)
-        // New games keep coming: more than half of them in the first three hours, the rest later.
-        #expect((6...9).contains(player.gamesUnlockedAt.count))
+        // New games keep coming: about half of them in the first three hours, the rest later.
+        #expect((5...8).contains(player.gamesUnlockedAt.count))
         // Nobody who stays in the app needs Offline Mining.
         #expect(player.game.offlineMiningLevel == 0)
     }
@@ -326,25 +354,29 @@ struct PacingTests {
     }
 
     @Test func aCasualPlayerReachesTheTenthTierAndAPrestigeInAboutAWeek() {
-        let player = casualPlayer(days: 8)
+        let player = casualPlayer(days: 10)
         let tiers = MinerID.allCases.map { "\($0.name) \(days(player.firstBought[$0]))" }
         let lastGame = player.gamesUnlockedAt.values.max()
-        print("Casual 8 days:", tiers.joined(separator: ", "), "| first point", days(player.firstPointAt),
+        print("Casual 10 days:", tiers.joined(separator: ", "), "| first point", days(player.firstPointAt),
               "| prestiges", player.prestigeTimes.map(days), "| every game by", days(lastGame),
-              "| points", player.game.prestigePoints, "| offline", CoinFormat.duration(player.game.offlineCap))
-        // The Data Center takes a day or more, and the middle of the climb about twice as long as
-        // the start: the first prestige point (15 billion mined) comes around day three, the tenth
-        // tier in about six days, and the Shop suggests the first prestige within the week.
-        #expect(player.firstBought[.dataCenter].map { (1 * 86_400...2 * 86_400).contains($0) } == true)
-        #expect(player.firstPointAt.map { (2 * 86_400...3.5 * 86_400).contains($0) } == true)
+              "| points", player.game.prestigePoints, "| offline", CoinFormat.duration(player.game.offlineCap),
+              "| Immersion Cooling", days(player.firstUpgrade[.immersionCooling]))
+        // Without steps: the Data Center takes about two days (the Server and the Data Center cost
+        // more, and the first production upgrades give less). Immersion Cooling picks the pace up
+        // from the third day: the first prestige point (15 billion mined) comes in about four days,
+        // the tenth tier in about seven, and the Shop suggests the first prestige at about seven
+        // and a half (a walker gets there sooner: see the walking test).
+        #expect(player.firstBought[.dataCenter].map { (1.5 * 86_400...2.5 * 86_400).contains($0) } == true)
+        #expect(player.firstUpgrade[.immersionCooling].map { (2 * 86_400...4 * 86_400).contains($0) } == true)
+        #expect(player.firstPointAt.map { (3 * 86_400...4.5 * 86_400).contains($0) } == true)
         let tenthTier = player.firstBought[.spaceColony]
-        #expect(tenthTier.map { (5 * 86_400...7 * 86_400).contains($0) } == true)
-        #expect(player.firstPrestigeAt.map { (5.5 * 86_400...7.25 * 86_400).contains($0) } == true)
+        #expect(tenthTier.map { (6 * 86_400...7.5 * 86_400).contains($0) } == true)
+        #expect(player.firstPrestigeAt.map { (7 * 86_400...8 * 86_400).contains($0) } == true)
         #expect((1...2).contains(player.prestigeTimes.count))
-        // Every game within the week, and the whole first ladder before the first prestige (which
-        // opens the three tiers beyond it).
+        // Every game within about a week, and the whole first ladder before the first prestige
+        // (which opens the three tiers beyond it).
         #expect(player.gamesUnlockedAt.count == MiniGame.allCases.count)
-        #expect(lastGame.map { $0 < 7 * 86_400 } == true)
+        #expect(lastGame.map { $0 < 7.5 * 86_400 } == true)
         #expect(tenthTier.map { $0 <= (player.firstPrestigeAt ?? 0) } == true)
         // Offline Mining covers the longest absence (ten hours) within the first week.
         #expect(player.game.offlineCap >= 10 * 3_600)
@@ -352,10 +384,10 @@ struct PacingTests {
 
     @Test func offlineMiningGrowsOverTheFirstWeekNotTheFirstDay() {
         let player = casualPlayer(days: 1)
-        // Five minutes a level up to the hour: most of an hour by the end of the first day, so the
-        // first nights pay only part of the time away.
+        // The first levels climb 35% each, so the first day ends with about ten minutes of time away
+        // and the first nights pay only part of it; the hour comes on the second day.
         print("Casual 1 day: offline", CoinFormat.duration(player.game.offlineCap), "| level", player.game.offlineMiningLevel)
-        #expect((30 * 60...2 * 3_600).contains(player.game.offlineCap))
+        #expect((5 * 60...2 * 3_600).contains(player.game.offlineCap))
     }
 
     /// Three weeks of casual play take a while to simulate, so this runs with the balance tests:
@@ -364,17 +396,52 @@ struct PacingTests {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
         let player = casualPlayer(days: 21)
         let perks = PerkID.allCases.sorted { $0.cost < $1.cost }.map { "\($0.name) \(days(player.perksBoughtAt[$0]))" }
-        print("Casual 21 days: prestiges", player.prestigeTimes.count, "| points", player.game.prestigePoints,
+        print("Casual 21 days: prestiges", player.prestigeTimes.map(days), "| points", player.game.prestigePoints,
               "| Lunar Base", days(player.firstBought[.lunarBase]), "| Galactic Hashnet", days(player.firstBought[.galacticHashnet]),
               "| perks", perks.joined(separator: ", "))
+        // Without steps, about eight prestiges and a few thousand points in three weeks (the
+        // 5,000-step walker makes nine and about five thousand): later prestiges wait until they
+        // would nearly double production, so each is a bigger jump than the first.
+        #expect((7...9).contains(player.prestigeTimes.count))
+        #expect((1_500...5_000).contains(player.game.prestigePoints))
         // The cheap perks come with the first prestige, the dearest ones after two weeks or more,
         // and the last miner tier within the three weeks.
-        #expect(player.perksBoughtAt[.headStart].map { $0 < 7.5 * 86_400 } == true)
+        #expect(player.perksBoughtAt[.headStart].map { $0 < 8 * 86_400 } == true)
         #expect(player.firstBought[.lunarBase] != nil)
         #expect(player.firstBought[.galacticHashnet] != nil)
         #expect(player.perksBoughtAt[.engineeringTeam].map { $0 > 14 * 86_400 } ?? true)
         #expect(player.perksBoughtAt[.compoundInterest].map { $0 > 18 * 86_400 } ?? true)
-        #expect(player.perksBoughtAt.count >= 13)
+        #expect(player.perksBoughtAt.count >= 10)
+    }
+
+    /// The casual player again, walking 2,500, 5,000 or 10,000 steps a day: walking matters, about
+    /// half a day of the first prestige for each doubling. The 5,000-step walker sets the pace (the
+    /// first prestige at about six and a half days, nine prestiges in three weeks); 2,500 steps take
+    /// about seven days and 10,000 about six. Runs with the balance tests.
+    @Test(arguments: [2_500, 5_000, 10_000]) func walkingMovesTheFirstPrestigeByAboutHalfADayADoubling(steps: Int) {
+        guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
+        let walker = casualPlayer(days: 21, stepsPerDay: steps)
+        let stats = walker.game.stats
+        let share = stats.earnedFromSteps / stats.lifetimeCoins
+        print("Walker \(steps) steps: Data Center", days(walker.firstBought[.dataCenter]), "| first point", days(walker.firstPointAt),
+              "| first prestige", days(walker.firstPrestigeAt), "| prestiges", walker.prestigeTimes.count,
+              "| points", walker.game.prestigePoints, "| steps paid", String(format: "%.1f%%", share * 100),
+              "| boosters", UpgradeID.allCases.filter { $0.category == .steps }.map { days(walker.firstUpgrade[$0]) })
+        let firstPrestige: ClosedRange<Double> = switch steps {
+        // A night falls between seven days and the morning after: the morning is close enough.
+        case ..<5_000: 6.75...7.4
+        case 5_000: 6.25...6.75
+        default: 5.5...6.25
+        }
+        #expect(walker.firstPrestigeAt.map { firstPrestige.contains($0 / 86_400) } == true)
+        #expect((steps >= 10_000 ? 9...11 : 8...10).contains(walker.prestigeTimes.count))
+        // Steps pay a real share, but mining still pays most.
+        #expect(share > Double(steps) / 100_000)
+        #expect(share < 0.5)
+        // The first three boosters come in the first four days; the Mega Step Booster, in the
+        // trillions, near the end of the first run.
+        #expect([UpgradeID.stepBooster, .upgradedStepBooster, .ultimateStepBooster].allSatisfy { walker.firstUpgrade[$0].map { $0 < 4.5 * 86_400 } == true })
+        #expect(walker.firstUpgrade[.megaStepBooster].map { (5 * 86_400...8 * 86_400).contains($0) } == true)
     }
 
     @Test func offlineMiningIsEarnedInTheFirstSessionsNotGivenAtTheStart() {
@@ -386,12 +453,13 @@ struct PacingTests {
     }
 
     @Test func tapsStayWorthHavingAllGameLong() {
-        // An hour in, three taps a second add more than half again to idle income...
+        // An hour in, three taps a second add a fifth or more to idle income (the Mechanical
+        // Keyboard, which makes taps count for more, comes a little later now)...
         var early = SimulatedPlayer(tapsPerSecond: 3)
         early.play(seconds: 60 * 60)
         let earlyGame = early.game
-        #expect(3 * earlyGame.tapValue(at: early.now) >= 0.5 * earlyGame.baseIdleIncome)
-        // ...and days in, a single tap is worth most of a second of production.
+        #expect(3 * earlyGame.tapValue(at: early.now) >= 0.2 * earlyGame.baseIdleIncome)
+        // ...and days in, a single tap is worth a good part of a second of production.
         var late = SimulatedPlayer(tapsPerSecond: 3, awayHours: [3, 4, 5, 10])
         late.prestigesWhenSuggested = false
         for _ in 0..<5 {
@@ -400,8 +468,10 @@ struct PacingTests {
                 late.leave(for: gap * 3_600 - 600)
             }
         }
-        // (Four of the five tapping upgrades by then, 65%: Satoshi's Touch comes later.)
-        #expect(late.game.tapValue(at: late.now) >= 0.6 * late.game.baseProduction)
-        #expect(3 * late.game.tapValue(at: late.now) >= late.game.baseIdleIncome)
+        // (Three of the five tapping upgrades by then, 40%: the Haptic Engine and Satoshi's Touch
+        // come later. Automatic taps, now worth half a tap, are part of idle income, so three taps a
+        // second still add most of it again.)
+        #expect(late.game.tapValue(at: late.now) >= 0.35 * late.game.baseProduction)
+        #expect(3 * late.game.tapValue(at: late.now) >= 0.75 * late.game.baseIdleIncome)
     }
 }

@@ -184,7 +184,8 @@ struct SnakePlayView: View {
             }
             .scoreBar()
             PowerUpStrip(game: game)
-            SnakeBoard(game: game, reduceMotion: reduceMotion, skin: store.game.equipped(.snake))
+            SnakeBoard(game: game, reduceMotion: reduceMotion, skin: store.game.equipped(.snake),
+                       board: store.game.equipped(.snakeBoard))
                 .overlay(alignment: .top) { pickupBanner }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(MiniGame.snake.name) board")
@@ -432,8 +433,10 @@ struct SnakeBoard: View {
     var reduceMotion = false
     /// The skin picked in Style.
     var skin: Cosmetic = .snakeGreen
+    /// The board picked in Style.
+    var board: Cosmetic = .snakeBoardLedger
 
-    static let boardColor = Color(red: 0.03, green: 0.09, blue: 0.13).opacity(0.9)
+    static let boardColor = Cosmetic.snakeBoardLedger.snakeBoardColors.fill
     static let wallColor = Color(red: 0.32, green: 0.36, blue: 0.44)
 
     var body: some View {
@@ -468,10 +471,10 @@ struct SnakeBoard: View {
         }
         .aspectRatio(CGFloat(SnakeGame.width) / CGFloat(SnakeGame.height), contentMode: .fit)
         .padding(4)
-        .background(Self.boardColor, in: .rect(cornerRadius: 16))
+        .background(board.snakeBoardColors.fill, in: .rect(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Color.cyan.opacity(0.3), lineWidth: 1)
+                .strokeBorder(board.snakeBoardColors.rim, lineWidth: 1)
         }
     }
 
@@ -521,7 +524,7 @@ struct SnakeBoard: View {
             grid.move(to: CGPoint(x: 0, y: CGFloat(y) * cell))
             grid.addLine(to: CGPoint(x: size.width, y: CGFloat(y) * cell))
         }
-        context.stroke(grid, with: .color(.cyan.opacity(0.07)), lineWidth: 0.5)
+        context.stroke(grid, with: .color(board.snakeBoardColors.grid), lineWidth: 0.5)
     }
 
     /// A wall cell as a server: a dark unit with a vent line and a status light.

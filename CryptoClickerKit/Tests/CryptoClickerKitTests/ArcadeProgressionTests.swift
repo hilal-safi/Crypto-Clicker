@@ -38,7 +38,7 @@ struct ArcadeProgressionTests {
         #expect(ArcadeRank.rank(forXP: Int.max) > 1)
         #expect(ArcadeRank.title(forRank: 1) == "Rookie")
         #expect(ArcadeRank.title(forRank: 10) == "Pro")
-        #expect(ArcadeRank.title(forRank: 40) == "Legend")
+        #expect(ArcadeRank.title(forRank: 40) == "Mythic") // From rank 40, where the last looks unlock.
     }
 
     @Test func aFinishedGameEarnsXPWithMoreForABestAndTheFirstOfTheDay() throws {
@@ -206,19 +206,54 @@ struct ArcadeProgressionTests {
             #expect((cosmetic.unlock.rank != nil) == (cosmetic.unlock != .free), "\(cosmetic)")
         }
         #expect(Cosmetic.unlocked(atRank: 3) == [.cardBackMidnight])
-        // Ranks 2 to 28 each unlock one look.
-        #expect((2...28).allSatisfy { Cosmetic.unlocked(atRank: $0).count == 1 })
-        #expect(Cosmetic.allCases.compactMap(\.unlock.rank).count == 27)
-        // Every game has a look of its own to pick.
+        // Ranks 2 to 48 each unlock one look: 47 in all, the second kinds from 29 on.
+        #expect((2...48).allSatisfy { Cosmetic.unlocked(atRank: $0).count == 1 })
+        #expect(Cosmetic.allCases.compactMap(\.unlock.rank).count == 47)
+        #expect(Cosmetic.unlocked(atRank: 29) == [.slotsRuby])
+        #expect(Cosmetic.unlocked(atRank: 48) == [.shotsRuby])
+        // Every game has a look of its own to pick, and two kinds of look in all (the card games
+        // share their card backs).
         #expect(Set(CosmeticSlot.allCases.flatMap(\.games)) == Set(MiniGame.allCases))
         #expect(MiniGame.allCases.allSatisfy { game in CosmeticSlot.allCases.contains { $0.games == [game] } })
+        for game in MiniGame.allCases {
+            #expect(CosmeticSlot.allCases.filter { $0.games.contains(game) }.count == 2, "\(game)")
+        }
+        // Each slot's looks are its own, and every name is unique within a slot.
+        for slot in CosmeticSlot.allCases {
+            let looks = Cosmetic.all(in: slot)
+            #expect(looks.allSatisfy { $0.slot == slot })
+            #expect(Set(looks.map(\.name)).count == looks.count, "\(slot)")
+        }
+    }
+
+    @Test func theNewKindsOfLookUnlockByRankOrAchievement() {
+        var game = player()
+        #expect(game.equipped(.ball) == .ballBitcoin)
+        let tooEarly = game.equip(.ballPlasma) // Rank 37.
+        #expect(!tooEarly)
+        game.arcade.xp = ArcadeRank.xpNeeded(forRank: 37)
+        let equipped = game.equip(.ballPlasma)
+        #expect(equipped)
+        #expect(game.equipped(.ball) == .ballPlasma)
+        #expect(game.equipped(.paddle) == .paddleGold) // The paddle is its own kind.
+        // Hash Smasher at gold (5,000 blocks) unlocks Ember well before rank 47.
+        #expect(!game.isUnlocked(.ballEmber))
+        game.stats.bricksBroken = 5_000
+        game.refreshAchievements()
+        #expect(game.isUnlocked(.ballEmber))
+        #expect(game.achievementUnlock(.ballEmber)?.name == "Hash Smasher")
+        #expect(game.achievementUnlock(.ballEmber)?.tier == "Gold")
+        #expect(game.unlockText(.ballEmber) == "Arcade Rank 47")
     }
 
     /// The Testing Tools' shortcuts unlock every look there is.
     @Test func theTestingToolsUnlockEveryLook() {
         var game = player()
-        game.debugReachArcadeRank(30)
-        #expect(game.arcadeRank == 30 && game.arcadeTitle == "Legend")
+        #expect(ArcadeRank.title(forRank: 30) == "Legend")
+        #expect(ArcadeRank.title(forRank: 39) == "Legend")
+        #expect(Cosmetic.highestRank == 48)
+        game.debugReachArcadeRank(Cosmetic.highestRank)
+        #expect(game.arcadeRank == 48 && game.arcadeTitle == "Mythic")
         #expect(Cosmetic.allCases.filter { if case .rank = $0.unlock { true } else { false } }.allSatisfy(game.isUnlocked))
         game.debugEarnAllAchievements()
         #expect(game.earnedAchievementTiers == AchievementCatalog.tierCount)

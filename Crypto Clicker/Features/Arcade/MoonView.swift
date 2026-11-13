@@ -12,8 +12,12 @@ struct MoonView: View {
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var token = TokenID.shibaInu
     @State private var bet = 1
-    /// Cash out by itself on reaching this, if it gets there.
-    @State private var autoCashOut: Double? = 2
+    /// The rocket the next flight rides.
+    @AppStorage("moonRocket") private var rocket = MoonRocket.doubling
+    /// Each rocket's automatic cash-out, remembered between visits (0 is off): 2× on the 2× rocket
+    /// and 5× on the 5× one to start, so the faster rocket doesn't stop at the slow one's target.
+    @AppStorage("moonAutoCashOutDoubling") private var autoDoubling = 2.0
+    @AppStorage("moonAutoCashOutFivefold") private var autoFivefold = 5.0
     @State private var launchDate: Date?
     /// The flight's end, for the frozen chart: seconds after launch.
     @State private var endedAfter: TimeInterval = 0
@@ -40,28 +44,44 @@ struct MoonView: View {
     /// What the flight's bet is counted in.
     private func unit(_ token: TokenID) -> String { roundIsPractice ? "chips" : token.ticker }
 
+    /// The rocket on the chart: the flight's while it flies or was last flown, else the one picked.
+    private var shownRocket: MoonRocket { activeRound?.rocket ?? result?.rocket ?? rocket }
+
+    /// Cash out by itself on reaching this, if it gets there: the picked rocket's.
+    private var autoCashOut: Double? {
+        let target = rocket == .doubling ? autoDoubling : autoFivefold
+        return target > 0 ? target : nil
+    }
+
+    private var autoCashOutChoice: Binding<Double?> {
+        Binding {
+            autoCashOut
+        } set: { target in
+            if rocket == .doubling { autoDoubling = target ?? 0 } else { autoFivefold = target ?? 0 }
+        }
+    }
+
     var body: some View {
         let game = store.game
+        // Fits above the controls without scrolling: the chart takes what the title and the
+        // status line leave, so the text never runs into the controls.
         GeometryReader { proxy in
-            ScrollView {
-                VStack(spacing: 14) {
-                    Spacer(minLength: 0)
-                    Text("TO THE MOON")
-                        .font(.system(size: 28, weight: .black, design: .rounded))
-                        .tracking(2)
-                        .foregroundStyle(Theme.gold.gradient)
-                        .shadow(color: Theme.gold.opacity(0.5), radius: 12)
-                    chart
-                        .frame(height: min(320, max(220, proxy.size.height * 0.42)))
-                    status(game: game)
-                        .frame(minHeight: 56)
-                    Spacer(minLength: 0)
-                }
-                .padding(16)
-                .frame(maxWidth: 560)
-                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            VStack(spacing: 10) {
+                Text("TO THE MOON")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .tracking(2)
+                    .foregroundStyle(Theme.gold.gradient)
+                    .shadow(color: Theme.gold.opacity(0.5), radius: 12)
+                chart
+                    .frame(height: min(320, max(140, proxy.size.height - 150)))
+                status(game: game)
+                    .frame(maxWidth: .infinity, minHeight: 64, alignment: .top)
+                Spacer(minLength: 0)
             }
-            .scrollBounceBehavior(.basedOnSize)
+            .padding(.horizontal, 16)
+            .padding(.top, 6)
+            .frame(maxWidth: 560)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .safeAreaInset(edge: .bottom) {
             controls(game: game)
@@ -69,7 +89,10 @@ struct MoonView: View {
                 .padding(.bottom, 8)
                 .frame(maxWidth: 560)
         }
-        .background { SpaceBackground() }
+        .background {
+            MoonSkyBackground(look: store.game.equipped(.moonSky))
+                .ignoresSafeArea()
+        }
         .overlay { EffectsLayer(effects: effects).ignoresSafeArea() }
         .environment(\.colorScheme, .dark)
         .navigationTitle("To the Moon")
@@ -95,12 +118,13 @@ struct MoonView: View {
         TimelineView(.animation(minimumInterval: nil, paused: !isFlying)) { timeline in
             let elapsed = launchDate.map { timeline.date.timeIntervalSince($0) } ?? endedAfter
             let crash = activeRound?.crashPoint ?? .infinity
+            let rocket = shownRocket
             // While flying, the line never shows past the crash point, even for a frame.
-            let shownTime = isFlying ? min(elapsed, MoonFlight.time(toReach: crash)) : endedAfter
-            let multiplier = isFlying ? min(MoonFlight.multiplier(after: shownTime), crash) : endMultiplier
+            let shownTime = isFlying ? min(elapsed, MoonFlight.time(toReach: crash, rocket: rocket)) : endedAfter
+            let multiplier = isFlying ? min(MoonFlight.multiplier(after: shownTime, rocket: rocket), crash) : endMultiplier
             ZStack {
                 FlightChart(seconds: shownTime, isCrashed: result?.isWin == false, hasFlown: isFlying || result != nil,
-                            ride: store.game.equipped(.moonRide))
+                            rocket: rocket, ride: store.game.equipped(.moonRide))
                 VStack(spacing: 4) {
                     Text(CoinFormat.flight(multiplier))
                         .font(.system(size: 52, weight: .heavy, design: .rounded))
@@ -150,7 +174,7 @@ struct MoonView: View {
         if isFlying, let round = activeRound {
             TimelineView(.periodic(from: .now, by: 0.1)) { timeline in
                 let elapsed = launchDate.map { timeline.date.timeIntervalSince($0) } ?? 0
-                let multiplier = min(MoonFlight.multiplier(after: elapsed), round.crashPoint)
+                let multiplier = min(round.multiplier(after: elapsed), round.crashPoint)
                 Text("Cash out now for \(CoinFormat.grouped(round.tokensWon(at: multiplier))) \(unit(round.token))"
                      + (round.autoCashOut.map { " · auto at \(CoinFormat.flight($0))" } ?? ""))
                     .font(.headline.monospacedDigit())
@@ -175,7 +199,9 @@ struct MoonView: View {
             }
             .transition(.scale(scale: 0.7).combined(with: .opacity))
         } else {
-            Text("The multiplier doubles every \(Int(MoonFlight.doublingTime)) seconds until the market crashes. Every target pays back 97% on average: it's luck, so bet what you can lose.")
+            Text(rocket == .doubling
+                 ? "The multiplier doubles every \(Int(MoonFlight.doublingTime)) seconds until the market crashes. Every target pays back \(CoinFormat.percent(rocket.returnToPlayer)) on average: it's luck, so bet what you can lose."
+                 : "The 5× rocket climbs fivefold every \(Int(MoonFlight.doublingTime)) seconds and crashes a little more often.")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
@@ -201,6 +227,12 @@ struct MoonView: View {
             let counts = Dictionary(uniqueKeysWithValues: TokenID.allCases.map { ($0, game.tokenCount($0)) })
             VStack(spacing: 12) {
                 CasinoModePicker(isPracticing: $isPracticing)
+                Picker("Rocket", selection: $rocket) {
+                    ForEach(MoonRocket.allCases) { rocket in
+                        Text(rocket.name).tag(rocket)
+                    }
+                }
+                .pickerStyle(.segmented)
                 if isPracticing {
                     PracticeBetControls(chips: chips, bet: $practiceBet)
                     if chips.isBroke {
@@ -219,7 +251,7 @@ struct MoonView: View {
                 }
                 HStack {
                     Menu {
-                        Picker("Automatic cash-out", selection: $autoCashOut) {
+                        Picker("Automatic cash-out", selection: autoCashOutChoice) {
                             Text("Off").tag(Double?.none)
                             ForEach(MoonFlight.autoCashOutChoices, id: \.self) { target in
                                 Text(CoinFormat.flight(target)).tag(Double?.some(target))
@@ -232,7 +264,9 @@ struct MoonView: View {
                     }
                     Spacer()
                     if !isPracticing {
-                        Text("2× pays +\(CoinFormat.short(game.moonBonus(bet: bet, token: token, multiplier: 2))) coins")
+                        // What a cash-out at the automatic target (or 2×) pays on top of the tokens.
+                        let target = autoCashOut ?? 2
+                        Text("At \(CoinFormat.flight(target)): +\(CoinFormat.short(game.moonBonus(bet: bet, token: token, multiplier: target, rocket: rocket))) coins")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.gold)
                     }
@@ -268,10 +302,11 @@ struct MoonView: View {
         if isPracticing {
             guard chips.take(practiceBet) else { return }
             practiceRound = MoonRound(token: token, bet: practiceBet,
-                                      crashPoint: MoonFlight.crashPoint(roll: Double.random(in: 0..<1)), autoCashOut: autoCashOut)
+                                      crashPoint: MoonFlight.crashPoint(roll: Double.random(in: 0..<1), rocket: rocket),
+                                      autoCashOut: autoCashOut, rocket: rocket)
             flightXP = nil
         } else {
-            guard store.launchMoon(token, bet: bet, autoCashOut: autoCashOut) else { return }
+            guard store.launchMoon(token, bet: bet, autoCashOut: autoCashOut, rocket: rocket) else { return }
             flightXP = store.lastArcadeAward
         }
         roundIsPractice = isPracticing
@@ -284,7 +319,7 @@ struct MoonView: View {
     private func waitForTheEnd() async {
         guard let launchDate, let round = activeRound else { return }
         let target = round.autoCashOut.flatMap { $0 <= round.crashPoint ? $0 : nil } ?? round.crashPoint
-        let endsAfter = MoonFlight.time(toReach: target)
+        let endsAfter = round.time(toReach: target)
         do {
             try await Task.sleep(for: .seconds(max(0, endsAfter - Date.now.timeIntervalSince(launchDate))))
         } catch {
@@ -314,7 +349,7 @@ struct MoonView: View {
             settled = paid
             resultXP = flightXP
         }
-        endedAfter = MoonFlight.time(toReach: settled.cashedOutAt ?? settled.crashPoint)
+        endedAfter = MoonFlight.time(toReach: settled.cashedOutAt ?? settled.crashPoint, rocket: settled.rocket)
         launchDate = nil
         withAnimation(.snappy) { result = settled }
         flights += 1
@@ -330,6 +365,7 @@ private struct FlightChart: View {
     let seconds: TimeInterval
     let isCrashed: Bool
     let hasFlown: Bool
+    var rocket = MoonRocket.doubling
     /// What rides the line, picked in Style.
     var ride = Cosmetic.moonRocket
 
@@ -346,9 +382,9 @@ private struct FlightChart: View {
             guard hasFlown, seconds > 0 else { return }
             // The window grows with the flight, so the line always fills the chart.
             let span = max(seconds, MoonFlight.doublingTime)
-            let top = max(MoonFlight.multiplier(after: span), 2)
+            let top = max(MoonFlight.multiplier(after: span, rocket: self.rocket), 2)
             func point(at time: TimeInterval) -> CGPoint {
-                let multiplier = pow(2, time / MoonFlight.doublingTime)
+                let multiplier = pow(self.rocket.growth, time / MoonFlight.doublingTime)
                 let x = CGFloat(time / span) * size.width
                 let y = size.height - CGFloat((multiplier - 1) / (top - 1)) * size.height * 0.9
                 return CGPoint(x: x, y: y)
@@ -374,24 +410,3 @@ private struct FlightChart: View {
 }
 
 /// Deep space with a scatter of stars.
-private struct SpaceBackground: View {
-    var body: some View {
-        RadialGradient(colors: [Color(red: 0.16, green: 0.12, blue: 0.40), Color(red: 0.02, green: 0.02, blue: 0.08)],
-                       center: .top, startRadius: 40, endRadius: 820)
-            .overlay {
-                Canvas { context, size in
-                    var rng = SeededGenerator(seed: 42)
-                    for _ in 0..<90 {
-                        let x = Double.random(in: 0...1, using: &rng) * size.width
-                        let y = Double.random(in: 0...1, using: &rng) * size.height
-                        let radius = Double.random(in: 0.5...1.6, using: &rng)
-                        let opacity = Double.random(in: 0.2...0.8, using: &rng)
-                        context.fill(Path(ellipseIn: CGRect(x: x, y: y, width: radius * 2, height: radius * 2)),
-                                     with: .color(.white.opacity(opacity)))
-                    }
-                }
-            }
-            .ignoresSafeArea()
-            .accessibilityHidden(true)
-    }
-}
