@@ -97,12 +97,14 @@ extension GameState {
     // MARK: Crypto Slots
 
     /// Coins a winning spin pays on top of its tokens: a share of the stake's coin value for each
-    /// multiple of the bet, up to `Tuning.slotsWinSeconds` of income per multiple.
-    public func slotsBonus(bet: Int, token: TokenID, multiple: Int) -> Double {
-        guard multiple >= 2 else { return 0 }
-        let stakeValue = Double(max(0, bet)) * token.price
+    /// multiple of the stake it pays, up to `Tuning.slotsWinSeconds` of income per multiple.
+    /// `multiple` is in bets per line, as `SlotsSpin.multiple`.
+    public func slotsBonus(bet: Int, token: TokenID, multiple: Int, machine: SlotMachineKind = .classic) -> Double {
+        let lines = Double(machine.lines)
+        guard Double(multiple) >= 2 * lines else { return 0 }
+        let stakeValue = Double(max(0, bet)) * lines * token.price
         let perMultiple = min(stakeValue * Tuning.slotsStakeShare, Tuning.slotsWinSeconds * rewardIncome)
-        return Self.wholeCoins(perMultiple * Double(multiple) * miniGameMultiplier)
+        return Self.wholeCoins(perMultiple * Double(multiple) / lines * miniGameMultiplier)
     }
 
     /// The coin prize for every `SlotMachine.bitcoinsPerPrize` Bitcoins collected.
@@ -114,32 +116,55 @@ extension GameState {
     public var slotsBitcoinsTowardPrize: Int { stats.slotsBitcoins % SlotMachine.bitcoinsPerPrize }
 
     /// Takes the bet, spins and pays in one step, so closing the app mid-spin can't lose a bet.
-    /// While free spins are waiting, the spin is one of them instead: at the bet and token that won
-    /// them, taking nothing. Returns `nil` (and changes nothing) if the player can't cover the bet.
+    /// `bet` is per line: the video machine stakes it on each of its five lines. While free spins
+    /// are waiting, the spin is one of them instead: on the machine, at the bet and with the token
+    /// that won them, taking nothing (and the other machine can't spin until they're played).
+    /// Returns `nil` (and changes nothing) if the player can't cover the stake.
     @discardableResult
-    public mutating func spinSlots<R: RandomNumberGenerator>(_ token: TokenID, bet: Int, using rng: inout R) -> SlotsSpin? {
+    public mutating func spinSlots<R: RandomNumberGenerator>(_ token: TokenID, bet: Int, machine: SlotMachineKind = .classic,
+                                                               using rng: inout R) -> SlotsSpin? {
+        if let waiting = slotsFreeSpins, waiting.machine != machine { return nil }
         let free = slotsFreeSpins
         let token = free?.token ?? token
         let bet = free?.bet ?? bet
-        guard bet > 0, free != nil || tokenCount(token) >= bet else { return nil }
-        let stops = SlotMachine.spin(using: &rng)
-        let line = SlotMachine.line(stops: stops)
-        let multiple = SlotMachine.payout(for: line)
-        let paid = SlotMachine.tokensPaid(bet: bet, multiple: multiple)
-        if free == nil { tokens[token] = tokenCount(token) - bet }
+        let lines = machine.lines
+        guard bet > 0, bet <= Int(Int32.max) / lines else { return nil }
+        let stake = bet * lines
+        guard free != nil || tokenCount(token) >= stake else { return nil }
+        let stops: [Int]
+        let multiple: Int
+        let won: Int
+        let bitcoins: Int
+        var lineWins: [SlotLineWin] = []
+        switch machine {
+        case .classic:
+            stops = SlotMachine.spin(using: &rng)
+            let line = SlotMachine.line(stops: stops)
+            multiple = SlotMachine.payout(for: line)
+            won = SlotMachine.triggersFreeSpins(line) ? SlotMachine.freeSpinsAwarded : 0
+            bitcoins = line.filter { $0 == .bitcoin }.count
+        case .video:
+            stops = VideoSlots.spin(using: &rng)
+            lineWins = VideoSlots.lineWins(stops: stops)
+            multiple = lineWins.reduce(0) { $0.addingCount($1.pays) }
+            won = VideoSlots.freeSpins(scatters: VideoSlots.scatters(stops: stops))
+            bitcoins = VideoSlots.middleRowBitcoins(stops: stops)
+        }
+        var spin = SlotsSpin(stops: stops, token: token, bet: bet, multiple: multiple, bonus: 0, machine: machine)
+        spin.lineWins = lineWins
+        let paid = spin.payout
+        if free == nil { tokens[token] = tokenCount(token) - stake }
         giveTokens(token, amount: paid)
-        let bonus = slotsBonus(bet: bet, token: token, multiple: multiple)
+        let bonus = slotsBonus(bet: bet, token: token, multiple: multiple, machine: machine)
         credit(bonus, source: .games)
 
-        // Free spins: this one is used up, and a trio wins more.
+        // Free spins: this one is used up, and a trio (or three Bitcoins on the video machine) wins more.
         var freeLeft = max(0, (free?.left ?? 0) - 1)
-        let won = SlotMachine.triggersFreeSpins(line) ? SlotMachine.freeSpinsAwarded : 0
         if won > 0 { stats.slotsFreeSpinRounds += 1 }
-        freeLeft += won
-        slotsFreeSpins = freeLeft > 0 ? SlotsFreeSpins(token: token, bet: bet, left: freeLeft) : nil
+        freeLeft = freeLeft.addingCount(won)
+        slotsFreeSpins = freeLeft > 0 ? SlotsFreeSpins(token: token, bet: bet, left: freeLeft, machine: machine) : nil
 
         // The Bitcoin collection pays a prize every `bitcoinsPerPrize`.
-        let bitcoins = line.filter { $0 == .bitcoin }.count
         let before = stats.slotsBitcoins
         stats.slotsBitcoins = stats.slotsBitcoins.addingCount(bitcoins)
         let prizes = stats.slotsBitcoins / SlotMachine.bitcoinsPerPrize - before / SlotMachine.bitcoinsPerPrize
@@ -150,16 +175,17 @@ extension GameState {
         if free != nil {
             stats.slotsFreeSpinsPlayed += 1
         } else {
-            stats.slotsWagered += Double(bet) * token.price
+            stats.slotsWagered += Double(stake) * token.price
         }
         stats.slotsPaidOut += Double(paid) * token.price
-        stats.slotsBestMultiple = max(stats.slotsBestMultiple, multiple)
-        if multiple >= 2 { stats.slotsWins += 1 }
-        if multiple == SlotMachine.jackpot { stats.slotsJackpots += 1 }
-        let net = Double(paid - (free == nil ? bet : 0)) * token.price + bonus
+        stats.slotsBestMultiple = max(stats.slotsBestMultiple, multiple / lines)
+        if spin.isWin { stats.slotsWins += 1 }
+        if spin.isJackpot { stats.slotsJackpots += 1 }
+        let net = Double(paid - (free == nil ? stake : 0)) * token.price + bonus
         stats.slotsBiggestWin = max(stats.slotsBiggestWin, net)
-        recordChallenge(.slots, value: multiple >= 2 ? 1 : 0, scored: multiple >= 2)
-        var spin = SlotsSpin(stops: stops, token: token, bet: bet, multiple: multiple, bonus: bonus)
+        recordChallenge(.slots, value: spin.isWin ? 1 : 0, scored: spin.isWin)
+        spin = SlotsSpin(stops: stops, token: token, bet: bet, multiple: multiple, bonus: bonus, machine: machine)
+        spin.lineWins = lineWins
         spin.isFree = free != nil
         spin.freeSpinsWon = won
         spin.freeSpinsLeft = freeLeft
@@ -171,25 +197,27 @@ extension GameState {
     // MARK: To the Moon
 
     /// Coins a cash-out pays on top of its tokens: a share of the stake's coin value for each
-    /// multiple above 1×, up to `Tuning.moonWinSeconds` of income per multiple.
-    public func moonBonus(bet: Int, token: TokenID, multiplier: Double) -> Double {
+    /// multiple above 1×, up to `Tuning.moonWinSeconds` of income per multiple. The 5× rocket pays
+    /// `Tuning.moonFivefoldBonus` times as much.
+    public func moonBonus(bet: Int, token: TokenID, multiplier: Double, rocket: MoonRocket = .doubling) -> Double {
         guard multiplier > 1, multiplier.isFinite else { return 0 }
         let stakeValue = Double(max(0, bet)) * token.price
         let perMultiple = min(stakeValue * Tuning.moonStakeShare, Tuning.moonWinSeconds * rewardIncome)
-        return Self.wholeCoins(perMultiple * (multiplier - 1) * miniGameMultiplier)
+        return Self.wholeCoins(perMultiple * (multiplier - 1) * miniGameMultiplier * rocket.bonusFactor)
     }
 
-    /// Takes the bet and launches a flight, drawing where it will crash. `autoCashOut` cashes out
-    /// by itself on reaching that multiplier. Fails if a flight is already in the air or the
-    /// player can't cover the bet.
+    /// Takes the bet and launches a flight on `rocket`, drawing where it will crash. `autoCashOut`
+    /// cashes out by itself on reaching that multiplier. Fails if a flight is already in the air
+    /// or the player can't cover the bet.
     @discardableResult
     public mutating func launchMoon<R: RandomNumberGenerator>(_ token: TokenID, bet: Int, autoCashOut: Double?,
+                                                                rocket: MoonRocket = .doubling,
                                                                 using rng: inout R) -> Bool {
         guard moonRound == nil, bet > 0, tokenCount(token) >= bet else { return false }
         let target = autoCashOut.flatMap { $0.isFinite ? max(MoonFlight.hundredths($0), 1.01) : nil }
         tokens[token] = tokenCount(token) - bet
-        let crash = MoonFlight.crashPoint(roll: Double.random(in: 0..<1, using: &rng))
-        moonRound = MoonRound(token: token, bet: bet, crashPoint: crash, autoCashOut: target)
+        let crash = MoonFlight.crashPoint(roll: Double.random(in: 0..<1, using: &rng), rocket: rocket)
+        moonRound = MoonRound(token: token, bet: bet, crashPoint: crash, autoCashOut: target, rocket: rocket)
         stats.moonFlights += 1
         stats.moonWagered += Double(bet) * token.price
         return true
@@ -215,7 +243,7 @@ extension GameState {
         }
         let won = result.tokensWon
         giveTokens(round.token, amount: won)
-        let bonus = moonBonus(bet: round.bet, token: round.token, multiplier: multiplier)
+        let bonus = moonBonus(bet: round.bet, token: round.token, multiplier: multiplier, rocket: round.rocket)
         credit(bonus, source: .games)
         stats.moonCashOuts += 1
         stats.moonBestMultiplier = max(stats.moonBestMultiplier, multiplier)

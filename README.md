@@ -9,7 +9,7 @@ No real cryptocurrency, no ads, no purchases.
 - **Mining.** Tap for coins and build quick-tap combos, then buy 13 miners from a Chromebook to a
   Galactic Hashnet. Each unit costs 15% more, milestones and Mk upgrades double output, and the Shop
   marks the best value.
-- **Upgrades and power-ups.** 22 one-time upgrades, combo power-ups, and Offline Mining, which keeps
+- **Upgrades and power-ups.** 23 one-time upgrades, combo power-ups, and Offline Mining, which keeps
   miners earning while the app is closed, for up to three days.
 - **Prestige.** After 15 billion coins mined, start a new run for points that add 5% production each
   and buy permanent perks.
@@ -17,8 +17,9 @@ No real cryptocurrency, no ads, no purchases.
   airdrops, whales and Bull Runs.
 - **Tokens.** Eleven tokens, from SafeMoon at 100 coins to Bitcoin, whose prices drift with in-game
   news; each is tagged Stable, Moderate or Volatile. Buy them to bet in the casino or sell later.
-- **Casino.** 21 Million (blackjack), Crypto Slots, Diamond Hands (video poker) and To the Moon (a crash
-  game), played with tokens or practice chips.
+- **Casino.** 21 Million (blackjack), Crypto Slots (a classic 3×1 machine or a 5×3 video machine with
+  five lines), Diamond Hands (video poker) and To the Moon (a crash game with a 2× or a riskier 5×
+  rocket), played with tokens or practice chips.
 - **Arcade.** Eight games that pay coins for points, each with its own modes, speeds, records and
   backdrop:
 

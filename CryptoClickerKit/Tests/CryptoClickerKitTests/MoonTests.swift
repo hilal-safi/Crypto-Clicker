@@ -92,15 +92,15 @@ struct MoonTests {
         #expect(result.isWin)
         #expect(result.cashedOutAt == 2.5)
         #expect(result.tokensWon == 25)
-        // 10 Shiba stake 10,000 coins: 5% is 500, capped at 15 seconds of income (150) per multiple above 1×.
-        #expect(result.bonus == 225)
+        // 10 Shiba stake 10,000 coins: 8% is 800, capped at 24 seconds of income (240) per multiple above 1×.
+        #expect(result.bonus == 360)
         #expect(game.tokenCount(.shibaInu) == 115)
-        #expect(game.coins == 225)
+        #expect(game.coins == 360)
         #expect(game.moonRound == nil)
         #expect(game.stats.moonCashOuts == 1)
         #expect(game.stats.moonBestMultiplier == 2.5)
         #expect(game.stats.moonPaidOut == 25_000)
-        #expect(game.stats.moonBiggestWin == 15_225)
+        #expect(game.stats.moonBiggestWin == 15_360)
         #expect(game.settleMoon(after: 1) == nil) // Settled once.
     }
 
@@ -134,6 +134,48 @@ struct MoonTests {
         // Cashing out by hand before the target still works.
         var early = flying(5, auto: 4)
         #expect(early.settleMoon(after: MoonFlight.time(toReach: 1.5))?.cashedOutAt == 1.5)
+    }
+
+    @Test func theFivefoldRocketClimbsFasterAndCrashesALittleMoreOften() {
+        let rocket = MoonRocket.fivefold
+        #expect(MoonFlight.multiplier(after: 5, rocket: rocket) == 5)
+        #expect(MoonFlight.multiplier(after: 10, rocket: rocket) == 25)
+        #expect(abs(MoonFlight.time(toReach: 5, rocket: rocket) - 5) < 1e-9)
+        for target in [1.5, 2, 5, 10, 99.99] {
+            #expect(MoonFlight.multiplier(after: MoonFlight.time(toReach: target, rocket: rocket), rocket: rocket) == target)
+            // Every target returns 95%, not 97%.
+            #expect(abs(MoonFlight.chance(ofReaching: target, rocket: rocket) * target - 0.95) < 1e-9)
+            #expect(MoonFlight.chance(ofReaching: target, rocket: rocket) < MoonFlight.chance(ofReaching: target))
+        }
+        #expect(MoonFlight.crashPoint(roll: 0.04, rocket: rocket) == 1) // 0.99: crashes at once.
+        #expect(MoonFlight.crashPoint(roll: 0.5, rocket: rocket) == 1.9)
+    }
+
+    @Test func aFivefoldFlightPaysTheMultiplierAndABiggerBonus() throws {
+        var game = player()
+        var rng = SeededGenerator(seed: 4)
+        let launched = game.launchMoon(.shibaInu, bet: 10, autoCashOut: nil, rocket: .fivefold, using: &rng)
+        #expect(launched)
+        let round = try #require(game.moonRound)
+        #expect(round.rocket == .fivefold)
+        #expect(round.multiplier(after: 5) == 5)
+        let doubling = game.moonBonus(bet: 10, token: .shibaInu, multiplier: 2)
+        #expect(game.moonBonus(bet: 10, token: .shibaInu, multiplier: 2, rocket: .fivefold)
+                == GameState.wholeCoins(doubling * Tuning.moonFivefoldBonus))
+        guard round.crashPoint > 1.01 else { return }
+        let settled = game.settleMoon(after: round.time(toReach: 1.01))
+        let result = try #require(settled)
+        #expect(result.rocket == .fivefold && result.cashedOutAt == 1.01)
+        #expect(result.bonus == game.moonBonus(bet: 10, token: .shibaInu, multiplier: 1.01, rocket: .fivefold))
+    }
+
+    @Test func flightsSavedBeforeTheFivefoldRocketRideTheDoublingOne() throws {
+        let json = #"{"token":"shibaInu","bet":5,"crashPoint":3.5,"autoCashOut":2}"#
+        let round = try GameCoding.decoder().decode(MoonRound.self, from: Data(json.utf8))
+        #expect(round.rocket == .doubling && round.autoCashOut == 2)
+        let fivefold = MoonRound(token: .xrp, bet: 2, crashPoint: 9, autoCashOut: nil, rocket: .fivefold)
+        let decoded = try GameCoding.decoder().decode(MoonRound.self, from: GameCoding.encoder().encode(fivefold))
+        #expect(decoded == fivefold)
     }
 
     @Test func playersCanReadTheMultiplier() {

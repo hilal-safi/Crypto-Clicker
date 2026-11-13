@@ -32,7 +32,7 @@ public enum UpgradeCategory: String, CaseIterable, Sendable {
 public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
     case coinClicker, upgradedClicker, automatedClicker, mechanicalKeyboard, roboticFinger, neuralInterface
     case hapticEngine, satoshisTouch
-    case overclocking, liquidCooling, fiberUplink, asicChips, solarFarm, fusionReactor, geothermalPlant, dysonSwarm
+    case overclocking, liquidCooling, fiberUplink, asicChips, immersionCooling, solarFarm, fusionReactor, geothermalPlant, dysonSwarm
     case stepBooster, upgradedStepBooster, ultimateStepBooster
     case bonusReward1, bonusReward2, bonusReward3
 
@@ -52,6 +52,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .liquidCooling: localized("Liquid Cooling")
         case .fiberUplink: localized("Fiber Uplink")
         case .asicChips: localized("ASIC Chips")
+        case .immersionCooling: localized("Immersion Cooling")
         case .solarFarm: localized("Solar Farm")
         case .fusionReactor: localized("Fusion Reactor")
         case .geothermalPlant: localized("Geothermal Plant")
@@ -80,6 +81,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .liquidCooling: "drop.fill"
         case .fiberUplink: "network"
         case .asicChips: "memorychip.fill"
+        case .immersionCooling: "snowflake"
         case .solarFarm: "sun.max.fill"
         case .fusionReactor: "atom"
         case .geothermalPlant: "mountain.2.fill"
@@ -115,6 +117,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .liquidCooling: 800_000
         case .fiberUplink: 50_000_000
         case .asicChips: 500_000_000
+        case .immersionCooling: 40_000_000
         case .solarFarm: 5_000_000_000
         case .fusionReactor: 500_000_000_000
         case .geothermalPlant: 5_000_000_000_000
@@ -138,12 +141,17 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .neuralInterface: .tapPercent(0.20)
         case .hapticEngine: .tapPercent(0.25)
         case .satoshisTouch: .tapPercent(0.35)
-        // The first two are weaker, so the opening and the second day go slower.
+        // The first two are weaker, so the opening and the second day go slower; Immersion
+        // Cooling makes up for them from the third day. The last two are weaker too, so later runs
+        // don't race (automatic taps and Immersion Cooling made them much faster).
         case .overclocking: .production(1.25)
         case .liquidCooling: .production(1.5)
-        case .fiberUplink, .solarFarm, .fusionReactor, .dysonSwarm: .production(2)
-        case .asicChips, .geothermalPlant: .production(1.5)
-        case .stepBooster, .upgradedStepBooster: .steps(2)
+        case .immersionCooling: .production(1.75)
+        case .fiberUplink, .solarFarm, .fusionReactor: .production(2)
+        case .asicChips, .dysonSwarm: .production(1.5)
+        case .geothermalPlant: .production(1.25)
+        case .stepBooster: .steps(1.75)
+        case .upgradedStepBooster: .steps(2)
         case .ultimateStepBooster: .steps(3)
         case .bonusReward1: .miniGames(1.25)
         case .bonusReward2: .miniGames(1.5)

@@ -312,7 +312,7 @@ struct ProductionTests {
     @Test func multipliersStackMultiplicatively() {
         let state = GameState.make(upgrades: [.stepBooster, .upgradedStepBooster, .ultimateStepBooster,
                                               .bonusReward1, .bonusReward2, .bonusReward3])
-        #expect(state.stepMultiplier == 12)
+        #expect(state.stepMultiplier == 10.5) // 1.75 × 2 × 3
         #expect(state.miniGameMultiplier == 3.75)
     }
 }

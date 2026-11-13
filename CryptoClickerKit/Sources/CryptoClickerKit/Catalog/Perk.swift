@@ -58,7 +58,7 @@ public enum PerkID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .strongFingers: localized("Taps earn 50% more")
         case .muscleMemory: localized("Keep tapping upgrades when you prestige")
         case .comboMaster: localized("Combos build twice as fast and reach at least ×3")
-        case .autoClickerPro: localized("Automatic taps are worth 50% of a tap")
+        case .autoClickerPro: localized("Automatic taps are worth twice as much: a whole tap")
         case .airdropRadar: localized("Airdrops come every 2–4 minutes and stay for 30 seconds")
         case .bullMarket: localized("Bull Runs last 2 minutes")
         case .whaleWatcher: localized("Whale airdrops are three times as likely")

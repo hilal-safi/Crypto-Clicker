@@ -104,8 +104,8 @@ struct GameRecordTests {
         game.settleBlackjack([loss], token: .shibaInu)
         #expect(game.stats.blackjackStreak == 0)
         #expect(game.stats.blackjackBestStreak == 3)
-        // Two winning hands: 4 tokens (4,000 coins) plus a 600-coin bonus each.
-        #expect(game.stats.blackjackBiggestWin == 5_200)
+        // Two winning hands: 4 tokens (4,000 coins) plus a 500-coin bonus each.
+        #expect(game.stats.blackjackBiggestWin == 5_000)
         #expect(game.recordLine(for: .blackjack) == "Wins 3 · Best streak 3")
 
         var rng = SeededGenerator(seed: 3)

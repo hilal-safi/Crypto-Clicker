@@ -87,11 +87,28 @@ struct CasinoReturnTests {
                       cappedSeconds: average * Tuning.slotsWinSeconds)
     }
 
-    /// To the Moon, cashing out at `target`: it gets there with chance 0.97 / target.
-    func moon(cashingOutAt target: Double) -> Return {
-        let reach = MoonFlight.chance(ofReaching: target)
-        return Return(tokens: reach * target, bonus: reach * (target - 1) * Tuning.moonStakeShare,
-                      cappedSeconds: reach * (target - 1) * Tuning.moonWinSeconds)
+    /// Crypto Slots' video machine: tokens exactly from the strip and the pay table, the bonus from
+    /// spins played out (each paid spin brings `1 / (1 - freeSpinsPerSpin)` spins in all).
+    func videoSlots(spins: Int) -> Return {
+        var rng = SeededGenerator(seed: 2028)
+        var multiples = 0.0
+        for _ in 0..<spins {
+            let pays = VideoSlots.lineWins(stops: VideoSlots.spin(using: &rng)).reduce(0) { $0 + $1.pays }
+            let stakeMultiple = Double(pays) / Double(VideoSlots.paylines.count)
+            if stakeMultiple >= 2 { multiples += stakeMultiple }
+        }
+        let average = multiples / Double(spins) / (1 - VideoSlots.freeSpinsPerSpin)
+        return Return(tokens: VideoSlots.returnToPlayer, bonus: average * Tuning.slotsStakeShare,
+                      cappedSeconds: average * Tuning.slotsWinSeconds)
+    }
+
+    /// To the Moon, cashing out at `target`: it gets there with chance 0.97 / target (0.95 / target
+    /// on the 5× rocket, whose bonus is bigger).
+    func moon(cashingOutAt target: Double, rocket: MoonRocket = .doubling) -> Return {
+        let reach = MoonFlight.chance(ofReaching: target, rocket: rocket)
+        let multiples = reach * (target - 1) * rocket.bonusFactor
+        return Return(tokens: reach * target, bonus: multiples * Tuning.moonStakeShare,
+                      cappedSeconds: multiples * Tuning.moonWinSeconds)
     }
 
     @Test func theCasinoKeepsAnEdgeOnTokensAndPaysItsBonusesWithinTheirCaps() {
@@ -101,8 +118,11 @@ struct CasinoReturnTests {
             ("21 Million, 2-token bets", blackjack(hands: 400_000, bet: 2)),
             ("Diamond Hands", videoPoker(hands: 400_000)),
             ("Crypto Slots", slots()),
+            ("Crypto Slots 5x3", videoSlots(spins: 400_000)),
             ("To the Moon 2x", moon(cashingOutAt: 2)),
             ("To the Moon 10x", moon(cashingOutAt: 10)),
+            ("To the Moon 5x rocket, 2x", moon(cashingOutAt: 2, rocket: .fivefold)),
+            ("To the Moon 5x rocket, 10x", moon(cashingOutAt: 10, rocket: .fivefold)),
         ]
         for (name, game) in games {
             let sell = 1 - Tuning.marketSellFee

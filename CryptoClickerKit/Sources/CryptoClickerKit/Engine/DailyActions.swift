@@ -267,11 +267,11 @@ extension GameState {
     }
 
     /// The reward for a day of the streak. The week builds up to an hour of income on day 7,
-    /// then starts again.
+    /// then starts again. The very first day 1 and day 2 pay less (see `firstClaimShare`).
     public func streakReward(day streak: Int) -> QuestReward {
         switch Self.streakCycleDay(streak) {
-        case 1: .coins(seconds: 300)
-        case 2: .coins(seconds: 600)
+        case 1: .coins(seconds: 300 * firstClaimShare(day: streak))
+        case 2: .coins(seconds: 600 * firstClaimShare(day: streak))
         case 3: tokenReward(worth: 900 * streakRewardIncome) ?? .coins(seconds: 900)
         case 4: .coins(seconds: 1_200)
         case 5: .bullRun
@@ -280,15 +280,23 @@ extension GameState {
         }
     }
 
+    /// The share of a streak day's reward paid the first time it's claimed: half for the first day
+    /// 1 and two thirds for the first day 2, so the start of the game doesn't race. Once a streak has
+    /// reached that day, it pays in full, also after a broken streak starts again.
+    public func firstClaimShare(day streak: Int) -> Double {
+        guard streak <= 2, stats.longestStreak < streak else { return 1 }
+        return Tuning.firstStreakDayShares[max(0, streak - 1)]
+    }
+
     /// Pays today's daily reward and extends the streak (or starts a new one).
     @discardableResult
     public mutating func claimDailyReward(today: String, yesterday: String, at now: Date) -> RewardPayout? {
         guard isDailyRewardReady(today: today) else { return nil }
         let streak = streakIfClaimed(today: today, yesterday: yesterday)
+        let reward = streakReward(day: streak) // Before the longest streak grows: the first claims pay less.
         daily.streak = streak
         daily.lastRewardDay = today
         stats.longestStreak = max(stats.longestStreak, streak)
-        let reward = streakReward(day: streak)
         return pay(reward, income: streakRewardIncome, at: now)
     }
 

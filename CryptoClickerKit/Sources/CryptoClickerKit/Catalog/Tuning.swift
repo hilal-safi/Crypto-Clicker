@@ -3,9 +3,10 @@ import Foundation
 /// Every balance number in one place. Tuned with simulated players who catch airdrops, claim the
 /// dailies, play some arcade and earn achievements (see `PacingTests`): someone who keeps playing
 /// buys a Data Center after a little over an hour; casual play (four ten-minute visits a day)
-/// reaches the Data Center in about a day, the first prestige point around day two, every
-/// mini-game in about four days and the tenth miner and the first suggested prestige in about
-/// five, and prestiges and perks keep new things arriving for about three weeks. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here
+/// reaches the Data Center in about two days, the first prestige point in under four, every
+/// mini-game and the tenth miner in about six and the first suggested prestige at about six and a
+/// half, then nine prestiges and about 5,000 points in three weeks, with perks arriving all the
+/// way. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here
 /// are whole numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
@@ -207,8 +208,12 @@ public enum Tuning {
     /// Prestige points stop counting here. Far beyond reach in play, and small enough for `Int`
     /// on Apple Watch, where `Int` is 32 bits.
     public static let maxPrestigePoints = 1_000_000_000
-    /// Prestiging is suggested once the new points would make production at least this much faster.
-    public static let prestigeRecommendedSpeedUp = 1.5
+    /// The first prestige is suggested once its points would make production at least this much
+    /// faster...
+    public static let firstPrestigeSpeedUp = 1.5
+    /// ...and every later one once they would make it this much faster, so later runs last longer
+    /// and each prestige is a bigger jump.
+    public static let prestigeRecommendedSpeedUp = 1.85
     /// What the Head Start perk gives at the start of every run.
     public static let headStartMiners: [MinerID: Int] = [.chromebook: 10, .desktop: 10, .gpuRig: 5]
     public static let productionPerAchievementTier = 0.01
@@ -250,6 +255,9 @@ public enum Tuning {
     public static let dailyRewardClaimCap = 2.0
     /// The login streak's rewards repeat after this many days.
     public static let streakCycle = 7
+    /// The very first streak day 1 and day 2 pay these shares of their usual reward (half, then two
+    /// thirds); from the first day 3 on, every day pays in full, even after a streak breaks.
+    public static let firstStreakDayShares = [0.5, 2.0 / 3]
     /// Income history for the Statistics chart: a sample every minute while the game is open, so
     /// the chart has a shape from the first minutes of a game...
     public static let incomeSampleInterval: TimeInterval = 60
@@ -277,29 +285,33 @@ public enum Tuning {
     public static let marketSellFee = 0.1
 
     // MARK: Mini-games
+    // Casino bonuses: 21 Million's are a little smaller than they were (it paid by far the most),
+    // and the other three games' 60% bigger, so every table is worth a visit (see CasinoReturnTests).
     /// A winning Blackjack hand pays this share of its stake's coin value in coins...
-    public static let blackjackStakeShare = 0.5
+    public static let blackjackStakeShare = 0.42
     /// ...up to this many seconds of idle income, so bigger bets matter but can't run away.
-    public static let blackjackWinSeconds = 60.0
+    public static let blackjackWinSeconds = 50.0
     /// A natural pays this much more than an ordinary win.
     public static let blackjackNaturalBonus = 1.5
     /// The tough table (the dealer hits soft 17) pays this much more coin bonus for a win.
     public static let blackjackToughTableBonus = 1.1
     /// A winning slots spin pays this share of its stake's coin value for each multiple of the bet...
-    public static let slotsStakeShare = 0.05
+    public static let slotsStakeShare = 0.08
     /// ...up to this many seconds of idle income for each multiple.
-    public static let slotsWinSeconds = 3.0
+    public static let slotsWinSeconds = 5.0
     /// Every `SlotMachine.bitcoinsPerPrize` Bitcoins collected on the line pay this many seconds of income.
-    public static let slotsCollectionSeconds = 60.0
+    public static let slotsCollectionSeconds = 90.0
     /// A To the Moon cash-out pays this share of its stake's coin value for each multiple above 1×...
-    public static let moonStakeShare = 0.05
+    public static let moonStakeShare = 0.08
     /// ...up to this many seconds of idle income for each multiple above 1×.
-    public static let moonWinSeconds = 15.0
+    public static let moonWinSeconds = 24.0
+    /// The 5× rocket's cash-outs pay this many times the coin bonus (it crashes a little more often).
+    public static let moonFivefoldBonus = 1.25
     /// A Video Poker hand of two pair or better pays this share of its stake's coin value for each
     /// multiple of the bet...
-    public static let pokerStakeShare = 0.05
+    public static let pokerStakeShare = 0.08
     /// ...up to this many seconds of idle income for each multiple.
-    public static let pokerWinSeconds = 15.0
+    public static let pokerWinSeconds = 24.0
     /// Arcade games pay this many seconds of idle income per point when they end. Simulated skilled
     /// players (see ArcadeBalanceTests) earn about two minutes of income for each minute they play
     /// in any of them, on top of the mining that carries on meanwhile; an average player about one.

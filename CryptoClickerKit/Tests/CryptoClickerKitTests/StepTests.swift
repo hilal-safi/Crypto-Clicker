@@ -230,11 +230,11 @@ struct StepTests {
         var game = connected()
         #expect(game.stepValue == 1)
         game.upgrades = [.stepBooster]
-        #expect(game.stepValue == 2) // Boosters multiply the one-coin floor too.
+        #expect(game.stepValue == 2) // Boosters multiply the one-coin floor too (1.75, a whole 2).
         game.miners = [.desktop: 50] // 400 coins per second.
-        #expect(game.stepValue == 48) // 0.06 × 400 × 2
+        #expect(game.stepValue == 42) // 0.06 × 400 × 1.75
         let credit = game.creditSteps([StepDay(key: today, steps: 1_000)], today: today, at: t0)
-        #expect(credit.coins == 48_000)
+        #expect(credit.coins == 42_000)
     }
 
     @Test func stepsAreWorthWholeCoins() {

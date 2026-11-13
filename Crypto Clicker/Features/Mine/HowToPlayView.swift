@@ -181,7 +181,7 @@ private struct HowToChapter: Identifiable {
         ]),
         HowToTopic("rosette", "Prestige and perks", "After 15 billion coins mined in all, start a new run for prestige points.", [
             "Every point adds 5% production for good, and points buy permanent perks.",
-            "The Shop suggests prestiging once it would make you at least half as fast again.",
+            "The Shop suggests your first prestige once it would make you at least half as fast again, and later ones once they would make you nearly twice as fast.",
             "Your first prestige reveals three new miners.",
             "Hard earns half as many points again, and Easy half as many: pick in Settings.",
         ]),

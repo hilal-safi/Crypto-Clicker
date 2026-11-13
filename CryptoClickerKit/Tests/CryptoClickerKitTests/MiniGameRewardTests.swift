@@ -4,7 +4,7 @@ import Testing
 
 @Suite("Mini-game rewards")
 struct MiniGameRewardTests {
-    /// 10 coins per second, so a full Blackjack bonus is 600 coins.
+    /// 10 coins per second, so a full Blackjack bonus is 500 coins.
     func earner(upgrades: Set<UpgradeID> = []) -> GameState {
         var game = GameState.make(miners: minersEarning(10), upgrades: upgrades)
         game.tokens = [.shibaInu: 50, .dogecoin: 5]
@@ -36,17 +36,17 @@ struct MiniGameRewardTests {
 
     @Test func theBonusFollowsTheStakeUpToAnIncomeCap() {
         let game = earner()
-        // A 1-token Shiba bet stakes 1,000 coins: half is 500, under the cap of a minute of income.
-        #expect(game.blackjackBonus(bet: 1, token: .shibaInu) == 500)
-        #expect(game.blackjackBonus(bet: 2, token: .shibaInu) == 600)
+        // A 1-token Shiba bet stakes 1,000 coins: 42% is 420, under the cap of 50 seconds of income.
+        #expect(game.blackjackBonus(bet: 1, token: .shibaInu) == 420)
+        #expect(game.blackjackBonus(bet: 2, token: .shibaInu) == 500)
         var poor = GameState.make()
         poor.tokens = [.shibaInu: 1]
-        #expect(poor.blackjackBonus(bet: 1, token: .shibaInu) == 60) // A minute at the 1 coin/s floor.
-        var rich = GameState.make(miners: [.desktop: 50]) // 400 coins per second: cap 24,000.
+        #expect(poor.blackjackBonus(bet: 1, token: .shibaInu) == 50) // 50 seconds at the 1 coin/s floor.
+        var rich = GameState.make(miners: [.desktop: 50]) // 400 coins per second: cap 20,000.
         rich.tokens = [.shibaInu: 100]
-        #expect(rich.blackjackBonus(bet: 3, token: .shibaInu) == 1_500)
-        #expect(rich.blackjackBonus(bet: 60, token: .shibaInu) == 24_000)
-        #expect(rich.blackjackBonus(bet: 60, token: .shibaInu, isNatural: true) == 36_000)
+        #expect(rich.blackjackBonus(bet: 3, token: .shibaInu) == 1_260)
+        #expect(rich.blackjackBonus(bet: 60, token: .shibaInu) == 20_000)
+        #expect(rich.blackjackBonus(bet: 60, token: .shibaInu, isNatural: true) == 30_000)
         #expect(rich.blackjackBetForFullBonus(.shibaInu) == 48)
         #expect(rich.blackjackBetForFullBonus(.bitcoin) == 1)
     }
@@ -57,7 +57,7 @@ struct MiniGameRewardTests {
         let results = [BlackjackResult(outcome: .win, bet: 2, payout: 4),
                        BlackjackResult(outcome: .blackjack, bet: 2, payout: 5)]
         let bonus = game.settleBlackjack(results, token: .dogecoin)
-        #expect(bonus == 600 + 900)
+        #expect(bonus == 500 + 750)
         #expect(game.coins == bonus)
         #expect(game.tokenCount(.dogecoin) == 1 + 9)
         #expect(game.blackjackStake == nil)
@@ -81,23 +81,23 @@ struct MiniGameRewardTests {
         var game = earner()
         game.placeBlackjackBet(.dogecoin, amount: 2)
         let results = [BlackjackResult(outcome: .win, bet: 2, payout: 4)]
-        #expect(game.settleBlackjack(results, token: .dogecoin) == 600)
+        #expect(game.settleBlackjack(results, token: .dogecoin) == 500)
         let tokens = game.tokenCount(.dogecoin)
         // A second settlement of the same round (a double tap, a stale view) pays nothing.
         #expect(game.settleBlackjack(results, token: .dogecoin) == 0)
         #expect(game.tokenCount(.dogecoin) == tokens)
         #expect(game.stats.blackjackHands == 1)
-        #expect(game.coins == 600)
+        #expect(game.coins == 500)
     }
 
     @Test func theToughTablePaysABiggerBonus() {
         let game = earner()
-        #expect(game.blackjackBonus(bet: 2, token: .dogecoin) == 600)
-        #expect(game.blackjackBonus(bet: 2, token: .dogecoin, rules: .hitsSoft17) == 660)
-        #expect(game.blackjackBonus(bet: 2, token: .dogecoin, isNatural: true, rules: .hitsSoft17) == 990)
+        #expect(game.blackjackBonus(bet: 2, token: .dogecoin) == 500)
+        #expect(game.blackjackBonus(bet: 2, token: .dogecoin, rules: .hitsSoft17) == 550)
+        #expect(game.blackjackBonus(bet: 2, token: .dogecoin, isNatural: true, rules: .hitsSoft17) == 825)
         var tough = earner()
         tough.placeBlackjackBet(.dogecoin, amount: 2)
-        #expect(tough.settleBlackjack([BlackjackResult(outcome: .win, bet: 2, payout: 4)], token: .dogecoin, rules: .hitsSoft17) == 660)
+        #expect(tough.settleBlackjack([BlackjackResult(outcome: .win, bet: 2, payout: 4)], token: .dogecoin, rules: .hitsSoft17) == 550)
     }
 
     @Test func lostHandsPayNothing() {
@@ -115,8 +115,8 @@ struct MiniGameRewardTests {
     @Test func bonusRewardUpgradesMultiplyMiniGames() {
         let game = earner(upgrades: [.bonusReward1, .bonusReward2])
         #expect(game.miniGameMultiplier == 1.875)
-        #expect(game.blackjackBonus(bet: 1, token: .dogecoin) == 1_125) // The 600-coin cap × 1.875.
-        #expect(game.blackjackBonus(bet: 1, token: .shibaInu) == 938) // 937.5, paid as a whole coin.
+        #expect(game.blackjackBonus(bet: 1, token: .dogecoin) == 938) // The 500-coin cap × 1.875, 937.5 paid as a whole coin.
+        #expect(game.blackjackBonus(bet: 1, token: .shibaInu) == 788) // 420 × 1.875 = 787.5.
     }
 
     @Test func tetrisPaysByScoreWithABonusForANewBest() {

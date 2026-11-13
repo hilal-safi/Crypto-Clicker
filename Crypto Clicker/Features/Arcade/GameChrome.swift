@@ -779,8 +779,11 @@ struct PracticeBetControls: View {
 /// The casino's bet: the token (picked from a sheet showing every token's artwork) and how many.
 struct TokenBetControls: View {
     @Binding var token: TokenID
+    /// The bet per line.
     @Binding var bet: Int
     let counts: [TokenID: Int]
+    /// Lines the bet is placed on: the stake is the bet times this.
+    var lines = 1
     /// Disabled while a spin is revealed: the counts shown then are only for display.
     @Environment(\.isEnabled) private var isEnabled
     @State private var showsPicker = false
@@ -810,10 +813,11 @@ struct TokenBetControls: View {
             .accessibilityLabel("Token: \(token.name), \(owned) owned")
             .accessibilityHint("Choose another token")
             Spacer(minLength: 0)
-            Stepper(value: $bet, in: 1...max(1, owned)) {
-                Text("Bet \(CoinFormat.grouped(bet))")
+            Stepper(value: $bet, in: 1...max(1, owned / lines)) {
+                Text(lines == 1 ? "Bet \(CoinFormat.grouped(bet))" : "Bet \(CoinFormat.grouped(bet)) × \(lines)")
                     .font(.headline.monospacedDigit())
             }
+            .accessibilityValue(lines == 1 ? "\(bet)" : "\(bet) a line, \(bet * lines) in all")
             .fixedSize()
         }
         .sheet(isPresented: $showsPicker) {
@@ -823,12 +827,13 @@ struct TokenBetControls: View {
         .onChange(of: owned) { _, _ in fitBetToWallet() }
         .onChange(of: token) { _, _ in fitBetToWallet() }
         .onChange(of: isEnabled) { _, _ in fitBetToWallet() }
+        .onChange(of: lines) { _, _ in fitBetToWallet() }
     }
 
     /// Lowers the bet to what the wallet holds, but never while the controls are disabled.
     private func fitBetToWallet() {
         guard isEnabled else { return }
-        bet = min(bet, max(1, counts[token, default: 0]))
+        bet = min(bet, max(1, counts[token, default: 0] / lines))
     }
 }
 

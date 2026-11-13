@@ -147,12 +147,12 @@ struct SlotsTests {
         game.tokens = [.shibaInu: 10]
         game.stats.slotsBitcoins = SlotMachine.bitcoinsPerPrize - 1
         #expect(game.slotsBitcoinsTowardPrize == SlotMachine.bitcoinsPerPrize - 1)
-        #expect(game.slotsCollectionPrize == 600) // 60 seconds.
+        #expect(game.slotsCollectionPrize == 900) // 90 seconds.
         let result = game.spinSlots(.shibaInu, bet: 1, using: &rng)
         let spin = try #require(result)
         #expect(spin.bitcoins == 1)
-        #expect(spin.collectionPrize == 600)
-        #expect(game.coins == spin.bonus + 600)
+        #expect(spin.collectionPrize == 900)
+        #expect(game.coins == spin.bonus + 900)
         #expect(game.slotsBitcoinsTowardPrize == 0)
     }
 
@@ -198,12 +198,12 @@ struct SlotsTests {
     @Test func theCoinBonusGrowsWithTheMultipleUpToAnIncomeCap() {
         var game = GameState.make(miners: minersEarning(10)) // 10 coins per second.
         game.tokens = [.shibaInu: 1]
-        // One Shiba Inu stakes 1,000 coins: 5% is 50 per multiple, capped at 3 seconds (30 coins) per multiple.
-        #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 5) == 150)
+        // One Shiba Inu stakes 1,000 coins: 8% is 80 per multiple, capped at 5 seconds (50 coins) per multiple.
+        #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 5) == 250)
         #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 1) == 0) // The bet back is not a win.
         #expect(game.slotsBonus(bet: 1, token: .shibaInu, multiple: 0) == 0)
         let newcomer = GameState.make() // The 1 coin per second floor.
-        #expect(newcomer.slotsBonus(bet: 1, token: .shibaInu, multiple: 500) == 1_500)
+        #expect(newcomer.slotsBonus(bet: 1, token: .shibaInu, multiple: 500) == 2_500)
     }
 
     @Test func aJackpotPaysFiveHundredTimesTheBet() throws {
@@ -219,7 +219,7 @@ struct SlotsTests {
         let spin = try #require(result)
         #expect(spin.isJackpot)
         #expect(game.tokenCount(.dogecoin) == 1_000)
-        #expect(spin.bonus == 15_000) // Capped at 30 coins per multiple.
+        #expect(spin.bonus == 25_000) // Capped at 50 coins per multiple.
         #expect(game.stats.slotsJackpots == 1)
         #expect(game.stats.slotsWins == 1)
     }

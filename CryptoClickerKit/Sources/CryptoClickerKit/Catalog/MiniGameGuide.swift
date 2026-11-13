@@ -95,8 +95,11 @@ extension MiniGame {
             .map { "\($0.ticker) \(SlotMachine.threeOfAKind($0))×" }.joined(separator: ", ")
         let rtp = Int((SlotMachine.returnToPlayer * 100).rounded())
         return MiniGameGuide(
-            objective: localized("Spin three reels of crypto tokens and line up matches on the pay line."),
-            controls: [localized("Pick a token and a bet, then Spin. The reels that make a win light up, and the result shows your bet, the payout and the net.")],
+            objective: localized("Spin reels of crypto tokens and line up matches: three reels and one pay line on the classic machine, five reels and five lines on the video machine."),
+            controls: [
+                localized("Pick a machine, a token and a bet, then Spin. The reels that make a win light up, and the result shows your bet, the payout and the net."),
+                localized("On the video machine the bet is per line: a spin bets on all \(VideoSlots.paylines.count) lines."),
+            ],
             scoring: [
                 localized("Three of a kind pays: \(threes) your bet."),
                 localized("Two Bitcoins pay \(SlotMachine.twoBitcoins)×, a pair on the first two reels pays \(SlotMachine.pairOnFirstTwo)×, and a single Bitcoin returns your bet."),
@@ -107,8 +110,10 @@ extension MiniGame {
                       detail: localized("The rarest symbol, one stop on each reel. Three of them is the \(SlotMachine.jackpot)× jackpot.")),
                 .init(id: "slots.free", symbol: "gift.fill", name: localized("Free spins"),
                       detail: localized("A Cardano, a Solana and an Ethereum on the line, in any order, win \(SlotMachine.freeSpinsAwarded) free spins at the same bet. They can win more, and they wait for you if you leave.")),
+                .init(id: "slots.video", symbol: "square.grid.3x3.fill", name: localized("Video machine"),
+                      detail: localized("Three, four or five of a token in a row from the left reel pay on any of five lines, and every winning line pays. Three or more Bitcoins anywhere win free spins. Wins are rarer and bigger.")),
                 .init(id: "slots.collection", symbol: "bitcoinsign.square.fill", name: localized("Bitcoin collection"),
-                      detail: localized("Every Bitcoin on the line is collected; every \(SlotMachine.bitcoinsPerPrize) pay a coin prize.")),
+                      detail: localized("Every Bitcoin on the line (the middle row on the video machine) is collected; every \(SlotMachine.bitcoinsPerPrize) pay a coin prize.")),
             ],
             ending: localized("Every spin is settled the moment the reels stop: the bet is taken and the win paid in one step."),
             tips: [
@@ -123,7 +128,7 @@ extension MiniGame {
         return MiniGameGuide(
             objective: localized("Ride the multiplier up and cash out before the market crashes."),
             controls: [
-                localized("Pick a token and a bet, and if you like an automatic cash-out, then Launch. ") + practice,
+                localized("Pick a rocket, a token and a bet, and if you like an automatic cash-out, then Launch. ") + practice,
                 localized("Tap Cash Out at any time to take your bet times the multiplier. The screen shows what cashing out pays right now."),
             ],
             scoring: [
@@ -132,6 +137,8 @@ extension MiniGame {
                 tokenBets,
             ],
             items: [
+                .init(id: "moon.fivefold", symbol: "flame.fill", name: localized("5× Rocket"),
+                      detail: localized("Grows fivefold every \(Int(MoonFlight.doublingTime)) seconds and crashes a little more often: it returns \(Int((MoonRocket.fivefold.returnToPlayer * 100).rounded()))% of the bet on average, but its cash-outs pay \(Int(((Tuning.moonFivefoldBonus - 1) * 100).rounded()))% more coins.")),
                 .init(id: "moon.auto", symbol: "target", name: localized("Automatic cash-out"),
                       detail: localized("Cashes out by itself the moment the multiplier reaches your target.")),
                 .init(id: "moon.crash", symbol: "chart.line.downtrend.xyaxis", name: localized("The crash"),
@@ -139,7 +146,7 @@ extension MiniGame {
             ],
             ending: localized("A flight ends when you cash out or the market crashes. Leaving the screen cashes out."),
             tips: [
-                localized("Whatever target you pick, flights return \(rtp)% of the bet on average: aim for what's fun."),
+                localized("Whatever target you pick, flights on the 2× rocket return \(rtp)% of the bet on average: aim for what's fun."),
                 localized("Low targets win often and small; high targets win rarely and big."),
             ],
             controlHint: localized("Launch · Cash Out"))

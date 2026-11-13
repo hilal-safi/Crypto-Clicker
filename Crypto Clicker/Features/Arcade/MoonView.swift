@@ -14,6 +14,8 @@ struct MoonView: View {
     @State private var bet = 1
     /// Cash out by itself on reaching this, if it gets there.
     @State private var autoCashOut: Double? = 2
+    /// The rocket the next flight rides.
+    @AppStorage("moonRocket") private var rocket = MoonRocket.doubling
     @State private var launchDate: Date?
     /// The flight's end, for the frozen chart: seconds after launch.
     @State private var endedAfter: TimeInterval = 0
@@ -39,6 +41,9 @@ struct MoonView: View {
 
     /// What the flight's bet is counted in.
     private func unit(_ token: TokenID) -> String { roundIsPractice ? "chips" : token.ticker }
+
+    /// The rocket on the chart: the flight's while it flies or was last flown, else the one picked.
+    private var shownRocket: MoonRocket { activeRound?.rocket ?? result?.rocket ?? rocket }
 
     var body: some View {
         let game = store.game
@@ -98,12 +103,13 @@ struct MoonView: View {
         TimelineView(.animation(minimumInterval: nil, paused: !isFlying)) { timeline in
             let elapsed = launchDate.map { timeline.date.timeIntervalSince($0) } ?? endedAfter
             let crash = activeRound?.crashPoint ?? .infinity
+            let rocket = shownRocket
             // While flying, the line never shows past the crash point, even for a frame.
-            let shownTime = isFlying ? min(elapsed, MoonFlight.time(toReach: crash)) : endedAfter
-            let multiplier = isFlying ? min(MoonFlight.multiplier(after: shownTime), crash) : endMultiplier
+            let shownTime = isFlying ? min(elapsed, MoonFlight.time(toReach: crash, rocket: rocket)) : endedAfter
+            let multiplier = isFlying ? min(MoonFlight.multiplier(after: shownTime, rocket: rocket), crash) : endMultiplier
             ZStack {
                 FlightChart(seconds: shownTime, isCrashed: result?.isWin == false, hasFlown: isFlying || result != nil,
-                            ride: store.game.equipped(.moonRide))
+                            rocket: rocket, ride: store.game.equipped(.moonRide))
                 VStack(spacing: 4) {
                     Text(CoinFormat.flight(multiplier))
                         .font(.system(size: 52, weight: .heavy, design: .rounded))
@@ -153,7 +159,7 @@ struct MoonView: View {
         if isFlying, let round = activeRound {
             TimelineView(.periodic(from: .now, by: 0.1)) { timeline in
                 let elapsed = launchDate.map { timeline.date.timeIntervalSince($0) } ?? 0
-                let multiplier = min(MoonFlight.multiplier(after: elapsed), round.crashPoint)
+                let multiplier = min(round.multiplier(after: elapsed), round.crashPoint)
                 Text("Cash out now for \(CoinFormat.grouped(round.tokensWon(at: multiplier))) \(unit(round.token))"
                      + (round.autoCashOut.map { " · auto at \(CoinFormat.flight($0))" } ?? ""))
                     .font(.headline.monospacedDigit())
@@ -178,7 +184,9 @@ struct MoonView: View {
             }
             .transition(.scale(scale: 0.7).combined(with: .opacity))
         } else {
-            Text("The multiplier doubles every \(Int(MoonFlight.doublingTime)) seconds until the market crashes. Every target pays back 97% on average: it's luck, so bet what you can lose.")
+            Text(rocket == .doubling
+                 ? "The multiplier doubles every \(Int(MoonFlight.doublingTime)) seconds until the market crashes. Every target pays back \(CoinFormat.percent(rocket.returnToPlayer)) on average: it's luck, so bet what you can lose."
+                 : "The 5× rocket climbs fivefold every \(Int(MoonFlight.doublingTime)) seconds and crashes a little more often: every target pays back \(CoinFormat.percent(rocket.returnToPlayer)) on average, but wins pay \(CoinFormat.percent(Tuning.moonFivefoldBonus - 1)) more coins.")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
@@ -204,6 +212,12 @@ struct MoonView: View {
             let counts = Dictionary(uniqueKeysWithValues: TokenID.allCases.map { ($0, game.tokenCount($0)) })
             VStack(spacing: 12) {
                 CasinoModePicker(isPracticing: $isPracticing)
+                Picker("Rocket", selection: $rocket) {
+                    ForEach(MoonRocket.allCases) { rocket in
+                        Text(rocket.name).tag(rocket)
+                    }
+                }
+                .pickerStyle(.segmented)
                 if isPracticing {
                     PracticeBetControls(chips: chips, bet: $practiceBet)
                     if chips.isBroke {
@@ -235,7 +249,7 @@ struct MoonView: View {
                     }
                     Spacer()
                     if !isPracticing {
-                        Text("2× pays +\(CoinFormat.short(game.moonBonus(bet: bet, token: token, multiplier: 2))) coins")
+                        Text("At 2×: +\(CoinFormat.short(game.moonBonus(bet: bet, token: token, multiplier: 2, rocket: rocket))) coins")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.gold)
                     }
@@ -271,10 +285,11 @@ struct MoonView: View {
         if isPracticing {
             guard chips.take(practiceBet) else { return }
             practiceRound = MoonRound(token: token, bet: practiceBet,
-                                      crashPoint: MoonFlight.crashPoint(roll: Double.random(in: 0..<1)), autoCashOut: autoCashOut)
+                                      crashPoint: MoonFlight.crashPoint(roll: Double.random(in: 0..<1), rocket: rocket),
+                                      autoCashOut: autoCashOut, rocket: rocket)
             flightXP = nil
         } else {
-            guard store.launchMoon(token, bet: bet, autoCashOut: autoCashOut) else { return }
+            guard store.launchMoon(token, bet: bet, autoCashOut: autoCashOut, rocket: rocket) else { return }
             flightXP = store.lastArcadeAward
         }
         roundIsPractice = isPracticing
@@ -287,7 +302,7 @@ struct MoonView: View {
     private func waitForTheEnd() async {
         guard let launchDate, let round = activeRound else { return }
         let target = round.autoCashOut.flatMap { $0 <= round.crashPoint ? $0 : nil } ?? round.crashPoint
-        let endsAfter = MoonFlight.time(toReach: target)
+        let endsAfter = round.time(toReach: target)
         do {
             try await Task.sleep(for: .seconds(max(0, endsAfter - Date.now.timeIntervalSince(launchDate))))
         } catch {
@@ -317,7 +332,7 @@ struct MoonView: View {
             settled = paid
             resultXP = flightXP
         }
-        endedAfter = MoonFlight.time(toReach: settled.cashedOutAt ?? settled.crashPoint)
+        endedAfter = MoonFlight.time(toReach: settled.cashedOutAt ?? settled.crashPoint, rocket: settled.rocket)
         launchDate = nil
         withAnimation(.snappy) { result = settled }
         flights += 1
@@ -333,6 +348,7 @@ private struct FlightChart: View {
     let seconds: TimeInterval
     let isCrashed: Bool
     let hasFlown: Bool
+    var rocket = MoonRocket.doubling
     /// What rides the line, picked in Style.
     var ride = Cosmetic.moonRocket
 
@@ -349,9 +365,9 @@ private struct FlightChart: View {
             guard hasFlown, seconds > 0 else { return }
             // The window grows with the flight, so the line always fills the chart.
             let span = max(seconds, MoonFlight.doublingTime)
-            let top = max(MoonFlight.multiplier(after: span), 2)
+            let top = max(MoonFlight.multiplier(after: span, rocket: self.rocket), 2)
             func point(at time: TimeInterval) -> CGPoint {
-                let multiplier = pow(2, time / MoonFlight.doublingTime)
+                let multiplier = pow(self.rocket.growth, time / MoonFlight.doublingTime)
                 let x = CGFloat(time / span) * size.width
                 let y = size.height - CGFloat((multiplier - 1) / (top - 1)) * size.height * 0.9
                 return CGPoint(x: x, y: y)
