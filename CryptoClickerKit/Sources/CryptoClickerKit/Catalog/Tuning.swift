@@ -115,6 +115,11 @@ public enum Tuning {
     public static let offlineMiningGrowth: [(levels: ClosedRange<Int>, factor: Double)] = [
         (2...10, 1.4), (11...28, 1.35),
     ]
+    /// From ten and a half hours (level 42) to 29.5 hours (level 80) the step from one level to the
+    /// next eases evenly from 45% to 18%, so the climb past ten hours gets gentler level by level
+    /// instead of holding at about 49% to a day and then dropping. After level 80 each level is the
+    /// curve's step (about 18%) above the one before.
+    public static let offlineMiningEasing: (levels: ClosedRange<Int>, from: Double, to: Double) = (42...80, 1.45, 1.18)
     /// What the Shop takes off the price from four and a half hours on: 15% for levels 31 to 50, 10%
     /// for levels 51 to 80 and 5% after.
     public static let offlineMiningDiscounts: [(levels: ClosedRange<Int>, factor: Double)] = [

@@ -379,22 +379,33 @@ extension GameState {
 
     /// What Offline Mining's `level` (the first is 1) costs in the Shop, in whole coins: the opening
     /// price, then a steady climb a level up to three and a half hours (`Tuning.offlineMiningGrowth`),
-    /// then the curve's step from one level to the next.
+    /// the curve's step to ten hours, an easing step to 29.5 hours (`Tuning.offlineMiningEasing`) and
+    /// the curve's step after; less the discount (`Tuning.offlineMiningDiscounts`).
     public static func offlineMiningShopPrice(level: Int) -> Double {
         let level = min(max(1, level), Tuning.offlineMiningMaxLevel)
+        return Tuning.whole(offlineMiningFullPrices[level - 1] * offlineMiningDiscount(level: level))
+    }
+
+    /// Every level's price before the discount, worked out once.
+    static let offlineMiningFullPrices: [Double] = {
         let opening = Tuning.offlineMiningOpeningPrices
-        guard level > opening.count else { return opening[level - 1] }
-        let top = Tuning.offlineMiningGrowth.last?.levels.upperBound ?? opening.count
-        var price = opening[opening.count - 1]
-        for step in (opening.count + 1)...min(level, top) {
-            price *= Tuning.offlineMiningGrowth.first { $0.levels.contains(step) }?.factor ?? 1
+        var prices = opening
+        for level in (opening.count + 1)...Tuning.offlineMiningMaxLevel {
+            prices.append(prices[level - 2] * offlineMiningStep(level: level))
         }
-        // Past the steady climb, each level is as many times the one before as on the curve.
-        if level > top {
-            price *= offlineMiningListPrice(level: level) / offlineMiningListPrice(level: top)
+        return prices
+    }()
+
+    /// How many times the level before `level` costs (before the discount).
+    static func offlineMiningStep(level: Int) -> Double {
+        if let band = Tuning.offlineMiningGrowth.first(where: { $0.levels.contains(level) }) { return band.factor }
+        let easing = Tuning.offlineMiningEasing
+        if easing.levels.contains(level) {
+            let progress = Double(level - easing.levels.lowerBound)
+                / Double(easing.levels.upperBound - easing.levels.lowerBound)
+            return easing.from + (easing.to - easing.from) * progress
         }
-        price *= offlineMiningDiscount(level: level)
-        return Tuning.whole(price)
+        return offlineMiningListPrice(level: level) / offlineMiningListPrice(level: level - 1)
     }
 
     /// The share of the price the Shop charges at `level` (`Tuning.offlineMiningDiscounts`).

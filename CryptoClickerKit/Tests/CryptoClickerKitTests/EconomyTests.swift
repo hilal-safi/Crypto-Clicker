@@ -259,12 +259,15 @@ struct ProductionTests {
         #expect(price(10) == 72_314) // Fifteen minutes.
         #expect(price(28) == 16_040_881)
         // After that each level is as many times the one before as on the curve, which is 20% over
-        // the curve to level 30 and 10% after, less 15% off for levels 31 to 50, 10% to 80 and 5% after.
+        // the curve to level 30 and 10% after (but see the easing below), less 15% off for levels 31
+        // to 50, 10% to 80 and 5% after.
         let list = GameState.offlineMiningListPrice(level:)
         let curve = GameState.offlineMiningCurvePrice(level:)
         let discount: (Int) -> Double = { $0 <= 30 ? 1 : $0 <= 50 ? 0.85 : $0 <= 80 ? 0.9 : 0.95 }
+        // From level 42 to 80 the step eases from 45% to 18% instead.
+        let eased: (Int) -> Double? = { (42...80).contains($0) ? 1.45 - 0.27 * Double($0 - 42) / 38 : nil }
         for level in 29...Tuning.offlineMiningMaxLevel {
-            let step = list(level) / list(level - 1) * discount(level) / discount(level - 1)
+            let step = (eased(level) ?? list(level) / list(level - 1)) * discount(level) / discount(level - 1)
             #expect(abs(price(level) / price(level - 1) - step) < 1e-6, "level \(level)")
         }
         #expect(price(30) == 78_581_989) // Full price.
