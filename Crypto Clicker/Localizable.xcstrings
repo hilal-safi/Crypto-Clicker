@@ -86,6 +86,16 @@
         }
       }
     },
+    "%@ %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ · %3$@"
+          }
+        }
+      }
+    },
     "%@ a second, each worth %@ of a tap" : {
       "localizations" : {
         "en" : {
@@ -95,6 +105,12 @@
           }
         }
       }
+    },
+    "%@ a step" : {
+
+    },
+    "%@ a step tomorrow" : {
+
     },
     "%@ ago" : {
 
@@ -281,6 +297,16 @@
     "%@ stats" : {
 
     },
+    "%@ stays between %@ and %@ of its usual price, %@ coins." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ stays between %2$@ and %3$@ of its usual price, %4$@ coins."
+          }
+        }
+      }
+    },
     "%@ steps today" : {
 
     },
@@ -300,12 +326,12 @@
         }
       }
     },
-    "%@, %@ coins, %@ %@ today, %lld owned" : {
+    "%@, %@, %@ coins, %@ %@ today, %lld owned" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@, %2$@ coins, %3$@ %4$@ today, %5$lld owned"
+            "value" : "%1$@, %2$@, %3$@ coins, %4$@ %5$@ today, %6$lld owned"
           }
         }
       }
@@ -360,6 +386,9 @@
         }
       }
     },
+    "%@: what it means" : {
+
+    },
     "%@!" : {
 
     },
@@ -389,6 +418,16 @@
     "%lld" : {
 
     },
+    "%lld a line, %lld in all" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld a line, %2$lld in all"
+          }
+        }
+      }
+    },
     "%lld balls" : {
 
     },
@@ -398,12 +437,12 @@
     "%lld enemies left" : {
 
     },
-    "%lld free %@ at %@ %@" : {
+    "%lld free %@ at %@ %@%@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$lld free %2$@ at %3$@ %4$@"
+            "value" : "%1$lld free %2$@ at %3$@ %4$@%5$@"
           }
         }
       }
@@ -481,6 +520,16 @@
     },
     "%lld to go" : {
 
+    },
+    "%lld: ×%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld: ×%2$lld"
+          }
+        }
+      }
     },
     "%lld/%lld" : {
       "localizations" : {
@@ -610,9 +659,6 @@
     "₿" : {
 
     },
-    "2× pays +%@ coins" : {
-
-    },
     "A Cardano, a Solana and an Ethereum on the line, in any order, win %lld free spins at the same bet, and they can win more. About 1 spin in %lld wins them." : {
       "localizations" : {
         "en" : {
@@ -624,6 +670,9 @@
       }
     },
     "A level made up for you: a random goal, board and obstacles, never the same twice. Every point pays coins, and a win pays %@ more." : {
+
+    },
+    "A new wall every level, never the same twice. The whale still comes every fifth level." : {
 
     },
     "A pair of jacks or better wins. Deal to start." : {
@@ -638,6 +687,9 @@
     "A square makes a Propeller, four in a row a Rocket, an L or T a Bomb, and five in a row a Color Clear." : {
 
     },
+    "A stablecoin: its price barely moves, news and all. A safe place to keep tokens, with nothing to gain from trading." : {
+
+    },
     "A win also pays %@ coins" : {
 
     },
@@ -645,6 +697,9 @@
 
     },
     "About %@" : {
+
+    },
+    "About +%@ tomorrow" : {
 
     },
     "Accuracy" : {
@@ -716,6 +771,26 @@
     "Arcade Rank and game achievements unlock new looks. They change how the games look, nothing else." : {
 
     },
+    "At %@ owned, they all earn %@ more." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "At %1$@ owned, they all earn %2$@ more."
+          }
+        }
+      }
+    },
+    "At %@: +%@ coins" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "At %1$@: +%2$@ coins"
+          }
+        }
+      }
+    },
     "Auto cash-out %@" : {
 
     },
@@ -784,6 +859,16 @@
     },
     "Bet %@" : {
 
+    },
+    "Bet %@ × %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bet %1$@ × %2$lld"
+          }
+        }
+      }
     },
     "Bet %lld %@" : {
       "localizations" : {
@@ -991,6 +1076,9 @@
 
     },
     "Classic games" : {
+
+    },
+    "Classic Paytable" : {
 
     },
     "Close" : {
@@ -1265,13 +1353,13 @@
     "Feedback" : {
 
     },
+    "Five lines" : {
+
+    },
     "Flash Market" : {
 
     },
     "Floor" : {
-
-    },
-    "Formations made up for every wave, never the same twice: diamonds, arrows, frames, skylines and more, with the three kinds mixed up. They pay about the same, a golden invader shows up from the first wave, and the Bear still comes every fifth wave." : {
 
     },
     "Free rounds" : {
@@ -1360,6 +1448,9 @@
     "Hint" : {
 
     },
+    "Hits your ship takes, how fast the invaders march and fire, and what a point pays." : {
+
+    },
     "HODL" : {
 
     },
@@ -1387,13 +1478,7 @@
     "How fast shots fly, and how much of their path the guide shows. Neither changes what a point pays." : {
 
     },
-    "How fast the ball moves. A point is worth the same at every speed: Fast scores sooner, Slow is relaxed." : {
-
-    },
     "How fast the chain moves. A coin is worth the same at every speed: Fast scores sooner, Slow is relaxed." : {
-
-    },
-    "How fast the invaders march, and everyone fires. A point is worth the same at every speed: Fast scores sooner, Slow is relaxed." : {
 
     },
     "How It Ends" : {
@@ -1442,6 +1527,12 @@
     "Item purchased!" : {
 
     },
+    "Its price drifts up and down over hours and days, and news nudges it. Buying on a dip and selling on a rise can pay, after the fee." : {
+
+    },
+    "Its price swings hard and jumps about every few minutes: it can halve, or nearly double. The biggest trading gains, and the biggest losses." : {
+
+    },
     "Jackpots" : {
 
     },
@@ -1481,11 +1572,31 @@
     "Left" : {
 
     },
+    "Legacy %@: %@ for each of %lld newer %@ with %@ or more owned." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Legacy %1$@: %2$@ for each of %3$lld newer %4$@ with %5$@ or more owned."
+          }
+        }
+      }
+    },
     "Legacy ×%@" : {
 
     },
     "Legacy: earns %@ from newer miners" : {
 
+    },
+    "Legacy: earns %@ more for each tier from %@ up with %@ owned." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Legacy: earns %1$@ more for each tier from %2$@ up with %3$@ owned."
+          }
+        }
+      }
     },
     "Lets this card go" : {
 
@@ -1531,6 +1642,9 @@
     "Levels won" : {
 
     },
+    "Lines: the middle row, the top row, the bottom row, a V and an upside-down V" : {
+
+    },
     "LISTED" : {
 
     },
@@ -1573,6 +1687,9 @@
       }
     },
     "Lucky Streak doubles every daily reward. Coin rewards grow with your income, up to three times over the day and twice once a quest is finished." : {
+
+    },
+    "Machine" : {
 
     },
     "Market" : {
@@ -1654,6 +1771,9 @@
     "Most coins" : {
 
     },
+    "Most prices drift within about a third of each token's usual price, volatile ones much further and faster, and news nudges them up or down. Tap a token's icon to see how it moves. Bet tokens at the casino games in the Arcade, or sell them back for coins. Tokens reset when you prestige." : {
+
+    },
     "Move left" : {
 
     },
@@ -1695,6 +1815,9 @@
 
     },
     "New best! +%@ coins" : {
+
+    },
+    "New formations and server racks every wave, with golden invaders from the first. The Bear still comes every fifth wave." : {
 
     },
     "New in %@" : {
@@ -1764,6 +1887,9 @@
           }
         }
       }
+    },
+    "No streak" : {
+
     },
     "No tokens, coins or stats change" : {
 
@@ -1870,9 +1996,6 @@
         }
       }
     },
-    "Paddle shrunk for %lld seconds" : {
-
-    },
     "Page" : {
 
     },
@@ -1889,6 +2012,9 @@
 
     },
     "Pays about +%@ tomorrow" : {
+
+    },
+    "Pays are times the bet per line, from the left reel along a line. Every winning line pays." : {
 
     },
     "Pays tomorrow" : {
@@ -1969,6 +2095,9 @@
     "Play Waves" : {
 
     },
+    "point" : {
+
+    },
     "points" : {
 
     },
@@ -2002,6 +2131,9 @@
     "Prestige" : {
 
     },
+    "Prestige %@" : {
+
+    },
     "Prestige and Start Over" : {
 
     },
@@ -2014,10 +2146,17 @@
     "Prestige points, their bonus and your perks" : {
 
     },
-    "Preview" : {
-
+    "Prestige: %lld %@, production %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Prestige: %1$lld %2$@, production %3$@"
+          }
+        }
+      }
     },
-    "Prices drift within about a quarter of each token's usual price, and news nudges them up or down. Bet tokens at the casino games in the Arcade, or sell them back for coins. Tokens reset when you prestige." : {
+    "Preview" : {
 
     },
     "Prices move every 5 minutes" : {
@@ -2096,6 +2235,9 @@
 
     },
     "Right now" : {
+
+    },
+    "Rocket" : {
 
     },
     "Round %lld" : {
@@ -2227,6 +2369,9 @@
 
     },
     "Settings" : {
+
+    },
+    "Ship health" : {
 
     },
     "Shop" : {
@@ -2411,13 +2556,16 @@
     "Tapping upgrades add a share of a second's production to every tap. Quick taps in a row build a combo, and the combo power-ups in the Shop raise how big it gets and how fast it builds." : {
 
     },
+    "The 5× rocket climbs fivefold every %lld seconds and crashes a little more often." : {
+
+    },
     "The chart adds a point every minute while you play." : {
 
     },
-    "The classic formation: rug pullers on top, then pump bots and meme coins, marching a little faster and lower every wave. The Bear comes every fifth wave. Start at wave 1 or any wave you've reached." : {
+    "The classic formation: rug pullers on top, then pump bots and meme coins, marching a little faster and lower every wave. The Bear comes every fifth wave." : {
 
     },
-    "The classic walls: cold storage, liquidation and airdrop blocks, and the whale every fifth level. Start at level 1 or any level you've reached." : {
+    "The classic walls: cold storage, liquidation and airdrop blocks, and the whale every fifth level." : {
 
     },
     "The dealer shows an ace. Insurance?" : {
@@ -2432,7 +2580,20 @@
     "The Live Activity shows your coin and balance on the Lock Screen and in the Dynamic Island while the game is closed: what your miners earn a second, how long they keep going, and what you'll have when they stop. It updates each time you leave the game.\n\nThe Balance widget does the same on the Home Screen or the Lock Screen, its number growing as your miners earn. To add it, touch and hold an empty spot, tap Edit, then Add Widget, and pick Crypto Clicker." : {
 
     },
-    "The multiplier doubles every %lld seconds until the market crashes. Every target pays back 97%% on average: it's luck, so bet what you can lose." : {
+    "The middle, top and bottom rows, a V and an upside-down V. A spin bets on all five, so it stakes five times the bet." : {
+
+    },
+    "The multiplier doubles every %lld seconds until the market crashes. Every target pays back %@ on average: it's luck, so bet what you can lose." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The multiplier doubles every %1$lld seconds until the market crashes. Every target pays back %2$@ on average: it's luck, so bet what you can lose."
+          }
+        }
+      }
+    },
+    "The paddle's width, the ball's speed, and what a point pays." : {
 
     },
     "The same start and miners for everyone today: %lld moves, stars at %@. Each star pays %@ coins the first time today." : {
@@ -2470,7 +2631,23 @@
     "Three of a kind" : {
 
     },
-    "Three of a kind wins. Bitcoin pays the most." : {
+    "Three of a kind wins big, and pairs and Bitcoins pay too." : {
+
+    },
+    "Three or more Bitcoins anywhere on the reels win free spins at the same bet, and they can win more. About 1 spin in %lld wins them.\n\nBitcoins on the middle reel go into your collection. Over time the machine returns about %@ of the tokens bet, free spins included. Wins are rarer and bigger than on the classic machine. Every spin is independent." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Three or more Bitcoins anywhere on the reels win free spins at the same bet, and they can win more. About 1 spin in %1$lld wins them.\n\nBitcoins on the middle reel go into your collection. Over time the machine returns about %2$@ of the tokens bet, free spins included. Wins are rarer and bigger than on the classic machine. Every spin is independent."
+          }
+        }
+      }
+    },
+    "Three or more in a row from the left reel win, on any of five lines. Three Bitcoins anywhere win free spins." : {
+
+    },
+    "Three, four or five in a row" : {
 
     },
     "Time" : {
@@ -2605,13 +2782,13 @@
     "Version" : {
 
     },
+    "Video Paytable" : {
+
+    },
     "Wallet" : {
 
     },
     "Wallet value" : {
-
-    },
-    "Walls made up for every level, never the same twice. They take about as many hits and pay about the same, and the whale still comes every fifth level." : {
 
     },
     "Wave" : {

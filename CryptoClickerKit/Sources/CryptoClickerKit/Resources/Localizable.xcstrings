@@ -1,24 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Game played" : {
-
-    },
-    "Casino round" : {
-
-    },
-    "First today" : {
-
-    },
-    "New best" : {
-
-    },
-    "Daily challenge" : {
-
-    },
-    "Weekly goal" : {
-
-    },
     ", then the Asteroid Harvester and the Galactic Hashnet." : {
 
     },
@@ -74,6 +56,9 @@
       }
     },
     "%@ Ride" : {
+
+    },
+    "%@ Sky" : {
 
     },
     "%@ slips during an exchange outage" : {
@@ -148,6 +133,12 @@
     "+1 automatic tap per second, worth %@ of a tap" : {
 
     },
+    "2× Rocket" : {
+
+    },
+    "5× Rocket" : {
+
+    },
     "21 Million" : {
 
     },
@@ -213,6 +204,9 @@
     "A mining network across the galaxy." : {
 
     },
+    "A narrower paddle and a faster ball, and points pay 20% more." : {
+
+    },
     "A natural 21 (an ace and a ten-value card as your first two) pays 3 to 2, and its coin bonus is half as much again." : {
 
     },
@@ -259,6 +253,9 @@
 
     },
     "A whale swimming along the top, with a health bar. It dumps as it goes: a dump that lands on your paddle shrinks it for a few seconds." : {
+
+    },
+    "A wider paddle and a slower ball, and points pay 20% less." : {
 
     },
     "A win pays your bet back twice; a tie (push) returns it." : {
@@ -321,6 +318,9 @@
     "Arcade Star" : {
 
     },
+    "Arctic" : {
+
+    },
     "Arenas" : {
 
     },
@@ -333,6 +333,9 @@
     "At %@ coins mined in all" : {
 
     },
+    "Aurora" : {
+
+    },
     "Auto Clicker Pro" : {
 
     },
@@ -342,7 +345,7 @@
     "Automatic cash-out" : {
 
     },
-    "Automatic taps are worth 50% of a tap" : {
+    "Automatic taps are worth twice as much: a whole tap" : {
 
     },
     "Avoid the direction that pulls the best miner out of its corner." : {
@@ -393,6 +396,9 @@
     "Block Chain" : {
 
     },
+    "Block Chain Board" : {
+
+    },
     "Block Chain Coins" : {
 
     },
@@ -400,6 +406,9 @@
 
     },
     "Blue chip" : {
+
+    },
+    "Blueprint" : {
 
     },
     "Blueprints" : {
@@ -451,6 +460,9 @@
 
     },
     "Bubble Market" : {
+
+    },
+    "Bubble Market Board" : {
 
     },
     "Bubble Market Bubbles" : {
@@ -541,6 +553,9 @@
     "Casino Green" : {
 
     },
+    "Casino round" : {
+
+    },
     "Catch %@ airdrops" : {
 
     },
@@ -580,7 +595,13 @@
     "Chromebook" : {
 
     },
+    "Circuit" : {
+
+    },
     "Classic" : {
+
+    },
+    "Classic 3×1" : {
 
     },
     "Classic ends after %lld seconds; waves still falling count. A level or puzzle ends when every goal is reached, or when the moves run out." : {
@@ -707,6 +728,16 @@
     "Combos build %@× as fast" : {
 
     },
+    "Combos build faster, up to %@× as fast." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Combos build faster, up to %@× as fast."
+          }
+        }
+      }
+    },
     "Combos build twice as fast and reach at least ×3" : {
 
     },
@@ -749,6 +780,12 @@
     "Crypto Slots" : {
 
     },
+    "Crypto Slots Backdrop" : {
+
+    },
+    "Daily challenge" : {
+
+    },
     "Daily quest and streak rewards ×2" : {
 
     },
@@ -780,6 +817,12 @@
 
     },
     "Deep Mine" : {
+
+    },
+    "Deep Sea" : {
+
+    },
+    "Deep Space" : {
 
     },
     "Defense Day" : {
@@ -845,16 +888,6 @@
     "Dyson Swarm" : {
 
     },
-    "Combos build faster, up to %@× as fast." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Combos build faster, up to %@× as fast."
-          }
-        }
-      }
-    },
     "Each block scores 10 points per hit it takes; clearing a level adds 100 times the level, and beating the whale 500 more." : {
 
     },
@@ -876,7 +909,23 @@
     "Easy" : {
 
     },
+    "Easy: a ship takes %lld hits and the invaders march slowly. Regular: %lld hits at the usual pace. Hard: %lld hit and they march fast. Easy pays 20%% less a point, Hard 20%% more. The hearts beside the field show the hits your ship can still take, and it looks more battered with every one." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Easy: a ship takes %1$lld hits and the invaders march slowly. Regular: %2$lld hits at the usual pace. Hard: %3$lld hit and they march fast. Easy pays 20%% less a point, Hard 20%% more. The hearts beside the field show the hits your ship can still take, and it looks more battered with every one."
+          }
+        }
+      }
+    },
+    "Ember" : {
+
+    },
     "Emerald" : {
+
+    },
+    "Emerald Lounge" : {
 
     },
     "Endless ends when a new piece has no room at the top, or a gas spike pushes the stack out of the well. Block Rush ends when its rows are cleared, and its record is your time." : {
@@ -933,7 +982,7 @@
     "Every ball forks into three. You only lose a life when the last one falls." : {
 
     },
-    "Every Bitcoin on the line is collected; every %lld pay a coin prize." : {
+    "Every Bitcoin on the line (the middle reel on the video machine) is collected; every %lld pay a coin prize." : {
 
     },
     "Every coin is worth %lld points and adds a block to the chain. The chain speeds up as it grows." : {
@@ -1008,6 +1057,9 @@
     "First Swaps" : {
 
     },
+    "First today" : {
+
+    },
     "Five Alive" : {
 
     },
@@ -1054,9 +1106,6 @@
     "Four of a Kind" : {
 
     },
-    "Four racks that stop shots, yours and theirs: every hit knocks out a piece of a server, and invaders crush what they touch." : {
-
-    },
     "Free" : {
 
     },
@@ -1069,7 +1118,7 @@
     "Free spins" : {
 
     },
-    "From wave 2 (wave 1 in Random Waves), one invader a wave glows gold: it's worth double and drops a power-up." : {
+    "From wave 2, one invader a wave glows gold: it's worth double and drops a power-up. Random Waves have one to three from wave 1, and up to four from wave 6." : {
 
     },
     "Frozen Gold" : {
@@ -1091,6 +1140,9 @@
 
     },
     "Galactic Hashnet" : {
+
+    },
+    "Game played" : {
 
     },
     "Gas Limit" : {
@@ -1156,6 +1208,16 @@
     "Green" : {
 
     },
+    "Grows fivefold every %lld seconds and crashes a little more often: it returns %lld%% of the bet on average, but its cash-outs pay %lld%% more coins." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Grows fivefold every %1$lld seconds and crashes a little more often: it returns %2$lld%% of the bet on average, but its cash-outs pay %3$lld%% more coins."
+          }
+        }
+      }
+    },
     "Haptic Engine" : {
 
     },
@@ -1174,10 +1236,16 @@
     "Hash Chain Blocks" : {
 
     },
+    "Hash Chain Board" : {
+
+    },
     "Hash Rate" : {
 
     },
     "Hash Smash" : {
+
+    },
+    "Hash Smash Ball" : {
 
     },
     "Hash Smash Paddle" : {
@@ -1243,6 +1311,9 @@
     "Ice Floe" : {
 
     },
+    "Immersion Cooling" : {
+
+    },
     "In Chains" : {
 
     },
@@ -1262,6 +1333,9 @@
 
     },
     "Invaders Ship" : {
+
+    },
+    "Invaders Shots" : {
 
     },
     "Jack" : {
@@ -1319,6 +1393,9 @@
 
     },
     "Launch · Cash Out" : {
+
+    },
+    "Ledger" : {
 
     },
     "Legend" : {
@@ -1439,6 +1516,9 @@
     "Matches low on the board shake up more tokens for falling waves." : {
 
     },
+    "Matrix" : {
+
+    },
     "Mechanical Keyboard" : {
 
     },
@@ -1446,6 +1526,9 @@
 
     },
     "Meet the weekly variety goal" : {
+
+    },
+    "Mega Step Booster" : {
 
     },
     "Meme Coin" : {
@@ -1471,6 +1554,9 @@
 
     },
     "Merge Mining" : {
+
+    },
+    "Merge Mining Board" : {
 
     },
     "Merge Mining Tiles" : {
@@ -1555,6 +1641,9 @@
     "Mining Farm" : {
 
     },
+    "Moderate" : {
+
+    },
     "Monero" : {
 
     },
@@ -1582,10 +1671,16 @@
     "Natural" : {
 
     },
+    "Navy" : {
+
+    },
     "Neon" : {
 
     },
     "Neural Interface" : {
+
+    },
+    "New best" : {
 
     },
     "New miners" : {
@@ -1595,6 +1690,9 @@
 
     },
     "Next piece" : {
+
+    },
+    "Night" : {
 
     },
     "No mistakes: no scams, no empty taps" : {
@@ -1618,10 +1716,19 @@
     "Offline Mining" : {
 
     },
-    "On the start screen, Levels starts at level 1 or any level you've reached (tap it on the track; a later start pays %lld%% of its points from level 6, less the further in), Random Walls makes up a new wall for every level (never the same twice), and Settings sets the ball's speed." : {
+    "On the start screen, Levels starts at level 1 or any level you've reached (tap it on the track; a later start pays %lld%% of its points from level 6, less the further in), Random Walls makes up a new wall for every level (never the same twice, and it doesn't unlock levels), and Difficulty sets the paddle and the ball: Easy has a paddle 20%% wider and a slower ball and pays 20%% less a point, Hard a paddle 20%% narrower and a faster ball and pays 20%% more. A level's wall is the same every time you play it." : {
 
     },
-    "On the start screen, Waves starts at wave 1 or any wave you've reached (tap it on the track; a later start pays %lld%% of its points from wave 6, less the further in), Random Waves makes up a new formation for every wave (never the same twice, with the kinds mixed up), and Settings sets the speed." : {
+    "On the start screen, Waves starts at wave 1 or any wave you've reached (tap it on the track; a later start pays %lld%% of its points from wave 6, less the further in), Random Waves makes up a new formation and new server racks for every wave (never the same twice, with the kinds mixed up; it doesn't unlock waves), and Difficulty sets how many hits your ship takes, and the speed." : {
+
+    },
+    "On the video machine the bet is per line: a spin bets on all %lld lines." : {
+
+    },
+    "One hit and the ship is lost, the invaders march fast, and points pay 20% more." : {
+
+    },
+    "One more hit your ship can take: it mends a damaged ship first, and on a whole one shows as a bubble." : {
 
     },
     "One to four rows at once score 100, 300, 500 or 800, times the level. Four at once is a Full Block." : {
@@ -1688,19 +1795,22 @@
     "Permafrost" : {
 
     },
-    "Pick a token and a bet, and if you like an automatic cash-out, then Launch. " : {
+    "Pick a machine, a token and a bet, then Spin. The reels that make a win light up, and the result shows your bet, the payout and the net." : {
+
+    },
+    "Pick a rocket, a token and a bet, and if you like an automatic cash-out, then Launch. " : {
 
     },
     "Pick a token and a bet, then Deal. " : {
-
-    },
-    "Pick a token and a bet, then Spin. The reels that make a win light up, and the result shows your bet, the payout and the net." : {
 
     },
     "Pixel" : {
 
     },
     "Plain" : {
+
+    },
+    "Plasma" : {
 
     },
     "Played well, the table returns about 97%." : {
@@ -1786,6 +1896,9 @@
     "Pump and Dump Board" : {
 
     },
+    "Pump and Dump Coins" : {
+
+    },
     "Pump Bot" : {
 
     },
@@ -1822,18 +1935,11 @@
     "Rack-mounted hashing around the clock." : {
 
     },
-    "Rainbow" : {
+    "Racks that stop shots, yours and theirs: every hit knocks out a piece of a server, and invaders crush what they touch. Waves have four; Random Waves have two to five, of their own sizes and in their own places." : {
 
     },
-    "Raises the biggest combo, up to ×%@." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Raises the biggest combo, up to ×%@."
-          }
-        }
-      }
+    "Rainbow" : {
+
     },
     "Raises the biggest combo further, up to ×%@." : {
       "localizations" : {
@@ -1841,6 +1947,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Raises the biggest combo further, up to ×%@."
+          }
+        }
+      }
+    },
+    "Raises the biggest combo, up to ×%@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Raises the biggest combo, up to ×%@."
           }
         }
       }
@@ -1871,6 +1987,9 @@
 
     },
     "Reflex Day" : {
+
+    },
+    "Regular" : {
 
     },
     "Regulators take a closer look at %@" : {
@@ -1922,6 +2041,12 @@
 
     },
     "Royal Flush" : {
+
+    },
+    "Ruby" : {
+
+    },
+    "Ruby Lounge" : {
 
     },
     "Rug pull" : {
@@ -2055,6 +2180,12 @@
     "Shield" : {
 
     },
+    "Ships take three hits, the invaders march slowly, and points pay 20% less." : {
+
+    },
+    "Ships take two hits, at the usual pace." : {
+
+    },
     "Shoot %@ invaders in one Scam Invaders game" : {
 
     },
@@ -2083,6 +2214,9 @@
 
     },
     "Six graphics cards and a lot of fans." : {
+
+    },
+    "Slate" : {
 
     },
     "Slide miners together to upgrade them, from a Chromebook up. Build a Lunar Base for a bonus." : {
@@ -2146,7 +2280,7 @@
     "Spin Crypto Slots %@ times" : {
 
     },
-    "Spin three reels of crypto tokens and line up matches on the pay line." : {
+    "Spin reels of crypto tokens and line up matches: three reels and one pay line on the classic machine, five reels and five lines on the video machine." : {
 
     },
     "Spin three reels of crypto. Three Bitcoins pay 500 times your bet." : {
@@ -2162,6 +2296,9 @@
 
     },
     "Square Deal" : {
+
+    },
+    "Stable" : {
 
     },
     "Stablecoin" : {
@@ -2240,6 +2377,9 @@
     "Suggests the move basic strategy makes with your hand against the dealer's card. It's the best move over time, not a promise about the next card." : {
 
     },
+    "Sunset" : {
+
+    },
     "Survival Day" : {
 
     },
@@ -2273,10 +2413,10 @@
     "Switch to Practice to play for chips instead: the same game, with no tokens, coins or statistics at stake." : {
 
     },
-    "Table options choose the table and turn on the coach, which outlines the basic-strategy move." : {
+    "Synthwave" : {
 
     },
-    "Takes one hit for your ship." : {
+    "Table options choose the table and turn on the coach, which outlines the basic-strategy move." : {
 
     },
     "Tap a coin the moment it lists, before it's delisted. A tap counts as soon as your finger touches." : {
@@ -2325,6 +2465,9 @@
 
     },
     "Taps earn 50% more" : {
+
+    },
+    "Teal" : {
 
     },
     "Tether" : {
@@ -2424,6 +2567,9 @@
     "The Tough table" : {
 
     },
+    "The usual paddle and ball." : {
+
+    },
     "The whale" : {
 
     },
@@ -2448,6 +2594,9 @@
     "Three shots fan out from every volley for %lld seconds." : {
 
     },
+    "Three, four or five of a token in a row from the left reel pay on any of five lines, and every winning line pays. Three or more Bitcoins anywhere win free spins. Wins are rarer and bigger." : {
+
+    },
     "Time between taps" : {
 
     },
@@ -2461,6 +2610,9 @@
 
     },
     "Token Swap" : {
+
+    },
+    "Token Swap Board" : {
 
     },
     "Token Swap Tiles" : {
@@ -2490,12 +2642,12 @@
     "Turn steps into coins" : {
 
     },
-    "Two Bitcoins pay %lld×, a pair on the first two reels pays %lld×, and a single Bitcoin returns your bet." : {
+    "Two Bitcoins pay %lld×, a pair on the first two reels or two Shiba Inu on the last two pay %lld×, and a single Bitcoin returns your bet." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Two Bitcoins pay %1$lld×, a pair on the first two reels pays %2$lld×, and a single Bitcoin returns your bet."
+            "value" : "Two Bitcoins pay %1$lld×, a pair on the first two reels or two Shiba Inu on the last two pay %2$lld×, and a single Bitcoin returns your bet."
           }
         }
       }
@@ -2539,10 +2691,25 @@
     "Upgrader" : {
 
     },
+    "Velvet" : {
+
+    },
+    "Video 5×3" : {
+
+    },
+    "Video machine" : {
+
+    },
+    "Volatile" : {
+
+    },
     "Walk %@ steps" : {
 
     },
     "Walker" : {
+
+    },
+    "Walnut" : {
 
     },
     "Warehouse" : {
@@ -2569,6 +2736,9 @@
     "Waves that fall into new matches score more each time, and specials score big." : {
 
     },
+    "Weekly goal" : {
+
+    },
     "Whale" : {
 
     },
@@ -2590,7 +2760,7 @@
     "Whales dump %@" : {
 
     },
-    "Whatever target you pick, flights return %lld%% of the bet on average: aim for what's fun." : {
+    "Whatever target you pick, flights on the 2× rocket return %lld%% of the bet on average: aim for what's fun." : {
 
     },
     "When the dealer shows an ace, you may insure your bet before the dealer checks for blackjack. Basic strategy says no: the hole card is a ten less than a third of the time." : {
@@ -2652,7 +2822,7 @@
     "You have %lld lives. You lose one when the last ball falls past the paddle, along with any power-ups running; the game ends with the last life." : {
 
     },
-    "You have %lld ships. An invader's shot costs one, along with any power-ups running; the game ends with the last ship, or the moment an invader reaches your ship's line." : {
+    "You have %lld ships. A ship is lost when it has taken all the hits it can (by the difficulty), along with any power-ups running; the next comes in whole. The game ends with the last ship, or the moment an invader reaches your ship's line." : {
 
     },
     "Your first prestige point" : {
