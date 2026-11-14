@@ -1,31 +1,45 @@
 {
   "bought": true,
-  "error": "Unknown command nonsense.",
+  "error": "text",
   "game": {
+    "airdrop": {
+      "accessibility": "text",
+      "id": "text",
+      "isWhale": true,
+      "lifetime": 1.5,
+      "remaining": 1.5,
+      "subtitle": "text",
+      "title": "text"
+    },
+    "dailyBadge": 1,
     "debugTools": true,
-    "errorMessage": "Your progress couldn't be saved.",
+    "errorMessage": "text",
     "purchaseNote": {
-      "effects": "Biggest combo ×2.5",
-      "id": 3,
-      "lifetime": 9,
-      "more": "+1 more",
-      "names": "Desktop ×2, Chromebook",
+      "effects": "text",
+      "id": 1,
+      "lifetime": 1.5,
+      "more": "text",
+      "names": "text",
       "perSecond": {
-        "added": "+4.5",
-        "total": "now 12"
+        "added": "text",
+        "total": "text"
+      },
+      "perStep": {
+        "added": "text",
+        "total": "text"
       },
       "perTap": {
-        "added": "+1",
-        "total": "now 2"
+        "added": "text",
+        "total": "text"
       },
-      "remaining": 8.5,
-      "stamp": 2,
-      "title": "3 items purchased!"
+      "remaining": 1.5,
+      "stamp": 1,
+      "title": "text"
     },
     "shop": {
       "lockedMiner": {
-        "needsPrestige": false,
-        "text": "Buy a GPU Rig to reveal"
+        "needsPrestige": true,
+        "text": "text"
       },
       "miners": [
         {
@@ -33,192 +47,196 @@
             {
               "canAfford": true,
               "count": 1,
-              "label": "Buy 1",
-              "price": "1.2K"
-            },
-            {
-              "canAfford": true,
-              "count": 10,
-              "label": "Buy 10",
-              "price": "25.3K"
-            },
-            {
-              "canAfford": false,
-              "count": 100,
-              "label": "Buy 100",
-              "price": "1.25B"
-            },
-            {
-              "canAfford": true,
-              "count": 42,
-              "label": "Buy 42",
-              "price": "980K"
+              "label": "text",
+              "price": "text"
             }
           ],
-          "emoji": "💻",
-          "id": "chromebook",
+          "emoji": "text",
+          "id": "text",
           "isBestValue": true,
-          "legacy": "×5",
+          "legacy": "text",
           "legacyProgress": {
-            "fraction": 0.3,
-            "text": "70 more to boost Chromebook ×5"
+            "fraction": 1.5,
+            "text": "text"
           },
-          "line": "15 coins per second",
+          "line": "text",
           "milestone": {
-            "fraction": 0.2,
-            "text": "20 more for ×2 output"
+            "fraction": 1.5,
+            "text": "text"
           },
-          "mk": "Mk II",
-          "name": "Chromebook",
-          "nextOne": "Next one: +0.5/s",
-          "owned": 30,
-          "ownedText": "Owned 30",
+          "mk": "text",
+          "name": "text",
+          "nextOne": "text",
+          "owned": 1,
+          "ownedText": "text",
           "upgrade": {
             "canAfford": true,
-            "detail": "Doubles what your Chromebooks mine",
-            "name": "Chromebook Mk III",
-            "price": "50K"
+            "detail": "text",
+            "name": "text",
+            "price": "text"
           }
         }
       ],
-      "minersDetail": "120 per second",
+      "minersDetail": "text",
       "offlineMining": {
         "canAfford": true,
-        "next": "2m",
-        "now": "1m",
-        "price": "10K",
-        "subtitle": "Level 1"
+        "next": "text",
+        "now": "text",
+        "price": "text",
+        "subtitle": "text"
       },
       "powerUps": [
         {
           "canAfford": true,
-          "id": "comboBooster",
+          "id": "text",
           "level": 1,
-          "locked": "Opens when Combo Booster reaches level 6",
-          "maxLevel": 6,
-          "name": "Combo Booster",
-          "next": "×3",
-          "now": "×2.5",
-          "price": "25K",
-          "subtitle": "Level 1 of 6",
-          "summary": "Raises the biggest combo.",
-          "symbol": "flame.fill",
-          "valueName": "Biggest combo"
+          "locked": "text",
+          "maxLevel": 1,
+          "name": "text",
+          "next": "text",
+          "now": "text",
+          "price": "text",
+          "subtitle": "text",
+          "summary": "text",
+          "symbol": "text",
+          "valueName": "text"
         }
       ],
       "purchased": [
         {
-          "canAfford": false,
-          "category": "tapping",
-          "id": "coinClicker",
-          "name": "Coin Clicker",
-          "price": "110",
-          "summary": "Taps earn more.",
-          "symbol": "hand.tap.fill"
+          "canAfford": true,
+          "category": "text",
+          "id": "text",
+          "name": "text",
+          "price": "text",
+          "summary": "text",
+          "symbol": "text"
         }
       ],
       "upgrades": [
         {
           "canAfford": true,
-          "category": "production",
-          "id": "overclocking",
-          "name": "Overclocking",
-          "price": "8.5K",
-          "summary": "Miners produce twice as much.",
-          "symbol": "speedometer"
+          "category": "text",
+          "id": "text",
+          "name": "text",
+          "price": "text",
+          "summary": "text",
+          "symbol": "text"
         }
       ],
-      "upgradesDetail": "3 still hidden",
-      "upgradesEmpty": "Keep mining to discover more upgrades."
+      "upgradesDetail": "text",
+      "upgradesEmpty": "text"
     },
+    "stepWindowDays": 1,
+    "stepsConnected": true,
     "unreadableSave": {
-      "message": "Part of the save file is damaged, so your progress can't be opened right now.",
-      "title": "Your saved game couldn't be read"
+      "message": "text",
+      "title": "text"
     },
     "welcomeBack": {
-      "away": "You were away for 6h.",
-      "earned": "1.2M",
+      "away": "text",
+      "earned": "text",
       "highlights": [
         {
-          "icon": "🏆",
-          "text": "Big Spender · Bronze"
+          "icon": "text",
+          "text": "text"
         }
       ],
-      "id": 7,
-      "multiplierTotal": "×2",
+      "id": 1,
+      "multiplierTotal": "text",
       "multipliers": [
         {
-          "title": "Upgrades",
-          "value": "×2"
+          "title": "text",
+          "value": "text"
         }
       ],
       "offlineNote": {
-        "button": "Upgrade Offline Mining",
-        "text": "Offline Mining paid for 1m of that. Level it up to earn for longer."
+        "button": "text",
+        "text": "text"
       },
       "sources": [
         {
-          "coins": "900K",
-          "detail": "×30",
-          "emoji": "💻",
-          "fraction": 0.75,
-          "name": "Chromebook",
-          "share": "75%"
+          "coins": "text",
+          "detail": "text",
+          "emoji": "text",
+          "fraction": 1.5,
+          "name": "text",
+          "share": "text"
         }
       ],
       "suggestion": {
-        "bought": false,
+        "bought": true,
         "canAfford": true,
-        "detail": "+6 coins per second · pays for itself in 8m 20s",
-        "name": "GPU Rig",
-        "price": "3K"
+        "detail": "text",
+        "name": "text",
+        "price": "text"
       },
       "time": [
         {
-          "title": "Away",
-          "value": "6h"
+          "title": "text",
+          "value": "text"
         }
       ],
-      "total": "1.2M"
+      "total": "text"
     }
   },
   "info": {
     "debugTools": true,
-    "saveVersion": 8,
-    "secondsFromGMT": -18000,
-    "timeZone": "America/Toronto"
+    "saveVersion": 1,
+    "secondsFromGMT": 1,
+    "timeZone": "text"
   },
   "live": {
-    "balance": "1,234",
-    "balanceExact": "1,234",
+    "balance": "text",
+    "balanceExact": "text",
     "bullRun": {
-      "multiplier": "×2",
-      "remaining": "4m 3s",
-      "title": "BULL RUN ×2"
+      "multiplier": "text",
+      "remaining": "text",
+      "title": "text"
     },
-    "coins": 1234.5,
+    "coins": 1.5,
     "combo": {
-      "isMax": false,
-      "taps": "24 taps!",
-      "title": "Combo ×1.5"
+      "isMax": true,
+      "taps": "text",
+      "title": "text"
     },
-    "income": "12.5",
-    "incomeExact": "12.5",
-    "tap": "3",
-    "tapExact": "3"
+    "income": "text",
+    "incomeExact": "text",
+    "tap": "text",
+    "tapExact": "text"
   },
   "ok": true,
-  "revision": 42,
+  "play": {
+    "game": "text"
+  },
+  "reminders": [
+    {
+      "at": 1.5,
+      "body": "text",
+      "id": "text",
+      "title": "text"
+    }
+  ],
+  "revision": 1,
   "tap": {
-    "earned": "+3",
-    "earnedExact": "+3"
+    "earned": "text",
+    "earnedExact": "text"
   },
   "toasts": [
     {
-      "icon": "⏱️",
-      "id": 12,
-      "message": "+1.2K coins while you were away",
-      "title": "Welcome back"
+      "icon": "text",
+      "id": 1,
+      "message": "text",
+      "title": "text"
     }
-  ]
+  ],
+  "widget": {
+    "balance": "text",
+    "balanceExact": "text",
+    "balanceWhenMiningEnds": "text",
+    "isMining": true,
+    "miningEndsAt": 1.5,
+    "rate": "text",
+    "snapshot": "text"
+  }
 }

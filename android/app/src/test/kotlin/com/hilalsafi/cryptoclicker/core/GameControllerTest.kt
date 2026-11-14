@@ -31,19 +31,26 @@ class GameControllerTest {
         Json.parse(file.readText(Charsets.UTF_8)) as Map<String, Any?>
     }
 
-    /** The contract's response, changed by [edit]. */
+    /** The contract's response (revision 42, a balance of 1,234, a tap of +3), changed by [edit]. */
     private fun response(edit: MutableMap<String, Any?>.() -> Unit = {}): String {
         @Suppress("UNCHECKED_CAST")
         val copy = Json.parse(Json.write(contract)) as MutableMap<String, Any?>
         copy.remove("error")
+        copy["ok"] = true
+        copy["revision"] = 42
         copy["toasts"] = emptyList<Any?>()
+        @Suppress("UNCHECKED_CAST")
+        (copy["live"] as MutableMap<String, Any?>)["balance"] = "1,234"
+        @Suppress("UNCHECKED_CAST")
+        (copy["tap"] as MutableMap<String, Any?>)["earned"] = "+3"
+        copy.remove("play")
         copy.edit()
         return Json.write(copy)
     }
 
     private val engine = FakeEngine { response() }
     private var timeZone = "Europe/Paris"
-    private val controller = GameController(engine, File("/data/game")) { timeZone }
+    private val controller = GameController(engine, File("/data/game"), timeZone = { timeZone })
 
     @After
     fun tearDown() = controller.close()
@@ -141,6 +148,51 @@ class GameControllerTest {
         assertEquals("buyMiner", request["cmd"])
         assertEquals("gpuRig", request["id"])
         assertEquals(10.0, request["quantity"])
+    }
+
+    @Test
+    fun asksForTheViewsOnScreen() {
+        controller.start()
+        controller.awaitIdle()
+        val shop = controller.want("shop")
+        controller.awaitIdle()
+        // A screen that appears gets its view at once, even if the game hasn't changed.
+        val snapshot = engine.requests.last()
+        assertEquals("snapshot", snapshot["cmd"])
+        assertEquals(listOf("shop"), snapshot["views"])
+        assertFalse(snapshot.containsKey("known"))
+        val mine = controller.want("mine", "shop")
+        controller.awaitIdle()
+        assertEquals(listOf("mine", "shop"), engine.requests.last()["views"])
+        mine.close()
+        runBlocking { controller.tick() }
+        assertEquals(listOf("shop"), engine.requests.last()["views"])
+        shop.close()
+        runBlocking { controller.tick() }
+        assertEquals(emptyList<String>(), engine.requests.last()["views"])
+    }
+
+    @Test
+    fun playsAMiniGameAndHoldsItsFrame() = runBlocking {
+        controller.start()
+        controller.awaitIdle()
+        engine.answer = { response { put("play", mapOf("game" to "snake")) } }
+        controller.openGame("snake", mapOf("kind" to "classic"))
+        controller.awaitIdle()
+        assertTrue(controller.inGame.value)
+        val open = engine.requests.last()
+        assertEquals("play.open", open["cmd"])
+        assertEquals("snake", open["id"])
+        assertEquals("classic", open["kind"])
+        assertEquals("snake", controller.frame.value?.game)
+        val frame = controller.step("advance", mapOf("seconds" to 0.25))
+        assertEquals("snake", frame?.game)
+        assertEquals(true, engine.requests.last()["lite"])
+        engine.answer = { response() }
+        controller.closeGame()
+        controller.awaitIdle()
+        assertNull(controller.frame.value)
+        assertFalse(controller.inGame.value)
     }
 
     @Test

@@ -275,6 +275,62 @@ class JsonObject(private val map: Map<String, Any?>, private val path: String = 
         items.mapIndexed { index, item -> read(child(item, "$path.$key[$index]") ?: wrongType("$key[$index]", "an object")) }
     }
 
+    /** A list of lists of objects (a board's rows), each read with [read]. */
+    fun <T> grid(key: String, read: (JsonObject) -> T): List<List<T>> = gridOrNull(key, read) ?: missing(key)
+
+    fun <T> gridOrNull(key: String, read: (JsonObject) -> T): List<List<T>>? = optional(key) { value ->
+        val rows = value as? List<*> ?: wrongType(key, "a list")
+        rows.mapIndexed { row, items ->
+            val cells = items as? List<*> ?: wrongType("$key[$row]", "a list")
+            cells.mapIndexed { index, item ->
+                read(child(item, "$path.$key[$row][$index]") ?: wrongType("$key[$row][$index]", "an object"))
+            }
+        }
+    }
+
+    fun strings(key: String): List<String> = stringsOrNull(key) ?: missing(key)
+    fun stringsOrNull(key: String): List<String>? = values(key) { name, item -> item as? String ?: wrongType(name, "text") }
+
+    fun ints(key: String): List<Int> = intsOrNull(key) ?: missing(key)
+    fun intsOrNull(key: String): List<Int>? = values(key, ::whole)
+
+    fun doubles(key: String): List<Double> = doublesOrNull(key) ?: missing(key)
+    fun doublesOrNull(key: String): List<Double>? = values(key) { name, item -> item as? Double ?: wrongType(name, "a number") }
+
+    fun bools(key: String): List<Boolean> = boolsOrNull(key) ?: missing(key)
+    fun boolsOrNull(key: String): List<Boolean>? = values(key) { name, item -> item as? Boolean ?: wrongType(name, "true or false") }
+
+    fun stringGrid(key: String): List<List<String>> = stringGridOrNull(key) ?: missing(key)
+    fun stringGridOrNull(key: String): List<List<String>>? = rowsOf(key) { name, item -> item as? String ?: wrongType(name, "text") }
+
+    fun intGrid(key: String): List<List<Int>> = intGridOrNull(key) ?: missing(key)
+    fun intGridOrNull(key: String): List<List<Int>>? = rowsOf(key, ::whole)
+
+    fun doubleGrid(key: String): List<List<Double>> = doubleGridOrNull(key) ?: missing(key)
+    fun doubleGridOrNull(key: String): List<List<Double>>? = rowsOf(key) { name, item -> item as? Double ?: wrongType(name, "a number") }
+
+    fun boolGrid(key: String): List<List<Boolean>> = boolGridOrNull(key) ?: missing(key)
+    fun boolGridOrNull(key: String): List<List<Boolean>>? = rowsOf(key) { name, item -> item as? Boolean ?: wrongType(name, "true or false") }
+
+    private inline fun <T> values(key: String, read: (String, Any?) -> T): List<T>? = optional(key) { value ->
+        val items = value as? List<*> ?: wrongType(key, "a list")
+        items.mapIndexed { index, item -> read("$key[$index]", item) }
+    }
+
+    private inline fun <T> rowsOf(key: String, read: (String, Any?) -> T): List<List<T>>? = optional(key) { value ->
+        val rows = value as? List<*> ?: wrongType(key, "a list")
+        rows.mapIndexed { row, items ->
+            val cells = items as? List<*> ?: wrongType("$key[$row]", "a list")
+            cells.mapIndexed { index, item -> read("$key[$row][$index]", item) }
+        }
+    }
+
+    private fun whole(name: String, item: Any?): Int {
+        val number = item as? Double ?: wrongType(name, "a number")
+        if (number != Math.rint(number) || kotlin.math.abs(number) > Int.MAX_VALUE) wrongType(name, "a whole number")
+        return number.toInt()
+    }
+
     /** Keys present here or in any object read from here that nothing read: unknown fields. */
     fun unreadKeys(): List<String> =
         map.keys.filter { it !in readKeys }.map { "$path.$it" } + children.flatMap { it.unreadKeys() }

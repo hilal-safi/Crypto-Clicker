@@ -30,6 +30,31 @@ env:
   SWIFT_ANDROID_SDK_CHECKSUM: "4d6ad63ea74becd58e123ff58b1b48c3be5ec0db0dff0ea5abe37ac007dd3233"
 
 jobs:
+  generated:
+    name: Generated models are up to date
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the Kotlin models and the contract against the Swift views
+        run: python3 android/tools/generate_models.py --check
+
+  kotlin:
+    name: Kotlin compiles and its tests pass
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      # The Kotlin code and its JVM tests don't need the native game, so this is the quick check.
+      - name: Compile the app's Kotlin and run the JVM tests
+        working-directory: android
+        run: ./gradlew :app:compileDebugKotlin :app:compileDebugUnitTestKotlin :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest --stacktrace
+
   swift-on-android:
     name: Swift tests on Android (${{ matrix.package }})
     runs-on: ubuntu-latest

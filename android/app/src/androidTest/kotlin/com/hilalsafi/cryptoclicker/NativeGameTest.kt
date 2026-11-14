@@ -22,8 +22,13 @@ import org.junit.runner.RunWith
 class NativeGameTest {
     private val engine = NativeEngine()
 
+    private companion object {
+        val ALL_VIEWS = listOf("shop")
+    }
+
     private fun call(vararg request: Pair<String, Any?>): Response {
-        val text = engine.call(Json.write(mapOf(*request)))
+        // Every screen, so the responses carry every view.
+        val text = engine.call(Json.write(mapOf(*request) + ("views" to ALL_VIEWS)))
         val o = Json.parseObject(text)
         val response = Response.from(o)
         assertEquals("Keys the app doesn't read in ${request.first().second}", emptyList<String>(), o.unreadKeys())
@@ -39,7 +44,7 @@ class NativeGameTest {
 
         val start = call("cmd" to "start", "dir" to dir.absolutePath, "timeZone" to timeZone)
         assertEquals("0", start.live!!.balance)
-        val chromebook = start.game!!.shop.miners.first()
+        val chromebook = start.game!!.shop!!.miners.first()
         assertEquals("chromebook", chromebook.id)
         assertEquals("💻", chromebook.emoji)
 
@@ -57,7 +62,7 @@ class NativeGameTest {
             call("cmd" to "debugAddCoins", "amount" to 1_000_000.0)
             val bought = call("cmd" to "buyMiner", "id" to "chromebook", "quantity" to 10)
             assertEquals(true, bought.bought)
-            assertEquals(10, bought.game!!.shop.miners.first { it.id == "chromebook" }.owned)
+            assertEquals(10, bought.game!!.shop!!.miners.first { it.id == "chromebook" }.owned)
             assertEquals("Chromebook ×10", bought.game!!.purchaseNote!!.names)
         }
 

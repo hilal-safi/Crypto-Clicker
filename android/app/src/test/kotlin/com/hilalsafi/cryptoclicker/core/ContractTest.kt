@@ -8,9 +8,10 @@ import org.junit.Test
 import java.io.File
 
 /**
- * `android/contract/response.json` has every key the native game can send. The Swift bridge tests
- * check real responses use no other key; this test checks the app reads every one of them, so
- * the two sides can't drift apart.
+ * `android/contract/response.json` holds every field of every view the native game can send (it
+ * is written with the models by android/tools/generate_models.py). The Swift bridge tests check
+ * real responses use no other key; this test checks the app reads every one of them, so the two
+ * sides can't drift apart.
  */
 class ContractTest {
     private val contract: String by lazy {
@@ -25,24 +26,8 @@ class ContractTest {
         val o = Json.parseObject(contract)
         val response = Response.from(o)
         assertEquals("Keys the app doesn't read", emptyList<String>(), o.unreadKeys())
-
         assertTrue(response.ok)
-        assertEquals(42, response.revision)
-        val live = response.live!!
-        assertEquals("1,234", live.balance)
-        assertEquals("Combo ×1.5", live.combo!!.title)
-        assertEquals("BULL RUN ×2", live.bullRun!!.title)
-        val game = response.game!!
-        val miner = game.shop.miners.single()
-        assertEquals("💻", miner.emoji)
-        assertEquals(listOf(1, 10, 100, 42), miner.buy.map { it.count })
-        assertEquals("Chromebook Mk III", miner.upgrade!!.name)
-        assertEquals(6, game.shop.powerUps.single().maxLevel)
-        assertEquals("production", game.shop.upgrades.single().category)
-        assertEquals("3 items purchased!", game.purchaseNote!!.title)
-        assertEquals(0.75, game.welcomeBack!!.sources.single().fraction, 0.0)
-        assertEquals("⏱️", response.toasts.single().icon)
-        assertEquals("America/Toronto", response.info!!.timeZone)
+        assertTrue(response.live != null && response.game != null && response.play != null)
     }
 
     @Test
@@ -58,22 +43,18 @@ class ContractTest {
 
     @Test
     fun leavesOutOptionalPartsTheGameDoesNotSend() {
-        // Swift leaves out nil fields. Removing every optional object must still read.
+        // Swift leaves out nil fields. Removing optional objects must still read.
         @Suppress("UNCHECKED_CAST")
         val o = Json.parse(contract) as MutableMap<String, Any?>
-        o.remove("tap")
-        o.remove("info")
-        o.remove("bought")
+        listOf("tap", "info", "bought", "play", "reminders", "widget").forEach { o.remove(it) }
         @Suppress("UNCHECKED_CAST")
         val game = o["game"] as MutableMap<String, Any?>
-        game.remove("welcomeBack")
-        game.remove("purchaseNote")
-        game.remove("unreadableSave")
-        game.remove("errorMessage")
+        listOf("welcomeBack", "purchaseNote", "airdrop", "unreadableSave", "errorMessage", "shop").forEach { game.remove(it) }
         val response = Response.parse(Json.write(o))
         assertNull(response.tap)
+        assertNull(response.play)
         assertNull(response.game!!.welcomeBack)
-        assertNull(response.game!!.purchaseNote)
+        assertNull(response.game!!.shop)
     }
 
     @Test

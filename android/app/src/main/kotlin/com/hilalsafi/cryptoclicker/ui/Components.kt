@@ -247,10 +247,11 @@ fun PurchaseNoteCard(note: PurchaseNote, onDismiss: () -> Unit) {
                     }
                 }
             }
-            if (note.perSecond != null || note.perTap != null) {
+            if (note.perSecond != null || note.perTap != null || note.perStep != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     note.perSecond?.let { GainTile("PER SECOND", it.added, it.total, Modifier.weight(1f)) }
                     note.perTap?.let { GainTile("PER TAP", it.added, it.total, Modifier.weight(1f)) }
+                    note.perStep?.let { GainTile("PER STEP", it.added, it.total, Modifier.weight(1f)) }
                 }
             }
             if (note.effects != null) {

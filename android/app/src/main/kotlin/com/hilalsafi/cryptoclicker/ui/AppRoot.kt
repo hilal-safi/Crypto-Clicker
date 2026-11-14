@@ -126,15 +126,23 @@ fun AppRoot(game: GameController, prefs: AppPrefs) {
                         onToggleExact = { prefs.setExactNumbers(!exact) },
                         onTap = game::tap,
                     )
-                    AppTab.Shop -> ShopScreen(
-                        shop = current.shop,
-                        haptics = haptics,
-                        purchases = game.purchases,
-                        listState = shopListState,
-                        powerUpRequests = powerUpRequests,
-                        contentPadding = padding,
-                        actions = shopActions,
-                    )
+                    AppTab.Shop -> {
+                        WantViews(game, "shop")
+                        val shop = current.shop
+                        if (shop != null) {
+                            ShopScreen(
+                                shop = shop,
+                                haptics = haptics,
+                                purchases = game.purchases,
+                                listState = shopListState,
+                                powerUpRequests = powerUpRequests,
+                                contentPadding = padding,
+                                actions = shopActions,
+                            )
+                        } else {
+                            Box(Modifier.fillMaxSize())
+                        }
+                    }
                     AppTab.Arcade -> ComingSoon(
                         title = "Arcade",
                         detail = "The casino and the eight arcade games are coming to Android next.",
@@ -174,6 +182,9 @@ fun AppRoot(game: GameController, prefs: AppPrefs) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            current.airdrop?.let { airdrop ->
+                AirdropButton(airdrop, haptics) { game.claimAirdrop() }
+            }
             current.purchaseNote?.let { note ->
                 PurchaseNoteCard(note) { game.dismissPurchaseNote(note.id) }
             }

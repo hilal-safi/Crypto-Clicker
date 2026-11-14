@@ -29,7 +29,7 @@ class CryptoClickerApp : Application() {
         super.onCreate()
         prefs = AppPrefs(this)
         // The save is game.json in the app's private files, the same format as on iPhone.
-        game = GameController(NativeEngine(), File(filesDir, "CryptoClicker")) { TimeZone.getDefault().id }
+        game = GameController(NativeEngine(), File(filesDir, "CryptoClicker"), timeZone = { TimeZone.getDefault().id })
         game.start()
 
         val process = ProcessLifecycleOwner.get()

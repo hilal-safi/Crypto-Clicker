@@ -48,15 +48,41 @@ struct TapView: Encodable, Equatable {
 }
 
 /// Everything the screens show apart from the live balance. Sent when it changes: at once after
-/// an action, at most once a second from the clock.
+/// an action, at most once a second from the clock. What floats over every tab is always here;
+/// each screen's own view only while the app says that screen is on display (`Request.views`),
+/// so the game isn't worked out for screens nobody is looking at.
 struct GameView: Encodable {
-    let shop: ShopView
     let welcomeBack: WelcomeBackView?
     let purchaseNote: PurchaseNoteView?
+    let airdrop: AirdropView?
     let unreadableSave: UnreadableSaveView?
     let errorMessage: String?
     /// Whether this build has the Testing Tools (debug builds only).
     let debugTools: Bool
+    /// Daily rewards waiting to be claimed, for the Trophies tab's badge.
+    let dailyBadge: Int
+    /// Whether steps are connected (the app reads Health Connect every few minutes while open) and
+    /// how many days back it reads.
+    let stepsConnected: Bool
+    let stepWindowDays: Int
+
+    // Screens ("shop", …), when asked for.
+    let shop: ShopView?
+}
+
+/// A falling airdrop: catch it before it goes for coins or a Bull Run. A rare whale is bigger,
+/// bluer and worth up to an hour of income.
+struct AirdropView: Encodable {
+    let id: String
+    let isWhale: Bool
+    /// "Airdrop incoming!" or "Whale airdrop!"
+    let title: String
+    /// "Tap to catch it"
+    let subtitle: String
+    /// Seconds until it goes, of `lifetime`.
+    let remaining: Double
+    let lifetime: Double
+    let accessibility: String
 }
 
 // MARK: - Shop
@@ -189,6 +215,8 @@ struct PurchaseNoteView: Encodable {
     let more: String?
     let perSecond: GainView?
     let perTap: GainView?
+    /// What a step walked from now on pays, once steps are connected.
+    let perStep: GainView?
     /// Effects other than coins: "Biggest combo ×3.5"
     let effects: String?
     /// Seconds until it goes, of `lifetime`.
@@ -286,9 +314,24 @@ extension GameSession {
                         combo: combo, bullRun: bullRun)
     }
 
-    func gameView(debugTools: Bool) -> GameView {
-        GameView(shop: shopView, welcomeBack: welcomeBackView, purchaseNote: purchaseNoteView,
-                 unreadableSave: unreadableSaveView, errorMessage: errorMessage, debugTools: debugTools)
+    func gameView(views: Set<String>, debugTools: Bool) -> GameView {
+        GameView(welcomeBack: welcomeBackView, purchaseNote: purchaseNoteView, airdrop: airdropView,
+                 unreadableSave: unreadableSaveView, errorMessage: errorMessage, debugTools: debugTools,
+                 dailyBadge: dailyBadgeCount, stepsConnected: game.steps.isConnected,
+                 stepWindowDays: Tuning.stepWindowDays,
+                 shop: views.contains("shop") ? shopView : nil)
+    }
+
+    var airdropView: AirdropView? {
+        guard let airdrop else { return nil }
+        let isWhale = airdrop.kind == .whale
+        return AirdropView(
+            id: airdrop.id.uuidString, isWhale: isWhale,
+            title: isWhale ? "Whale airdrop!" : "Airdrop incoming!",
+            subtitle: isWhale ? "Catch it for an hour of mining" : "Tap to catch it",
+            remaining: max(0, airdrop.expiresAt.timeIntervalSince(now)), lifetime: max(1, airdrop.lifetime),
+            accessibility: isWhale ? "Whale airdrop, worth an hour of mining. Tap to catch it before it disappears."
+                                   : "Airdrop. Tap to catch it before it disappears.")
     }
 
     // MARK: Shop
@@ -442,6 +485,8 @@ extension GameSession {
                 ? GainView(added: "+\(CoinFormat.rate(note.addedIncome))", total: "now \(CoinFormat.rate(note.incomeNow))") : nil,
             perTap: note.addedTap > 0
                 ? GainView(added: "+\(CoinFormat.short(note.addedTap))", total: "now \(CoinFormat.short(note.tapNow))") : nil,
+            perStep: note.addedStep > 0
+                ? GainView(added: "+\(CoinFormat.short(note.addedStep))", total: "now \(CoinFormat.short(note.stepNow))") : nil,
             effects: effects.isEmpty ? nil
                 : effects.prefix(effectsShown).joined(separator: " · ")
                     + (effects.count > effectsShown ? " · +\(effects.count - effectsShown) more" : ""),

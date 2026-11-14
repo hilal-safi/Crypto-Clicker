@@ -9,8 +9,9 @@ struct Toast: Equatable, Sendable, Encodable {
     let message: String
 }
 
-/// The Shop's purchase popup. Purchases made while it's up add to it, so tapping Buy a few times
-/// shows one running total; it goes nine seconds after the last purchase.
+/// The Shop's purchase popup. Purchases made while it's up add to it instead of stacking more
+/// popups, so tapping Buy a few times shows one running total; it goes nine seconds after the
+/// last purchase.
 struct PurchaseNote: Equatable, Sendable {
     struct Item: Equatable, Sendable {
         let name: String
@@ -22,12 +23,16 @@ struct PurchaseNote: Equatable, Sendable {
     /// The same while purchases add to the popup, so it updates in place.
     let id: Int
     private(set) var items: [Item] = []
-    /// Idle income and a tap's worth before the first of these purchases...
+    /// Idle income, a tap's worth and a step's worth before the first of these purchases...
     let incomeBefore: Double
     let tapBefore: Double
+    let stepBefore: Double
     /// ...and after the latest.
     var incomeNow: Double
     var tapNow: Double
+    var stepNow: Double
+    /// Whether steps are connected, so a step's worth is worth showing.
+    let showsSteps: Bool
     /// The latest purchase; the popup stays up `lifetime` after it.
     var updatedAt: Date
     /// Goes up with every purchase added, so the app restarts the popup's timer.
@@ -35,12 +40,15 @@ struct PurchaseNote: Equatable, Sendable {
 
     static let lifetime: TimeInterval = 9
 
-    init(id: Int, incomeBefore: Double, tapBefore: Double, at date: Date) {
+    init(id: Int, incomeBefore: Double, tapBefore: Double, stepBefore: Double, showsSteps: Bool, at date: Date) {
         self.id = id
         self.incomeBefore = incomeBefore
         self.tapBefore = tapBefore
+        self.stepBefore = stepBefore
+        self.showsSteps = showsSteps
         incomeNow = incomeBefore
         tapNow = tapBefore
+        stepNow = stepBefore
         updatedAt = date
     }
 
@@ -56,6 +64,7 @@ struct PurchaseNote: Equatable, Sendable {
     var itemCount: Int { items.reduce(0) { $0 + $1.count } }
     var addedIncome: Double { max(0, incomeNow - incomeBefore) }
     var addedTap: Double { max(0, tapNow - tapBefore) }
+    var addedStep: Double { showsSteps ? max(0, stepNow - stepBefore) : 0 }
 }
 
 /// What the welcome-back screen shows: what the miners earned while the app was closed, what that
@@ -73,6 +82,45 @@ struct WelcomeBack: Sendable {
     var boughtSuggestion = false
 }
 
+/// An airdrop on screen, waiting to be caught before it expires (see `AirdropSchedule`).
+typealias Airdrop = AirdropDrop
+
+/// Token prices, day changes, charts and news for the Shop's Tokens page. Prices only move once per
+/// market tick, so this is worked out then rather than on every view.
+struct MarketBoard: Equatable, Sendable {
+    struct Quote: Equatable, Sendable {
+        /// One token, in whole coins.
+        let price: Double
+        /// The move over the last day, as a share (0.1 = up 10%).
+        let change: Double
+        /// Price factors over the last day, oldest first, for the sparkline.
+        let history: [Double]
+    }
+
+    let tick: Int64
+    let quotes: [TokenID: Quote]
+    /// The last day's stories, newest first.
+    let news: [MarketNews]
+
+    init(at date: Date) {
+        tick = Market.tick(at: date)
+        var quotes: [TokenID: Quote] = [:]
+        for token in TokenID.allCases {
+            let history = Market.history(token, endingAt: date, span: 86_400, points: 48)
+            let first: Double = history.first ?? 1
+            let last: Double = history.last ?? 1
+            let change = last / max(first, Double.leastNonzeroMagnitude) - 1
+            quotes[token] = Quote(price: Market.price(token, at: date), change: change, history: history)
+        }
+        self.quotes = quotes
+        news = Market.news(before: date, span: 86_400)
+    }
+
+    func quote(_ token: TokenID) -> Quote {
+        quotes[token] ?? Quote(price: token.price, change: 0, history: [])
+    }
+}
+
 /// A save that couldn't be read, kept aside under `backup`.
 struct UnreadableSave: Equatable, Sendable {
     let backup: URL
@@ -84,18 +132,23 @@ struct UnreadableSave: Equatable, Sendable {
 
 /// Plays the game for the Android app. Every rule lives in CryptoClickerKit; this is everything the
 /// iOS app's `GameStore` does around the rules, without the UI: the clock and catching up after time
-/// away, saving, the dailies, achievements and their announcements, the combo, the purchase popup
-/// and the welcome-back report. Each method mirrors the `GameStore` method of the same name, so the
-/// two apps play the same game. Not thread-safe: `Bridge` serialises every call.
+/// away, saving, airdrops, the market board, the dailies, achievements and their announcements, the
+/// combo, the purchase popup and the welcome-back report. It is split by area like `GameStore`
+/// (`GameSession+Actions`, `+Progress`, `+Games`, `+Services`, `+Debug`), and each method mirrors the
+/// `GameStore` method of the same name, so the two apps play the same game. Not thread-safe: `Bridge`
+/// serialises every call.
 final class GameSession {
-    private(set) var state: GameState
+    /// The game itself, which the clock and every action change.
+    var state: GameState
+    /// The game as views read it (on iOS, the published copy of `state`).
+    var game: GameState { state }
     let saves: SaveStore
-    private let prefsURL: URL
+    let prefsURL: URL
     /// The clock, injected so tests can move time.
     private let clock: () -> Date
-    /// Whether steps can be counted here. Health Connect isn't wired up on Android yet, so step
-    /// quests and Step Boosters are left out, as on an iPhone without Apple Health.
-    let canTrackSteps = false
+    /// Whether steps can be counted here (Health Connect is on this phone). Step quests and Step
+    /// Boosters are only offered where they can be, as on an iPhone without Apple Health.
+    var canTrackSteps = false
 
     /// Goes up whenever screens should look at the game again: at once for anything the player
     /// does, and at most once a second as the clock ticks.
@@ -104,23 +157,40 @@ final class GameSession {
 
     /// Income is credited only while the app is on screen. In the background the game clock stays at
     /// `state.lastUpdate`, so the time away is paid once, up to the Offline Mining limit.
-    private(set) var isInForeground = false
+    var isInForeground = false
     /// A save exists but couldn't be read yet. Until it loads, nothing is saved.
-    private(set) var isSaveLocked = false
-    private(set) var unreadableSave: UnreadableSave?
+    var isSaveLocked = false
+    var unreadableSave: UnreadableSave?
     var errorMessage: String?
-    private(set) var welcomeBack: WelcomeBack?
-    private(set) var purchaseNote: PurchaseNote?
+    var welcomeBack: WelcomeBack?
+    var purchaseNote: PurchaseNote?
+    /// The airdrop on screen (`airdrops.drop`, published).
+    var airdrop: Airdrop?
+    /// When airdrops fall and go.
+    var airdrops = AirdropSchedule()
+    var market: MarketBoard
     /// Quick taps in a row (0 once the combo has lapsed).
-    private(set) var comboStreak = 0
-    private var lastTapAt = Date.distantPast
-    private var pendingToasts: [Toast] = []
+    var comboStreak = 0
+    var lastTapAt = Date.distantPast
+    /// Today's daily reward hasn't been claimed yet.
+    var isDailyRewardReady = false
+    /// Daily rewards waiting to be claimed, for the Trophies tab's badge.
+    var dailyBadgeCount = 0
+    /// A mini-game is on screen: airdrops wait (and the app holds toasts) until it closes.
+    var isInGame = false
+    /// What the last action earned toward Arcade Rank (`nil` when it finished no game), for the
+    /// result screen that action leads to. Read right after a game's finish call.
+    private(set) var lastArcadeAward: ArcadeAward?
+    /// The mini-game being played, when one is open (see `PlaySession`).
+    var play: PlaySession?
+
+    var pendingToasts: [Toast] = []
     private var nextID = 1
-    private var lastSave: Date
-    private var lastDayCheck = Date.distantPast
-    private var hasUnsavedChanges = false
-    private var hasReportedSaveError = false
-    private var prefs: SessionPrefs
+    var lastSave: Date
+    var lastDayCheck = Date.distantPast
+    var hasUnsavedChanges = false
+    var hasReportedSaveError = false
+    var prefs: SessionPrefs
 
     /// Opens the game saved in `directory` (`game.json`, the same file and format as on iOS).
     init(directory: URL, clock: @escaping () -> Date = { Date() }) {
@@ -130,6 +200,7 @@ final class GameSession {
         prefs = SessionPrefs.load(from: prefsURL)
         let now = clock()
         lastSave = now
+        market = MarketBoard(at: now)
         switch saves.load(now: now) {
         case .loaded(let saved):
             state = saved
@@ -149,6 +220,10 @@ final class GameSession {
 
     var now: Date { clock() }
 
+    /// Today's and yesterday's day keys, for the dailies.
+    var today: String { StepDay.key(for: now) }
+    var yesterday: String { StepDay.previousKey(before: now) }
+
     /// The combo multiplier on the coin right now (×1 without a combo).
     var comboMultiplier: Double {
         comboStreak > 1 ? state.comboMultiplier(streak: comboStreak) : 1
@@ -160,7 +235,7 @@ final class GameSession {
         return pendingToasts
     }
 
-    private func makeID() -> Int {
+    func makeID() -> Int {
         defer { nextID += 1 }
         return nextID
     }
@@ -172,13 +247,16 @@ final class GameSession {
         loadIfLocked()
         isInForeground = true
         catchUp(to: now)
+        refreshMarket(at: now)
         refreshDaily(at: now, force: true)
+        if airdrops.isDue(at: now) { scheduleAirdrop(from: now) }
     }
 
     /// The app left the screen (iOS: the scene went to the background).
     func enterBackground() {
         if isInForeground { catchUp(to: now) }
         isInForeground = false
+        clearAirdrop()
         comboStreak = 0
         save()
     }
@@ -239,7 +317,7 @@ final class GameSession {
 
     /// Lets screens know the game changed: at once for an action, or at most once a second for the
     /// clock's ticks.
-    private func publish(at now: Date? = nil, ticking: Bool = false) {
+    func publish(at now: Date? = nil, ticking: Bool = false) {
         let now = now ?? self.now
         guard !ticking || now.timeIntervalSince(lastPublished) >= 1 else { return }
         lastPublished = now
@@ -247,7 +325,7 @@ final class GameSession {
     }
 
     /// Puts a whole new game in place (a load, a restore, a reset).
-    private func replaceGame(with game: GameState) {
+    func replaceGame(with game: GameState) {
         state = game
         publish()
     }
@@ -258,9 +336,12 @@ final class GameSession {
         guard isInForeground else { return }
         catchUp(to: now)
         if comboStreak > 0 && now.timeIntervalSince(lastTapAt) > state.comboWindow { comboStreak = 0 }
+        updateAirdrop(at: now)
+        refreshMarket(at: now)
         refreshDaily(at: now)
         recordIncomeIfDue(at: now)
         announceAchievements()
+        // The popup's nine seconds (the app also counts them down, and dismisses early on a tap).
         if let note = purchaseNote, now.timeIntervalSince(note.updatedAt) >= PurchaseNote.lifetime {
             purchaseNote = nil
             publish()
@@ -310,95 +391,64 @@ final class GameSession {
         let result = action(&state, now)
         // Arcade XP and the weekly variety goal, for whatever games the action finished.
         let award = state.awardArcadeProgress(since: arcade, today: StepDay.key(for: now))
+        lastArcadeAward = award
         publish(at: now)
         hasUnsavedChanges = true
         if !challengeWasComplete, state.daily.challenge?.isComplete == true { announceChallenge() }
         announceAchievements()
         announceArcade(award, rankBefore: rankBefore)
+        refreshDailyStatus(at: now)
         if !isInForeground { save() }
         return result
     }
 
-    // MARK: Actions
+    // MARK: Market
 
-    /// Taps the coin. Taps in quick succession build a combo. Returns the coins this tap earned.
-    @discardableResult
-    func tap() -> Double {
+    func refreshMarket(at now: Date) {
+        guard Market.tick(at: now) != market.tick else { return }
+        market = MarketBoard(at: now)
+        publish(at: now)
+    }
+
+    // MARK: Toasts
+
+    func makeToast(_ icon: String, _ title: String, _ message: String) -> Toast {
+        Toast(id: makeID(), icon: icon, title: title, message: message)
+    }
+
+    func show(_ icon: String, _ title: String, _ message: String) {
+        show(makeToast(icon, title, message))
+    }
+
+    /// Queues a toast. The app shows them one at a time and keeps the latest five.
+    func show(_ toast: Toast) {
+        pendingToasts.append(toast)
+        if pendingToasts.count > 5 { pendingToasts.removeFirst(pendingToasts.count - 5) }
+    }
+
+    // MARK: Purchase popup
+
+    /// What a purchase popup measures from: idle income and a tap's worth, without boosts, and what
+    /// a step walked from now on pays.
+    var purchaseBaseline: (income: Double, tap: Double, step: Double) {
+        (state.baseIdleIncome, state.baseTapValue, state.stepValue)
+    }
+
+    /// Adds a purchase to the popup: to the one on screen if the last purchase was under nine
+    /// seconds ago, else to a new one measured from `before` (`purchaseBaseline` before buying).
+    func notePurchase(_ name: String, count: Int = 1, effect: String? = nil,
+                      before: (income: Double, tap: Double, step: Double)) {
         let now = self.now
-        comboStreak = now.timeIntervalSince(lastTapAt) <= state.comboWindow ? comboStreak + 1 : 1
-        lastTapAt = now
-        let streak = comboStreak
-        return perform { game, now in game.tap(at: now, combo: streak) }
-    }
-
-    @discardableResult
-    func buy(_ miner: MinerID, quantity: Int) -> Bool {
-        let before = purchaseBaseline
-        let bought = perform { game, _ in game.buy(miner, quantity: quantity) }
-        if bought { notePurchase(miner.name, count: quantity, before: before) }
-        return bought
-    }
-
-    @discardableResult
-    func buyMinerUpgrade(_ miner: MinerID) -> Bool {
-        let before = purchaseBaseline
-        let name = state.name(of: .minerUpgrade(miner))
-        let bought = perform { game, _ in game.buyMinerUpgrade(miner) }
-        if bought { notePurchase(name, before: before) }
-        return bought
-    }
-
-    @discardableResult
-    func buy(_ upgrade: UpgradeID) -> Bool {
-        let before = purchaseBaseline
-        let bought = perform { game, _ in game.buy(upgrade) }
-        if bought { notePurchase(upgrade.name, effect: upgrade.addsCoins ? nil : upgrade.summary, before: before) }
-        return bought
-    }
-
-    /// Buys the welcome-back screen's suggestion.
-    @discardableResult
-    func buySuggestion() -> Bool {
-        guard let welcome = welcomeBack, let suggestion = welcome.suggestion, !welcome.boughtSuggestion else { return false }
-        let before = purchaseBaseline
-        let name = state.name(of: suggestion.purchase)
-        let bought = perform { game, _ in game.buy(suggestion.purchase) }
-        if bought {
-            notePurchase(name, before: before)
-            welcomeBack?.boughtSuggestion = true
-        }
-        return bought
-    }
-
-    /// Buys the next Offline Mining level. Saved at once, since it changes what time away pays.
-    @discardableResult
-    func buyOfflineMining() -> Bool {
-        let before = purchaseBaseline
-        let bought = perform { game, _ in game.buyOfflineMining() }
-        if bought {
-            notePurchase("Offline Mining",
-                         effect: "Miners earn for up to \(CoinFormat.duration(state.offlineCap)) away",
-                         before: before)
-            save()
-        }
-        return bought
-    }
-
-    /// Buys a power-up's next level. Saved at once, like Offline Mining.
-    @discardableResult
-    func buyPowerUp(_ powerUp: PowerUpID) -> Bool {
-        let before = purchaseBaseline
-        let bought = perform { game, _ in game.buyPowerUp(powerUp) }
-        if bought {
-            notePurchase(powerUp.name, effect: powerUp.effect(atLevel: state.powerUpLevel(powerUp)), before: before)
-            save()
-        }
-        return bought
-    }
-
-    func dismissWelcomeBack() {
-        guard welcomeBack != nil else { return }
-        welcomeBack = nil
+        var note = purchaseNote.flatMap { now.timeIntervalSince($0.updatedAt) < PurchaseNote.lifetime ? $0 : nil }
+            ?? PurchaseNote(id: makeID(), incomeBefore: before.income, tapBefore: before.tap, stepBefore: before.step,
+                            showsSteps: state.steps.isConnected, at: now)
+        note.add(name, count: count, effect: effect)
+        note.incomeNow = state.baseIdleIncome
+        note.tapNow = state.baseTapValue
+        note.stepNow = state.stepValue
+        note.updatedAt = now
+        note.stamp += 1
+        purchaseNote = note
         publish()
     }
 
@@ -409,114 +459,10 @@ final class GameSession {
         publish()
     }
 
-    // MARK: Purchase popup
-
-    /// What a purchase popup measures from: idle income and a tap's worth, without boosts.
-    private var purchaseBaseline: (income: Double, tap: Double) { (state.baseIdleIncome, state.baseTapValue) }
-
-    /// Adds a purchase to the popup: to the one on screen if the last purchase was under nine
-    /// seconds ago, else to a new one measured from `before` (`purchaseBaseline` before buying).
-    private func notePurchase(_ name: String, count: Int = 1, effect: String? = nil,
-                              before: (income: Double, tap: Double)) {
-        let now = self.now
-        var note = purchaseNote.flatMap { now.timeIntervalSince($0.updatedAt) < PurchaseNote.lifetime ? $0 : nil }
-            ?? PurchaseNote(id: makeID(), incomeBefore: before.income, tapBefore: before.tap, at: now)
-        note.add(name, count: count, effect: effect)
-        note.incomeNow = state.baseIdleIncome
-        note.tapNow = state.baseTapValue
-        note.updatedAt = now
-        note.stamp += 1
-        purchaseNote = note
+    func dismissWelcomeBack() {
+        guard welcomeBack != nil else { return }
+        welcomeBack = nil
         publish()
-    }
-
-    // MARK: Dailies
-
-    /// Issues the day's quests and challenge once the day changes, paying any finished quests left
-    /// from before. Checked every few seconds, since midnight can pass while the app is open.
-    func refreshDaily(at now: Date, force: Bool = false) {
-        guard !isSaveLocked, force || now.timeIntervalSince(lastDayCheck) >= 5 else { return }
-        lastDayCheck = now
-        let today = StepDay.key(for: now)
-        guard state.needsDailyRefresh(today: today) else { return }
-        let canWalk = canTrackSteps
-        let paid = perform { game, now in game.refreshDaily(today: today, canWalk: canWalk, at: now) }
-        for payout in paid {
-            show(toast(for: payout, title: "Yesterday's quest paid"))
-        }
-        save()
-    }
-
-    private func toast(for payout: RewardPayout, title: String) -> Toast {
-        switch payout {
-        case .coins(let amount):
-            makeToast("🎁", title, "+\(CoinFormat.short(amount)) coins")
-        case .tokens(let token, let count):
-            makeToast("🎁", title, "+\(CoinFormat.grouped(count)) \(token.name)")
-        case .bullRun(let multiplier, let duration):
-            makeToast("🐂", title,
-                      "Bull Run: production \(CoinFormat.multiplier(multiplier)) for \(CoinFormat.duration(duration))")
-        }
-    }
-
-    /// Samples idle income for the Statistics chart every minute while the app is open.
-    private func recordIncomeIfDue(at now: Date) {
-        let last = state.incomeHistory.last?.date ?? .distantPast
-        guard now.timeIntervalSince(last) >= Tuning.incomeSampleInterval || last > now else { return }
-        state.recordIncomeSample(at: now)
-        publish(at: now, ticking: true)
-        hasUnsavedChanges = true
-    }
-
-    // MARK: Announcements
-
-    /// Celebrates a completed daily challenge (and the week's bonus when it came with it).
-    private func announceChallenge() {
-        let week = state.daily.challengesThisWeek
-        let bonus = week == Tuning.weeklyChallengeGoal
-            ? " · weekly bonus +\(CoinFormat.short(state.weeklyChallengeBonus))" : ""
-        show("🎯", "Daily challenge complete!", "+\(CoinFormat.short(state.challengeReward)) coins\(bonus)")
-    }
-
-    /// Celebrates the weekly variety goal and a new Arcade Rank, with what the rank unlocked.
-    private func announceArcade(_ award: ArcadeAward?, rankBefore: Int) {
-        if let reward = award?.weeklyReward, reward > 0 {
-            show("🎲", "Weekly variety goal!",
-                 "\(Tuning.weeklyVarietyGames) different games this week · +\(CoinFormat.short(reward)) coins")
-        }
-        let rank = state.arcadeRank
-        guard rank > rankBefore else { return }
-        let unlocked = state.cosmeticsUnlocked(sinceRank: rankBefore)
-        show("🕹️", "Arcade Rank \(rank) · \(state.arcadeTitle)",
-             unlocked.isEmpty ? "Keep playing to rank up" : "New look: " + unlocked.map(\.name).joined(separator: ", "))
-    }
-
-    private func announceAchievements() {
-        let earned = state.refreshAchievements()
-        guard !earned.isEmpty else { return }
-        publish()
-        for earned in earned {
-            let xp = AchievementCatalog.arcadeIDs.contains(earned.achievement.id)
-                ? " · +\(Tuning.arcadeXPPerAchievementTier) Arcade XP" : ""
-            show(earned.achievement.emoji ?? "🏆", "\(earned.achievement.name) · \(earned.tierName)",
-                 "Achievement unlocked · +\(CoinFormat.percent(state.productionPerAchievementTier)) production\(xp)")
-        }
-    }
-
-    // MARK: Toasts
-
-    private func makeToast(_ icon: String, _ title: String, _ message: String) -> Toast {
-        Toast(id: makeID(), icon: icon, title: title, message: message)
-    }
-
-    private func show(_ icon: String, _ title: String, _ message: String) {
-        show(makeToast(icon, title, message))
-    }
-
-    /// Queues a toast. The app shows them one at a time and keeps the latest five.
-    private func show(_ toast: Toast) {
-        pendingToasts.append(toast)
-        if pendingToasts.count > 5 { pendingToasts.removeFirst(pendingToasts.count - 5) }
     }
 
     // MARK: Saving
@@ -572,39 +518,22 @@ final class GameSession {
 
     /// Starts again from nothing (Settings).
     func resetGame() {
-        guard !isSaveLocked else { return }
         replaceGame(with: GameState(now: now))
         pendingToasts = []
+        clearAirdrop()
         welcomeBack = nil
         purchaseNote = nil
+        play = nil
         comboStreak = 0
+        scheduleAirdrop(from: now)
         refreshDaily(at: now, force: true)
         save()
     }
-
-    #if DEBUG
-    // MARK: Testing tools (debug builds only, like the iOS Testing Tools screen)
-
-    /// Applies a testing shortcut through `perform`, then saves, as the iOS Testing Tools do.
-    func debugChange(_ change: (inout GameState, Date) -> Void) {
-        perform(change)
-        save()
-    }
-
-    /// Acts as if the app had been closed for `seconds`: the next tick pays the time away (up to
-    /// the Offline Mining limit) and shows the welcome-back screen, even if it showed today.
-    func debugPretendAway(_ seconds: TimeInterval) {
-        prefs.lastShortWelcomeDay = nil
-        prefs.save(to: prefsURL)
-        debugChange { game, _ in game.debugRewind(seconds) }
-    }
-    #endif
 }
 
-/// The few things the session remembers outside the save, as the iOS app keeps them in
-/// `UserDefaults`.
+/// Small settings the iOS app keeps in UserDefaults, kept beside the save here.
 struct SessionPrefs: Codable, Equatable {
-    /// The day the once-a-day welcome-back screen (without Offline Mining) last showed.
+    /// The day the short welcome-back screen last showed (see `ReturnGreeting`).
     var lastShortWelcomeDay: String?
 
     static func load(from url: URL) -> SessionPrefs {

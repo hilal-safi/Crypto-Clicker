@@ -21,8 +21,13 @@ final class Harness {
         try? FileManager.default.removeItem(at: directory)
     }
 
+    /// Every screen, so responses carry every view (a request can name its own).
+    static let allViews = ["shop"]
+
     @discardableResult
     func send(_ request: [String: Any]) throws -> [String: Any] {
+        var request = request
+        if request["views"] == nil { request["views"] = Self.allViews }
         let data = try JSONSerialization.data(withJSONObject: request)
         let response = try JSONSerialization.jsonObject(with: Bridge.handle(data))
         return try #require(response as? [String: Any])
