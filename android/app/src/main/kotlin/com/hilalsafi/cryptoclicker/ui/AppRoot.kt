@@ -1,22 +1,24 @@
 package com.hilalsafi.cryptoclicker.ui
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Settings
@@ -24,12 +26,13 @@ import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -39,16 +42,33 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.unit.sp
 import com.hilalsafi.cryptoclicker.R
 import com.hilalsafi.cryptoclicker.core.GameController
+import com.hilalsafi.cryptoclicker.ui.design.CornerBadge
+import com.hilalsafi.cryptoclicker.ui.design.Type
+import com.hilalsafi.cryptoclicker.ui.mine.IncomeSheet
+import com.hilalsafi.cryptoclicker.ui.mine.MineBackground
+import com.hilalsafi.cryptoclicker.ui.mine.MineScreen
+import com.hilalsafi.cryptoclicker.ui.root.BalanceBar
+import com.hilalsafi.cryptoclicker.ui.root.BullRunFire
+import com.hilalsafi.cryptoclicker.ui.root.NotificationStack
+import com.hilalsafi.cryptoclicker.ui.root.WelcomeBackSheet
 import com.hilalsafi.cryptoclicker.ui.theme.Palette
 import com.hilalsafi.cryptoclicker.ui.theme.gameColors
+import com.hilalsafi.cryptoclicker.ui.theme.glass
 
 /** The tabs, in the iOS app's order. */
 enum class AppTab(val label: String) {
@@ -60,57 +80,72 @@ enum class AppTab(val label: String) {
 }
 
 /**
- * The app's frame (iOS: RootView): the tabs, the balance bar over the tab bar, toasts and the
- * purchase popup floating at the top, the welcome-back sheet and the save alerts.
+ * Requests from one tab to open part of another (iOS: RootView's request counters): each screen
+ * handles a count it hasn't seen yet once, so asking twice opens it twice.
+ */
+@Stable
+class Requests {
+    /** The Shop's power-ups (the welcome-back screen's Offline Mining button). */
+    var powerUps by mutableIntStateOf(0)
+    /** The Shop's tokens (the home screen's crypto card). */
+    var tokens by mutableIntStateOf(0)
+    /** How to Play in Settings (the home screen's tip). */
+    var howToPlay by mutableIntStateOf(0)
+    /** Today's challenge in the Arcade (from the Daily page). */
+    var challenge by mutableIntStateOf(0)
+    /** The Daily page (from the home screen's tips). */
+    var daily by mutableIntStateOf(0)
+}
+
+/**
+ * The app's frame (iOS: RootView): the tabs, the balance bar over the tab bar, the Bull Run's
+ * fire, airdrops, toasts and the purchase popup floating at the top, the welcome-back sheet and
+ * the save alerts.
  */
 @Composable
 fun AppRoot(game: GameController, prefs: AppPrefs) {
-    val live by game.live.collectAsStateWithLifecycle()
-    val view by game.game.collectAsStateWithLifecycle()
-    val toasts by game.toasts.collectAsStateWithLifecycle()
-    val failure by game.failure.collectAsStateWithLifecycle()
-    val appearance by prefs.appearance.collectAsStateWithLifecycle()
-    val exact by prefs.exactNumbers.collectAsStateWithLifecycle()
-    val haptics by prefs.haptics.collectAsStateWithLifecycle()
-    var tab by rememberSaveable { mutableStateOf(AppTab.Mine) }
-    var powerUpRequests by rememberSaveable { mutableIntStateOf(0) }
-    val shopListState = rememberLazyListState()
-    // Each tab keeps its own state while another is shown, as iOS tabs do (the Shop's ×1/×10
-    // choice, the open Purchased list).
-    val tabStates = rememberSaveableStateHolder()
-    val shopActions = remember(game) {
-        object : ShopActions {
-            override fun buyMiner(id: String, count: Int) = game.buyMiner(id, count)
-            override fun buyMinerUpgrade(id: String) = game.buyMinerUpgrade(id)
-            override fun buyUpgrade(id: String) = game.buyUpgrade(id)
-            override fun buyOfflineMining() = game.buyOfflineMining()
-            override fun buyPowerUp(id: String) = game.buyPowerUp(id)
-        }
+    CompositionLocalProvider(LocalGame provides game, LocalPrefs provides prefs) {
+        Root()
     }
+}
+
+@Composable
+private fun Root() {
+    val game = LocalGame.current
+    val prefs = LocalPrefs.current
+    val live by game.live.collectAsState()
+    val view by game.game.collectAsState()
+    val toasts by game.toasts.collectAsState()
+    val inGame by game.inGame.collectAsState()
+    val failure by game.failure.collectAsState()
+    val exact by prefs.exactNumbers.state()
+    var tab by rememberSaveable { mutableStateOf(AppTab.Mine) }
+    var showsIncome by rememberSaveable { mutableStateOf(false) }
+    val requests = remember { Requests() }
+    // Each tab keeps its own state while another is shown, as iOS tabs do.
+    val tabStates = rememberSaveableStateHolder()
 
     val current = view
     if (current == null) {
         Loading(failure)
         return
     }
+    fun openPowerUps() {
+        requests.powerUps++
+        tab = AppTab.Shop
+    }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(gameColors.base)) {
         Scaffold(
-            containerColor = gameColors.base,
+            containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0),
             bottomBar = {
-                Column {
-                    if (tab != AppTab.Mine) {
-                        BalanceBar(live, exact) { tab = AppTab.Mine }
-                    }
-                    NavigationBar {
-                        AppTab.entries.forEach { item ->
-                            NavigationBarItem(
-                                selected = tab == item,
-                                onClick = { tab = item },
-                                icon = { TabIcon(item) },
-                                label = { Text(item.label) },
-                            )
-                        }
+                // Mini-games take the whole screen, as on iOS.
+                if (!inGame) {
+                    Column(Modifier.navigationBarsPadding()) {
+                        // Mine shows the balance and rates at the top, so the bar is left off there.
+                        if (tab != AppTab.Mine) BalanceBar(live, exact) { showsIncome = true }
+                        TabBar(tab, current.dailyBadge) { tab = it }
                     }
                 }
             },
@@ -119,120 +154,69 @@ fun AppRoot(game: GameController, prefs: AppPrefs) {
                 when (tab) {
                     AppTab.Mine -> MineScreen(
                         live = live,
-                        exact = exact,
-                        haptics = haptics,
-                        taps = game.taps,
                         contentPadding = padding,
-                        onToggleExact = { prefs.setExactNumbers(!exact) },
-                        onTap = game::tap,
+                        openShop = { tab = AppTab.Shop },
+                        openPowerUps = ::openPowerUps,
+                        openTokens = {
+                            requests.tokens++
+                            tab = AppTab.Shop
+                        },
+                        openDaily = {
+                            requests.daily++
+                            tab = AppTab.Trophies
+                        },
+                        openIncome = { showsIncome = true },
+                        openHowToPlay = {
+                            requests.howToPlay++
+                            tab = AppTab.Settings
+                        },
                     )
-                    AppTab.Shop -> {
-                        WantViews(game, "shop")
-                        val shop = current.shop
-                        if (shop != null) {
-                            ShopScreen(
-                                shop = shop,
-                                haptics = haptics,
-                                purchases = game.purchases,
-                                listState = shopListState,
-                                powerUpRequests = powerUpRequests,
-                                contentPadding = padding,
-                                actions = shopActions,
-                            )
-                        } else {
-                            Box(Modifier.fillMaxSize())
-                        }
+                    AppTab.Shop -> ShopTab(current, padding, requests)
+                    AppTab.Arcade -> ComingSoon("Arcade", "The arcade is on its way to Android.", Icons.Rounded.SportsEsports, Palette.arcade, padding)
+                    AppTab.Trophies -> ComingSoon("Trophies", "Daily rewards, quests and achievements are on their way to Android.", Icons.Rounded.EmojiEvents, Palette.trophies, padding)
+                    AppTab.Settings -> {
+                        val appearance by prefs.appearance.state()
+                        val haptics by prefs.haptics.state()
+                        SettingsScreen(
+                            appearance = appearance, exact = exact, haptics = haptics, debugTools = current.debugTools,
+                            contentPadding = padding,
+                            onAppearanceChange = prefs.appearance::set,
+                            onExactChange = prefs.exactNumbers::set,
+                            onHapticsChange = prefs.haptics::set,
+                            game = game,
+                        )
                     }
-                    AppTab.Arcade -> ComingSoon(
-                        title = "Arcade",
-                        detail = "The casino and the eight arcade games are coming to Android next.",
-                        icon = Icons.Rounded.SportsEsports,
-                        tint = Palette.arcade,
-                        contentPadding = padding,
-                    )
-                    AppTab.Trophies -> ComingSoon(
-                        title = "Trophies",
-                        detail = "Achievements, daily quests and the Arcade Rank are coming to Android soon. " +
-                            "Achievements you earn already count toward production.",
-                        icon = Icons.Rounded.EmojiEvents,
-                        tint = Palette.trophies,
-                        contentPadding = padding,
-                    )
-                    AppTab.Settings -> SettingsScreen(
-                        appearance = appearance,
-                        exact = exact,
-                        haptics = haptics,
-                        debugTools = current.debugTools,
-                        contentPadding = padding,
-                        onAppearanceChange = prefs::setAppearance,
-                        onExactChange = prefs::setExactNumbers,
-                        onHapticsChange = prefs::setHaptics,
-                        game = game,
-                    )
                 }
             }
         }
-
-        // Toasts and the purchase popup float over every tab, below the status bar.
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            current.airdrop?.let { airdrop ->
-                AirdropButton(airdrop, haptics) { game.claimAirdrop() }
-            }
-            current.purchaseNote?.let { note ->
-                PurchaseNoteCard(note) { game.dismissPurchaseNote(note.id) }
-            }
-            AnimatedContent(
-                targetState = toasts.firstOrNull(),
-                transitionSpec = { (slideInVertically { -it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut()) },
-                contentKey = { it?.id },
-                label = "toast",
-            ) { toast ->
-                if (toast != null) ToastCard(toast) { game.dismissToast(toast.id) }
-            }
-        }
-    }
-
-    current.welcomeBack?.let { welcome ->
-        WelcomeBackSheet(
-            welcome = welcome,
-            onCollect = game::dismissWelcomeBack,
-            onBuySuggestion = game::buySuggestion,
-            onOpenOfflineMining = {
-                game.dismissWelcomeBack()
-                tab = AppTab.Shop
-                powerUpRequests++
-            },
+        // The screen's edges burn while a Bull Run lasts.
+        BullRunFire(burning = live?.bullRun != null && !inGame)
+        NotificationStack(
+            current, toasts, inGame,
+            Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp),
         )
     }
-
+    if (showsIncome) IncomeSheet { showsIncome = false }
+    current.welcomeBack?.let { WelcomeBackSheet(it, openPowerUps = ::openPowerUps) }
+    current.errorMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = game::dismissError,
+            title = { Text("Something went wrong") },
+            text = { Text(message) },
+            confirmButton = { TextButton(onClick = game::dismissError) { Text("OK") } },
+        )
+    }
     // A damaged save: say so plainly, keep the file, and only start over when the player says.
-    current.unreadableSave?.let { problem ->
+    current.unreadableSave?.let { save ->
         AlertDialog(
             onDismissRequest = {},
-            title = { Text(problem.title) },
-            text = { Text(problem.message) },
+            title = { Text(save.title) },
+            text = { Text(save.message) },
             confirmButton = { TextButton(onClick = game::retryUnreadableSave) { Text("Try Again") } },
             dismissButton = {
                 TextButton(onClick = game::startOverAfterUnreadableSave) { Text("Start a New Game", color = gameColors.loss) }
             },
         )
-    }
-    if (current.unreadableSave == null) {
-        current.errorMessage?.let { message ->
-            AlertDialog(
-                onDismissRequest = game::dismissError,
-                title = { Text("Something went wrong") },
-                text = { Text(message) },
-                confirmButton = { TextButton(onClick = game::dismissError) { Text("OK") } },
-            )
-        }
     }
     failure?.let { message ->
         AlertDialog(
@@ -244,15 +228,89 @@ fun AppRoot(game: GameController, prefs: AppPrefs) {
     }
 }
 
+/** The Shop until its pages arrive: the Power-ups page. */
 @Composable
-private fun TabIcon(tab: AppTab) {
-    when (tab) {
-        AppTab.Mine -> Icon(painterResource(R.drawable.coin_small), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(24.dp))
-        AppTab.Shop -> Icon(Icons.Rounded.ShoppingCart, contentDescription = null)
-        AppTab.Arcade -> Icon(Icons.Rounded.SportsEsports, contentDescription = null)
-        AppTab.Trophies -> Icon(Icons.Rounded.EmojiEvents, contentDescription = null)
-        AppTab.Settings -> Icon(Icons.Rounded.Settings, contentDescription = null)
+private fun ShopTab(current: com.hilalsafi.cryptoclicker.core.GameView, padding: androidx.compose.foundation.layout.PaddingValues, requests: Requests) {
+    val game = LocalGame.current
+    val prefs = LocalPrefs.current
+    val haptics by prefs.haptics.state()
+    WantViews("shop")
+    val listState = rememberLazyListState()
+    val actions = remember(game) {
+        object : ShopActions {
+            override fun buyMiner(id: String, count: Int) = game.buyMiner(id, count)
+            override fun buyMinerUpgrade(id: String) = game.buyMinerUpgrade(id)
+            override fun buyUpgrade(id: String) = game.buyUpgrade(id)
+            override fun buyOfflineMining() = game.buyOfflineMining()
+            override fun buyPowerUp(id: String) = game.buyPowerUp(id)
+        }
     }
+    val shop = current.shop
+    if (shop == null) {
+        Box(Modifier.fillMaxSize())
+    } else {
+        ShopScreen(shop, haptics, game.purchases, listState, requests.powerUps, padding, actions)
+    }
+}
+
+/**
+ * The tab bar, floating in a glass capsule (iOS 26's tab bar): an icon over each tab's name, the
+ * current one tinted, and the Daily badge on Trophies.
+ */
+@Composable
+private fun TabBar(selected: AppTab, dailyBadge: Int, onSelect: (AppTab) -> Unit) {
+    val colors = gameColors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(top = 4.dp, bottom = 8.dp)
+            .widthIn(max = 560.dp)
+            .height(64.dp)
+            .glass(colors, CircleShape)
+            .padding(horizontal = 6.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppTab.entries.forEach { item ->
+            val isSelected = item == selected
+            val tint = if (isSelected) colors.accent else colors.text.copy(alpha = 0.75f)
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(if (isSelected) colors.accent.copy(alpha = 0.14f) else Color.Transparent)
+                    .clickable { onSelect(item) }
+                    .semantics {
+                        contentDescription = item.label + if (item == AppTab.Trophies && dailyBadge > 0) ", $dailyBadge waiting" else ""
+                        role = Role.Tab
+                        this.selected = isSelected
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box {
+                        when (item) {
+                            AppTab.Mine -> Image(painterResource(R.drawable.coin_small), null, Modifier.size(24.dp))
+                            else -> Icon(tabIcon(item), null, tint = tint, modifier = Modifier.size(24.dp))
+                        }
+                        if (item == AppTab.Trophies && dailyBadge > 0) {
+                            CornerBadge("$dailyBadge", Palette.red, 0.85f, Modifier.align(Alignment.TopEnd).offset(x = 10.dp, y = (-6).dp))
+                        }
+                    }
+                    Text(item.label, fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium, color = tint, maxLines = 1)
+                }
+            }
+        }
+    }
+}
+
+private fun tabIcon(tab: AppTab): ImageVector = when (tab) {
+    AppTab.Shop -> Icons.Rounded.ShoppingCart
+    AppTab.Arcade -> Icons.Rounded.SportsEsports
+    AppTab.Trophies -> Icons.Rounded.EmojiEvents
+    else -> Icons.Rounded.Settings
 }
 
 /** While the game opens (a moment on launch), or if it can't. */
@@ -261,9 +319,9 @@ private fun Loading(failure: String?) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         MineBackground()
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Image(painterResource(R.drawable.coin), contentDescription = null, modifier = Modifier.size(180.dp))
+            Image(painterResource(R.drawable.coin), null, Modifier.size(180.dp))
             if (failure != null) {
-                Text("Crypto Clicker couldn't start", fontWeight = FontWeight.Bold)
+                Text("Crypto Clicker couldn't start", style = Type.headline)
                 Text(failure, color = gameColors.subtext, textAlign = TextAlign.Center, modifier = Modifier.widthIn(max = 320.dp))
             }
         }

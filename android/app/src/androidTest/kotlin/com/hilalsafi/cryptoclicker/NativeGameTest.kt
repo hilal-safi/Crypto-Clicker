@@ -23,7 +23,7 @@ class NativeGameTest {
     private val engine = NativeEngine()
 
     private companion object {
-        val ALL_VIEWS = listOf("shop")
+        val ALL_VIEWS = listOf("shop", "mine", "income")
     }
 
     private fun call(vararg request: Pair<String, Any?>): Response {

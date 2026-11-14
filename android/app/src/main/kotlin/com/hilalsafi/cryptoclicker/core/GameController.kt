@@ -33,6 +33,8 @@ class GameController(
     private val timeZone: () -> String,
     /** Whether Health Connect is on this phone, so steps can be counted. */
     private val canTrackSteps: () -> Boolean = { false },
+    /** The Numbers setting: the game writes coin amounts with every digit when it's on. */
+    private val exactNumbers: () -> Boolean = { false },
 ) {
     private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "CryptoClickerGame").apply { isDaemon = true }
@@ -241,6 +243,7 @@ class GameController(
         revision?.let { full["known"] = it }
         if (noGame) full["noGame"] = true
         full["views"] = synchronized(wanted) { wanted.keys.sorted() }
+        full["exact"] = exactNumbers()
         val response = try {
             Response.parse(engine.call(Json.write(full)))
         } catch (error: Throwable) {

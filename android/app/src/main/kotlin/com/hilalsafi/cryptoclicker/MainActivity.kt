@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val app = application as CryptoClickerApp
         setContent {
-            val appearance by app.prefs.appearance.collectAsStateWithLifecycle()
+            val appearance by app.prefs.appearance.flow.collectAsStateWithLifecycle()
             val dark = when (appearance) {
                 Appearance.Light -> false
                 Appearance.Dark -> true

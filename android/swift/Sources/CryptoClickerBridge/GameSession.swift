@@ -149,6 +149,9 @@ final class GameSession {
     /// Whether steps can be counted here (Health Connect is on this phone). Step quests and Step
     /// Boosters are only offered where they can be, as on an iPhone without Apple Health.
     var canTrackSteps = false
+    /// Coin amounts with every digit rather than short (the app's Numbers setting, sent with every
+    /// request): the views write amounts in this form, as the iOS screens read the preference.
+    var exactNumbers = false
 
     /// Goes up whenever screens should look at the game again: at once for anything the player
     /// does, and at most once a second as the clock ticks.

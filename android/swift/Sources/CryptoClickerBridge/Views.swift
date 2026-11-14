@@ -68,6 +68,8 @@ struct GameView: Encodable {
 
     // Screens ("shop", …), when asked for.
     let shop: ShopView?
+    let mine: MineView?
+    let income: IncomeView?
 }
 
 /// A falling airdrop: catch it before it goes for coins or a Bull Run. A rare whale is bigger,
@@ -319,7 +321,9 @@ extension GameSession {
                  unreadableSave: unreadableSaveView, errorMessage: errorMessage, debugTools: debugTools,
                  dailyBadge: dailyBadgeCount, stepsConnected: game.steps.isConnected,
                  stepWindowDays: Tuning.stepWindowDays,
-                 shop: views.contains("shop") ? shopView : nil)
+                 shop: views.contains("shop") ? shopView : nil,
+                 mine: views.contains("mine") ? mineView : nil,
+                 income: views.contains("income") ? incomeView : nil)
     }
 
     var airdropView: AirdropView? {

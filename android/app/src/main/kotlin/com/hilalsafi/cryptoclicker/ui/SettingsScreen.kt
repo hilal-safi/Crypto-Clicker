@@ -141,18 +141,6 @@ fun SettingsScreen(
     }
 }
 
-/** The app's light or dark look (iOS: Appearance). */
-enum class Appearance(val key: String, val title: String) {
-    Auto("auto", "Automatic"),
-    Light("light", "Light"),
-    Dark("dark", "Dark"),
-    ;
-
-    companion object {
-        fun of(key: String?): Appearance = entries.firstOrNull { it.key == key } ?: Auto
-    }
-}
-
 /** A heading, a card, and an optional note under it (iOS: a Form section with a footer). */
 @Composable
 private fun SettingsSection(title: String, note: String? = null, content: @Composable ColumnScope.() -> Unit) {

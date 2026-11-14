@@ -22,6 +22,8 @@ struct Request: Decodable {
     var lite: Bool?
     /// The screens on display, whose views the game view carries (see `GameView`).
     var views: [String]?
+    /// The Numbers setting: amounts with every digit (true) or short.
+    var exact: Bool?
 
     var id: String?
     var token: String?
@@ -171,6 +173,10 @@ public enum Bridge {
         guard let session = Self.session else { throw BridgeError(message: "The game hasn't started yet.") }
         if let canTrackSteps = request.canTrackSteps, canTrackSteps != session.canTrackSteps {
             session.canTrackSteps = canTrackSteps
+            session.publish()
+        }
+        if let exact = request.exact, exact != session.exactNumbers {
+            session.exactNumbers = exact
             session.publish()
         }
         let outcome = try run(request, session)

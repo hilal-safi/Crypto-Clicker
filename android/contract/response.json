@@ -14,6 +14,90 @@
     "dailyBadge": 1,
     "debugTools": true,
     "errorMessage": "text",
+    "income": {
+      "bullRun": "text",
+      "headline": "text",
+      "sections": [
+        {
+          "footer": "text",
+          "header": "text",
+          "lines": [
+            {
+              "bold": true,
+              "detail": "text",
+              "emoji": "text",
+              "kind": "text",
+              "share": 1.5,
+              "symbol": "text",
+              "title": "text",
+              "value": "text"
+            }
+          ]
+        }
+      ],
+      "subline": "text"
+    },
+    "mine": {
+      "finishes": [
+        "text"
+      ],
+      "inventory": {
+        "combo": "text",
+        "miners": [
+          {
+            "count": "text",
+            "emoji": "text",
+            "id": "text",
+            "legacy": "text",
+            "mark": "text"
+          }
+        ],
+        "minersLabel": "text",
+        "offline": "text",
+        "perks": "text",
+        "tokens": [
+          {
+            "count": "text",
+            "id": "text"
+          }
+        ],
+        "tokensLabel": "text",
+        "upgrades": "text"
+      },
+      "prestige": {
+        "accessibility": "text",
+        "bonus": "text",
+        "count": "text",
+        "title": "text",
+        "unit": "text"
+      },
+      "rims": [
+        "text"
+      ],
+      "steps": {
+        "connected": true,
+        "info": {
+          "explanation": "text",
+          "firstDay": true,
+          "headline": "text",
+          "next": "text"
+        },
+        "pays": "text",
+        "paysShort": "text",
+        "today": "text"
+      },
+      "tapEffects": [
+        "text"
+      ],
+      "tips": [
+        {
+          "action": "text",
+          "icon": "text",
+          "id": "text",
+          "text": "text"
+        }
+      ]
+    },
     "purchaseNote": {
       "effects": "text",
       "id": 1,

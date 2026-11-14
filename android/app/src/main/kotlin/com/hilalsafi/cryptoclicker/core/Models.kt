@@ -122,6 +122,8 @@ data class GameView(
     val stepsConnected: Boolean,
     val stepWindowDays: Int,
     val shop: Shop?,
+    val mine: Mine?,
+    val income: Income?,
 ) {
     companion object {
         fun from(o: JsonObject) = GameView(
@@ -135,6 +137,8 @@ data class GameView(
             stepsConnected = o.bool("stepsConnected"),
             stepWindowDays = o.int("stepWindowDays"),
             shop = o.objOrNull("shop")?.let(Shop::from),
+            mine = o.objOrNull("mine")?.let(Mine::from),
+            income = o.objOrNull("income")?.let(Income::from),
         )
     }
 }
@@ -553,6 +557,235 @@ data class Upgrade(
             category = o.string("category"),
             price = o.string("price"),
             canAfford = o.bool("canAfford"),
+        )
+    }
+}
+
+/** The Mine tab under the balance and the coin (iOS: MineView). */
+data class Mine(
+    /** The coin's looks that the player's achievement stars have unlocked (`CoinFinish`, `CoinRim` and `CoinTapEffect` raw values). A look picked and locked again (after a reset) falls back to the plain one, as on iOS. */
+    val finishes: List<String>,
+    val rims: List<String>,
+    val tapEffects: List<String>,
+    /** The tips that apply now, in the order they're offered; the app leaves out the ones the player closed and shows the first. */
+    val tips: List<Tip>,
+    val inventory: Inventory,
+    /** Steps on this phone, once they're unlocked (2,000 taps); nil until then. */
+    val steps: Steps?,
+    /** The prestige points, from the first prestige on. */
+    val prestige: PrestigePoints?,
+) {
+    companion object {
+        fun from(o: JsonObject) = Mine(
+            finishes = o.strings("finishes"),
+            rims = o.strings("rims"),
+            tapEffects = o.strings("tapEffects"),
+            tips = o.list("tips", Tip::from),
+            inventory = Inventory.from(o.obj("inventory")),
+            steps = o.objOrNull("steps")?.let(Steps::from),
+            prestige = o.objOrNull("prestige")?.let(PrestigePoints::from),
+        )
+    }
+}
+
+/** A first-run tip (iOS: GuideTip). */
+data class Tip(
+    /** "tapCoin", "buyMiner", "combo", "offlineMining", "howToPlay", "daily" or "prestige": what closing it remembers, and where its button goes. */
+    val id: String,
+    val icon: String,
+    val text: String,
+    /** The button that goes there, if the tip has one. */
+    val action: String?,
+) {
+    companion object {
+        fun from(o: JsonObject) = Tip(
+            id = o.string("id"),
+            icon = o.string("icon"),
+            text = o.string("text"),
+            action = o.stringOrNull("action"),
+        )
+    }
+}
+
+/** What the player owns, under the coin (iOS: InventoryStrip). */
+data class Inventory(
+    val miners: List<InventoryMiner>,
+    /** Offline Mining's time, once bought. */
+    val offline: String?,
+    /** The biggest combo, once a combo power-up is bought. */
+    val combo: String?,
+    /** Upgrades bought of all: "3/42". */
+    val upgrades: String?,
+    /** Perks bought. */
+    val perks: String?,
+    val minersLabel: String,
+    val tokens: List<InventoryToken>,
+    val tokensLabel: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = Inventory(
+            miners = o.list("miners", InventoryMiner::from),
+            offline = o.stringOrNull("offline"),
+            combo = o.stringOrNull("combo"),
+            upgrades = o.stringOrNull("upgrades"),
+            perks = o.stringOrNull("perks"),
+            minersLabel = o.string("minersLabel"),
+            tokens = o.list("tokens", InventoryToken::from),
+            tokensLabel = o.string("tokensLabel"),
+        )
+    }
+}
+
+data class InventoryMiner(
+    val id: String,
+    val emoji: String,
+    val count: String,
+    /** The Mk upgrade as a Roman numeral, and the Legacy multiplier as a number. */
+    val mark: String?,
+    val legacy: String?,
+) {
+    companion object {
+        fun from(o: JsonObject) = InventoryMiner(
+            id = o.string("id"),
+            emoji = o.string("emoji"),
+            count = o.string("count"),
+            mark = o.stringOrNull("mark"),
+            legacy = o.stringOrNull("legacy"),
+        )
+    }
+}
+
+data class InventoryToken(
+    val id: String,
+    val count: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = InventoryToken(
+            id = o.string("id"),
+            count = o.string("count"),
+        )
+    }
+}
+
+/** Steps on the Mine tab (iOS: StepsCard): the invitation until they're connected, then today's count and what it pays. */
+data class Steps(
+    val connected: Boolean,
+    /** "1,234 steps today" */
+    val today: String,
+    /** What a step pays, in full and in the shorter form that fits beside the prestige points. */
+    val pays: String,
+    val paysShort: String,
+    val info: StepInfo,
+) {
+    companion object {
+        fun from(o: JsonObject) = Steps(
+            connected = o.bool("connected"),
+            today = o.string("today"),
+            pays = o.string("pays"),
+            paysShort = o.string("paysShort"),
+            info = StepInfo.from(o.obj("info")),
+        )
+    }
+}
+
+/** The coins-per-step pop-up (iOS: StepInfoBubble). */
+data class StepInfo(
+    /** On the game's first day, the steps pay the day after. */
+    val firstDay: Boolean,
+    /** "Each step pays 12 coins", or the first day's explanation. */
+    val headline: String,
+    val explanation: String,
+    /** The next step booster, or that every one is bought. */
+    val next: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = StepInfo(
+            firstDay = o.bool("firstDay"),
+            headline = o.string("headline"),
+            explanation = o.string("explanation"),
+            next = o.string("next"),
+        )
+    }
+}
+
+/** The prestige points on the Mine tab (iOS: PrestigeBadge). */
+data class PrestigePoints(
+    /** "Prestige 3" */
+    val title: String,
+    /** "1,234" and "points" */
+    val count: String,
+    val unit: String,
+    /** "×1.25" */
+    val bonus: String,
+    val accessibility: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = PrestigePoints(
+            title = o.string("title"),
+            count = o.string("count"),
+            unit = o.string("unit"),
+            bonus = o.string("bonus"),
+            accessibility = o.string("accessibility"),
+        )
+    }
+}
+
+/** Where the coins come from, right now (iOS: IncomeBreakdownView). */
+data class Income(
+    /** "12.3K coins per second" */
+    val headline: String,
+    /** "1.2K per tap · 44.3M an hour · 1.06B a day" */
+    val subline: String,
+    val bullRun: String?,
+    val sections: List<ListSection>,
+) {
+    companion object {
+        fun from(o: JsonObject) = Income(
+            headline = o.string("headline"),
+            subline = o.string("subline"),
+            bullRun = o.stringOrNull("bullRun"),
+            sections = o.list("sections", ListSection::from),
+        )
+    }
+}
+
+/** A group of lines on a list page (Income, Statistics, Your Journey), as an iOS List section. */
+data class ListSection(
+    val header: String?,
+    val footer: String?,
+    val lines: List<Line>,
+) {
+    companion object {
+        fun from(o: JsonObject) = ListSection(
+            header = o.stringOrNull("header"),
+            footer = o.stringOrNull("footer"),
+            lines = o.list("lines", Line::from),
+        )
+    }
+}
+
+/** One line on a list page. `kind` says how it's drawn: - "value": the title, its value at the end (and a detail under the value): iOS ValueRow - "share": an emoji (or a symbol), the title over a detail, a rate and its share, and a bar for the share: iOS ShareRow - "text": the title as a plain line */
+data class Line(
+    val kind: String,
+    val title: String,
+    val value: String?,
+    val detail: String?,
+    val bold: Boolean,
+    val emoji: String?,
+    val symbol: String?,
+    /** For "share", from 0 to 1. */
+    val share: Double?,
+) {
+    companion object {
+        fun from(o: JsonObject) = Line(
+            kind = o.string("kind"),
+            title = o.string("title"),
+            value = o.stringOrNull("value"),
+            detail = o.stringOrNull("detail"),
+            bold = o.bool("bold"),
+            emoji = o.stringOrNull("emoji"),
+            symbol = o.stringOrNull("symbol"),
+            share = o.doubleOrNull("share"),
         )
     }
 }
