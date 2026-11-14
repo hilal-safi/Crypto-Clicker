@@ -155,11 +155,10 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .hapticEngine: .tapPercent(0.25)
         case .satoshisTouch: .tapPercent(0.35)
         // The first two are weaker, so the opening and the second day go slower; Immersion
-        // Cooling makes up for some of that from the third day (steps carry the rest). The last two are weaker too, so later runs
-        // don't race (automatic taps and Immersion Cooling made them much faster).
+        // Cooling makes up for some of that from the third day. The last two are weaker too, so
+        // later runs don't race (automatic taps and Immersion Cooling made them much faster).
         case .overclocking: .production(1.25)
-        case .liquidCooling: .production(1.5)
-        case .immersionCooling: .production(1.4)
+        case .liquidCooling, .immersionCooling: .production(1.5)
         case .fiberUplink, .solarFarm, .fusionReactor: .production(2)
         case .asicChips, .dysonSwarm: .production(1.5)
         case .geothermalPlant: .production(1.25)
