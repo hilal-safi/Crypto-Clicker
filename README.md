@@ -9,7 +9,7 @@ No real cryptocurrency, no ads, no purchases.
 - **Mining.** Tap for coins and build quick-tap combos, then buy 13 miners from a Chromebook to a
   Galactic Hashnet. Each unit costs 15% more, milestones and Mk upgrades double output, and the Shop
   marks the best value.
-- **Upgrades and power-ups.** 25 one-time upgrades, combo power-ups, and Offline Mining, which keeps
+- **Upgrades and power-ups.** 26 one-time upgrades, combo power-ups, and Offline Mining, which keeps
   miners earning while the app is closed, from two minutes up to three days over 165 levels.
 - **Prestige.** After 15 billion coins mined, start a new run for points that add 5% production each
   and buy permanent perks.
@@ -39,7 +39,8 @@ No real cryptocurrency, no ads, no purchases.
   48, many sooner with a game's achievement). Goals shows what to aim for next, and Statistics charts your
   income and keeps every record.
 - **Steps.** Steps from Apple Health on iPhone and Apple Watch pay a small share of income (a coin
-  at least), multiplied by five step boosters, the biggest of them late in a run.
+  at least), multiplied by six step boosters, the biggest of them late in a run. The first day's
+  steps are paid the next day, a coin each. Tap the steps card to see what a step pays.
 - **Beyond the app.** An Apple Watch app, Home Screen and Lock Screen widgets, a Live Activity, and a
   Siri shortcut for your balance.
 - **Help.** How to Play in Settings, plus a rules sheet in every game.

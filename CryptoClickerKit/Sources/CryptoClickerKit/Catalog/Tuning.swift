@@ -6,9 +6,9 @@ import Foundation
 /// reaches the Data Center in about two days, the first prestige point in about four, every
 /// mini-game and the tenth miner in about seven and the first suggested prestige at about seven
 /// and a half, then eight or nine prestiges and a few thousand points in three weeks, with perks
-/// arriving all the way. Steps pay little in the first days and more late in a run: walking 5,000
-/// steps a day brings the first prestige a few hours sooner and pays about a seventh of the coins
-/// in three weeks, 10,000 steps over a quarter. Prices in the catalogs are list prices:
+/// arriving all the way. Steps pay little in the first days and a lot late in a run: walking 5,000
+/// steps a day pays about a third of three weeks' coins (twice the prestige points of not
+/// walking), 10,000 steps about half. Prices in the catalogs are list prices:
 /// `scaledPrice` sets the pace. Coin amounts here are whole numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
@@ -144,6 +144,10 @@ public enum Tuning {
     public static let stepSeconds = 0.05
     /// ...and never less than this many coins.
     public static let minimumStepValue = 1.0
+    /// The first day's steps, paid the day after, pay this many coins each, whatever the step
+    /// value and boosters, so they can't jump-start the second day (like the first day's quests at
+    /// half pay).
+    public static let firstDayStepCoins = 1.0
     /// Income used for step and mini-game rewards never drops below this, so they matter on day one.
     public static let minimumRewardIncome = 1.0
     /// Days of HealthKit history checked on each sync, including today.

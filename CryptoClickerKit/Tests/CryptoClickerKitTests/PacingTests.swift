@@ -415,12 +415,13 @@ struct PacingTests {
     }
 
     /// The casual player again, walking 2,500, 5,000 or 10,000 steps a day. A step pays a twentieth
-    /// of a second's income, and the first three boosters only make that four and a half times as
-    /// much, so the first days' walks pay little and can't race the opening. Proof of Stride (×10),
-    /// after the fifth day, is where walking starts to pay: the first prestige comes a few hours
-    /// sooner (about seven and a half days, a little over seven at 10,000 steps), and steps pay
-    /// about a twelfth of three weeks' coins at 2,500 steps, a seventh at 5,000 and over a quarter
-    /// at 10,000. Runs with the balance tests.
+    /// of a second's income, the first three boosters only make that 3.75 times as much, and the
+    /// first day's steps pay a coin each, so the first days' walks pay little and can't race the
+    /// opening. Proof of Stride (×10), after the fifth day, is where walking starts to pay, and the
+    /// Mega and Giga Step Boosters (×2.5 and ×2, in the second run) make it pay a lot: the first
+    /// prestige comes at about seven and a half days either way, and steps pay about a fifth of
+    /// three weeks' coins at 2,500 steps, a third at 5,000 and half at 10,000. Runs with the
+    /// balance tests.
     @Test(arguments: [2_500, 5_000, 10_000]) func walkingPaysLittleEarlyAndMoreLateInARun(steps: Int) {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
         // The first three days: steps are a few percent of the coins at most.
@@ -435,19 +436,20 @@ struct PacingTests {
               "| first three days", String(format: "%.1f%%", opening.earnedFromSteps / opening.lifetimeCoins * 100),
               "| boosters", UpgradeID.allCases.filter { $0.category == .steps }.map { days(walker.firstUpgrade[$0]) })
         // A night falls between seven and a half days and the morning after: close enough.
-        let firstPrestige: ClosedRange<Double> = steps >= 10_000 ? 7...7.6 : 7.2...7.8
+        let firstPrestige: ClosedRange<Double> = 7.2...7.8
         #expect(walker.firstPrestigeAt.map { firstPrestige.contains($0 / 86_400) } == true)
         #expect((8...10).contains(walker.prestigeTimes.count))
-        // Steps pay a real share over three weeks, but mining pays most, even at 10,000 a day.
-        #expect(share > Double(steps) / 100_000)
-        #expect(share < 0.4)
+        // Steps pay a real share over three weeks, and never much more than half, even at 10,000.
+        #expect(share > Double(steps) / 50_000)
+        #expect(share < 0.6)
         // The first two boosters in the first four days and the third in about five; Proof of
-        // Stride, the big one, after the fifth day, and the Mega Step Booster, in the trillions,
-        // near the end of the first run or early in the second.
+        // Stride, the big one, after the fifth day; the Mega Step Booster, in the trillions, about
+        // the end of the first run, and the Giga Step Booster, at 100 trillion, in the second.
         #expect([UpgradeID.stepBooster, .upgradedStepBooster].allSatisfy { walker.firstUpgrade[$0].map { $0 < 4 * 86_400 } == true })
         #expect(walker.firstUpgrade[.ultimateStepBooster].map { (4 * 86_400...5.5 * 86_400).contains($0) } == true)
         #expect(walker.firstUpgrade[.proofOfStride].map { (5 * 86_400...6.5 * 86_400).contains($0) } == true)
-        #expect(walker.firstUpgrade[.megaStepBooster].map { (7 * 86_400...10.5 * 86_400).contains($0) } == true)
+        #expect(walker.firstUpgrade[.megaStepBooster].map { (6.5 * 86_400...8.5 * 86_400).contains($0) } == true)
+        #expect(walker.firstUpgrade[.gigaStepBooster].map { (10 * 86_400...13.5 * 86_400).contains($0) } == true)
     }
 
     @Test func offlineMiningIsEarnedInTheFirstSessionsNotGivenAtTheStart() {

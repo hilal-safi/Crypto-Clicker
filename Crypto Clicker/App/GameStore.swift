@@ -27,22 +27,29 @@ struct PurchaseNote: Identifiable, Equatable {
     /// The same while purchases add to the popup, so it updates in place.
     let id = UUID()
     private(set) var items: [Item] = []
-    /// Idle income and a tap's worth before the first of these purchases...
+    /// Idle income, a tap's worth and a step's worth before the first of these purchases...
     let incomeBefore: Double
     let tapBefore: Double
+    let stepBefore: Double
     /// ...and after the latest.
     var incomeNow: Double
     var tapNow: Double
+    var stepNow: Double
+    /// Whether steps are connected, so a step's worth is worth showing.
+    let showsSteps: Bool
     /// The latest purchase; the popup stays up `lifetime` after it.
     var updatedAt: Date
 
     static let lifetime: TimeInterval = 9
 
-    init(incomeBefore: Double, tapBefore: Double, at date: Date) {
+    init(incomeBefore: Double, tapBefore: Double, stepBefore: Double, showsSteps: Bool, at date: Date) {
         self.incomeBefore = incomeBefore
         self.tapBefore = tapBefore
+        self.stepBefore = stepBefore
+        self.showsSteps = showsSteps
         incomeNow = incomeBefore
         tapNow = tapBefore
+        stepNow = stepBefore
         updatedAt = date
     }
 
@@ -58,6 +65,7 @@ struct PurchaseNote: Identifiable, Equatable {
     var itemCount: Int { items.reduce(0) { $0 + $1.count } }
     var addedIncome: Double { max(0, incomeNow - incomeBefore) }
     var addedTap: Double { max(0, tapNow - tapBefore) }
+    var addedStep: Double { showsSteps ? max(0, stepNow - stepBefore) : 0 }
 }
 
 /// What the welcome-back screen shows: what the miners earned while the app was closed, what that
@@ -184,6 +192,8 @@ final class GameStore {
     var shopInfoMiner: MinerID?
     /// The token whose volatility the Tokens page is explaining, from a tap on its icon.
     var shopInfoToken: TokenID?
+    /// Whether the Mine page is explaining what a step pays, from a tap on the steps card.
+    var showsStepInfo = false
     @ObservationIgnored private var lastSave = Date.now
     @ObservationIgnored var lastWatchPush = Date.distantPast
     @ObservationIgnored var lastBalanceShare = Date.distantPast
@@ -445,18 +455,24 @@ final class GameStore {
         toasts.removeAll { $0.id == toast.id }
     }
 
-    /// What a purchase popup measures from: idle income and a tap's worth, without boosts.
-    var purchaseBaseline: (income: Double, tap: Double) { (state.baseIdleIncome, state.baseTapValue) }
+    /// What a purchase popup measures from: idle income and a tap's worth, without boosts, and what
+    /// a step walked from now on pays.
+    var purchaseBaseline: (income: Double, tap: Double, step: Double) {
+        (state.baseIdleIncome, state.baseTapValue, state.stepValue)
+    }
 
     /// Adds a purchase to the popup: to the one on screen if the last purchase was under nine
     /// seconds ago, else to a new one measured from `before` (`purchaseBaseline` before buying).
-    func notePurchase(_ name: String, count: Int = 1, effect: String? = nil, before: (income: Double, tap: Double)) {
+    func notePurchase(_ name: String, count: Int = 1, effect: String? = nil,
+                      before: (income: Double, tap: Double, step: Double)) {
         let now = Date.now
         var note = purchaseNote.flatMap { now.timeIntervalSince($0.updatedAt) < PurchaseNote.lifetime ? $0 : nil }
-            ?? PurchaseNote(incomeBefore: before.income, tapBefore: before.tap, at: now)
+            ?? PurchaseNote(incomeBefore: before.income, tapBefore: before.tap, stepBefore: before.step,
+                            showsSteps: state.steps.isConnected, at: now)
         note.add(name, count: count, effect: effect)
         note.incomeNow = state.baseIdleIncome
         note.tapNow = state.baseTapValue
+        note.stepNow = state.stepValue
         note.updatedAt = now
         purchaseNote = note
     }

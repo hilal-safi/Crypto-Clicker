@@ -150,7 +150,7 @@ struct StatsPage: View {
 
         Section("Steps") {
             row("Status", game.steps.isConnected ? "Connected" : (game.areStepsUnlocked ? "Not connected" : "Unlocks after \(CoinFormat.grouped(Tuning.stepsUnlockTaps)) taps"))
-            row("Each step pays", game.stepsPaidNextDay(today: today) ? "\(amount(game.stepValue)) tomorrow" : amount(game.stepValue))
+            row("Each step pays", game.stepsPaidNextDay(today: today) ? "\(amount(game.stepValue(today: today))) tomorrow" : amount(game.stepValue))
             row("Steps walked", CoinFormat.grouped(stats.lifetimeSteps))
             row("Steps paid for", CoinFormat.grouped(stats.stepsPaid))
             row("Best day", "\(CoinFormat.grouped(stats.bestDaySteps)) steps")
