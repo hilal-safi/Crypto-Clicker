@@ -314,9 +314,9 @@ struct ProductionTests {
     }
 
     @Test func multipliersStackMultiplicatively() {
-        let state = GameState.make(upgrades: [.stepBooster, .upgradedStepBooster, .ultimateStepBooster, .megaStepBooster,
+        let state = GameState.make(upgrades: [.stepBooster, .upgradedStepBooster, .ultimateStepBooster, .proofOfStride, .megaStepBooster,
                                               .bonusReward1, .bonusReward2, .bonusReward3])
-        #expect(state.stepMultiplier == 15.75) // 1.75 × 2 × 3 × 1.5
+        #expect(state.stepMultiplier == 67.5) // 1.5 × 1.5 × 2 × 10 × 1.5
         #expect(state.miniGameMultiplier == 3.75)
     }
 }

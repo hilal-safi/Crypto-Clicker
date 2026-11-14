@@ -38,8 +38,8 @@ No real cryptocurrency, no ads, no purchases.
   Mythic, and Style looks for the coin and two kinds for every game (one look at each rank from 2 to
   48, many sooner with a game's achievement). Goals shows what to aim for next, and Statistics charts your
   income and keeps every record.
-- **Steps.** Steps from Apple Health on iPhone and Apple Watch pay a coin each at first, more with
-  the step boosters, and a share of income once Proof of Stride is bought.
+- **Steps.** Steps from Apple Health on iPhone and Apple Watch pay a small share of income (a coin
+  at least), multiplied by five step boosters, the biggest of them late in a run.
 - **Beyond the app.** An Apple Watch app, Home Screen and Lock Screen widgets, a Live Activity, and a
   Siri shortcut for your balance.
 - **Help.** How to Play in Settings, plus a rules sheet in every game.

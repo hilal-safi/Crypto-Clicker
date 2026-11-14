@@ -527,18 +527,10 @@ extension GameState {
     /// Boosts are left out so rewards stay predictable, and a floor keeps them worthwhile on day one.
     public var rewardIncome: Double { max(baseIdleIncome, Tuning.minimumRewardIncome) }
 
-    /// Seconds of idle income a step earns (Proof of Stride), before step boosters.
-    public var stepIncomeSeconds: Double {
-        orderedUpgrades.reduce(0.0) { result, upgrade in
-            if case .stepIncome(let seconds) = upgrade.effect { return result + seconds }
-            return result
-        }
-    }
-
-    /// Coins paid per step: a coin, plus a slice of idle income once Proof of Stride is bought,
-    /// times the step boosters, in whole coins, never under one.
+    /// Coins paid per step: a slice of idle income times the step boosters, in whole coins, never
+    /// under one.
     public var stepValue: Double {
-        Self.wholeCoins((Tuning.baseStepCoins + stepIncomeSeconds * rewardIncome) * stepMultiplier, minimum: 1)
+        Self.wholeCoins(max(Tuning.minimumStepValue, Tuning.stepSeconds * rewardIncome) * stepMultiplier, minimum: 1)
     }
 
     // MARK: Steps

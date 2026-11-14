@@ -12,8 +12,6 @@ public enum UpgradeEffect: Sendable, Equatable {
     case production(Double)
     /// Multiplies step rewards.
     case steps(Double)
-    /// Steps also earn this many seconds of idle income each (before step multipliers).
-    case stepIncome(Double)
     /// Multiplies mini-game rewards.
     case miniGames(Double)
 }
@@ -131,9 +129,9 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .stepBooster: 25_000
         case .upgradedStepBooster: 2_500_000
         case .ultimateStepBooster: 2_500_000_000
-        // Where steps start paying a share of production: a late buy in a run, so early walks pay
-        // coins by the step, not hours of income.
-        case .proofOfStride: Tuning.proofOfStrideListCost
+        // The big step booster, late in a run (after the fifth day of the first one): the first
+        // days' walks pay a little, later ones a lot more.
+        case .proofOfStride: 100_000_000_000
         // A mid-to-late game buy, in the trillions, so walking keeps paying as income grows.
         case .megaStepBooster: 1_000_000_000_000
         case .bonusReward1: 50_000
@@ -161,10 +159,9 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .fiberUplink, .solarFarm, .fusionReactor: .production(2)
         case .asicChips, .dysonSwarm: .production(1.5)
         case .geothermalPlant: .production(1.25)
-        case .stepBooster: .steps(1.75)
-        case .upgradedStepBooster: .steps(2)
-        case .ultimateStepBooster: .steps(3)
-        case .proofOfStride: .stepIncome(Tuning.stepSeconds)
+        case .stepBooster, .upgradedStepBooster: .steps(1.5)
+        case .ultimateStepBooster: .steps(2)
+        case .proofOfStride: .steps(10)
         case .megaStepBooster: .steps(1.5)
         case .bonusReward1: .miniGames(1.25)
         case .bonusReward2: .miniGames(1.5)
@@ -176,7 +173,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         switch effect {
         case .tapFlat, .tapPercent, .autoTaps: .tapping
         case .production: .production
-        case .steps, .stepIncome: .steps
+        case .steps: .steps
         case .miniGames: .miniGames
         }
     }
@@ -191,9 +188,6 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
                 : localized("+\(CoinFormat.short(rate)) automatic taps per second, worth \(CoinFormat.percent(Tuning.autoTapStrength)) of a tap")
         case .production(let factor): localized("All miners produce \(CoinFormat.multiplier(factor))")
         case .steps(let factor): localized("Steps earn \(CoinFormat.multiplier(factor))")
-        case .stepIncome(let seconds):
-            seconds == 1 ? localized("Every step also earns a second's production")
-                : localized("Every step also earns \(String(format: "%g", seconds)) seconds of production")
         case .miniGames(let factor): localized("Mini-game rewards \(CoinFormat.multiplier(factor))")
         }
     }

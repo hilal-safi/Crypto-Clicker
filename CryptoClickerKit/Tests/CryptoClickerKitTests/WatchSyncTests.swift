@@ -187,7 +187,7 @@ struct WatchSyncTests {
         #expect(snapshot.stepsConnected)
         #expect(snapshot.stepsToday == 321)
         #expect(snapshot.stepsDay == "2026-10-24")
-        #expect(snapshot.stepValue == 1) // A coin a step, until Proof of Stride.
+        #expect(snapshot.stepValue == 1) // 0.05 × 20, a coin.
         #expect(snapshot.date == at(1))
         #expect(snapshot.anchor == t0)
     }

@@ -2,13 +2,14 @@ import Foundation
 
 /// Every balance number in one place. Tuned with simulated players who catch airdrops, claim the
 /// dailies, play some arcade and earn achievements (see `PacingTests`): someone who keeps playing
-/// buys a Data Center after a little over an hour; casual play (four ten-minute visits a day,
-/// walking 5,000 steps) reaches the Data Center in about two days, the first prestige point in
-/// under four, every mini-game and the tenth miner in about six and the first suggested prestige
-/// at about six and a half, then nine prestiges and about 5,000 points in three weeks, with perks
-/// arriving all the way. Walking 2,500 steps takes the first prestige to about seven days, 10,000
-/// to about six, and not walking to about seven and a half. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here
-/// are whole numbers; only rates may be fractional.
+/// buys a Data Center after a little over an hour; casual play (four ten-minute visits a day)
+/// reaches the Data Center in about two days, the first prestige point in about four, every
+/// mini-game and the tenth miner in about seven and the first suggested prestige at about seven
+/// and a half, then eight or nine prestiges and a few thousand points in three weeks, with perks
+/// arriving all the way. Steps pay little in the first days and more late in a run: walking 5,000
+/// steps a day brings the first prestige a few hours sooner and pays about a seventh of the coins
+/// in three weeks, 10,000 steps over a quarter. Prices in the catalogs are list prices:
+/// `scaledPrice` sets the pace. Coin amounts here are whole numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
     /// Each additional unit of a miner costs this much more than the previous one.
@@ -138,13 +139,11 @@ public enum Tuning {
     // MARK: Steps
     /// Lifetime taps needed before steps can be connected, so early coins come from playing.
     public static let stepsUnlockTaps = 2_000
-    /// A step pays this many coins (before step boosters) from the start...
-    public static let baseStepCoins = 1.0
-    /// ...and once Proof of Stride is bought, this many seconds of idle income on top: enough that a
-    /// daily walk moves the first prestige by about a day between 2,500 and 10,000 steps.
-    public static let stepSeconds = 0.5
-    /// Proof of Stride's list price: bought late in a run, after the Ultimate Step Booster.
-    public static let proofOfStrideListCost = 3_000_000_000.0
+    /// One step is worth this many seconds of idle income (before step boosters): little in the
+    /// first days, so walking can't race the opening, and much more once Proof of Stride is bought...
+    public static let stepSeconds = 0.05
+    /// ...and never less than this many coins.
+    public static let minimumStepValue = 1.0
     /// Income used for step and mini-game rewards never drops below this, so they matter on day one.
     public static let minimumRewardIncome = 1.0
     /// Days of HealthKit history checked on each sync, including today.
