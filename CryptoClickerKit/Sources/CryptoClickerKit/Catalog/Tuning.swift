@@ -140,7 +140,7 @@ public enum Tuning {
     /// Lifetime taps needed before steps can be connected, so early coins come from playing.
     public static let stepsUnlockTaps = 2_000
     /// One step is worth this many seconds of idle income (before step boosters): little in the
-    /// first days, so walking can't race the opening, and much more once Proof of Stride is bought...
+    /// first days, so walking can't race the opening, and much more with the later boosters...
     public static let stepSeconds = 0.05
     /// ...and never less than this many coins.
     public static let minimumStepValue = 1.0

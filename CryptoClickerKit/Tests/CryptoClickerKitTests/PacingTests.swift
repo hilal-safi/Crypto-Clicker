@@ -417,8 +417,8 @@ struct PacingTests {
     /// The casual player again, walking 2,500, 5,000 or 10,000 steps a day. A step pays a twentieth
     /// of a second's income, the first three boosters only make that 3.75 times as much, and the
     /// first day's steps pay a coin each, so the first days' walks pay little and can't race the
-    /// opening. Proof of Stride (×10), after the fifth day, is where walking starts to pay, and the
-    /// Mega and Giga Step Boosters (×2.5 and ×2, in the second run) make it pay a lot: the first
+    /// opening. The Giga and Mega Step Boosters (×3 each, from about the sixth day) are where walking
+    /// starts to pay, and Proof of Stride (×6, in the second run) makes it pay a lot: the first
     /// prestige comes at about seven and a half days either way, and steps pay about a fifth of
     /// three weeks' coins at 2,500 steps, a third at 5,000 and half at 10,000. Runs with the
     /// balance tests.
@@ -442,14 +442,14 @@ struct PacingTests {
         // Steps pay a real share over three weeks, and never much more than half, even at 10,000.
         #expect(share > Double(steps) / 50_000)
         #expect(share < 0.6)
-        // The first two boosters in the first four days and the third in about five; Proof of
-        // Stride, the big one, after the fifth day; the Mega Step Booster, in the trillions, about
-        // the end of the first run, and the Giga Step Booster, at 100 trillion, in the second.
+        // The first two boosters in the first four days and the third in about five;
+        // the Giga Step Booster about the sixth day; the Mega Step Booster, in the trillions, about
+        // the end of the first run or early in the second, and Proof of Stride, the biggest, at 100 trillion, in the second.
         #expect([UpgradeID.stepBooster, .upgradedStepBooster].allSatisfy { walker.firstUpgrade[$0].map { $0 < 4 * 86_400 } == true })
         #expect(walker.firstUpgrade[.ultimateStepBooster].map { (4 * 86_400...5.5 * 86_400).contains($0) } == true)
-        #expect(walker.firstUpgrade[.proofOfStride].map { (5 * 86_400...6.5 * 86_400).contains($0) } == true)
-        #expect(walker.firstUpgrade[.megaStepBooster].map { (6.5 * 86_400...8.5 * 86_400).contains($0) } == true)
-        #expect(walker.firstUpgrade[.gigaStepBooster].map { (10 * 86_400...13.5 * 86_400).contains($0) } == true)
+        #expect(walker.firstUpgrade[.gigaStepBooster].map { (5.5 * 86_400...7.5 * 86_400).contains($0) } == true)
+        #expect(walker.firstUpgrade[.megaStepBooster].map { (7 * 86_400...10.5 * 86_400).contains($0) } == true)
+        #expect(walker.firstUpgrade[.proofOfStride].map { (10 * 86_400...13.5 * 86_400).contains($0) } == true)
     }
 
     @Test func offlineMiningIsEarnedInTheFirstSessionsNotGivenAtTheStart() {

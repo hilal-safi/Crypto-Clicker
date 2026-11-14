@@ -257,12 +257,12 @@ struct StepTests {
         #expect(game.stepValue == 25) // 0.05 × 400 × 1.25
         game.upgrades = [.stepBooster, .upgradedStepBooster, .ultimateStepBooster]
         #expect(game.stepValue == 75) // × 3.75: the first three boosters are small...
+        game.upgrades.formUnion([.gigaStepBooster, .megaStepBooster])
+        #expect(game.stepValue == 675) // ...the Giga and Mega Step Boosters (× 3 each) come later...
         game.upgrades.insert(.proofOfStride)
-        #expect(game.stepValue == 750) // ...Proof of Stride, late in a run, is the big one...
-        game.upgrades.formUnion([.megaStepBooster, .gigaStepBooster])
-        #expect(game.stepValue == 3_750) // ...and the Mega and Giga Step Boosters (× 2.5, × 2) end it.
+        #expect(game.stepValue == 4_050) // ...and Proof of Stride (× 6), the last, is the biggest.
         let credit = game.creditSteps([StepDay(key: today, steps: 1_000)], today: today, at: t0)
-        #expect(credit.coins == 3_750_000)
+        #expect(credit.coins == 4_050_000)
     }
 
     @Test func stepsAreWorthWholeCoins() {

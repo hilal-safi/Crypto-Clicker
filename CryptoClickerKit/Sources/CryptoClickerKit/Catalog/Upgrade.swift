@@ -33,7 +33,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
     case coinClicker, upgradedClicker, automatedClicker, mechanicalKeyboard, roboticFinger, neuralInterface
     case hapticEngine, satoshisTouch
     case overclocking, liquidCooling, fiberUplink, asicChips, immersionCooling, solarFarm, fusionReactor, geothermalPlant, dysonSwarm
-    case stepBooster, upgradedStepBooster, ultimateStepBooster, proofOfStride, megaStepBooster, gigaStepBooster
+    case stepBooster, upgradedStepBooster, ultimateStepBooster, gigaStepBooster, megaStepBooster, proofOfStride
     case bonusReward1, bonusReward2, bonusReward3
 
     public var id: String { rawValue }
@@ -60,9 +60,9 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .stepBooster: localized("Step Booster")
         case .upgradedStepBooster: localized("Upgraded Step Booster")
         case .ultimateStepBooster: localized("Ultimate Step Booster")
-        case .proofOfStride: localized("Proof of Stride")
-        case .megaStepBooster: localized("Mega Step Booster")
         case .gigaStepBooster: localized("Giga Step Booster")
+        case .megaStepBooster: localized("Mega Step Booster")
+        case .proofOfStride: localized("Proof of Stride")
         case .bonusReward1: localized("Bonus Reward I")
         case .bonusReward2: localized("Bonus Reward II")
         case .bonusReward3: localized("Bonus Reward III")
@@ -92,9 +92,9 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .stepBooster: "figure.walk"
         case .upgradedStepBooster: "figure.run"
         case .ultimateStepBooster: "figure.run.circle.fill"
-        case .proofOfStride: "shoeprints.fill"
-        case .megaStepBooster: "figure.hiking"
         case .gigaStepBooster: "figure.climbing"
+        case .megaStepBooster: "figure.hiking"
+        case .proofOfStride: "shoeprints.fill"
         case .bonusReward1: "gift.fill"
         case .bonusReward2: "star.fill"
         case .bonusReward3: "crown.fill"
@@ -131,13 +131,13 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .stepBooster: 25_000
         case .upgradedStepBooster: 2_500_000
         case .ultimateStepBooster: 2_500_000_000
-        // The big step booster, late in a run (after the fifth day of the first one): the first
-        // days' walks pay a little, later ones a lot more.
-        case .proofOfStride: 100_000_000_000
-        // A mid-to-late game buy, in the trillions, so walking keeps paying as income grows.
+        // Later in a run (after the fifth day of the first one): the first days' walks pay a
+        // little, later ones a lot more.
+        case .gigaStepBooster: 100_000_000_000
+        // In the trillions, so walking keeps paying as income grows.
         case .megaStepBooster: 1_000_000_000_000
-        // The last one, for long runs and later prestiges.
-        case .gigaStepBooster: 100_000_000_000_000
+        // The last and biggest one, for long runs and later prestiges.
+        case .proofOfStride: 100_000_000_000_000
         case .bonusReward1: 50_000
         case .bonusReward2: 50_000_000
         case .bonusReward3: 50_000_000_000
@@ -165,9 +165,9 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .geothermalPlant: .production(1.25)
         case .stepBooster: .steps(1.25)
         case .upgradedStepBooster: .steps(1.5)
-        case .ultimateStepBooster, .gigaStepBooster: .steps(2)
-        case .proofOfStride: .steps(10)
-        case .megaStepBooster: .steps(2.5)
+        case .ultimateStepBooster: .steps(2)
+        case .gigaStepBooster, .megaStepBooster: .steps(3)
+        case .proofOfStride: .steps(6)
         case .bonusReward1: .miniGames(1.25)
         case .bonusReward2: .miniGames(1.5)
         case .bonusReward3: .miniGames(2)
