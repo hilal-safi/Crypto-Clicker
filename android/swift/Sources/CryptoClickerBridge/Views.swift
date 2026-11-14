@@ -68,6 +68,8 @@ struct GameView: Encodable {
 
     // Screens ("shop", …), when asked for.
     let shop: ShopView?
+    let tokens: TokensView?
+    let perks: PerksView?
     let mine: MineView?
     let income: IncomeView?
 }
@@ -88,120 +90,6 @@ struct AirdropView: Encodable {
 }
 
 // MARK: - Shop
-
-struct ShopView: Encodable {
-    /// "12.5 per second", beside the Miners heading.
-    let minersDetail: String
-    let miners: [MinerView]
-    /// The next tier, hidden until the one before it is owned.
-    let lockedMiner: LockedMinerView?
-    let offlineMining: OfflineMiningView
-    let powerUps: [PowerUpView]
-    /// "3 still hidden", beside the Upgrades heading.
-    let upgradesDetail: String?
-    /// Shown when no upgrade is on sale.
-    let upgradesEmpty: String?
-    /// Upgrades on sale, cheapest first.
-    let upgrades: [UpgradeView]
-    /// Upgrades already bought.
-    let purchased: [UpgradeView]
-}
-
-struct MinerView: Encodable {
-    let id: String
-    let emoji: String
-    let name: String
-    let owned: Int
-    /// "Owned 12", under the buy button once one is owned.
-    let ownedText: String?
-    /// Coins per second once one is owned, else what the miner is.
-    let line: String
-    /// "Next one: +0.25/s"
-    let nextOne: String
-    let isBestValue: Bool
-    /// "Mk II" once a Mk upgrade is bought.
-    let mk: String?
-    /// "×5" while Legacy lifts it.
-    let legacy: String?
-    let milestone: ProgressLine?
-    let legacyProgress: ProgressLine?
-    /// The buy button for ×1, ×10, ×100 and Max, in that order.
-    let buy: [BuyOption]
-    /// The next Mk upgrade, when one is on offer.
-    let upgrade: MinerUpgradeView?
-}
-
-struct ProgressLine: Encodable {
-    let fraction: Double
-    let text: String
-}
-
-struct BuyOption: Encodable {
-    /// Units this button buys (for Max, as many as the balance allows, at least one).
-    let count: Int
-    /// "Buy 10"
-    let label: String
-    let price: String
-    let canAfford: Bool
-}
-
-struct MinerUpgradeView: Encodable {
-    /// "GPU Rig Mk III"
-    let name: String
-    /// "Doubles what your GPU Rigs mine"
-    let detail: String
-    let price: String
-    let canAfford: Bool
-}
-
-struct LockedMinerView: Encodable {
-    /// The last tiers wait for the first prestige.
-    let needsPrestige: Bool
-    let text: String
-}
-
-struct OfflineMiningView: Encodable {
-    /// "Level 2", or "Not bought yet"
-    let subtitle: String
-    /// The next level's price; nil at the last level.
-    let price: String?
-    let canAfford: Bool
-    /// Time away paid now, and at the next level.
-    let now: String
-    let next: String?
-}
-
-struct PowerUpView: Encodable {
-    let id: String
-    let name: String
-    /// The SF Symbol the iOS app shows; Android maps it to a Material icon.
-    let symbol: String
-    let summary: String
-    /// "Level 2 of 6"
-    let subtitle: String
-    let level: Int
-    let maxLevel: Int
-    /// The next level's price; nil at the last level (or while locked).
-    let price: String?
-    let canAfford: Bool
-    /// "Biggest combo"
-    let valueName: String
-    let now: String
-    let next: String?
-    /// Set while it waits on another power-up: "Opens when Combo Booster reaches level 6".
-    let locked: String?
-}
-
-struct UpgradeView: Encodable {
-    let id: String
-    let name: String
-    let summary: String
-    let symbol: String
-    /// tapping, production, steps or miniGames
-    let category: String
-    let price: String
-    let canAfford: Bool
-}
 
 // MARK: - Popups
 
@@ -322,6 +210,8 @@ extension GameSession {
                  dailyBadge: dailyBadgeCount, stepsConnected: game.steps.isConnected,
                  stepWindowDays: Tuning.stepWindowDays,
                  shop: views.contains("shop") ? shopView : nil,
+                 tokens: views.contains("tokens") ? tokensView : nil,
+                 perks: views.contains("perks") ? perksView : nil,
                  mine: views.contains("mine") ? mineView : nil,
                  income: views.contains("income") ? incomeView : nil)
     }
@@ -339,137 +229,6 @@ extension GameSession {
     }
 
     // MARK: Shop
-
-    var shopView: ShopView {
-        let game = state
-        let revealed = MinerID.allCases.filter(game.isRevealed)
-        let locked = MinerID.allCases.first { !game.isRevealed($0) }
-        let bestValue = revealed.count > 1 ? game.bestValueMiner : nil
-        // Step Boosters are only offered where steps can be counted.
-        let notOwned = UpgradeID.allCases.filter {
-            !game.upgrades.contains($0) && (canTrackSteps || $0.category != .steps)
-        }
-        let available = notOwned.filter(game.isRevealed).sorted { $0.cost < $1.cost }
-        let undiscovered = notOwned.count - available.count
-        let purchased = UpgradeID.allCases.filter(game.upgrades.contains)
-        return ShopView(
-            minersDetail: "\(CoinFormat.rate(game.baseProduction)) per second",
-            miners: revealed.map { minerView($0, isBestValue: $0 == bestValue) },
-            lockedMiner: locked.map { lockedMinerView($0) },
-            offlineMining: offlineMiningView,
-            powerUps: PowerUpID.allCases.compactMap { powerUpView($0) },
-            upgradesDetail: undiscovered > 0 ? "\(undiscovered) still hidden" : nil,
-            upgradesEmpty: available.isEmpty
-                ? (undiscovered > 0 ? "Keep mining to discover more upgrades." : "Every upgrade is yours.") : nil,
-            upgrades: available.map { upgradeView($0, owned: false) },
-            purchased: purchased.map { upgradeView($0, owned: true) })
-    }
-
-    func minerView(_ miner: MinerID, isBestValue: Bool) -> MinerView {
-        let game = state
-        let owned = game.owned(miner)
-        let mkLevel = game.minerUpgradeLevel(miner)
-        let legacy = game.legacyMultiplier(miner)
-        let boosts = game.legacyBeneficiaries(of: miner)
-        let milestone = game.nextMilestone(for: miner).flatMap { next -> ProgressLine? in
-            guard owned > 0 else { return nil }
-            let previous = Tuning.milestones.last { $0 <= owned } ?? 0
-            return ProgressLine(
-                fraction: clamped(Double(owned - previous) / Double(max(1, next - previous))),
-                text: "\(CoinFormat.grouped(next - owned)) more for \(CoinFormat.multiplier(Tuning.milestoneMultiplier)) output")
-        }
-        // From the first milestone, so it doesn't crowd the opening.
-        let legacyProgress: ProgressLine? = !boosts.isEmpty && owned >= 25
-            ? ProgressLine(fraction: clamped(Double(owned) / Double(Tuning.legacyUnits)),
-                           text: "\(CoinFormat.grouped(Tuning.legacyUnits - owned)) more to boost \(legacyNames(boosts)) \(CoinFormat.multiplier(Tuning.legacyMultiplier))")
-            : nil
-        let buy = [1, 10, 100, 0].map { quantity -> BuyOption in
-            // Max buys as many as the balance allows (at least one, for the price label).
-            let count = quantity == 0 ? max(1, game.maxAffordable(miner)) : quantity
-            let price = game.price(of: miner, quantity: count)
-            return BuyOption(count: count, label: "Buy \(CoinFormat.grouped(count))",
-                             price: CoinFormat.cost(price), canAfford: price <= game.coins)
-        }
-        let upgrade = game.availableMinerUpgrade(miner).map { offer in
-            MinerUpgradeView(name: miner.upgradeName(level: offer.level),
-                             detail: "Doubles what your \(miner.pluralName) mine",
-                             price: CoinFormat.cost(offer.price), canAfford: offer.price <= game.coins)
-        }
-        return MinerView(
-            id: miner.rawValue, emoji: miner.emoji, name: miner.name, owned: owned,
-            ownedText: owned > 0 ? "Owned \(CoinFormat.grouped(owned))" : nil,
-            line: owned > 0 ? "\(CoinFormat.rate(game.rate(of: miner))) coins per second" : miner.blurb,
-            nextOne: "Next one: +\(CoinFormat.rate(game.nextUnitGain(miner)))/s",
-            isBestValue: isBestValue,
-            mk: mkLevel > 0 ? "Mk \(MinerID.markName(level: mkLevel - 1))" : nil,
-            legacy: legacy > 1 ? CoinFormat.multiplier(legacy) : nil,
-            milestone: milestone, legacyProgress: legacyProgress, buy: buy, upgrade: upgrade)
-    }
-
-    private func legacyNames(_ boosts: [MinerID]) -> String {
-        switch boosts.count {
-        case 1: boosts[0].name
-        case 2: "\(boosts[0].name) and \(boosts[1].name)"
-        default: "\(boosts.count) older miners"
-        }
-    }
-
-    func lockedMinerView(_ miner: MinerID) -> LockedMinerView {
-        let needsPrestige = miner.needsPrestige && state.stats.prestiges == 0
-        let text = needsPrestige
-            ? "Prestige once to discover new miners beyond the stars."
-            : miner.previous.map { "Buy a \($0.name) to reveal" } ?? ""
-        return LockedMinerView(needsPrestige: needsPrestige, text: text)
-    }
-
-    var offlineMiningView: OfflineMiningView {
-        let game = state
-        let level = game.offlineMiningLevel
-        let price = game.offlineMiningPrice
-        let cap = GameState.offlineCap(level: level)
-        let nextCap = GameState.offlineCap(level: level + 1)
-        return OfflineMiningView(
-            subtitle: level > 0 ? "Level \(level)" : "Not bought yet",
-            price: price.map(CoinFormat.cost), canAfford: price.map { $0 <= game.coins } ?? false,
-            now: CoinFormat.duration(max(cap, Tuning.awayThreshold)),
-            next: price != nil ? CoinFormat.duration(nextCap) : nil)
-    }
-
-    /// A power-up's row, or nil while it's hidden.
-    func powerUpView(_ powerUp: PowerUpID) -> PowerUpView? {
-        let game = state
-        let level = game.powerUpLevel(powerUp)
-        if game.isRevealed(powerUp) {
-            let price = game.powerUpPrice(powerUp)
-            return PowerUpView(
-                id: powerUp.rawValue, name: powerUp.name, symbol: powerUp.symbol, summary: powerUp.summary,
-                subtitle: "Level \(level) of \(powerUp.maxLevel)", level: level, maxLevel: powerUp.maxLevel,
-                price: price.map(CoinFormat.cost), canAfford: price.map { $0 <= game.coins } ?? false,
-                valueName: powerUp.valueName, now: powerUp.value(atLevel: level),
-                next: price != nil ? powerUp.value(atLevel: level + 1) : nil, locked: nil)
-        }
-        guard let required = powerUp.requires, game.powerUpLevel(required) > 0 else { return nil }
-        return PowerUpView(
-            id: powerUp.rawValue, name: powerUp.name, symbol: powerUp.symbol, summary: powerUp.summary,
-            subtitle: "Level \(level) of \(powerUp.maxLevel)", level: level, maxLevel: powerUp.maxLevel,
-            price: nil, canAfford: false, valueName: powerUp.valueName, now: powerUp.value(atLevel: level),
-            next: nil, locked: "Opens when \(required.name) reaches level \(required.maxLevel)")
-    }
-
-    func upgradeView(_ upgrade: UpgradeID, owned: Bool) -> UpgradeView {
-        UpgradeView(id: upgrade.rawValue, name: upgrade.name, summary: upgrade.summary, symbol: upgrade.symbol,
-                    category: categoryKey(upgrade.category), price: CoinFormat.cost(upgrade.cost),
-                    canAfford: !owned && upgrade.cost <= state.coins)
-    }
-
-    private func categoryKey(_ category: UpgradeCategory) -> String {
-        switch category {
-        case .tapping: "tapping"
-        case .production: "production"
-        case .steps: "steps"
-        case .miniGames: "miniGames"
-        }
-    }
 
     // MARK: Popups
 

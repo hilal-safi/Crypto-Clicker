@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.EmojiEvents
@@ -66,6 +65,7 @@ import com.hilalsafi.cryptoclicker.ui.root.BalanceBar
 import com.hilalsafi.cryptoclicker.ui.root.BullRunFire
 import com.hilalsafi.cryptoclicker.ui.root.NotificationStack
 import com.hilalsafi.cryptoclicker.ui.root.WelcomeBackSheet
+import com.hilalsafi.cryptoclicker.ui.shop.ShopScreen
 import com.hilalsafi.cryptoclicker.ui.theme.Palette
 import com.hilalsafi.cryptoclicker.ui.theme.gameColors
 import com.hilalsafi.cryptoclicker.ui.theme.glass
@@ -171,7 +171,7 @@ private fun Root() {
                             tab = AppTab.Settings
                         },
                     )
-                    AppTab.Shop -> ShopTab(current, padding, requests)
+                    AppTab.Shop -> ShopScreen(padding, requests)
                     AppTab.Arcade -> ComingSoon("Arcade", "The arcade is on its way to Android.", Icons.Rounded.SportsEsports, Palette.arcade, padding)
                     AppTab.Trophies -> ComingSoon("Trophies", "Daily rewards, quests and achievements are on their way to Android.", Icons.Rounded.EmojiEvents, Palette.trophies, padding)
                     AppTab.Settings -> {
@@ -225,31 +225,6 @@ private fun Root() {
             text = { Text(message) },
             confirmButton = { TextButton(onClick = game::clearFailure) { Text("OK") } },
         )
-    }
-}
-
-/** The Shop until its pages arrive: the Power-ups page. */
-@Composable
-private fun ShopTab(current: com.hilalsafi.cryptoclicker.core.GameView, padding: androidx.compose.foundation.layout.PaddingValues, requests: Requests) {
-    val game = LocalGame.current
-    val prefs = LocalPrefs.current
-    val haptics by prefs.haptics.state()
-    WantViews("shop")
-    val listState = rememberLazyListState()
-    val actions = remember(game) {
-        object : ShopActions {
-            override fun buyMiner(id: String, count: Int) = game.buyMiner(id, count)
-            override fun buyMinerUpgrade(id: String) = game.buyMinerUpgrade(id)
-            override fun buyUpgrade(id: String) = game.buyUpgrade(id)
-            override fun buyOfflineMining() = game.buyOfflineMining()
-            override fun buyPowerUp(id: String) = game.buyPowerUp(id)
-        }
-    }
-    val shop = current.shop
-    if (shop == null) {
-        Box(Modifier.fillMaxSize())
-    } else {
-        ShopScreen(shop, haptics, game.purchases, listState, requests.powerUps, padding, actions)
     }
 }
 

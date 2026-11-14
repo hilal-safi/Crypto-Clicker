@@ -198,12 +198,7 @@ fun MineScreen(
                         effects.rainCoins()
                     }
                     // Shown from the combo's first +0.1, so a few casual taps don't flicker it.
-                    val combo = live?.combo
-                    AnimatedVisibility(combo != null, Modifier.align(Alignment.BottomCenter), enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
-                        val shown = remember { arrayOfNulls<Combo>(1) }
-                        if (combo != null) shown[0] = combo
-                        shown[0]?.let { ComboPill(it) }
-                    }
+                    ComboOverlay(live?.combo, Modifier.align(Alignment.BottomCenter))
                 }
             }
             if (isOpening && !compact) {
@@ -510,6 +505,16 @@ private fun FloatingText(floater: Floater) {
             .alpha(1 - rise.value),
         minScale = 0.4f,
     )
+}
+
+/** The combo pill, popping in at its first +0.1 and out when the combo ends. */
+@Composable
+private fun ComboOverlay(combo: Combo?, modifier: Modifier) {
+    AnimatedVisibility(combo != null, modifier, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
+        val shown = remember { arrayOfNulls<Combo>(1) }
+        if (combo != null) shown[0] = combo
+        shown[0]?.let { ComboPill(it) }
+    }
 }
 
 /** The combo under the coin while quick taps keep it going. */

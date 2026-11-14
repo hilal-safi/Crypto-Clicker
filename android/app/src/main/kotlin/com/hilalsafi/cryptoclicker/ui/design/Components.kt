@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.Button
@@ -625,3 +626,53 @@ fun Tinted(color: Color, content: @Composable () -> Unit) {
 
 /** The game's colours for a card in either mode, for code outside composition. */
 fun GameColors.cardFill(): Color = card
+
+/** A tab's large title at the top of its list, scrolling away with it (iOS: a large navigation title). */
+@Composable
+fun TabTitle(title: String, modifier: Modifier = Modifier, trailing: @Composable RowScope.() -> Unit = {}) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .widthIn(max = 700.dp)
+            .padding(start = 4.dp, end = 4.dp, top = 12.dp, bottom = 2.dp)
+            .semantics { heading() },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = Type.largeTitle, modifier = Modifier.weight(1f))
+        trailing()
+    }
+}
+
+/**
+ * A pop-up pointing up at what it explains (iOS: the Shop's info bubbles on a Callout): a title
+ * line with a close mark, then [content].
+ */
+@Composable
+fun InfoBubble(arrowX: Dp, onClose: () -> Unit, header: @Composable RowScope.() -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val colors = gameColors
+    val shape = CalloutShape(arrowX)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .shadowed(shape)
+            .background(if (colors.isDark) Color(0.17f, 0.17f, 0.19f) else Color(0.98f, 0.98f, 0.98f), shape)
+            .border(1.dp, colors.text.copy(alpha = 0.12f), shape)
+            .clickable(onClick = onClose)
+            .padding(start = 14.dp, end = 14.dp, bottom = 12.dp, top = 12.dp + CalloutShape.ARROW_HEIGHT),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            header()
+            Spacer(Modifier.weight(1f))
+            Icon(Icons.Rounded.Cancel, "Close", tint = colors.subtext, modifier = Modifier.size(22.dp))
+        }
+        content()
+    }
+}
+
+private fun Modifier.shadowed(shape: Shape): Modifier =
+    this.then(Modifier.graphicsLayer {
+        this.shape = shape
+        shadowElevation = 12f
+        clip = false
+    })

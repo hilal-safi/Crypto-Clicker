@@ -98,6 +98,31 @@
         }
       ]
     },
+    "perks": {
+      "available": "text",
+      "branches": [
+        {
+          "id": "text",
+          "name": "text",
+          "perks": [
+            {
+              "canBuy": true,
+              "id": "text",
+              "isOwned": true,
+              "name": "text",
+              "price": "text",
+              "requirement": "text",
+              "requirementMet": true,
+              "summary": "text",
+              "symbol": "text"
+            }
+          ],
+          "symbol": "text"
+        }
+      ],
+      "earned": "text",
+      "footer": "text"
+    },
     "purchaseNote": {
       "effects": "text",
       "id": 1,
@@ -137,6 +162,13 @@
           ],
           "emoji": "text",
           "id": "text",
+          "info": {
+            "blurb": "text",
+            "legacy": "text",
+            "legacyActive": true,
+            "milestone": "text",
+            "owned": "text"
+          },
           "isBestValue": true,
           "legacy": "text",
           "legacyProgress": {
@@ -186,6 +218,50 @@
           "valueName": "text"
         }
       ],
+      "prestige": {
+        "claim": "text",
+        "confirm": {
+          "canPrestige": true,
+          "firstNote": "text",
+          "gains": [
+            {
+              "footer": "text",
+              "header": "text",
+              "lines": [
+                {
+                  "bold": true,
+                  "detail": "text",
+                  "emoji": "text",
+                  "kind": "text",
+                  "share": 1.5,
+                  "symbol": "text",
+                  "title": "text",
+                  "value": "text"
+                }
+              ]
+            }
+          ],
+          "keeps": [
+            {
+              "symbol": "text",
+              "text": "text"
+            }
+          ],
+          "resets": [
+            {
+              "symbol": "text",
+              "text": "text"
+            }
+          ]
+        },
+        "fraction": 1.5,
+        "message": "text",
+        "perksTitle": "text",
+        "points": "text",
+        "progress": "text",
+        "recommended": true
+      },
+      "prestigeFirst": true,
       "purchased": [
         {
           "canAfford": true,
@@ -213,6 +289,53 @@
     },
     "stepWindowDays": 1,
     "stepsConnected": true,
+    "tokens": {
+      "footnote": "text",
+      "holdings": "text",
+      "news": [
+        {
+          "date": 1.5,
+          "headline": "text",
+          "id": "text",
+          "isGood": true
+        }
+      ],
+      "tokens": [
+        {
+          "buy": [
+            {
+              "count": 1,
+              "enabled": true,
+              "label": "text",
+              "value": "text"
+            }
+          ],
+          "change": "text",
+          "history": [
+            1.5
+          ],
+          "holding": "text",
+          "id": "text",
+          "isUp": true,
+          "name": "text",
+          "price": "text",
+          "range": "text",
+          "sell": [
+            {
+              "count": 1,
+              "enabled": true,
+              "label": "text",
+              "value": "text"
+            }
+          ],
+          "ticker": "text",
+          "volatility": "text",
+          "volatilityExplanation": "text",
+          "volatilityName": "text"
+        }
+      ],
+      "walletLine": "text"
+    },
     "unreadableSave": {
       "message": "text",
       "title": "text"

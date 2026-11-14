@@ -122,6 +122,8 @@ data class GameView(
     val stepsConnected: Boolean,
     val stepWindowDays: Int,
     val shop: Shop?,
+    val tokens: Tokens?,
+    val perks: Perks?,
     val mine: Mine?,
     val income: Income?,
 ) {
@@ -137,6 +139,8 @@ data class GameView(
             stepsConnected = o.bool("stepsConnected"),
             stepWindowDays = o.int("stepWindowDays"),
             shop = o.objOrNull("shop")?.let(Shop::from),
+            tokens = o.objOrNull("tokens")?.let(Tokens::from),
+            perks = o.objOrNull("perks")?.let(Perks::from),
             mine = o.objOrNull("mine")?.let(Mine::from),
             income = o.objOrNull("income")?.let(Income::from),
         )
@@ -342,7 +346,12 @@ data class UnreadableSave(
     }
 }
 
+/** The Shop's Power-ups page (view "shop"). */
 data class Shop(
+    /** Prestige would speed the player up a lot: its card leads the page instead of closing it. */
+    val prestigeFirst: Boolean,
+    /** The prestige card, once prestige is worth a look (recommended, or a point earned, or a tenth of the way to the first). */
+    val prestige: Prestige?,
     /** "12.5 per second", beside the Miners heading. */
     val minersDetail: String,
     val miners: List<Miner>,
@@ -361,6 +370,8 @@ data class Shop(
 ) {
     companion object {
         fun from(o: JsonObject) = Shop(
+            prestigeFirst = o.bool("prestigeFirst"),
+            prestige = o.objOrNull("prestige")?.let(Prestige::from),
             minersDetail = o.string("minersDetail"),
             miners = o.list("miners", Miner::from),
             lockedMiner = o.objOrNull("lockedMiner")?.let(LockedMiner::from),
@@ -370,6 +381,111 @@ data class Shop(
             upgradesEmpty = o.stringOrNull("upgradesEmpty"),
             upgrades = o.list("upgrades", Upgrade::from),
             purchased = o.list("purchased", Upgrade::from),
+        )
+    }
+}
+
+/** Prestige (iOS: PrestigeCard): points earned so far, what prestiging now would bring, and the way into the perks. */
+data class Prestige(
+    /** "12 points · +24%", once a point is earned. */
+    val points: String?,
+    val message: String,
+    /** Prestiging now would speed the next run up a lot: the message is in full strength. */
+    val recommended: Boolean,
+    /** The way to the next point, and "40% of the way to the next point". */
+    val fraction: Double,
+    val progress: String,
+    /** "Prestige for +3", when there's a point to claim. */
+    val claim: String?,
+    /** "Perks (2 ready)" or "Perks" */
+    val perksTitle: String,
+    /** What a prestige gains, resets and keeps, for its confirmation. */
+    val confirm: PrestigeConfirm,
+) {
+    companion object {
+        fun from(o: JsonObject) = Prestige(
+            points = o.stringOrNull("points"),
+            message = o.string("message"),
+            recommended = o.bool("recommended"),
+            fraction = o.double("fraction"),
+            progress = o.string("progress"),
+            claim = o.stringOrNull("claim"),
+            perksTitle = o.string("perksTitle"),
+            confirm = PrestigeConfirm.from(o.obj("confirm")),
+        )
+    }
+}
+
+/** Confirms a prestige (iOS: PrestigeSheet). */
+data class PrestigeConfirm(
+    val gains: List<ListSection>,
+    val resets: List<SymbolLine>,
+    val keeps: List<SymbolLine>,
+    /** The first prestige also reveals new miners. */
+    val firstNote: String?,
+    val canPrestige: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = PrestigeConfirm(
+            gains = o.list("gains", ListSection::from),
+            resets = o.list("resets", SymbolLine::from),
+            keeps = o.list("keeps", SymbolLine::from),
+            firstNote = o.stringOrNull("firstNote"),
+            canPrestige = o.bool("canPrestige"),
+        )
+    }
+}
+
+/** A group of lines on a list page (Income, Statistics, Your Journey), as an iOS List section. */
+data class ListSection(
+    val header: String?,
+    val footer: String?,
+    val lines: List<Line>,
+) {
+    companion object {
+        fun from(o: JsonObject) = ListSection(
+            header = o.stringOrNull("header"),
+            footer = o.stringOrNull("footer"),
+            lines = o.list("lines", Line::from),
+        )
+    }
+}
+
+/** One line on a list page. `kind` says how it's drawn: - "value": the title, its value at the end (and a detail under the value): iOS ValueRow - "share": an emoji (or a symbol), the title over a detail, a rate and its share, and a bar for the share: iOS ShareRow - "text": the title as a plain line */
+data class Line(
+    val kind: String,
+    val title: String,
+    val value: String?,
+    val detail: String?,
+    val bold: Boolean,
+    val emoji: String?,
+    val symbol: String?,
+    /** For "share", from 0 to 1. */
+    val share: Double?,
+) {
+    companion object {
+        fun from(o: JsonObject) = Line(
+            kind = o.string("kind"),
+            title = o.string("title"),
+            value = o.stringOrNull("value"),
+            detail = o.stringOrNull("detail"),
+            bold = o.bool("bold"),
+            emoji = o.stringOrNull("emoji"),
+            symbol = o.stringOrNull("symbol"),
+            share = o.doubleOrNull("share"),
+        )
+    }
+}
+
+/** A line with an SF Symbol before it. */
+data class SymbolLine(
+    val symbol: String,
+    val text: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = SymbolLine(
+            symbol = o.string("symbol"),
+            text = o.string("text"),
         )
     }
 }
@@ -396,6 +512,8 @@ data class Miner(
     val buy: List<BuyOption>,
     /** The next Mk upgrade, when one is on offer. */
     val upgrade: MinerUpgrade?,
+    /** The pop-up its icon opens. */
+    val info: MinerInfo,
 ) {
     companion object {
         fun from(o: JsonObject) = Miner(
@@ -413,6 +531,7 @@ data class Miner(
             legacyProgress = o.objOrNull("legacyProgress")?.let(ProgressLine::from),
             buy = o.list("buy", BuyOption::from),
             upgrade = o.objOrNull("upgrade")?.let(MinerUpgrade::from),
+            info = MinerInfo.from(o.obj("info")),
         )
     }
 }
@@ -461,6 +580,26 @@ data class MinerUpgrade(
             detail = o.string("detail"),
             price = o.string("price"),
             canAfford = o.bool("canAfford"),
+        )
+    }
+}
+
+/** What a miner is (iOS: MinerInfoBubble): its description, what the ones owned earn, and what lifts it (the next milestone, and Legacy from the newer tiers). */
+data class MinerInfo(
+    val blurb: String,
+    val owned: String?,
+    val milestone: String?,
+    val legacy: String?,
+    /** Legacy already lifts it (the line is in Legacy's blue), rather than the line saying how it could. */
+    val legacyActive: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = MinerInfo(
+            blurb = o.string("blurb"),
+            owned = o.stringOrNull("owned"),
+            milestone = o.stringOrNull("milestone"),
+            legacy = o.stringOrNull("legacy"),
+            legacyActive = o.bool("legacyActive"),
         )
     }
 }
@@ -557,6 +696,165 @@ data class Upgrade(
             category = o.string("category"),
             price = o.string("price"),
             canAfford = o.bool("canAfford"),
+        )
+    }
+}
+
+/** The Shop's Tokens page, the coin exchange (view "tokens"; iOS: TokensPage). */
+data class Tokens(
+    /** What the wallet's tokens are worth, and what selling everything would pay. */
+    val holdings: String,
+    val walletLine: String,
+    val news: List<News>,
+    val tokens: List<Token>,
+    val footnote: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = Tokens(
+            holdings = o.string("holdings"),
+            walletLine = o.string("walletLine"),
+            news = o.list("news", News::from),
+            tokens = o.list("tokens", Token::from),
+            footnote = o.string("footnote"),
+        )
+    }
+}
+
+data class News(
+    val id: String,
+    val isGood: Boolean,
+    val headline: String,
+    /** When the news broke, in seconds since 1970 (the app writes "5 min ago"). */
+    val date: Double,
+) {
+    companion object {
+        fun from(o: JsonObject) = News(
+            id = o.string("id"),
+            isGood = o.bool("isGood"),
+            headline = o.string("headline"),
+            date = o.double("date"),
+        )
+    }
+}
+
+/** A token on the market (iOS: TokenMarketRow). */
+data class Token(
+    val id: String,
+    val name: String,
+    val ticker: String,
+    /** "stable", "moderate" or "volatile", with its name and what it means. */
+    val volatility: String,
+    val volatilityName: String,
+    val volatilityExplanation: String,
+    /** "Bitcoin stays between 50% and 150% of its usual price, 1M coins." */
+    val range: String,
+    val price: String,
+    /** "▲ 4.2%" */
+    val change: String,
+    val isUp: Boolean,
+    /** "Own 12 · worth 1.2M", or "None owned" */
+    val holding: String,
+    /** Price factors over the last day, oldest first, for the sparkline. */
+    val history: List<Double>,
+    /** Buying and selling ×1, ×10, ×100 and Max, in that order. */
+    val buy: List<TradeOption>,
+    val sell: List<TradeOption>,
+) {
+    companion object {
+        fun from(o: JsonObject) = Token(
+            id = o.string("id"),
+            name = o.string("name"),
+            ticker = o.string("ticker"),
+            volatility = o.string("volatility"),
+            volatilityName = o.string("volatilityName"),
+            volatilityExplanation = o.string("volatilityExplanation"),
+            range = o.string("range"),
+            price = o.string("price"),
+            change = o.string("change"),
+            isUp = o.bool("isUp"),
+            holding = o.string("holding"),
+            history = o.doubles("history"),
+            buy = o.list("buy", TradeOption::from),
+            sell = o.list("sell", TradeOption::from),
+        )
+    }
+}
+
+data class TradeOption(
+    val count: Int,
+    /** "Buy 10" or "Sell 10" */
+    val label: String,
+    /** The price, or what the sale pays ("+1.2M"), or "None owned". */
+    val value: String,
+    val enabled: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = TradeOption(
+            count = o.int("count"),
+            label = o.string("label"),
+            value = o.string("value"),
+            enabled = o.bool("enabled"),
+        )
+    }
+}
+
+/** The perk tree (view "perks"; iOS: PerkTreeView): three branches of permanent perks bought with prestige points. */
+data class Perks(
+    val available: String,
+    val earned: String,
+    val footer: String,
+    val branches: List<PerkBranch>,
+) {
+    companion object {
+        fun from(o: JsonObject) = Perks(
+            available = o.string("available"),
+            earned = o.string("earned"),
+            footer = o.string("footer"),
+            branches = o.list("branches", PerkBranch::from),
+        )
+    }
+}
+
+data class PerkBranch(
+    val id: String,
+    val name: String,
+    val symbol: String,
+    val perks: List<Perk>,
+) {
+    companion object {
+        fun from(o: JsonObject) = PerkBranch(
+            id = o.string("id"),
+            name = o.string("name"),
+            symbol = o.string("symbol"),
+            perks = o.list("perks", Perk::from),
+        )
+    }
+}
+
+data class Perk(
+    val id: String,
+    val name: String,
+    val summary: String,
+    val symbol: String,
+    val isOwned: Boolean,
+    val canBuy: Boolean,
+    /** "3 pts" */
+    val price: String,
+    /** "After Head Start" when it's open, "Needs Head Start first" when not; nil once owned or at a root. */
+    val requirement: String?,
+    val requirementMet: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = Perk(
+            id = o.string("id"),
+            name = o.string("name"),
+            summary = o.string("summary"),
+            symbol = o.string("symbol"),
+            isOwned = o.bool("isOwned"),
+            canBuy = o.bool("canBuy"),
+            price = o.string("price"),
+            requirement = o.stringOrNull("requirement"),
+            requirementMet = o.bool("requirementMet"),
         )
     }
 }
@@ -745,47 +1043,6 @@ data class Income(
             subline = o.string("subline"),
             bullRun = o.stringOrNull("bullRun"),
             sections = o.list("sections", ListSection::from),
-        )
-    }
-}
-
-/** A group of lines on a list page (Income, Statistics, Your Journey), as an iOS List section. */
-data class ListSection(
-    val header: String?,
-    val footer: String?,
-    val lines: List<Line>,
-) {
-    companion object {
-        fun from(o: JsonObject) = ListSection(
-            header = o.stringOrNull("header"),
-            footer = o.stringOrNull("footer"),
-            lines = o.list("lines", Line::from),
-        )
-    }
-}
-
-/** One line on a list page. `kind` says how it's drawn: - "value": the title, its value at the end (and a detail under the value): iOS ValueRow - "share": an emoji (or a symbol), the title over a detail, a rate and its share, and a bar for the share: iOS ShareRow - "text": the title as a plain line */
-data class Line(
-    val kind: String,
-    val title: String,
-    val value: String?,
-    val detail: String?,
-    val bold: Boolean,
-    val emoji: String?,
-    val symbol: String?,
-    /** For "share", from 0 to 1. */
-    val share: Double?,
-) {
-    companion object {
-        fun from(o: JsonObject) = Line(
-            kind = o.string("kind"),
-            title = o.string("title"),
-            value = o.stringOrNull("value"),
-            detail = o.stringOrNull("detail"),
-            bold = o.bool("bold"),
-            emoji = o.stringOrNull("emoji"),
-            symbol = o.stringOrNull("symbol"),
-            share = o.doubleOrNull("share"),
         )
     }
 }

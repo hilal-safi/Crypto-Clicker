@@ -275,6 +275,9 @@ object Symbols {
         "figure.run.circle" to Icons.AutoMirrored.Rounded.DirectionsRun,
         "arrow.left.arrow.right.circle" to Icons.Rounded.SwapHoriz,
         "circle.hexagongrid.circle" to Icons.Rounded.Widgets,
+        "cpu" to Icons.Rounded.Memory,
+        "arrow.turn.down.right" to Icons.Rounded.ChevronRight,
+        "newspaper" to Icons.Rounded.Description,
         )
     }
 
