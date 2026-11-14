@@ -298,7 +298,7 @@ extension MiniGame {
             ],
             items: [
                 .init(id: "brick.armored", symbol: "square.fill.on.square.fill", name: localized("Cold storage blocks"),
-                      detail: localized("Steel bands show the hits left: two from level 2, three from level 6.")),
+                      detail: localized("Steel bands show the hits left: two or three early on, up to four from level 6 and five from level 12.")),
                 .init(id: "brick.explosive", symbol: "chart.line.downtrend.xyaxis", name: localized("Liquidation blocks"),
                       detail: localized("Liquidate every block around them when they go, and can set each other off in a cascade.")),
                 .init(id: "brick.bonus", symbol: "gift.fill", name: localized("Airdrop blocks"),

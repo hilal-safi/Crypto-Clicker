@@ -45,11 +45,13 @@ struct CasinoReturnTests {
         }
     }
 
-    /// 21 Million on the classic table, played by basic strategy, never insuring. A natural pays
-    /// 3 to 2 in whole tokens, rounded up, so a one-token bet's natural pays 2 to 1.
-    func blackjack(hands: Int, bet: Int) -> Return {
+    /// 21 Million played by basic strategy, never insuring, on the classic table or the tough one
+    /// (the dealer hits soft 17, and wins pay 10% more coins). A natural pays 3 to 2 in whole
+    /// tokens, rounded up, so a one-token bet's natural pays 2 to 1.
+    func blackjack(hands: Int, bet: Int, rules: BlackjackRules = .standsOnSoft17) -> Return {
         var rng = SeededGenerator(seed: 2026)
-        var table = BlackjackTable(rules: .standsOnSoft17)
+        var table = BlackjackTable(rules: rules)
+        let tableBonus = rules == .hitsSoft17 ? Tuning.blackjackToughTableBonus : 1
         var staked = 0.0, returned = 0.0, bonus = 0.0, capped = 0.0
         for _ in 0..<hands {
             table.newRound()
@@ -68,7 +70,7 @@ struct CasinoReturnTests {
                 staked += Double(result.bet)
                 returned += Double(result.payout)
                 guard result.outcome == .win || result.outcome == .blackjack else { continue }
-                let natural = result.outcome == .blackjack ? Tuning.blackjackNaturalBonus : 1
+                let natural = (result.outcome == .blackjack ? Tuning.blackjackNaturalBonus : 1) * tableBonus
                 bonus += Double(result.bet) * Tuning.blackjackStakeShare * natural
                 capped += Tuning.blackjackWinSeconds * natural
             }
@@ -167,6 +169,7 @@ struct CasinoReturnTests {
         var games: [(String, Return)] = [
             ("21 Million, 1-token bets", blackjack(hands: hands, bet: 1)),
             ("21 Million, 2-token bets", twoTokens),
+            ("21 Million tough table, 2-token bets", blackjack(hands: hands, bet: 2, rules: .hitsSoft17)),
             ("Diamond Hands", videoPoker(hands: hands)),
             ("Crypto Slots classic", classicSlots()),
             ("Crypto Slots 5x3", videoSlots(spins: hands)),
@@ -195,6 +198,11 @@ struct CasinoReturnTests {
         }
         print("Casino ceiling: 21 Million with every reward upgrade earns \(String(format: "%.1f", ceiling))x idle income per second of play")
         #expect(ceiling < 25)
+        // The tough table pays a tenth more coins for a slightly bigger house edge: the most any casino
+        // game earns, and still under the same limit.
+        let tough = games.first { $0.0.hasPrefix("21 Million tough") }!.1
+        #expect(tough.earningRate(multiplier: Self.fullMultiplier) > ceiling)
+        #expect(tough.earningRate(multiplier: Self.fullMultiplier) < 25)
     }
 
     /// One-token 21 Million is the one bet where the player keeps an edge on tokens: a natural pays

@@ -101,16 +101,16 @@ struct BrickBreakerTests {
 
     @Test func aGameStartedFurtherInPaysASmallerShare() throws {
         var state = GameState.make(miners: minersEarning(10))
-        let fromStart = state.finishBrickBreaker(score: 1_000, bricks: 50, level: 8)
-        #expect(fromStart.coins == state.arcadeReward(.brickBreaker, score: 1_000, multiplier: 1 + Tuning.newBestBonus))
-        // From level 6: 1 / (1 + 0.3 × 5) = 40% of its points, and only the levels it cleared count.
+        let fromStart = state.finishBrickBreaker(score: 2_000, bricks: 50, level: 8)
+        #expect(fromStart.coins == state.arcadeReward(.brickBreaker, score: 2_000, multiplier: 1 + Tuning.newBestBonus))
+        // From level 6: 1 / (1 + 0.45 × 5) = 4/13 of its points, and only the levels it cleared count.
         let cleared = state.stats.brickBreakerLevelsCleared
-        let later = state.finishBrickBreaker(score: 900, bricks: 40, level: 9, startLevel: 6)
-        #expect(later.coins == state.arcadeReward(.brickBreaker, score: 360))
+        let later = state.finishBrickBreaker(score: 1_300, bricks: 40, level: 9, startLevel: 6)
+        #expect(later.coins == state.arcadeReward(.brickBreaker, score: 400))
         #expect(state.stats.brickBreakerLevelsCleared == cleared + 3)
         #expect(state.stats.brickBreakerBestLevel == 9)
         // A held run remembers where it started.
-        state.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: 500, detail: 20, extra: 7, records: .init(start: 6)))
+        state.holdArcadeRun(ArcadeRun(game: .brickBreaker, score: 650, detail: 20, extra: 7, records: .init(start: 6)))
         let held = state.payUnfinishedRun()
         #expect(held?.payout.coins == state.arcadeReward(.brickBreaker, score: 200))
         let run = ArcadeRun(game: .brickBreaker, score: 5, detail: 1, extra: 6, records: .init(start: 6))
@@ -289,7 +289,7 @@ struct BrickBreakerTests {
             for (index, brick) in game.bricks.enumerated() {
                 #expect(brick.frame.minX >= 0 && brick.frame.maxX <= Game.width)
                 #expect(brick.frame.maxY < Game.paddleTop)
-                #expect((1...2).contains(brick.maxHits))
+                #expect((1...Game.armorStrength(level: level).upperBound).contains(brick.maxHits))
                 for other in game.bricks[(index + 1)...] { #expect(!overlaps(brick.frame, other.frame)) }
             }
         }
@@ -445,7 +445,7 @@ struct BrickBreakerTests {
         #expect(game.bossesDefeated == 1)
         #expect(game.level == 6)
         #expect(game.boss == nil)
-        #expect(game.bricks.contains { $0.maxHits == 3 }) // Level 6 brings three-hit armor.
+        #expect(game.bricks.contains { $0.maxHits >= 3 }) // Level 6 brings tougher armor.
     }
 
     @Test func aBallStuckOnAnEmptyPathIsNudgedOffIt() {

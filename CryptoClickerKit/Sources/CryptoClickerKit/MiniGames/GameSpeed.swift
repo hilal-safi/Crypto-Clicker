@@ -1,8 +1,9 @@
 import Foundation
 
-/// How fast an action game runs, picked before a game: Brick Breaker's ball, the snake, and
-/// Tetris's falling pieces. Points are worth the same at every speed, so Fast scores quicker but
-/// is harder to survive, and Slow is relaxed but scores more slowly.
+/// How fast an action game runs, picked before a game: the snake, Tetris's falling pieces, Pump and
+/// Dump's coins and Bubble Market's bubbles. Points are worth the same at every speed, so Fast
+/// scores quicker but is harder to survive, and Slow is relaxed but scores more slowly. (Hash
+/// Smash and Scam Invaders take theirs from `ArcadeDifficulty`.)
 public enum GameSpeed: String, CaseIterable, Codable, Sendable, Identifiable {
     case slow, normal, fast
 

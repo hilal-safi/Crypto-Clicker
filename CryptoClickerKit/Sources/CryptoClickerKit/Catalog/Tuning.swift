@@ -291,6 +291,8 @@ public enum Tuning {
     public static let marketPriceRange: ClosedRange<Double> = 0.7...1.4
     /// Volatile tokens (SafeMoon, Shiba Inu, Dogecoin) range further: from half to 1.8 times.
     public static let volatilePriceRange: ClosedRange<Double> = 0.5...1.8
+    /// A stablecoin (Tether) holds within 2% of its peg.
+    public static let stablePriceRange: ClosedRange<Double> = 0.98...1.02
     /// How much a volatile token's price also jumps from one ten-minute stretch to the next, before
     /// its volatility.
     public static let volatileJitter = 0.3
@@ -347,7 +349,7 @@ public enum Tuning {
     /// Starting Hash Smash or Scam Invaders further in skips the easy levels, and later levels score
     /// more a minute (bigger clear bonuses and bosses), so a game started at level `n` pays
     /// `1 / (1 + slope × (n − 1))` of its points (balance tested). From level 1 it pays them all.
-    public static let brickBreakerStartPaySlope = 0.3
+    public static let brickBreakerStartPaySlope = 0.45
     public static let invadersStartPaySlope = 0.1
 
     /// The share of its points a game started at `level` pays, for a game's slope.
