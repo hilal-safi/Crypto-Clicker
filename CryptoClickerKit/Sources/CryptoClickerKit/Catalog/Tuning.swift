@@ -138,11 +138,13 @@ public enum Tuning {
     // MARK: Steps
     /// Lifetime taps needed before steps can be connected, so early coins come from playing.
     public static let stepsUnlockTaps = 2_000
-    /// One step is worth this many seconds of idle income (before step upgrades): enough that a
-    /// daily walk moves the first prestige by a day between 2,500 and 10,000 steps.
+    /// A step pays this many coins (before step boosters) from the start...
+    public static let baseStepCoins = 1.0
+    /// ...and once Proof of Stride is bought, this many seconds of idle income on top: enough that a
+    /// daily walk moves the first prestige by about a day between 2,500 and 10,000 steps.
     public static let stepSeconds = 0.5
-    /// A step is never worth less than this many coins (before step upgrades).
-    public static let minimumStepValue = 1.0
+    /// Proof of Stride's list price: bought late in a run, after the Ultimate Step Booster.
+    public static let proofOfStrideListCost = 3_000_000_000.0
     /// Income used for step and mini-game rewards never drops below this, so they matter on day one.
     public static let minimumRewardIncome = 1.0
     /// Days of HealthKit history checked on each sync, including today.

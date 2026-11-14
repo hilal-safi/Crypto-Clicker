@@ -12,6 +12,8 @@ public enum UpgradeEffect: Sendable, Equatable {
     case production(Double)
     /// Multiplies step rewards.
     case steps(Double)
+    /// Steps also earn this many seconds of idle income each (before step multipliers).
+    case stepIncome(Double)
     /// Multiplies mini-game rewards.
     case miniGames(Double)
 }
@@ -33,7 +35,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
     case coinClicker, upgradedClicker, automatedClicker, mechanicalKeyboard, roboticFinger, neuralInterface
     case hapticEngine, satoshisTouch
     case overclocking, liquidCooling, fiberUplink, asicChips, immersionCooling, solarFarm, fusionReactor, geothermalPlant, dysonSwarm
-    case stepBooster, upgradedStepBooster, ultimateStepBooster, megaStepBooster
+    case stepBooster, upgradedStepBooster, ultimateStepBooster, proofOfStride, megaStepBooster
     case bonusReward1, bonusReward2, bonusReward3
 
     public var id: String { rawValue }
@@ -60,6 +62,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .stepBooster: localized("Step Booster")
         case .upgradedStepBooster: localized("Upgraded Step Booster")
         case .ultimateStepBooster: localized("Ultimate Step Booster")
+        case .proofOfStride: localized("Proof of Stride")
         case .megaStepBooster: localized("Mega Step Booster")
         case .bonusReward1: localized("Bonus Reward I")
         case .bonusReward2: localized("Bonus Reward II")
@@ -90,6 +93,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .stepBooster: "figure.walk"
         case .upgradedStepBooster: "figure.run"
         case .ultimateStepBooster: "figure.run.circle.fill"
+        case .proofOfStride: "shoeprints.fill"
         case .megaStepBooster: "figure.hiking"
         case .bonusReward1: "gift.fill"
         case .bonusReward2: "star.fill"
@@ -127,6 +131,9 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .stepBooster: 25_000
         case .upgradedStepBooster: 2_500_000
         case .ultimateStepBooster: 2_500_000_000
+        // Where steps start paying a share of production: a late buy in a run, so early walks pay
+        // coins by the step, not hours of income.
+        case .proofOfStride: Tuning.proofOfStrideListCost
         // A mid-to-late game buy, in the trillions, so walking keeps paying as income grows.
         case .megaStepBooster: 1_000_000_000_000
         case .bonusReward1: 50_000
@@ -157,6 +164,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .stepBooster: .steps(1.75)
         case .upgradedStepBooster: .steps(2)
         case .ultimateStepBooster: .steps(3)
+        case .proofOfStride: .stepIncome(Tuning.stepSeconds)
         case .megaStepBooster: .steps(1.5)
         case .bonusReward1: .miniGames(1.25)
         case .bonusReward2: .miniGames(1.5)
@@ -168,7 +176,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         switch effect {
         case .tapFlat, .tapPercent, .autoTaps: .tapping
         case .production: .production
-        case .steps: .steps
+        case .steps, .stepIncome: .steps
         case .miniGames: .miniGames
         }
     }
@@ -183,6 +191,9 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
                 : localized("+\(CoinFormat.short(rate)) automatic taps per second, worth \(CoinFormat.percent(Tuning.autoTapStrength)) of a tap")
         case .production(let factor): localized("All miners produce \(CoinFormat.multiplier(factor))")
         case .steps(let factor): localized("Steps earn \(CoinFormat.multiplier(factor))")
+        case .stepIncome(let seconds):
+            seconds == 1 ? localized("Every step also earns a second's production")
+                : localized("Every step also earns \(String(format: "%g", seconds)) seconds of production")
         case .miniGames(let factor): localized("Mini-game rewards \(CoinFormat.multiplier(factor))")
         }
     }

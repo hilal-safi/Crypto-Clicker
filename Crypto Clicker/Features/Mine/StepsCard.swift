@@ -239,7 +239,7 @@ struct StepsIntroView: View {
         ("figure.walk", "Walk with iPhone or Apple Watch",
          "Apple Health counts your steps from both and combines them, so nothing is counted twice."),
         ("bitcoinsign.circle.fill", "Every step pays coins",
-         "Steps are paid as you walk, at least a coin a step, and more as your mining income grows. Only your first day's steps wait until the next day. Steps count toward quests and achievements right away."),
+         "Steps are paid as you walk: a coin a step at first, more with the step boosters in the Shop, and a share of your mining income once you buy Proof of Stride. Only your first day's steps wait until the next day. Steps count toward quests and achievements right away."),
         ("checkmark.seal.fill", "Each step is paid once",
          "Steps are added up by day. Syncing again, or late steps from your watch, never pays the same step twice."),
         ("bolt.fill", "Boost your stride",

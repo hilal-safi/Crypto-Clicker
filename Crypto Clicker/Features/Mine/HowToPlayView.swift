@@ -130,7 +130,7 @@ private struct HowToChapter: Identifiable {
         HowToTopic("figure.walk", "Steps", "After \(CoinFormat.grouped(Tuning.stepsUnlockTaps)) taps, your steps turn into coins.", [
             "Steps are paid as you walk, and count toward quests and achievements.",
             "Your first day's steps are paid the next day, so walking can't skip the opening.",
-            "Every step, on iPhone or Apple Watch, is paid once, and steps grow more valuable as your income grows.",
+            "Every step, on iPhone or Apple Watch, is paid once: a coin a step at first, more with the step boosters, and a share of your income once you buy Proof of Stride.",
         ]),
         HowToTopic("trophy.fill", "Achievements", "Bronze, silver, gold and mythic stars, in Trophies.", [
             "Every star adds 1% to production for good.",

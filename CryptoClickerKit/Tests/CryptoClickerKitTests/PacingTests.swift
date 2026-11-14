@@ -414,10 +414,11 @@ struct PacingTests {
         #expect(player.perksBoughtAt.count >= 10)
     }
 
-    /// The casual player again, walking 2,500, 5,000 or 10,000 steps a day: walking matters, about
-    /// half a day of the first prestige for each doubling. The 5,000-step walker sets the pace (the
-    /// first prestige at about six and a half days, nine prestiges in three weeks); 2,500 steps take
-    /// about seven days and 10,000 about six. Runs with the balance tests.
+    /// The casual player again, walking 2,500, 5,000 or 10,000 steps a day. Steps pay a coin each
+    /// (times the boosters) until Proof of Stride, bought around the fourth day, so early walks
+    /// don't race the game; from then on they pay a slice of income, and walking matters: the first
+    /// prestige comes about a third of a day sooner for each doubling (about seven days and a third
+    /// at 2,500 steps, under seven at 5,000, six and a half at 10,000). Runs with the balance tests.
     @Test(arguments: [2_500, 5_000, 10_000]) func walkingMovesTheFirstPrestigeByAboutHalfADayADoubling(steps: Int) {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
         let walker = casualPlayer(days: 21, stepsPerDay: steps)
@@ -428,19 +429,20 @@ struct PacingTests {
               "| points", walker.game.prestigePoints, "| steps paid", String(format: "%.1f%%", share * 100),
               "| boosters", UpgradeID.allCases.filter { $0.category == .steps }.map { days(walker.firstUpgrade[$0]) })
         let firstPrestige: ClosedRange<Double> = switch steps {
-        // A night falls between seven days and the morning after: the morning is close enough.
-        case ..<5_000: 6.75...7.4
-        case 5_000: 6.25...6.75
-        default: 5.5...6.25
+        case ..<5_000: 7...7.5
+        case 5_000: 6.6...7.1
+        default: 6.2...6.9
         }
         #expect(walker.firstPrestigeAt.map { firstPrestige.contains($0 / 86_400) } == true)
         #expect((steps >= 10_000 ? 9...11 : 8...10).contains(walker.prestigeTimes.count))
-        // Steps pay a real share, but mining still pays most.
+        // Steps pay a real share, and never much more than half, even at 10,000 a day.
         #expect(share > Double(steps) / 100_000)
-        #expect(share < 0.5)
-        // The first three boosters come in the first four days; the Mega Step Booster, in the
-        // trillions, near the end of the first run.
-        #expect([UpgradeID.stepBooster, .upgradedStepBooster, .ultimateStepBooster].allSatisfy { walker.firstUpgrade[$0].map { $0 < 4.5 * 86_400 } == true })
+        #expect(share < 0.55)
+        // Proof of Stride comes around the fourth day, and the first three boosters by then (a coin a
+        // step makes them small buys before it); the Mega Step Booster, in the trillions, near the end
+        // of the first run.
+        #expect(walker.firstUpgrade[.proofOfStride].map { (3 * 86_400...5.5 * 86_400).contains($0) } == true)
+        #expect([UpgradeID.stepBooster, .upgradedStepBooster, .ultimateStepBooster].allSatisfy { walker.firstUpgrade[$0].map { $0 < 5.5 * 86_400 } == true })
         #expect(walker.firstUpgrade[.megaStepBooster].map { (5 * 86_400...8 * 86_400).contains($0) } == true)
     }
 

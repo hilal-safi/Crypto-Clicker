@@ -9,8 +9,8 @@ No real cryptocurrency, no ads, no purchases.
 - **Mining.** Tap for coins and build quick-tap combos, then buy 13 miners from a Chromebook to a
   Galactic Hashnet. Each unit costs 15% more, milestones and Mk upgrades double output, and the Shop
   marks the best value.
-- **Upgrades and power-ups.** 24 one-time upgrades, combo power-ups, and Offline Mining, which keeps
-  miners earning while the app is closed, for up to three days.
+- **Upgrades and power-ups.** 25 one-time upgrades, combo power-ups, and Offline Mining, which keeps
+  miners earning while the app is closed, from two minutes up to three days over 165 levels.
 - **Prestige.** After 15 billion coins mined, start a new run for points that add 5% production each
   and buy permanent perks.
 - **Daily play.** A daily reward streak, three quests a day, a daily challenge in one of your games,
@@ -20,17 +20,17 @@ No real cryptocurrency, no ads, no purchases.
 - **Casino.** 21 Million (blackjack), Crypto Slots (a classic 3×1 machine or a 5×3 video machine with
   five lines), Diamond Hands (video poker) and To the Moon (a crash game with a 2× or a riskier 5×
   rocket), played with tokens or practice chips.
-- **Arcade.** Eight games that pay coins for points, each with its own modes, speeds, records and
-  backdrop:
+- **Arcade.** Eight games that pay coins for points, each with its own modes, speed or difficulty,
+  records and backdrop:
 
   | Game | What it is |
   | --- | --- |
   | Block Chain | Falling blocks with gas spikes; Endless, Block Rush and Today's Pieces |
   | Merge Mining | Slide miners together up to the Lunar Base; Classic and a Daily Puzzle |
   | Hash Chain | A growing chain in four arenas, or a one-minute Coin Rush |
-  | Hash Smash | Brick breaking with power-ups and a whale boss every fifth level; start at any level reached |
+  | Hash Smash | Brick breaking with power-ups and a whale boss every fifth level; fixed levels (start at any reached) or random walls, on Easy, Regular or Hard |
   | Bubble Market | Bubble shooting in Waves, a two-minute Flash Market, or Today's Market |
-  | Scam Invaders | Shoot down formations of scam coins and the Bear boss; start at any wave reached |
+  | Scam Invaders | Shoot down scam coins and the Bear boss, with ships that take hits; fixed waves (start at any reached) or random ones, on Easy, Regular or Hard |
   | Pump and Dump | Tap coins as they list, on a 3×3, 4×4 or 5×5 board |
   | Token Swap | Match-three with 18 levels, a daily puzzle, random levels and Classic |
 
@@ -38,8 +38,10 @@ No real cryptocurrency, no ads, no purchases.
   Mythic, and Style looks for the coin and two kinds for every game (one look at each rank from 2 to
   48, many sooner with a game's achievement). Goals shows what to aim for next, and Statistics charts your
   income and keeps every record.
-- **Beyond the app.** Steps from Apple Health, an Apple Watch app, Home Screen and Lock Screen widgets,
-  a Live Activity, and a Siri shortcut for your balance.
+- **Steps.** Steps from Apple Health on iPhone and Apple Watch pay a coin each at first, more with
+  the step boosters, and a share of income once Proof of Stride is bought.
+- **Beyond the app.** An Apple Watch app, Home Screen and Lock Screen widgets, a Live Activity, and a
+  Siri shortcut for your balance.
 - **Help.** How to Play in Settings, plus a rules sheet in every game.
 
 ## Requirements
@@ -84,12 +86,17 @@ cd CryptoClickerKit
 swift test
 ```
 
-The suite covers the rules, edge cases and simulated players that check the game's pacing. Bots that
-check every arcade game pays about the same take a few minutes, so they run only when asked:
+The suite covers the rules and their edge cases, every arcade game played with random input and
+uneven frames, and saves from earlier versions. The balance simulations (players walking 0 to
+10,000 steps a day for three weeks, the casino's returns, and bots checking every arcade game pays
+about the same) take about 20 minutes, so they run only when asked:
 
 ```sh
-RUN_BALANCE_TESTS=1 swift test --filter ArcadeBalanceTests
+RUN_BALANCE_TESTS=1 swift test                            # everything
+RUN_BALANCE_TESTS=1 swift test --filter ArcadeBalanceTests # just the arcade bots
 ```
+
+The package builds anywhere Swift 6 runs, Linux included, since it uses no Apple frameworks.
 
 GitHub Actions runs the suite on pushes and pull requests (`.github/workflows/kit-tests.yml`).
 
