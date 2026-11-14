@@ -420,14 +420,16 @@ extension GameState {
         }
         stats.lifetimeSteps = stats.lifetimeSteps.addingCount(counted)
         // Pay for the days that are over, and today's steps too after the first day, at today's
-        // step value.
+        // step value; the first day's steps (paid the day after) at a coin each.
         let paysToday = !stepsPaidNextDay(today: today)
         var paid = 0
+        var coins = 0.0
         var paidDays: [String] = []
         for key in steps.counted.keys.sorted() where key < today || (key == today && paysToday) {
             let unpaid = steps.unpaid(key)
             guard unpaid > 0 else { continue }
             paid = paid.addingCount(unpaid)
+            coins += Double(unpaid) * (isFirstDay(key) ? Tuning.firstDayStepCoins : stepValue)
             paidDays.append(key)
             steps.credited[key] = steps.counted[key]
         }
@@ -440,7 +442,6 @@ extension GameState {
         }
         guard paid > 0 else { return StepCredit(steps: 0, coins: 0, counted: counted) }
         stats.stepsPaid = stats.stepsPaid.addingCount(paid)
-        let coins = Double(paid) * stepValue
         credit(coins, source: .steps)
         return StepCredit(steps: paid, coins: coins, counted: counted, days: paidDays)
     }
@@ -448,11 +449,17 @@ extension GameState {
     /// Whether today's steps wait for tomorrow: only on the game's first day.
     public func stepsPaidNextDay(today: String) -> Bool { isFirstDay(today) }
 
-    /// Coins today's steps will pay tomorrow, at today's step value (it grows with income). Only
-    /// the first day's steps wait; after that they're paid as they're synced.
+    /// Coins today's steps will pay tomorrow. Only the first day's steps wait, and they pay a coin
+    /// each; after that steps are paid as they're synced, at the step value.
     public func pendingStepCoins(today: String) -> Double {
         guard steps.isConnected, steps.todayKey == today else { return 0 }
-        return Double(steps.unpaid(today)) * stepValue
+        return Double(steps.unpaid(today)) * stepValue(today: today)
+    }
+
+    /// What a step walked today pays: a coin on the game's first day (paid the day after), the
+    /// step value from then on.
+    public func stepValue(today: String) -> Double {
+        stepsPaidNextDay(today: today) ? Tuning.firstDayStepCoins : stepValue
     }
 
     // MARK: Ledger

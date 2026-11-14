@@ -138,6 +138,7 @@ struct MarketTests {
         // Its price stays in the volatile tokens' wider range.
         #expect(TokenID.safeMoon.priceRange == Tuning.volatilePriceRange)
         #expect(TokenID.bitcoin.priceRange == Tuning.marketPriceRange)
+        #expect(TokenID.tether.priceRange == Tuning.stablePriceRange) // Not the moderate tokens' range.
         for hour in stride(from: 0.0, to: 24 * 30, by: 7) {
             let date = Date(timeIntervalSince1970: 1_790_000_000 + hour * 3_600)
             #expect(Tuning.volatilePriceRange.contains(Market.priceFactor(.safeMoon, at: date)))

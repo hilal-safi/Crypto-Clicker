@@ -121,6 +121,7 @@ struct MineView: View {
         .padding(.bottom, 12)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .overlayPreferenceValue(StepsCardAnchor.self) { StepInfoLayer(anchor: $0) }
         .animation(.smooth, value: game.areStepsUnlocked)
         .animation(.smooth, value: game.steps.isConnected)
         .animation(.smooth, value: game.stats.prestiges > 0)

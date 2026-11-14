@@ -16,6 +16,7 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     /// Steps counted on `stepsDay` (a `StepDay` key), as of the phone's last sync.
     public var stepsToday: Int
     public var stepsDay: String?
+    /// What a step walked today pays (a coin on the game's first day).
     public var stepValue: Double
     /// Today's steps wait for tomorrow (the game's first day). `nil` from phones that paid every
     /// step the next day.
@@ -186,7 +187,7 @@ extension GameState {
             stepsConnected: steps.isConnected,
             stepsToday: steps.todaySteps,
             stepsDay: steps.todayKey,
-            stepValue: stepValue,
+            stepValue: stepValue(today: StepDay.key(for: now)),
             stepsPaidNextDay: stepsPaidNextDay(today: StepDay.key(for: now)),
             appliedBatches: Array(recentWatchBatches.suffix(16)),
             appliedSequences: watchSequences,

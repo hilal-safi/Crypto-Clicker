@@ -96,6 +96,25 @@ struct StepTests {
         #expect(game.pendingStepCoins(today: today) == 0)
     }
 
+    @Test func theFirstDaysStepsPayACoinEachWhateverTheStepValue() {
+        var game = firstDay()
+        game.miners = [.desktop: 50] // 400 coins per second...
+        game.upgrades = [.stepBooster]
+        #expect(game.stepValue == 25) // ...0.05 × 400 × 1.25...
+        #expect(game.stepValue(today: today) == 1) // ...but the first day's steps pay a coin.
+        _ = game.creditSteps([StepDay(key: today, steps: 5_000)], today: today, at: t0)
+        #expect(game.pendingStepCoins(today: today) == 5_000)
+        // The next day: a coin each for the first day's steps, the step value for the second's.
+        #expect(game.stepValue(today: tomorrow) == 25)
+        let paid = game.creditSteps([StepDay(key: today, steps: 5_000), StepDay(key: tomorrow, steps: 300)],
+                                    today: tomorrow, at: at(86_400))
+        #expect(paid.coins == 5_000 + 300 * 25)
+        // Steps from the first day that sync late are still paid a coin each.
+        let late = game.creditSteps([StepDay(key: today, steps: 5_400), StepDay(key: tomorrow, steps: 300)],
+                                    today: tomorrow, at: at(90_000))
+        #expect(late.coins == 400)
+    }
+
     @Test func afterTheFirstDayStepsArePaidAsTheyreWalked() {
         var game = connected()
         #expect(!game.stepsPaidNextDay(today: today))
@@ -230,21 +249,32 @@ struct StepTests {
         var game = connected()
         #expect(game.stepValue == 1)
         game.upgrades = [.stepBooster]
-        #expect(game.stepValue == 2) // Boosters multiply the one-coin floor too (1.75, a whole 2).
+        #expect(game.stepValue == 1) // 1.25, a whole 1: the first booster helps once income does.
+        game.upgrades.insert(.upgradedStepBooster)
+        #expect(game.stepValue == 2) // 1.875, a whole 2: boosters multiply the one-coin floor too.
         game.miners = [.desktop: 50] // 400 coins per second.
-        #expect(game.stepValue == 350) // 0.5 × 400 × 1.75
+        game.upgrades = [.stepBooster]
+        #expect(game.stepValue == 25) // 0.05 × 400 × 1.25
+        game.upgrades = [.stepBooster, .upgradedStepBooster, .ultimateStepBooster]
+        #expect(game.stepValue == 75) // × 3.75: the first three boosters are small...
+        game.upgrades.formUnion([.gigaStepBooster, .megaStepBooster])
+        #expect(game.stepValue == 675) // ...the Giga and Mega Step Boosters (× 3 each) come later...
+        game.upgrades.insert(.proofOfStride)
+        #expect(game.stepValue == 4_050) // ...and Proof of Stride (× 6), the last, is the biggest.
         let credit = game.creditSteps([StepDay(key: today, steps: 1_000)], today: today, at: t0)
-        #expect(credit.coins == 350_000)
+        #expect(credit.coins == 4_050_000)
     }
 
     @Test func stepsAreWorthWholeCoins() {
         var game = connected()
         game.miners = minersEarning(2) // 2 coins per second (the reward floor is higher): never under a coin.
         #expect(game.stepValue == max(1, GameState.wholeCoins(Tuning.stepSeconds * game.rewardIncome)))
-        game.miners = minersEarning(21) // 21 coins per second: 10.5 coins a step, paid as 11.
-        #expect(game.stepValue == 11)
-        game.miners = [.gpuRig: 5] // 30 coins per second: 15 coins a step.
-        #expect(game.stepValue == 15)
+        game.miners = minersEarning(46) // 46 coins per second: 2.3 coins a step, paid as 2.
+        #expect(game.stepValue == 2)
+        game.miners = minersEarning(54) // 2.7, paid as 3.
+        #expect(game.stepValue == 3)
+        game.miners = [.desktop: 50] // 400 coins per second: 20 coins a step.
+        #expect(game.stepValue == 20)
     }
 
     @Test func playersWhoConnectedBeforeStayUnlocked() {

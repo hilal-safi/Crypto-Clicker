@@ -273,21 +273,24 @@ private struct MinerInfoBubble: View {
     }
 }
 
-/// A rounded box with an arrow on top pointing up at `arrowX`, for the Shop's pop-ups.
+/// A rounded box with an arrow pointing at `arrowX`: up from the top for the Shop's pop-ups, or
+/// down from the bottom (`pointsDown`) for one above what it explains.
 struct Callout: Shape {
     static let arrow = CGSize(width: 18, height: 9)
     var arrowX: CGFloat
     var radius: CGFloat = 16
+    var pointsDown = false
 
     func path(in rect: CGRect) -> Path {
-        let box = CGRect(x: rect.minX, y: rect.minY + Self.arrow.height,
+        let box = CGRect(x: rect.minX, y: rect.minY + (pointsDown ? 0 : Self.arrow.height),
                          width: rect.width, height: rect.height - Self.arrow.height)
         let half = Self.arrow.width / 2
         let x = min(max(rect.minX + arrowX, box.minX + radius + half), box.maxX - radius - half)
+        let base = pointsDown ? box.maxY - 1 : box.minY + 1
         var tip = Path()
-        tip.move(to: CGPoint(x: x - half, y: box.minY + 1))
-        tip.addLine(to: CGPoint(x: x, y: rect.minY))
-        tip.addLine(to: CGPoint(x: x + half, y: box.minY + 1))
+        tip.move(to: CGPoint(x: x - half, y: base))
+        tip.addLine(to: CGPoint(x: x, y: pointsDown ? rect.maxY : rect.minY))
+        tip.addLine(to: CGPoint(x: x + half, y: base))
         tip.closeSubpath()
         return Path(roundedRect: box, cornerRadius: radius, style: .continuous).union(tip)
     }

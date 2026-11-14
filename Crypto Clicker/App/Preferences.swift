@@ -26,6 +26,8 @@ enum Preferences {
     /// First-run tips the player has closed, comma-separated.
     static let dismissedTipsKey = "dismissedTips"
     /// Each action game's Speed option.
+    /// Hash Smash's and Scam Invaders' Speed, from before Difficulty took its place (read once, by
+    /// `migrate`).
     static let brickBreakerSpeedKey = "speed.brickBreaker"
     static let snakeSpeedKey = "speed.snake"
     /// Snake's arena for Classic games (a `SnakeGame.Arena` raw value).
@@ -67,6 +69,20 @@ enum Preferences {
 
     /// The player has seen a mini-game's How to Play (it opens by itself the first time).
     static func helpSeenKey(_ game: MiniGame) -> String { "helpSeen.\(game.rawValue)" }
+
+    /// Carries settings from earlier versions over to where this one keeps them, once: Hash
+    /// Smash's and Scam Invaders' Speed became Difficulty (Slow is Easy, Normal Regular, Fast Hard).
+    /// A difficulty already picked is left alone.
+    static func migrate(_ defaults: UserDefaults = .standard) {
+        let moves = [(old: brickBreakerSpeedKey, new: brickBreakerDifficultyKey), (old: invadersSpeedKey, new: invadersDifficultyKey)]
+        for move in moves {
+            guard let raw = defaults.string(forKey: move.old) else { continue }
+            if defaults.object(forKey: move.new) == nil, let speed = GameSpeed(rawValue: raw) {
+                defaults.set(ArcadeDifficulty(speed: speed).rawValue, forKey: move.new)
+            }
+            defaults.removeObject(forKey: move.old)
+        }
+    }
 }
 
 /// The haptic each tap on the coin plays.

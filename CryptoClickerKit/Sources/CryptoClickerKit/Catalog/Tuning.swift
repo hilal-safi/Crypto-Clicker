@@ -2,13 +2,14 @@ import Foundation
 
 /// Every balance number in one place. Tuned with simulated players who catch airdrops, claim the
 /// dailies, play some arcade and earn achievements (see `PacingTests`): someone who keeps playing
-/// buys a Data Center after a little over an hour; casual play (four ten-minute visits a day,
-/// walking 5,000 steps) reaches the Data Center in about two days, the first prestige point in
-/// under four, every mini-game and the tenth miner in about six and the first suggested prestige
-/// at about six and a half, then nine prestiges and about 5,000 points in three weeks, with perks
-/// arriving all the way. Walking 2,500 steps takes the first prestige to about seven days, 10,000
-/// to about six, and not walking to about seven and a half. Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here
-/// are whole numbers; only rates may be fractional.
+/// buys a Data Center after a little over an hour; casual play (four ten-minute visits a day)
+/// reaches the Data Center in about two days, the first prestige point in about four, every
+/// mini-game and the tenth miner in about seven and the first suggested prestige at about seven
+/// and a half, then eight or nine prestiges and a few thousand points in three weeks, with perks
+/// arriving all the way. Steps pay little in the first days and a lot late in a run: walking 5,000
+/// steps a day pays about a third of three weeks' coins (twice the prestige points of not
+/// walking), 10,000 steps about half. Prices in the catalogs are list prices:
+/// `scaledPrice` sets the pace. Coin amounts here are whole numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
     /// Each additional unit of a miner costs this much more than the previous one.
@@ -138,11 +139,15 @@ public enum Tuning {
     // MARK: Steps
     /// Lifetime taps needed before steps can be connected, so early coins come from playing.
     public static let stepsUnlockTaps = 2_000
-    /// One step is worth this many seconds of idle income (before step upgrades): enough that a
-    /// daily walk moves the first prestige by a day between 2,500 and 10,000 steps.
-    public static let stepSeconds = 0.5
-    /// A step is never worth less than this many coins (before step upgrades).
+    /// One step is worth this many seconds of idle income (before step boosters): little in the
+    /// first days, so walking can't race the opening, and much more with the later boosters...
+    public static let stepSeconds = 0.05
+    /// ...and never less than this many coins.
     public static let minimumStepValue = 1.0
+    /// The first day's steps, paid the day after, pay this many coins each, whatever the step
+    /// value and boosters, so they can't jump-start the second day (like the first day's quests at
+    /// half pay).
+    public static let firstDayStepCoins = 1.0
     /// Income used for step and mini-game rewards never drops below this, so they matter on day one.
     public static let minimumRewardIncome = 1.0
     /// Days of HealthKit history checked on each sync, including today.
@@ -291,6 +296,8 @@ public enum Tuning {
     public static let marketPriceRange: ClosedRange<Double> = 0.7...1.4
     /// Volatile tokens (SafeMoon, Shiba Inu, Dogecoin) range further: from half to 1.8 times.
     public static let volatilePriceRange: ClosedRange<Double> = 0.5...1.8
+    /// A stablecoin (Tether) holds within 2% of its peg.
+    public static let stablePriceRange: ClosedRange<Double> = 0.98...1.02
     /// How much a volatile token's price also jumps from one ten-minute stretch to the next, before
     /// its volatility.
     public static let volatileJitter = 0.3
@@ -347,7 +354,7 @@ public enum Tuning {
     /// Starting Hash Smash or Scam Invaders further in skips the easy levels, and later levels score
     /// more a minute (bigger clear bonuses and bosses), so a game started at level `n` pays
     /// `1 / (1 + slope × (n − 1))` of its points (balance tested). From level 1 it pays them all.
-    public static let brickBreakerStartPaySlope = 0.3
+    public static let brickBreakerStartPaySlope = 0.45
     public static let invadersStartPaySlope = 0.1
 
     /// The share of its points a game started at `level` pays, for a game's slope.

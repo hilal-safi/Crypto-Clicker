@@ -8,6 +8,16 @@ public enum ArcadeDifficulty: String, CaseIterable, Codable, Sendable, Identifia
 
     public var id: String { rawValue }
 
+    /// The difficulty that plays like an earlier version's Speed setting: Slow is Easy, Normal
+    /// Regular and Fast Hard (ships always died in one hit, and Hard keeps that).
+    public init(speed: GameSpeed) {
+        switch speed {
+        case .slow: self = .easy
+        case .normal: self = .regular
+        case .fast: self = .hard
+        }
+    }
+
     public var name: String {
         switch self {
         case .easy: localized("Easy")

@@ -4,7 +4,8 @@ import Testing
 
 /// The late game with every multiplier at once, which the pacing tests (a few weeks of casual play)
 /// never reach: every tier at a thousand with every Mk, full Legacy, every upgrade, every achievement
-/// star with Compound Interest, every perk, a million prestige points and a Bull Run.
+/// star with Compound Interest, every perk, a million prestige points (and the ceiling of them) and
+/// a Bull Run.
 @Suite("Late game")
 struct LateGameTests {
     func maxedGame() -> GameState {
@@ -37,6 +38,30 @@ struct LateGameTests {
             #expect(price.isFinite && price == price.rounded(), "\(miner)")
         }
         #expect(game.offlineMiningPrice == nil) // Bought to the end.
+    }
+
+    /// The same at the very top: as many prestige points as a game can hold. Prices, income, the
+    /// next prestige and the Watch's numbers stay finite, and points never pass the ceiling (which
+    /// keeps them inside a 32-bit Int on Apple Watch).
+    @Test func theCeilingOfPrestigePointsHolds() throws {
+        var game = maxedGame()
+        game.prestigePoints = Tuning.maxPrestigePoints
+        #expect(Tuning.maxPrestigePoints <= Int(Int32.max))
+        for value in [game.baseIdleIncome, game.idleIncome(at: t0), game.tapValue(at: t0), game.prestigeBonus, game.prestigeSpeedUp] {
+            #expect(value.isFinite && value > 0)
+        }
+        #expect(game.prestigePotential <= Tuning.maxPrestigePoints)
+        #expect(game.claimablePrestigePoints == 0) // Nothing more to claim at the ceiling.
+        // Earning more points stops at the ceiling.
+        #expect(GameState.addingPoints(Tuning.maxPrestigePoints - 5, 10) == Tuning.maxPrestigePoints)
+        game.debugAddPrestigePoints(1_000)
+        #expect(game.prestigePoints == Tuning.maxPrestigePoints)
+        // The Watch's numbers stay finite.
+        let snapshot = game.watchSnapshot(at: t0)
+        #expect(snapshot.income.isFinite && snapshot.tapValue.isFinite && snapshot.stepValue.isFinite && snapshot.coins.isFinite)
+        // And it saves and loads at the ceiling.
+        let saved = try GameCoding.decoder().decode(GameState.self, from: GameCoding.encoder().encode(game))
+        #expect(saved.prestigePoints == Tuning.maxPrestigePoints)
     }
 
     @Test func aMaxedGameStillBuysAndSaves() throws {
