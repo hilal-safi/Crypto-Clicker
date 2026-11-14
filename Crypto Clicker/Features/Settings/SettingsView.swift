@@ -205,7 +205,7 @@ struct SettingsView: View {
                                value: "\(CoinFormat.grouped(game.tapsUntilSteps)) to go")
             } else if game.steps.isConnected {
                 let today = store.today
-                LabeledContent("Each step pays", value: Self.coins(game.stepValue))
+                LabeledContent("Each step pays", value: Self.coins(game.stepValue(today: today)))
                 if game.steps.todayKey == today {
                     LabeledContent("Today", value: "\(CoinFormat.grouped(game.steps.todaySteps)) steps")
                     if game.stepsPaidNextDay(today: today) {
@@ -235,7 +235,7 @@ struct SettingsView: View {
                 }
             }
         } header: {
-            SettingsHeader("Apple Health", info: "Steps are paid as you walk, each time the game syncs with Apple Health, and count toward quests and achievements right away. Your first day's steps are the exception: they're paid the next day, at your step value then, so walking can't skip the opening. Steps from your iPhone and Apple Watch are combined by Apple Health, and each one is paid once.\n\nIf no steps appear, allow access in the Health app under Sharing › Apps › Crypto Clicker.")
+            SettingsHeader("Apple Health", info: "Steps are paid as you walk, each time the game syncs with Apple Health, and count toward quests and achievements right away. Your first day's steps are the exception: they're paid the next day, a coin each, so walking can't skip the opening. Steps from your iPhone and Apple Watch are combined by Apple Health, and each one is paid once.\n\nIf no steps appear, allow access in the Health app under Sharing › Apps › Crypto Clicker.")
         } footer: {
             SettingsNote(game.stepsPaidNextDay(today: store.today)
                          ? "Today's steps are paid tomorrow; after that, as you walk."

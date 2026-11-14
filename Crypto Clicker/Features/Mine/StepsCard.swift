@@ -95,7 +95,8 @@ private struct StepsTodayCard: View {
         let today = StepDay.key(for: .now)
         let isToday = game.steps.todayKey == today
         let pending = game.pendingStepCoins(today: today)
-        let perStep = "\(CoinFormat.short(game.stepValue)) coin\(game.stepValue == 1 ? "" : "s")"
+        let value = game.stepValue(today: today)
+        let perStep = "\(CoinFormat.short(value)) coin\(value == 1 ? "" : "s")"
         HStack(spacing: 10) {
             Image(systemName: "figure.walk")
                 .font(.headline.weight(.semibold))
@@ -141,6 +142,131 @@ private struct StepsTodayCard: View {
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil)
         .glassEffect(.regular.tint(Theme.steps.opacity(0.18)), in: .rect(cornerRadius: 18))
+        // A tap (away from the sync button) explains what a step pays.
+        .contentShape(.rect)
+        .onTapGesture {
+            withAnimation(.snappy(duration: 0.2)) { store.showsStepInfo.toggle() }
+        }
+        .accessibilityAction(named: "Coins per step") { store.showsStepInfo = true }
+        .anchorPreference(key: StepsCardAnchor.self, value: .bounds) { $0 }
+        .onDisappear { store.showsStepInfo = false }
+    }
+}
+
+/// Where the steps card is on the Mine page, for its pop-up to point at.
+struct StepsCardAnchor: PreferenceKey {
+    static let defaultValue: Anchor<CGRect>? = nil
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = nextValue() ?? value
+    }
+}
+
+/// The coins-per-step pop-up, drawn over the Mine page just above the steps card and pointing
+/// down at it, like the Shop's info pop-ups: a tap on it or anywhere else puts it away.
+struct StepInfoLayer: View {
+    let anchor: Anchor<CGRect>?
+    @Environment(GameStore.self) private var store
+
+    var body: some View {
+        GeometryReader { proxy in
+            if store.showsStepInfo, let anchor {
+                let card = proxy[anchor]
+                let width = min(360, proxy.size.width - 32)
+                let left = min(max(16, card.midX - width / 2), max(16, proxy.size.width - width - 16))
+                ZStack(alignment: .topLeading) {
+                    Color.clear
+                        .contentShape(.rect)
+                        .onTapGesture(perform: close)
+                        .accessibilityHidden(true)
+                    // Its bottom just above the card, however tall the text makes it.
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        StepInfoBubble(arrowX: card.midX - left, close: close)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(width: width, height: max(0, card.minY - 4), alignment: .bottom)
+                    .offset(x: left)
+                    .transition(.scale(scale: 0.85, anchor: UnitPoint(x: (card.midX - left) / width, y: 1))
+                        .combined(with: .opacity))
+                }
+            }
+        }
+    }
+
+    private func close() {
+        withAnimation(.snappy(duration: 0.2)) { store.showsStepInfo = false }
+    }
+}
+
+/// What a step pays and why: the share of income, the step boosters' multiplier and the next
+/// booster to buy, and on the game's first day, the coin a step its steps pay the day after.
+private struct StepInfoBubble: View {
+    let arrowX: CGFloat
+    let close: () -> Void
+    @Environment(GameStore.self) private var store
+
+    var body: some View {
+        let game = store.game
+        let today = StepDay.key(for: .now)
+        let firstDay = game.stepsPaidNextDay(today: today)
+        let value = game.stepValue
+        let boost = game.stepMultiplier
+        let share = Int((Tuning.stepSeconds * 100).rounded())
+        let next = UpgradeID.allCases.first { $0.category == .steps && !game.upgrades.contains($0) }
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: "figure.walk")
+                    .font(.headline)
+                    .foregroundStyle(Theme.steps)
+                    .accessibilityHidden(true)
+                Text("Coins per step")
+                    .font(.headline)
+                Spacer(minLength: 0)
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.subtext)
+                    .accessibilityHidden(true)
+            }
+            if firstDay {
+                Text("Today's steps pay 1 coin each, tomorrow. From then on, steps pay \(CoinFormat.short(value)) \(value == 1 ? "coin" : "coins") each as you walk.")
+                    .font(.subheadline.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Each step pays \(CoinFormat.short(value)) \(value == 1 ? "coin" : "coins")")
+                    .font(.title3.bold().monospacedDigit())
+                    .foregroundStyle(Theme.steps)
+            }
+            Text(boost > 1
+                 ? "A step is worth \(share)% of a second's income (\(CoinFormat.rate(game.rewardIncome)) a second), at least a coin, \(CoinFormat.multiplier(boost)) from step boosters."
+                 : "A step is worth \(share)% of a second's income (\(CoinFormat.rate(game.rewardIncome)) a second), at least a coin.")
+                .font(.footnote)
+                .fixedSize(horizontal: false, vertical: true)
+            if let next, case .steps(let factor) = next.effect {
+                Text("Next: \(next.name), \(CoinFormat.multiplier(factor)), for \(CoinFormat.short(next.cost)) coins in the Shop.")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Every step booster is bought.")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.subtext)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 12 + Callout.arrow.height)
+        .background {
+            Callout(arrowX: arrowX, pointsDown: true)
+                .fill(.regularMaterial)
+                .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
+        }
+        .overlay { Callout(arrowX: arrowX, pointsDown: true).stroke(.primary.opacity(0.12), lineWidth: 1) }
+        .contentShape(Callout(arrowX: arrowX, pointsDown: true))
+        .onTapGesture(perform: close)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isModal)
+        .accessibilityAction(named: "Close", close)
     }
 }
 

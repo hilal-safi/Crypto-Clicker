@@ -82,6 +82,11 @@ struct InvadersTests {
         #expect(state.payUnfinishedRun()?.payout.coins == state.arcadeReward(.invaders, score: 1_200))
     }
 
+    @Test func anEarlierSpeedSettingBecomesTheMatchingDifficulty() {
+        #expect(GameSpeed.allCases.map(ArcadeDifficulty.init(speed:)) == [.easy, .regular, .hard])
+        for speed in GameSpeed.allCases { #expect(ArcadeDifficulty(speed: speed).speed == speed) }
+    }
+
     @Test func everyoneFiresFivePercentMoreOften() {
         let game = Game(seed: 1)
         #expect(abs(game.enemyFireInterval - 1.15 / 1.05) < 1e-9)

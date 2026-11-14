@@ -527,7 +527,8 @@ extension GameState {
     /// Boosts are left out so rewards stay predictable, and a floor keeps them worthwhile on day one.
     public var rewardIncome: Double { max(baseIdleIncome, Tuning.minimumRewardIncome) }
 
-    /// Coins paid per step: a slice of idle income times step upgrades, in whole coins, never under one.
+    /// Coins paid per step: a slice of idle income times the step boosters, in whole coins, never
+    /// under one.
     public var stepValue: Double {
         Self.wholeCoins(max(Tuning.minimumStepValue, Tuning.stepSeconds * rewardIncome) * stepMultiplier, minimum: 1)
     }

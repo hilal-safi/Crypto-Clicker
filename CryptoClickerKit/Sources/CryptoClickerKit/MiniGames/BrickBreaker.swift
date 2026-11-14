@@ -5,16 +5,15 @@ import Foundation
 ///
 /// Classic walls are fixed: level 1 is a plain wall, and from level 2 each level has its own shape
 /// (a full wall, a pyramid, stripes, a checkerboard, a diamond, scattered bricks, a frame or
-/// columns, in turn) and its own armored, explosive and bonus bricks, the same every time it's
-/// played; armored bricks (two hits, three from level 6) make up for the gaps, so every classic
-/// wall takes as many hits as a full one. Random walls are made up on the spot for every level (see
-/// `generatedCells`), a random mix from the first level: a fifth to two fifths armored, one to a
-/// few bonus bricks, the odd explosive one, and plain bricks for the rest, so no two games look
-/// alike. The ball's speed is the difficulty's (`ArcadeDifficulty`), which also sets the paddle's
-/// width. Explosive bricks break the bricks around them, and bonus bricks drop a power-up to catch
-/// with the paddle: Multi-ball, Wide Paddle, Slow Ball or Laser. Every fifth level is a boss: a big
-/// block that slides from side to side, takes many hits, and drops debris that shrinks the paddle
-/// for a while if it lands on it.
+/// columns, in turn) and its own bricks, the same every time it's played. Random walls are made up
+/// on the spot for every level (see `generatedCells`), so no two games look alike. Either way a wall
+/// is a mix (see `layOutWall`): up to six bonus bricks and four explosive ones, armor on up to 45% of
+/// a classic wall (a fifth to two fifths of a random one) that gets stronger as the levels go on, and
+/// plain bricks for the rest. The ball's speed is the difficulty's (`ArcadeDifficulty`), which also
+/// sets the paddle's width. Explosive bricks break the bricks around them, and bonus bricks drop a
+/// power-up to catch with the paddle: Multi-ball, Wide Paddle, Slow Ball or Laser. Every fifth level
+/// is a boss: a big block that slides from side to side, takes many hits, and drops debris that
+/// shrinks the paddle for a while if it lands on it.
 ///
 /// Every ball moves in small sub-steps (never more than half its radius), as do the falling
 /// power-ups, laser bolts and debris, so nothing passes through anything on a slow frame. The
@@ -269,6 +268,10 @@ public struct BrickBreakerGame: Sendable {
             let step = min(remaining, maxStep)
             remaining -= step
             advance(by: step)
+            // A paddle that just grew (Wide Paddle) at the edge stays inside the field, even with
+            // the thumb resting.
+            let half = currentPaddleWidth / 2
+            paddleX = min(max(paddleX, half), Self.width - half)
         }
     }
 
@@ -602,9 +605,8 @@ public struct BrickBreakerGame: Sendable {
         return rows * columns + extra * (level >= 6 ? 2 : 1)
     }
 
-    /// Fills the wall for the current level: a classic shape or a made-up wall, with enough armored
-    /// bricks to take about as many hits as a full wall, and a few explosive and bonus bricks among
-    /// the rest. Every fifth level brings a boss behind a low wall. A classic level is laid out the
+    /// Fills the wall for the current level: a classic shape or a made-up wall (see `layOutWall`).
+    /// Every fifth level brings a boss behind a low wall. A classic level is laid out the
     /// same every time (from `classicGenerator`); a random one from the game's own generator.
     private mutating func layOutLevel() {
         boss = nil
@@ -622,54 +624,100 @@ public struct BrickBreakerGame: Sendable {
         SeededGenerator(seed: 0xB71C_5A3D &+ UInt64(max(1, level)) &* 0x9E37_79B9_7F4A_7C15)
     }
 
+    /// The most bonus and explosive bricks a wall has, however far in: enough to keep power-ups and
+    /// blasts coming, never so many that they crowd out the rest.
+    static let maxBonusBricks = 6
+    static let maxExplosiveBricks = 4
+
+    /// The most of a wall that's armored: classic walls up to 45%, made-up ones a fifth to two
+    /// fifths, so plain bricks always make up a good part of it.
+    static let classicArmorShare = 0.45
+    static let generatedArmorShare = 0.18...0.4
+
+    /// Hits an armored brick on `level` can take: two at first, up to three from level 3, four from
+    /// level 6 and five from level 12, so later walls get tougher without being all armor.
+    static func armorStrength(level: Int) -> ClosedRange<Int> {
+        switch level {
+        case ..<3: 2...2
+        case ..<6: 2...3
+        case ..<12: 2...4
+        default: 3...5
+        }
+    }
+
+    /// Lays out a wall. The specials come first (bonus and explosive bricks, capped), then armor up to
+    /// its share of the wall, and the armor's strength makes up the wall's hits: a classic wall aims
+    /// at a full wall's hits (`fullWallHits`), a made-up one at four fifths to all of them. The rest
+    /// are plain bricks. A classic wall's choices come from its level's fixed generator, so it's the
+    /// same every time; a made-up wall's are random.
     private mutating func layOutWall<R: RandomNumberGenerator>(using rng: inout R) {
         let isGenerated = levelStyle == .generated
         let rows = isGenerated ? Self.generatedRows(level: level, using: &rng) : Self.rows(for: level)
-        // Made-up walls vary their specials too: one to a few bonus bricks from the very first level.
-        let wobble = isGenerated ? Int.random(in: -1...1, using: &rng) : 0
-        let bonusTarget = isGenerated ? Int.random(in: 1...max(3, 2 + level / 2), using: &rng)
-            : level == 1 ? 0 : 2 + level / 3
-        // Made-up walls are denser, so an explosion reaches more bricks: they get one explosive fewer.
-        let explosiveTarget = level == 1 && !isGenerated ? 0 : max(0, (isGenerated ? 0 : 1) + level / 2 - wobble)
-        let armorHits = level >= 6 ? 3 : 2
+        let strength = Self.armorStrength(level: level)
+        let bonusWanted: Int
+        let explosiveWanted: Int
+        let armorShare: Double
+        let target: Double
         let cells: [(row: Int, column: Int)]
-        let armoredCount: Int
         if isGenerated {
-            // A made-up wall is a random mix: a fifth to two fifths of it armored (from the first
-            // level), the rest plain bricks and its specials, with enough bricks for the wall to take
-            // four fifths to all of a full wall's hits. From level 6 armor takes two or three hits.
-            let share = Double.random(in: 0.18...0.4, using: &rng)
-            let armorAverage = level >= 6 ? 2.5 : 2
-            let target = Double(Self.fullWallHits(level: level)) * Double.random(in: 0.8...1, using: &rng)
+            // One to a few bonus bricks from the first level, and the odd explosive one.
+            bonusWanted = Int.random(in: 1...min(Self.maxBonusBricks, max(3, 2 + level / 2)), using: &rng)
+            explosiveWanted = min(Self.maxExplosiveBricks, max(0, level / 2 - Int.random(in: -1...1, using: &rng)))
+            armorShare = Double.random(in: Self.generatedArmorShare, using: &rng)
+            target = Double(Self.fullWallHits(level: level)) * Double.random(in: 0.8...1, using: &rng)
+            // Enough bricks for the hits at the armor's average strength, and at least two fifths of
+            // the grid.
+            let averageStrength = Double(strength.lowerBound + strength.upperBound) / 2
             let grid = rows * Self.columns
-            let wanted = Int((target / (1 + share * (armorAverage - 1))).rounded())
-            cells = Self.generatedCells(rows: rows, minimum: min(grid, max(grid * 2 / 5, wanted, bonusTarget + explosiveTarget + 2)),
-                                        using: &rng)
-            armoredCount = min(max(0, cells.count - bonusTarget - explosiveTarget),
-                               max(2, Int((share * Double(cells.count)).rounded())))
+            let wanted = Int((target / (1 + armorShare * (averageStrength - 1))).rounded())
+            cells = Self.generatedCells(rows: rows, minimum: min(grid, max(grid * 2 / 5, wanted)), using: &rng)
         } else {
-            // Classic walls take a full wall's hits: armor makes up for the bricks a shape leaves
-            // out. (Level 1 is a plain wall, with no armor.)
+            // Level 1 is a plain wall; after that a few bonus and explosive bricks, a few more as the
+            // levels go on.
+            bonusWanted = level == 1 ? 0 : min(Self.maxBonusBricks, 2 + level / 3)
+            explosiveWanted = level == 1 ? 0 : min(Self.maxExplosiveBricks, 1 + level / 2)
+            armorShare = level == 1 ? 0 : Self.classicArmorShare
+            target = Double(Self.fullWallHits(level: level))
             cells = Self.cells(level: level, rows: rows, using: &rng)
-            let extraHits = level == 1 ? 0 : max(0, Self.fullWallHits(level: level) - cells.count)
-            armoredCount = min(cells.count, (extraHits + armorHits - 2) / (armorHits - 1))
         }
+        // Specials take at most a quarter of the wall between them, bonus bricks first but leaving
+        // room for an explosive one or two.
+        let specialRoom = cells.count / 4
+        let bonusCount = min(bonusWanted, max(1, (specialRoom * 2 + 2) / 3))
+        let explosiveCount = max(0, min(explosiveWanted, specialRoom - bonusCount))
+        // Armor: as much as the hits need, within its share, and at least two on made-up walls.
+        let extraHits = max(0, target - Double(cells.count))
+        let maxArmored = min(cells.count - bonusCount - explosiveCount, Int(armorShare * Double(cells.count)))
+        let neededArmored = Int((extraHits / Double(strength.upperBound - 1)).rounded(.up))
+        let armoredCount = min(maxArmored, max(isGenerated ? 2 : 0, neededArmored))
         let order = cells.indices.shuffled(using: &rng)
-        let armored = Set(order.prefix(armoredCount))
-        let rest = order.dropFirst(armoredCount)
-        let bonusCount = min(rest.count, bonusTarget)
-        let explosiveCount = min(rest.count - bonusCount, explosiveTarget)
-        let bonus = Set(rest.prefix(bonusCount))
-        let explosive = Set(rest.dropFirst(bonusCount).prefix(explosiveCount))
+        let armored = Array(order.prefix(armoredCount))
+        let bonus = Set(order.dropFirst(armoredCount).prefix(bonusCount))
+        let explosive = Set(order.dropFirst(armoredCount + bonusCount).prefix(explosiveCount))
+        // Each armored brick's strength: classic walls spread the extra hits evenly; made-up ones
+        // pick at random within the level's range.
+        var hitsFor: [Int: Int] = [:]
+        if !armored.isEmpty {
+            let perBrick = extraHits / Double(armored.count)
+            let low = min(strength.upperBound, max(strength.lowerBound, 1 + Int(perBrick)))
+            let spare = Int(extraHits) - (low - 1) * armored.count
+            for (rank, index) in armored.enumerated() {
+                if isGenerated {
+                    hitsFor[index] = Int.random(in: strength, using: &rng)
+                } else {
+                    hitsFor[index] = min(strength.upperBound, low + (rank < spare ? 1 : 0))
+                }
+            }
+        }
         let width = Self.brickWidth
         bricks = []
         for (index, cell) in cells.enumerated() {
             let frame = Box(minX: Self.sideMargin + Double(cell.column) * (width + Self.brickGap),
                             minY: Self.brickTop + Double(cell.row) * (Self.brickHeight + Self.brickGap),
                             width: width, height: Self.brickHeight)
-            let kind: BrickKind = armored.contains(index) ? .armored : bonus.contains(index) ? .bonus
+            let kind: BrickKind = hitsFor[index] != nil ? .armored : bonus.contains(index) ? .bonus
                 : explosive.contains(index) ? .explosive : .normal
-            let hits = kind != .armored ? 1 : isGenerated && armorHits == 3 ? Int.random(in: 2...3, using: &rng) : armorHits
+            let hits = hitsFor[index] ?? 1
             bricks.append(Brick(id: newID(), row: cell.row, column: cell.column, frame: frame, maxHits: hits, hitsLeft: hits, kind: kind))
         }
     }

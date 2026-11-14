@@ -690,6 +690,26 @@
     "A stablecoin: its price barely moves, news and all. A safe place to keep tokens, with nothing to gain from trading." : {
 
     },
+    "A step is worth %lld%% of a second's income (%@ a second), at least a coin, %@ from step boosters." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A step is worth %1$lld%% of a second's income (%2$@ a second), at least a coin, %3$@ from step boosters."
+          }
+        }
+      }
+    },
+    "A step is worth %lld%% of a second's income (%@ a second), at least a coin." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A step is worth %1$lld%% of a second's income (%2$@ a second), at least a coin."
+          }
+        }
+      }
+    },
     "A win also pays %@ coins" : {
 
     },
@@ -1123,6 +1143,9 @@
     "Coins per second from your miners, saved every minute while the game is open. Older points keep the best of each stretch of time, and dips are prestiges." : {
 
     },
+    "Coins per step" : {
+
+    },
     "Coins, tokens and miners" : {
 
     },
@@ -1274,6 +1297,16 @@
     "Each step pays" : {
 
     },
+    "Each step pays %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Each step pays %1$@ %2$@"
+          }
+        }
+      }
+    },
     "Earlier %@s" : {
 
     },
@@ -1336,6 +1369,9 @@
 
     },
     "Every star earned." : {
+
+    },
+    "Every step booster is bought." : {
 
     },
     "Every step pays %@ as you walk" : {
@@ -1865,6 +1901,16 @@
     "Next star at %@" : {
 
     },
+    "Next: %@, %@, for %@ coins in the Shop." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Next: %1$@, %2$@, for %3$@ coins in the Shop."
+          }
+        }
+      }
+    },
     "Next: Level %lld, %@. %@ in %lld moves." : {
       "localizations" : {
         "en" : {
@@ -2024,6 +2070,9 @@
 
     },
     "Per second" : {
+
+    },
+    "Per step" : {
 
     },
     "Per tap" : {
@@ -2476,7 +2525,7 @@
     "Steps already rewarded" : {
 
     },
-    "Steps are paid as you walk, each time the game syncs with Apple Health, and count toward quests and achievements right away. Your first day's steps are the exception: they're paid the next day, at your step value then, so walking can't skip the opening. Steps from your iPhone and Apple Watch are combined by Apple Health, and each one is paid once.\n\nIf no steps appear, allow access in the Health app under Sharing › Apps › Crypto Clicker." : {
+    "Steps are paid as you walk, each time the game syncs with Apple Health, and count toward quests and achievements right away. Your first day's steps are the exception: they're paid the next day, a coin each, so walking can't skip the opening. Steps from your iPhone and Apple Watch are combined by Apple Health, and each one is paid once.\n\nIf no steps appear, allow access in the Health app under Sharing › Apps › Crypto Clicker." : {
 
     },
     "Steps are paid as you walk." : {
@@ -2688,6 +2737,16 @@
     },
     "Today's steps are paid tomorrow; after that, as you walk." : {
 
+    },
+    "Today's steps pay 1 coin each, tomorrow. From then on, steps pay %@ %@ each as you walk." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Today's steps pay 1 coin each, tomorrow. From then on, steps pay %1$@ %2$@ each as you walk."
+          }
+        }
+      }
     },
     "Token Swap" : {
 

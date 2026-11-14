@@ -80,13 +80,14 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
     /// (see `Tuning.shopPrice`), then this miner's own adjustment. Mk upgrades follow it.
     public var baseCost: Double { Tuning.shopPrice(listCost, adjustedBy: priceAdjustment) }
 
-    /// A miner tuned on its own: the first two a little cheaper so the opening flows, the Server
-    /// and the Data Center dearer so the second day doesn't race ahead.
+    /// A miner tuned on its own: the first two a little cheaper so the opening flows, the GPU Rig,
+    /// the Server and the Data Center dearer so the first two days don't race ahead.
     public var priceAdjustment: Double {
         switch self {
         case .chromebook: 0.9
         case .desktop: 0.95
-        case .server: 1.2
+        case .gpuRig: 1.08
+        case .server: 1.2 * 1.16
         case .dataCenter: 1.1
         default: 1
         }

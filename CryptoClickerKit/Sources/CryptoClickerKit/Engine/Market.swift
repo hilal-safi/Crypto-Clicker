@@ -191,9 +191,14 @@ extension TokenID {
         }
     }
 
-    /// Where the price stays, as a share of the list price: wider for volatile tokens.
+    /// Where the price stays, as a share of the list price: wider for volatile tokens, and within a
+    /// couple of percent for a stablecoin.
     public var priceRange: ClosedRange<Double> {
-        volatilityLevel == .volatile ? Tuning.volatilePriceRange : Tuning.marketPriceRange
+        switch volatilityLevel {
+        case .stable: Tuning.stablePriceRange
+        case .moderate: Tuning.marketPriceRange
+        case .volatile: Tuning.volatilePriceRange
+        }
     }
 
     /// How hard news moves the price: a stablecoin holds its peg through almost anything.

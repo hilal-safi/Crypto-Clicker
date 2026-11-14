@@ -1160,6 +1160,9 @@
     "Get closer to 21 than the dealer, betting tokens. Wins pay a coin bonus that grows with your bet." : {
 
     },
+    "Giga Step Booster" : {
+
+    },
     "Glass" : {
 
     },
@@ -1881,6 +1884,9 @@
     "Production %@ as fast afterwards" : {
 
     },
+    "Proof of Stride" : {
+
+    },
     "Propeller" : {
 
     },
@@ -2344,7 +2350,7 @@
     "Stay near the middle early and keep the edges for a long chain." : {
 
     },
-    "Steel bands show the hits left: two from level 2, three from level 6." : {
+    "Steel bands show the hits left: two or three early on, up to four from level 6 and five from level 12." : {
 
     },
     "Steer the chain to mine coins: every coin adds a block, so keep it growing as long as you can. Play Classic in one of four arenas, or Coin Rush: one minute with three coins out at once." : {

@@ -118,7 +118,7 @@ struct PurchaseNoteView: View {
                 }
                 Spacer(minLength: 0)
             }
-            if note.addedIncome > 0 || note.addedTap > 0 {
+            if note.addedIncome > 0 || note.addedTap > 0 || note.addedStep > 0 {
                 HStack(spacing: 8) {
                     if note.addedIncome > 0 {
                         GainTile(title: "Per second", added: CoinFormat.rate(note.addedIncome),
@@ -127,6 +127,10 @@ struct PurchaseNoteView: View {
                     if note.addedTap > 0 {
                         GainTile(title: "Per tap", added: CoinFormat.short(note.addedTap),
                                  total: CoinFormat.short(note.tapNow))
+                    }
+                    if note.addedStep > 0 {
+                        GainTile(title: "Per step", added: CoinFormat.short(note.addedStep),
+                                 total: CoinFormat.short(note.stepNow))
                     }
                 }
             }
