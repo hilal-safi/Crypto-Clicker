@@ -42,7 +42,10 @@ import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Flag
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Flare
+import androidx.compose.material.icons.rounded.FlightTakeoff
+import androidx.compose.material.icons.rounded.Gavel
 import androidx.compose.material.icons.rounded.FlashOff
 import androidx.compose.material.icons.rounded.Gesture
 import androidx.compose.material.icons.rounded.GpsFixed
@@ -97,6 +100,7 @@ import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.Stars
 import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Timeline
@@ -276,6 +280,17 @@ object Symbols {
         "arrow.left.arrow.right.circle" to Icons.Rounded.SwapHoriz,
         "circle.hexagongrid.circle" to Icons.Rounded.Widgets,
         "cpu" to Icons.Rounded.Memory,
+        "dollarsign.arrow.circlepath" to Icons.Rounded.Casino,
+        "square.stack.3d.down.forward" to Icons.Rounded.Layers,
+        "arrow.turn.up.right" to Icons.Rounded.NorthEast,
+        "arrow.up.right" to Icons.Rounded.NorthEast,
+        "square.grid.3x2" to Icons.Rounded.GridView,
+        "airplane.departure" to Icons.Rounded.FlightTakeoff,
+        "hammer" to Icons.Rounded.Gavel,
+        "suit.diamond" to Icons.Rounded.Style,
+        "suit.heart" to Icons.Rounded.Favorite,
+        "suit.club" to Icons.Rounded.Style,
+        "scope" to Icons.Rounded.GpsFixed,
         "arrow.turn.down.right" to Icons.Rounded.ChevronRight,
         "newspaper" to Icons.Rounded.Description,
         )

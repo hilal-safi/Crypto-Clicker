@@ -2,6 +2,25 @@
   "bought": true,
   "error": "text",
   "game": {
+    "achievements": {
+      "bonus": "text",
+      "cards": [
+        {
+          "detail": "text",
+          "emoji": "text",
+          "fraction": 1.5,
+          "id": "text",
+          "isMythic": true,
+          "name": "text",
+          "progressText": "text",
+          "tierName": "text",
+          "tiers": 1
+        }
+      ],
+      "fraction": 1.5,
+      "nextFinish": "text",
+      "title": "text"
+    },
     "airdrop": {
       "accessibility": "text",
       "id": "text",
@@ -11,9 +30,71 @@
       "subtitle": "text",
       "title": "text"
     },
+    "daily": {
+      "challenge": {
+        "canPlay": true,
+        "color": "text",
+        "fraction": 1.5,
+        "game": "text",
+        "goal": "text",
+        "icon": "text",
+        "isComplete": true,
+        "progressText": "text",
+        "reward": "text",
+        "textColorDark": "text",
+        "title": "text",
+        "week": "text"
+      },
+      "footnote": "text",
+      "quests": [
+        {
+          "fraction": 1.5,
+          "id": "text",
+          "isClaimed": true,
+          "isComplete": true,
+          "progressText": "text",
+          "reward": "text",
+          "rewardSymbol": "text",
+          "symbol": "text",
+          "title": "text"
+        }
+      ],
+      "questsEmpty": "text",
+      "resetsAt": 1.5,
+      "reward": {
+        "claimDetail": "text",
+        "claimTitle": "text",
+        "days": [
+          {
+            "day": 1,
+            "isClaimed": true,
+            "isToday": true,
+            "symbol": "text"
+          }
+        ],
+        "isReady": true,
+        "note": "text",
+        "streak": "text",
+        "waitWord": "text"
+      }
+    },
     "dailyBadge": 1,
     "debugTools": true,
     "errorMessage": "text",
+    "goals": {
+      "goals": [
+        {
+          "color": "text",
+          "detail": "text",
+          "id": "text",
+          "progress": 1.5,
+          "progressText": "text",
+          "ready": true,
+          "symbol": "text",
+          "title": "text"
+        }
+      ]
+    },
     "income": {
       "bullRun": "text",
       "headline": "text",

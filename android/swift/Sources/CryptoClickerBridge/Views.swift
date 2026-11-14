@@ -70,6 +70,9 @@ struct GameView: Encodable {
     let shop: ShopView?
     let tokens: TokensView?
     let perks: PerksView?
+    let goals: GoalsView?
+    let daily: DailyView?
+    let achievements: AchievementsView?
     let mine: MineView?
     let income: IncomeView?
 }
@@ -212,6 +215,9 @@ extension GameSession {
                  shop: views.contains("shop") ? shopView : nil,
                  tokens: views.contains("tokens") ? tokensView : nil,
                  perks: views.contains("perks") ? perksView : nil,
+                 goals: views.contains("goals") ? goalsView : nil,
+                 daily: views.contains("daily") ? dailyView : nil,
+                 achievements: views.contains("achievements") ? achievementsView : nil,
                  mine: views.contains("mine") ? mineView : nil,
                  income: views.contains("income") ? incomeView : nil)
     }

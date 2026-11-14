@@ -66,6 +66,7 @@ import com.hilalsafi.cryptoclicker.ui.root.BullRunFire
 import com.hilalsafi.cryptoclicker.ui.root.NotificationStack
 import com.hilalsafi.cryptoclicker.ui.root.WelcomeBackSheet
 import com.hilalsafi.cryptoclicker.ui.shop.ShopScreen
+import com.hilalsafi.cryptoclicker.ui.trophies.TrophiesScreen
 import com.hilalsafi.cryptoclicker.ui.theme.Palette
 import com.hilalsafi.cryptoclicker.ui.theme.gameColors
 import com.hilalsafi.cryptoclicker.ui.theme.glass
@@ -173,7 +174,10 @@ private fun Root() {
                     )
                     AppTab.Shop -> ShopScreen(padding, requests)
                     AppTab.Arcade -> ComingSoon("Arcade", "The arcade is on its way to Android.", Icons.Rounded.SportsEsports, Palette.arcade, padding)
-                    AppTab.Trophies -> ComingSoon("Trophies", "Daily rewards, quests and achievements are on their way to Android.", Icons.Rounded.EmojiEvents, Palette.trophies, padding)
+                    AppTab.Trophies -> TrophiesScreen(padding, requests, openChallenge = {
+                        requests.challenge++
+                        tab = AppTab.Arcade
+                    })
                     AppTab.Settings -> {
                         val appearance by prefs.appearance.state()
                         val haptics by prefs.haptics.state()

@@ -124,6 +124,9 @@ data class GameView(
     val shop: Shop?,
     val tokens: Tokens?,
     val perks: Perks?,
+    val goals: Goals?,
+    val daily: Daily?,
+    val achievements: Achievements?,
     val mine: Mine?,
     val income: Income?,
 ) {
@@ -141,6 +144,9 @@ data class GameView(
             shop = o.objOrNull("shop")?.let(Shop::from),
             tokens = o.objOrNull("tokens")?.let(Tokens::from),
             perks = o.objOrNull("perks")?.let(Perks::from),
+            goals = o.objOrNull("goals")?.let(Goals::from),
+            daily = o.objOrNull("daily")?.let(Daily::from),
+            achievements = o.objOrNull("achievements")?.let(Achievements::from),
             mine = o.objOrNull("mine")?.let(Mine::from),
             income = o.objOrNull("income")?.let(Income::from),
         )
@@ -855,6 +861,226 @@ data class Perk(
             price = o.string("price"),
             requirement = o.stringOrNull("requirement"),
             requirementMet = o.bool("requirementMet"),
+        )
+    }
+}
+
+/** The next few things worth working toward (iOS: GoalsPage). */
+data class Goals(
+    val goals: List<Goal>,
+) {
+    companion object {
+        fun from(o: JsonObject) = Goals(
+            goals = o.list("goals", Goal::from),
+        )
+    }
+}
+
+data class Goal(
+    val id: String,
+    val title: String,
+    val detail: String,
+    val progress: Double,
+    /** "45%", or "Ready" once reached. */
+    val progressText: String,
+    val ready: Boolean,
+    val symbol: String,
+    /** The goal kind's colour, by name or "#RRGGBB". */
+    val color: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = Goal(
+            id = o.string("id"),
+            title = o.string("title"),
+            detail = o.string("detail"),
+            progress = o.double("progress"),
+            progressText = o.string("progressText"),
+            ready = o.bool("ready"),
+            symbol = o.string("symbol"),
+            color = o.string("color"),
+        )
+    }
+}
+
+/** The daily reward and its streak, the day's quests and the daily challenge (iOS: DailyPage). */
+data class Daily(
+    val reward: DailyReward,
+    /** Midnight, when the quests and the reward renew, in seconds since 1970. */
+    val resetsAt: Double,
+    val questsEmpty: String?,
+    val quests: List<Quest>,
+    val challenge: Challenge?,
+    val footnote: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = Daily(
+            reward = DailyReward.from(o.obj("reward")),
+            resetsAt = o.double("resetsAt"),
+            questsEmpty = o.stringOrNull("questsEmpty"),
+            quests = o.list("quests", Quest::from),
+            challenge = o.objOrNull("challenge")?.let(Challenge::from),
+            footnote = o.string("footnote"),
+        )
+    }
+}
+
+/** The login streak: a week of rewards building to day 7, and today's to claim (iOS: DailyRewardCard). */
+data class DailyReward(
+    /** "🔥 3-day streak" */
+    val streak: String?,
+    val days: List<StreakDay>,
+    val isReady: Boolean,
+    /** "Claim Day 4" and what it pays. */
+    val claimTitle: String,
+    val claimDetail: String,
+    /** "First" on the game's first day, else "Next": "Next reward in 5 hr". */
+    val waitWord: String,
+    val note: String?,
+) {
+    companion object {
+        fun from(o: JsonObject) = DailyReward(
+            streak = o.stringOrNull("streak"),
+            days = o.list("days", StreakDay::from),
+            isReady = o.bool("isReady"),
+            claimTitle = o.string("claimTitle"),
+            claimDetail = o.string("claimDetail"),
+            waitWord = o.string("waitWord"),
+            note = o.stringOrNull("note"),
+        )
+    }
+}
+
+data class StreakDay(
+    val day: Int,
+    /** The day's reward, a check once claimed, a star on day 7. */
+    val symbol: String,
+    val isClaimed: Boolean,
+    val isToday: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = StreakDay(
+            day = o.int("day"),
+            symbol = o.string("symbol"),
+            isClaimed = o.bool("isClaimed"),
+            isToday = o.bool("isToday"),
+        )
+    }
+}
+
+data class Quest(
+    val id: String,
+    val symbol: String,
+    val title: String,
+    val fraction: Double,
+    /** "1.2K / 5K" */
+    val progressText: String,
+    val reward: String,
+    val rewardSymbol: String,
+    val isComplete: Boolean,
+    val isClaimed: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = Quest(
+            id = o.string("id"),
+            symbol = o.string("symbol"),
+            title = o.string("title"),
+            fraction = o.double("fraction"),
+            progressText = o.string("progressText"),
+            reward = o.string("reward"),
+            rewardSymbol = o.string("rewardSymbol"),
+            isComplete = o.bool("isComplete"),
+            isClaimed = o.bool("isClaimed"),
+        )
+    }
+}
+
+/** Today's challenge (iOS: ChallengeCard), on the Daily page and at the top of the Arcade. */
+data class Challenge(
+    /** The game it's played in ("snake"), nil for the arcade mix. */
+    val game: String?,
+    val icon: String,
+    /** The game's colour ("#RRGGBB"), deep enough for white text, and lighter for text on dark cards. */
+    val color: String,
+    val textColorDark: String,
+    /** "Survival Day · Daily Challenge" */
+    val title: String,
+    val goal: String,
+    val progressText: String,
+    val fraction: Double,
+    val isComplete: Boolean,
+    /** The game is unlocked and the challenge not yet done: Play opens it. */
+    val canPlay: Boolean,
+    /** "+12.3K coins", or "Reward collected" */
+    val reward: String,
+    /** "This week 2 of 5 · +50K at 5", or "Weekly bonus earned" */
+    val week: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = Challenge(
+            game = o.stringOrNull("game"),
+            icon = o.string("icon"),
+            color = o.string("color"),
+            textColorDark = o.string("textColorDark"),
+            title = o.string("title"),
+            goal = o.string("goal"),
+            progressText = o.string("progressText"),
+            fraction = o.double("fraction"),
+            isComplete = o.bool("isComplete"),
+            canPlay = o.bool("canPlay"),
+            reward = o.string("reward"),
+            week = o.string("week"),
+        )
+    }
+}
+
+/** The achievements and the stars they add up to (iOS: TrophySummary and AchievementCard). */
+data class Achievements(
+    /** "12 of 120 stars" */
+    val title: String,
+    /** "+12% production from achievements" */
+    val bonus: String,
+    val fraction: Double,
+    /** "3 more for the Silver coin" */
+    val nextFinish: String?,
+    val cards: List<Achievement>,
+) {
+    companion object {
+        fun from(o: JsonObject) = Achievements(
+            title = o.string("title"),
+            bonus = o.string("bonus"),
+            fraction = o.double("fraction"),
+            nextFinish = o.stringOrNull("nextFinish"),
+            cards = o.list("cards", Achievement::from),
+        )
+    }
+}
+
+data class Achievement(
+    val id: String,
+    val emoji: String,
+    val name: String,
+    val detail: String,
+    /** Tiers earned: 0 to 4 (bronze, silver, gold, mythic). */
+    val tiers: Int,
+    val fraction: Double,
+    /** "1.2K / 5K" */
+    val progressText: String,
+    /** Every tier is earned: a full mythic bar. */
+    val isMythic: Boolean,
+    /** "Gold", or "Not earned yet", for TalkBack. */
+    val tierName: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = Achievement(
+            id = o.string("id"),
+            emoji = o.string("emoji"),
+            name = o.string("name"),
+            detail = o.string("detail"),
+            tiers = o.int("tiers"),
+            fraction = o.double("fraction"),
+            progressText = o.string("progressText"),
+            isMythic = o.bool("isMythic"),
+            tierName = o.string("tierName"),
         )
     }
 }
