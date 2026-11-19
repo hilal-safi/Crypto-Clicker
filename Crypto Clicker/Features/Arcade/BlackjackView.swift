@@ -46,6 +46,7 @@ struct BlackjackView: View {
                 ZStack {
                     if table.phase == .settled {
                         ResultBanner(results: table.results, insurance: table.insurance, bonus: lastBonus, unit: unit, xp: lastXP)
+                            .offset(y: 4)
                             .transition(.scale(scale: 0.6).combined(with: .opacity))
                     } else if let insurance = table.insurance {
                         InsuranceNote(insurance: insurance, unit: unit)
@@ -64,9 +65,11 @@ struct BlackjackView: View {
                                      isCompact: true)
                         }
                     }
+                    .offset(y: 8)
                 } else {
                     ForEach(table.hands) { hand in
                         handView(hand, cardSize: cardSize, isCompact: false)
+                            .offset(y: 8)
                     }
                 }
             }

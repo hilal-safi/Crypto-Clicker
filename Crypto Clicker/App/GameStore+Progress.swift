@@ -29,6 +29,19 @@ extension GameStore {
         save()
     }
 
+    /// Pays a starter milestone from the Goals page.
+    func claimStarterMilestone(_ milestone: StarterMilestone) {
+        guard let payout = perform({ game, now in game.claim(milestone, at: now) }) else { return }
+        switch payout {
+        case .coins(let amount):
+            show(Toast(icon: "🎁", title: milestone.title, message: "+\(CoinFormat.short(amount)) coins"))
+        case .bullRun(let seconds):
+            show(Toast(icon: "🐂", title: milestone.title,
+                       message: "Bull Run: production \(CoinFormat.multiplier(Tuning.bullRunMultiplier)) for \(CoinFormat.duration(seconds))"))
+        }
+        save()
+    }
+
     func claimDailyReward() {
         let today = today, yesterday = yesterday
         guard let payout = perform({ game, now in game.claimDailyReward(today: today, yesterday: yesterday, at: now) })

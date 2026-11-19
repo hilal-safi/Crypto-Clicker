@@ -17,6 +17,8 @@ public struct OfflineReport: Equatable, Sendable, Identifiable {
     public let multipliers: Multipliers
     /// The Offline Mining limit at the time (0 without the power-up).
     public let offlineCap: TimeInterval
+    /// The share of the income that time away paid (Offline Efficiency).
+    public let efficiency: Double
 
     public var id: Double { elapsed }
     public var wasCapped: Bool { credited < elapsed }
@@ -92,8 +94,8 @@ extension GameState {
 
     /// Credits income for the time since the last update. The live tick loop and a return
     /// from the background share this one path, so time is never paid twice or lost:
-    /// short gaps are paid in full, longer ones (time away) up to the Offline Mining limit,
-    /// with a report for the welcome-back screen.
+    /// short gaps are paid in full, longer ones (time away) up to the Offline Mining limit at the
+    /// share Offline Efficiency sets, with a report for the welcome-back screen.
     @discardableResult
     public mutating func advance(to now: Date) -> OfflineReport? {
         let elapsed = now.timeIntervalSince(lastUpdate)
@@ -103,7 +105,8 @@ extension GameState {
         }
         let isAway = elapsed >= Tuning.awayThreshold
         let credited = min(elapsed, timeAwayLimit)
-        let earned = income(from: lastUpdate, seconds: credited)
+        let full = income(from: lastUpdate, seconds: credited)
+        let earned = isAway ? full * offlineEfficiency : full
         let report = isAway ? offlineReport(elapsed: elapsed, credited: credited, earned: earned) : nil
         credit(earned, source: isAway ? .offline : .idle)
         lastUpdate = now
@@ -114,8 +117,11 @@ extension GameState {
         return report
     }
 
-    /// Breaks down `credited` seconds of income from `lastUpdate`, before it is paid.
+    /// Breaks down `credited` seconds of income from `lastUpdate`, before it is paid. `earned` is
+    /// what is paid; each source's coins are its share of the full-rate income scaled to it.
     func offlineReport(elapsed: TimeInterval, credited: TimeInterval, earned: Double) -> OfflineReport {
+        let full = income(from: lastUpdate, seconds: credited)
+        let scale = full > 0 ? earned / full : 1
         var boostedSeconds = 0.0
         var multiplier = 1.0
         if let boost {
@@ -127,14 +133,14 @@ extension GameState {
             let rate = rate(of: miner)
             guard rate > 0 else { return nil }
             return .init(kind: .miner(miner), count: Double(owned(miner)),
-                         coins: rate * (normalSeconds + boostedSeconds * multiplier))
+                         coins: rate * (normalSeconds + boostedSeconds * multiplier) * scale)
         }
         let autoTaps = autoTapsPerSecond
         if autoTaps > 0 {
             let base = baseProduction
             let coins = autoTapIncome(production: base) * normalSeconds
                 + autoTapIncome(production: base * multiplier) * boostedSeconds
-            if coins > 0 { sources.append(.init(kind: .autoTaps, count: autoTaps, coins: coins)) }
+            if coins > 0 { sources.append(.init(kind: .autoTaps, count: autoTaps, coins: coins * scale)) }
         }
         sources.sort { $0.coins > $1.coins }
         return OfflineReport(
@@ -142,7 +148,7 @@ extension GameState {
             boostedSeconds: boostedSeconds, boostMultiplier: multiplier,
             multipliers: .init(upgrades: upgradeProductionMultiplier, prestige: prestigeBonus,
                                achievements: achievementBonus, difficulty: difficulty.productionMultiplier),
-            offlineCap: offlineCap)
+            offlineCap: offlineCap, efficiency: offlineEfficiency)
     }
 
     /// Idle income over `seconds` starting at `start`, honouring a boost that ends part-way.
@@ -296,7 +302,7 @@ extension GameState {
     }
 
     /// Whether the Shop shows a power-up: once lifetime coins reach a tenth of its first level's
-    /// price, and for Combo Overdrive, once Combo Booster is at its last level.
+    /// price, and for Combo Overdrive once Combo Booster is at its last level.
     public func isRevealed(_ powerUp: PowerUpID) -> Bool {
         if let required = powerUp.requires, powerUpLevel(required) < required.maxLevel { return false }
         return powerUpLevel(powerUp) > 0 || stats.lifetimeCoins >= powerUp.shopPrice(afterLevel: 0) * 0.1

@@ -327,10 +327,21 @@ extension GameState {
 
     // MARK: Offline Mining
 
-    /// Time away that Offline Mining pays for at `level`: a minute per level up to 10 minutes, then
-    /// 5 minutes up to an hour, 15 minutes up to 3 hours and half an hour up to three days.
+    /// Time away that Offline Mining pays for at `level`: 6 minutes for the first (the game starts
+    /// with 5, `Tuning.baseAwayTime`), then a minute a level up to 10 minutes, 5 minutes up to an
+    /// hour, 15 minutes up to 3 hours and half an hour up to three days. (The table of times
+    /// starts at two minutes: the Shop skips its first four levels,
+    /// `Tuning.offlineMiningSkippedLevels`.)
     public static func offlineCap(level: Int) -> TimeInterval {
-        var levels = min(max(0, level), Tuning.offlineMiningMaxLevel)
+        let level = min(max(0, level), Tuning.offlineMiningMaxLevel)
+        guard level > 0 else { return 0 }
+        return tableCap(level: level + Tuning.offlineMiningSkippedLevels)
+    }
+
+    /// Time away at `level` of the whole table behind Offline Mining, whose first level is two
+    /// minutes. The prices (`Tuning.offlineMiningPrices` and the rest) are listed by its levels.
+    static func tableCap(level: Int) -> TimeInterval {
+        var levels = min(max(0, level), Tuning.offlineMiningTableLevels)
         guard levels > 0 else { return 0 }
         // The free first minute is the base every level builds on.
         var cap: TimeInterval = Tuning.awayThreshold
@@ -340,6 +351,19 @@ extension GameState {
             levels -= inStage
         }
         return cap
+    }
+
+    /// What Offline Mining levels paid for in version 8: the whole table, from two minutes, up to
+    /// 165 levels.
+    static func version8OfflineCap(level: Int) -> TimeInterval {
+        tableCap(level: level)
+    }
+
+    /// What Offline Mining levels paid for in version 9: the table from its fourth level, so the
+    /// first paid for five minutes.
+    static func version9OfflineCap(level: Int) -> TimeInterval {
+        let level = min(max(0, level), Tuning.offlineMiningTableLevels - 3)
+        return level > 0 ? tableCap(level: level + 3) : 0
     }
 
     /// What Offline Mining levels paid for in version 7: a minute each up to 10 minutes, 5 minutes
@@ -364,9 +388,9 @@ extension GameState {
     }
 
     /// The lowest Offline Mining level that pays for at least `cap` away (the last level for more
-    /// than it pays).
+    /// than it pays), and none at all for what the game starts with.
     static func offlineMiningLevel(reaching cap: TimeInterval) -> Int {
-        guard cap > 0 else { return 0 }
+        guard cap > Tuning.baseAwayTime else { return 0 }
         return (1...Tuning.offlineMiningMaxLevel).first { offlineCap(level: $0) >= cap } ?? Tuning.offlineMiningMaxLevel
     }
 
@@ -377,20 +401,22 @@ extension GameState {
         return Double(min(level, 48)) * 1_800 + Double(max(0, level - 48)) * 3_600
     }
 
-    /// What Offline Mining's `level` (the first is 1) costs in the Shop, in whole coins: the opening
-    /// price, then a steady climb a level up to three and a half hours (`Tuning.offlineMiningGrowth`),
-    /// the curve's step to ten hours, then a step that eases (`Tuning.offlineMiningEasing` and
-    /// `Tuning.offlineMiningLateEasing`); less the discount (`Tuning.offlineMiningDiscounts`).
+    /// What Offline Mining's `level` (the first is 1) costs in the Shop, in whole coins: the price
+    /// of the same time away in the table (the opening price, then a steady climb a level up to
+    /// three and a half hours (`Tuning.offlineMiningGrowth`), the curve's step to ten hours, then a
+    /// step that eases (`Tuning.offlineMiningEasing` and `Tuning.offlineMiningLateEasing`)), less the
+    /// discount (`Tuning.offlineMiningDiscounts`) and the cut (`Tuning.offlineMiningPriceCut`).
     public static func offlineMiningShopPrice(level: Int) -> Double {
-        let level = min(max(1, level), Tuning.offlineMiningMaxLevel)
-        return Tuning.whole(offlineMiningFullPrices[level - 1] * offlineMiningDiscount(level: level))
+        let level = min(max(1, level), Tuning.offlineMiningMaxLevel) + Tuning.offlineMiningSkippedLevels
+        return Tuning.whole(offlineMiningFullPrices[level - 1] * offlineMiningDiscount(level: level)
+                            * Tuning.offlineMiningPriceCut)
     }
 
-    /// Every level's price before the discount, worked out once.
+    /// Every table level's price before the discount, worked out once.
     static let offlineMiningFullPrices: [Double] = {
         let opening = Tuning.offlineMiningOpeningPrices
         let late = Tuning.offlineMiningLateEasing
-        let maxLevel = Tuning.offlineMiningMaxLevel
+        let maxLevel = Tuning.offlineMiningTableLevels
         var prices = opening
         for level in (opening.count + 1)..<late.levels.lowerBound {
             prices.append(prices[level - 2] * offlineMiningStep(level: level))
@@ -433,7 +459,7 @@ extension GameState {
     /// List price of Offline Mining's `level` on the curve, read off `Tuning.offlineMiningPrices` by
     /// the limit it reaches, with its premium. The Shop uses it from three and a half hours on.
     static func offlineMiningListPrice(level: Int) -> Double {
-        let level = min(max(1, level), Tuning.offlineMiningMaxLevel)
+        let level = min(max(1, level), Tuning.offlineMiningTableLevels)
         // Each level at least a step above the one before (see `Tuning.offlineMiningMinimumStep`).
         var price = 0.0
         for step in 1...level {
@@ -445,7 +471,7 @@ extension GameState {
 
     /// The price curve at a level's cap: log-interpolated between `Tuning.offlineMiningPrices`.
     static func offlineMiningCurvePrice(level: Int) -> Double {
-        let hours = offlineCap(level: level) / 3_600
+        let hours = tableCap(level: level) / 3_600
         let prices = Tuning.offlineMiningPrices
         guard let next = prices.firstIndex(where: { $0.hours >= hours }) else { return prices.last?.price ?? 0 }
         guard next > 0 else { return prices[next].price }
@@ -461,9 +487,20 @@ extension GameState {
     /// How long miners keep earning while the app is closed: nothing until Offline Mining is bought.
     public var offlineCap: TimeInterval { Self.offlineCap(level: offlineMiningLevel) }
 
-    /// The most time away one absence pays: the Offline Mining limit, but never less than the
-    /// first minute, so leaving for longer never pays less than a quick app switch.
-    public var timeAwayLimit: TimeInterval { max(offlineCap, Tuning.awayThreshold) }
+    /// The most time away one absence pays: the Offline Mining limit, but never less than the five
+    /// minutes the game starts with.
+    public var timeAwayLimit: TimeInterval { max(offlineCap, Tuning.baseAwayTime) }
+
+    /// The share of the income that time away pays, from 0.1 up to 1: a tenth, and a tenth more
+    /// for each level of Offline Efficiency.
+    public var offlineEfficiency: Double {
+        Double(Tuning.offlineEfficiencyPercent(level: powerUpLevel(.offlineEfficiency))) / 100
+    }
+
+    /// The seconds of full-rate income that `away` seconds pay now (see `Tuning.awayPaidSeconds`).
+    public func paidAwaySeconds(_ away: TimeInterval) -> TimeInterval {
+        Tuning.awayPaidSeconds(away, efficiency: offlineEfficiency)
+    }
 
     /// Price of the next Offline Mining level, or `nil` once it is at the maximum. Its own curve
     /// sets it, with the pace but not the Shop's premium.

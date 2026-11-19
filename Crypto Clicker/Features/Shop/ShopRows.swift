@@ -494,11 +494,11 @@ struct OfflineMiningRow: View {
                     MaxedBadge()
                 }
             }
-            Text("Keeps miners earning while the app is closed, up to three days.")
+            Text("You start with five minutes of time away. Each level pays for more, up to three days, and Offline Efficiency sets how much of your income the miners earn.")
                 .font(.subheadline)
                 .foregroundStyle(.subtext)
                 .fixedSize(horizontal: false, vertical: true)
-            NowAndNext(title: "Time away paid", now: CoinFormat.duration(max(cap, Tuning.awayThreshold)),
+            NowAndNext(title: "Time away paid", now: CoinFormat.duration(max(cap, Tuning.baseAwayTime)),
                        next: price != nil ? CoinFormat.duration(nextCap) : nil, color: .indigo)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -715,6 +715,7 @@ extension PowerUpID {
         case .comboOverdrive: Color(red: 0.62, green: 0.25, blue: 0.95)
         case .quickCombos: Color(red: 0.05, green: 0.62, blue: 0.62)
         case .comboKeeper: Color(red: 0.18, green: 0.48, blue: 0.95)
+        case .offlineEfficiency: Color(red: 0.36, green: 0.34, blue: 0.84)
         }
     }
 }

@@ -189,8 +189,11 @@ public struct GameState: Codable, Equatable, Sendable {
     /// 2: Hard Forks became Prestige. 3: prestige potential needs 10% more lifetime coins.
     /// 4: and 15% more again. 5: 15 billion for the first point. 6: Offline Mining levels of five
     /// minutes up to an hour, then half an hour. 7: a minute to 10 minutes, then 5 minutes to an
-    /// hour, 15 minutes to 3 hours, then half an hour.
-    public static let saveVersion = 8
+    /// hour, 15 minutes to 3 hours, then half an hour. 8: the same, but with 165 levels from two
+    /// minutes. 9: Offline Mining starts at five minutes, and time away pays only a share of the
+    /// income, which Offline Efficiency raises. 10: the game starts with five minutes of time away
+    /// and Offline Mining's first level pays six (161 levels).
+    public static let saveVersion = 10
 
     public internal(set) var coins: Double = 0
     public internal(set) var miners: [MinerID: Int] = [:]
@@ -233,6 +236,8 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var arcade = ArcadeProgress()
     /// When each first happened, for the Journey timeline. Kept through prestiges.
     public internal(set) var journey = Journey()
+    /// The starter milestones whose rewards were claimed. Kept through prestiges.
+    public internal(set) var starterMilestonesClaimed: Set<StarterMilestone> = []
     /// Highest tier count earned per achievement id (0 to 4).
     public internal(set) var achievementTiers: [String: Int] = [:]
     public internal(set) var daily = DailyProgress()
@@ -267,7 +272,7 @@ public struct GameState: Codable, Equatable, Sendable {
         case runPrestigeMultiplier = "runForkMultiplier"
         case prestigePointsSpent, perks, difficulty
         case boost, offlineMiningLevel, powerUps, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun, tokenSwap
-        case merge2048Daily, slotsFreeSpins, arcade, journey
+        case merge2048Daily, slotsFreeSpins, arcade, journey, starterMilestones
         case achievementTiers, daily
         case incomeHistory, stats, steps, recentWatchBatches, watchSequences, recentAirdrops, lastUpdate, runStart, created
     }
@@ -297,13 +302,15 @@ public struct GameState: Codable, Equatable, Sendable {
         runPrestigeMultiplier = Difficulty.allCases.map(\.prestigeMultiplier).contains(multiplier)
             ? multiplier : difficulty.prestigeMultiplier
         boost = c.value(.boost, default: nil)
-        // Offline upgrades bought in earlier versions, and levels from before version 8 (which added
+        // Offline upgrades bought in earlier versions, and levels from before version 10 (which added
         // different amounts of time), become the level that pays for the same time away.
         let legacyCap = (savedUpgrades.compactMap { UpgradeID.legacyOfflineHours[$0] }.max() ?? 0) * 3_600
         let savedLevel: Int = c.value(.offlineMiningLevel, default: 0)
         let savedCap = version < 6 ? Self.version5OfflineCap(level: savedLevel)
             : version == 6 ? Self.version6OfflineCap(level: savedLevel)
-            : version == 7 ? Self.version7OfflineCap(level: savedLevel) : Self.offlineCap(level: savedLevel)
+            : version == 7 ? Self.version7OfflineCap(level: savedLevel)
+            : version == 8 ? Self.version8OfflineCap(level: savedLevel)
+            : version == 9 ? Self.version9OfflineCap(level: savedLevel) : Self.offlineCap(level: savedLevel)
         offlineMiningLevel = Self.offlineMiningLevel(reaching: max(savedCap, legacyCap))
         powerUps = c.enumKeyed(.powerUps, as: PowerUpID.self).mapValues { max(0, $0) }
         unlockedGames = c.enumSet(.unlockedGames, as: MiniGame.self)
@@ -317,6 +324,7 @@ public struct GameState: Codable, Equatable, Sendable {
         arcade = c.value(.arcade, default: ArcadeProgress())
         // A save from before the journey was kept starts recording now.
         journey = c.value(.journey, default: Journey(since: now))
+        starterMilestonesClaimed = c.enumSet(.starterMilestones, as: StarterMilestone.self)
         achievementTiers = c.value(.achievementTiers, default: [:])
         daily = c.value(.daily, default: DailyProgress())
         incomeHistory = c.value(.incomeHistory, default: [])
@@ -359,6 +367,9 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encode(merge2048Daily, forKey: .merge2048Daily)
         try c.encode(arcade, forKey: .arcade)
         try c.encode(journey, forKey: .journey)
+        if !starterMilestonesClaimed.isEmpty {
+            try c.encode(starterMilestonesClaimed.sortedRawValues, forKey: .starterMilestones)
+        }
         try c.encode(achievementTiers, forKey: .achievementTiers)
         try c.encode(daily, forKey: .daily)
         try c.encode(incomeHistory, forKey: .incomeHistory)

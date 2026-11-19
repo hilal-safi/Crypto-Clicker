@@ -119,7 +119,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .neuralInterface: 250_000_000
         case .hapticEngine: 25_000_000_000
         case .satoshisTouch: 2_500_000_000_000
-        case .overclocking: 8_000
+        case .overclocking: 7_000
         case .liquidCooling: 800_000
         case .fiberUplink: 50_000_000
         case .asicChips: 500_000_000

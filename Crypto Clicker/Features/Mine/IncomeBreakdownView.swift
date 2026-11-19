@@ -111,9 +111,7 @@ struct IncomeBreakdownView: View {
                 }
 
                 Section("Other ways coins arrive") {
-                    row("While away", game.offlineCap > 0
-                        ? "Up to \(CoinFormat.duration(game.offlineCap)) · \(amount(game.baseIdleIncome * game.offlineCap))"
-                        : "First minute only (no Offline Mining)")
+                    row("While away", "Up to \(CoinFormat.duration(game.timeAwayLimit)) at \(Tuning.offlineEfficiencyPercent(level: game.powerUpLevel(.offlineEfficiency)))% · \(amount(game.baseIdleIncome * game.paidAwaySeconds(game.timeAwayLimit)))")
                     if game.steps.isConnected {
                         let today = StepDay.key(for: now)
                         row("Each step", game.stepsPaidNextDay(today: today)

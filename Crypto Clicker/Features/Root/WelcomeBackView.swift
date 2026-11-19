@@ -252,8 +252,8 @@ struct WelcomeBackView: View {
         return VStack(spacing: 10) {
             Label {
                 Text(hasOfflineMining
-                     ? "Offline Mining paid for \(CoinFormat.duration(report.credited)) of that. Level it up to earn for longer."
-                     : "Miners stop a minute after you leave. Offline Mining keeps them earning while the app is closed.")
+                     ? "Offline Mining paid for \(CoinFormat.duration(report.credited)) of that, at \(Int((report.efficiency * 100).rounded()))% of your income. Level it up to earn for longer, or raise Offline Efficiency to earn more."
+                     : "Miners earn for \(CoinFormat.duration(Tuning.baseAwayTime)) after you leave, at \(Int((report.efficiency * 100).rounded()))% of your income. Offline Mining keeps them earning for longer.")
             } icon: {
                 Image(systemName: "moon.zzz.fill")
                     .foregroundStyle(.indigo)
@@ -285,6 +285,9 @@ private struct OfflineBreakdown: View {
             section("Time") {
                 row("Away", CoinFormat.duration(report.elapsed))
                 row("Paid for", paidFor)
+                if report.offlineCap > 0 {
+                    row("Income paid", "\(Int((report.efficiency * 100).rounded()))%")
+                }
                 if report.boostedSeconds > 0 {
                     row("Bull Run \(CoinFormat.multiplier(report.boostMultiplier))", CoinFormat.duration(report.boostedSeconds))
                 }

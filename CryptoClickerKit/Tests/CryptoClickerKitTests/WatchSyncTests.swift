@@ -119,11 +119,11 @@ struct WatchSyncTests {
         #expect(base.projectedCoins(at: at(-50)) == 100) // Watch clock behind the phone's.
     }
 
-    @Test func withoutOfflineMiningTheBalanceStopsAfterAMinute() {
+    @Test func withoutOfflineMiningTheBalanceStopsAfterFiveMinutes() {
         let base = snapshot(cap: 0)
         #expect(base.projectedCoins(at: at(30)) == 400)
         #expect(base.projectedCoins(at: at(60)) == 700)
-        #expect(base.projectedCoins(at: at(10_000)) == 700)
+        #expect(base.projectedCoins(at: at(10_000)) == 100 + 3_000)
     }
 
     @Test func boostsOnlyCountUntilTheyEnd() {
@@ -137,16 +137,18 @@ struct WatchSyncTests {
     @Test func aSnapshotSentFromTheBackgroundProjectsFromTheGameClock() {
         var game = GameState.make(miners: minersEarning(20)) // 20 coins per second.
         game.setOfflineMining(hours: 2)
+        game.powerUps[.offlineEfficiency] = 4 // Half of the income.
         game.coins = 1_000
         // The phone app went to the background at t0 and is woken by the watch 3 hours later.
         let snapshot = game.watchSnapshot(at: at(3 * 3_600))
         #expect(snapshot.date == at(3 * 3_600))
         #expect(snapshot.anchor == t0)
         // Projected from the anchor, so the 2-hour cap covers the whole absence...
-        #expect(snapshot.projectedCoins(at: at(4 * 3_600)) == 1_000 + 7_200 * 20)
-        // ...which is exactly what the phone credits when it opens.
+        let paid = 7_200 * 0.5
+        #expect(approx(snapshot.projectedCoins(at: at(4 * 3_600)), 1_000 + paid * 20))
+        // ...which is what the phone credits when it opens.
         game.advance(to: at(4 * 3_600))
-        #expect(game.coins == snapshot.projectedCoins(at: at(4 * 3_600)))
+        #expect(approx(game.coins, snapshot.projectedCoins(at: at(4 * 3_600))))
     }
 
     @Test func theProjectionMatchesWhatThePhoneWillCredit() {
@@ -165,11 +167,15 @@ struct WatchSyncTests {
         #expect(approx(snapshot.projectedCoins(at: at(5 * 3_600)), away.coins))
 
         for level in [3, 62] {
-            var mining = game
-            mining.offlineMiningLevel = level
-            let snapshot = mining.watchSnapshot(at: t0)
-            mining.advance(to: at(30 * 3_600))
-            #expect(approx(snapshot.projectedCoins(at: at(30 * 3_600)), mining.coins), "level \(level)")
+            for efficiency in [0, 4, 9] {
+                var mining = game
+                mining.offlineMiningLevel = level
+                mining.powerUps[.offlineEfficiency] = efficiency
+                let snapshot = mining.watchSnapshot(at: t0)
+                mining.advance(to: at(30 * 3_600))
+                #expect(approx(snapshot.projectedCoins(at: at(30 * 3_600)), mining.coins),
+                        "level \(level), efficiency \(efficiency)")
+            }
         }
     }
 
@@ -184,6 +190,7 @@ struct WatchSyncTests {
         #expect(snapshot.boostEndsAt == nil)
         #expect(snapshot.tapValue == 2)
         #expect(snapshot.offlineCap == 0)
+        #expect(snapshot.offlineEfficiency == 0.1)
         #expect(snapshot.stepsConnected)
         #expect(snapshot.stepsToday == 321)
         #expect(snapshot.stepsDay == "2026-10-24")

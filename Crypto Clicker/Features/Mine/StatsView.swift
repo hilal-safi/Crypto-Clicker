@@ -53,7 +53,7 @@ struct StatsPage: View {
             row("Per tap", amount(game.tapValue(at: now)))
             row("Production multiplier", CoinFormat.multiplier(game.globalMultiplier))
             row("Offline Mining", game.offlineCap > 0
-                ? "Level \(game.offlineMiningLevel) · \(CoinFormat.duration(game.offlineCap))" : "Off")
+                ? "Level \(game.offlineMiningLevel) · \(CoinFormat.duration(game.offlineCap)) at \(Tuning.offlineEfficiencyPercent(level: game.powerUpLevel(.offlineEfficiency)))%" : "Off")
             row("Difficulty", game.difficulty.name)
             if let boost = game.activeBoost(at: now) {
                 row("Bull Run", "\(CoinFormat.multiplier(boost.multiplier)) · \(CoinFormat.duration(boost.endsAt.timeIntervalSince(now))) left")

@@ -75,6 +75,8 @@ extension GameStore {
         if bought {
             notePurchase(powerUp.name, effect: powerUp.effect(atLevel: state.powerUpLevel(powerUp)), before: before)
             save()
+            // Offline Efficiency changes what the watch and the widgets project while the app is closed.
+            if powerUp == .offlineEfficiency { pushToWatch(force: true) }
         }
         return bought
     }

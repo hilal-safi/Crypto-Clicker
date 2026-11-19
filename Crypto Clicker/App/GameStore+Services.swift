@@ -23,7 +23,7 @@ extension GameStore {
             reminders.append(Notifier.Reminder(
                 id: .minersStopped, date: game.lastUpdate.addingTimeInterval(cap),
                 title: "Your miners have stopped",
-                body: "Offline Mining ran for \(CoinFormat.duration(cap)). Open Crypto Clicker to collect about \(CoinFormat.short(income * cap)) coins and start them again."))
+                body: "Offline Mining ran for \(CoinFormat.duration(cap)). Open Crypto Clicker to collect about \(CoinFormat.short(income * game.paidAwaySeconds(cap))) coins and start them again."))
         }
         if defaults.bool(forKey: Preferences.notifyDailyKey) {
             let today = StepDay.key(for: now)

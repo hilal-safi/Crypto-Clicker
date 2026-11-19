@@ -106,8 +106,9 @@ private struct HowToChapter: Identifiable {
         ]),
         HowToTopic("moon.zzz.fill", "Offline Mining", "Keeps your miners earning while the app is closed.", [
             "Without it, miners stop a minute after you leave.",
-            "The first level adds a minute (two in all), then each adds a minute up to 10 minutes, 5 minutes up to an hour, 15 minutes up to 3 hours, and half an hour up to three days. Every level costs more than the last.",
-            "It's a power-up, so it stays when you prestige.",
+            "You start with five minutes of time away. The first level adds a minute, then each adds a minute up to 10 minutes, 5 minutes up to an hour, 15 minutes up to 3 hours, and half an hour up to three days. Every level costs more than the last.",
+            "Time away pays a tenth of your income. Offline Efficiency, also in Power-ups, adds a tenth for each of its nine levels, up to all of it.",
+            "Both are power-ups, so they stay when you prestige.",
         ]),
     ])
 

@@ -188,9 +188,27 @@ struct SimulatedPlayer {
     /// pays each day, spread over the ten minutes played per session.
     private func offlineMiningGain() -> Double {
         guard !awayHours.isEmpty else { return 0 }
-        let current = max(GameState.offlineCap(level: game.offlineMiningLevel), Tuning.awayThreshold)
+        let efficiency = game.offlineEfficiency
+        let current = max(GameState.offlineCap(level: game.offlineMiningLevel), Tuning.baseAwayTime)
         let next = GameState.offlineCap(level: game.offlineMiningLevel + 1)
-        let extra = awayHours.reduce(0.0) { $0 + min($1 * 3_600, next) - min($1 * 3_600, current) }
+        let extra = awayHours.reduce(0.0) { total, hours in
+            total + Tuning.awayPaidSeconds(min(hours * 3_600, next), efficiency: efficiency)
+                - Tuning.awayPaidSeconds(min(hours * 3_600, current), efficiency: efficiency)
+        }
+        return game.baseIdleIncome * extra / (600 * Double(awayHours.count))
+    }
+
+    /// What one more level of Offline Efficiency adds, as income per second of play: the share of
+    /// each absence it pays, spread over the ten minutes played per session.
+    private func offlineEfficiencyGain() -> Double {
+        guard !awayHours.isEmpty, game.offlineMiningLevel > 0 else { return 0 }
+        let limit = game.timeAwayLimit
+        let current = game.offlineEfficiency
+        let next = Double(Tuning.offlineEfficiencyPercent(level: game.powerUpLevel(.offlineEfficiency) + 1)) / 100
+        let extra = awayHours.reduce(0.0) { total, hours in
+            let away = min(hours * 3_600, limit)
+            return total + Tuning.awayPaidSeconds(away, efficiency: next) - Tuning.awayPaidSeconds(away, efficiency: current)
+        }
         return game.baseIdleIncome * extra / (600 * Double(awayHours.count))
     }
 
@@ -241,6 +259,10 @@ struct SimulatedPlayer {
             }
             for powerUp in PowerUpID.allCases where game.isRevealed(powerUp) {
                 guard let price = game.powerUpPrice(powerUp) else { continue }
+                if powerUp == .offlineEfficiency {
+                    consider(cost: price, gain: offlineEfficiencyGain(), powerUp: powerUp) { $0.buyPowerUp(powerUp) }
+                    continue
+                }
                 var copy = game
                 copy.powerUps[powerUp] = game.powerUpLevel(powerUp) + 1
                 consider(cost: price, gain: income(copy) - current, powerUp: powerUp) { $0.buyPowerUp(powerUp) }
@@ -346,11 +368,11 @@ struct PacingTests {
         print("Light 12h:", CoinFormat.short(lifetime), "mined | tiers", player.firstBought.count,
               "| offline", CoinFormat.duration(player.game.offlineCap))
         // Twenty minutes of play spread over twelve hours: a few miner tiers and some tens of
-        // thousands of coins, not millions. Offline Mining starts at a minute a level, so time away
-        // pays little in the first half day: a few minutes at most.
+        // thousands of coins, not millions. Offline Mining starts at five minutes and pays a tenth
+        // of the income, so time away pays little in the first half day: a few minutes at most.
         #expect((15_000...150_000).contains(lifetime))
         #expect((2...4).contains(player.firstBought.count))
-        #expect(player.game.offlineCap <= 10 * 60)
+        #expect(player.game.timeAwayLimit <= 10 * 60)
     }
 
     @Test func aCasualPlayerReachesTheTenthTierAndAPrestigeInAboutAWeek() {
@@ -387,7 +409,7 @@ struct PacingTests {
         // The first levels climb 35% each, so the first day ends with about ten minutes of time away
         // and the first nights pay only part of it; the hour comes on the second day.
         print("Casual 1 day: offline", CoinFormat.duration(player.game.offlineCap), "| level", player.game.offlineMiningLevel)
-        #expect((5 * 60...2 * 3_600).contains(player.game.offlineCap))
+        #expect((5 * 60...2 * 3_600).contains(player.game.timeAwayLimit))
     }
 
     /// Three weeks of casual play take a while to simulate, so this runs with the balance tests:

@@ -46,7 +46,8 @@ struct InventoryStrip: View {
         let miners = MinerID.allCases.filter { game.owned($0) > 0 }
         let tokens = TokenID.allCases.filter { game.tokenCount($0) > 0 }
         let hasPowerUps = Self.hasPowerUps(game)
-        let hasComboPowerUps = PowerUpID.allCases.contains { game.powerUpLevel($0) > 0 }
+        let hasComboPowerUps = PowerUpID.allCases.contains { $0.isCombo && game.powerUpLevel($0) > 0 }
+        let efficiencyLevel = game.powerUpLevel(.offlineEfficiency)
         let scale = Self.scale
         VStack(spacing: 10 * scale) {
             if !miners.isEmpty || hasPowerUps {
@@ -68,6 +69,11 @@ struct InventoryStrip: View {
                     if game.offlineMiningLevel > 0 {
                         InventoryChip(count: CoinFormat.duration(game.offlineCap)) {
                             symbol("moon.zzz.fill", color: .indigo)
+                        }
+                    }
+                    if efficiencyLevel > 0 {
+                        InventoryChip(count: "\(Tuning.offlineEfficiencyPercent(level: efficiencyLevel))%") {
+                            symbol("gauge.with.dots.needle.67percent", color: .indigo)
                         }
                     }
                     if hasComboPowerUps {
@@ -132,8 +138,10 @@ struct InventoryStrip: View {
 
     private func minersLabel(_ miners: [MinerID]) -> String {
         var parts = miners.map { "\(game.owned($0)) \($0.name)" }
-        if game.offlineMiningLevel > 0 { parts.append("Offline Mining \(CoinFormat.duration(game.offlineCap))") }
-        if PowerUpID.allCases.contains(where: { game.powerUpLevel($0) > 0 }) {
+        if game.offlineMiningLevel > 0 {
+            parts.append("Offline Mining \(CoinFormat.duration(game.offlineCap)) at \(Tuning.offlineEfficiencyPercent(level: game.powerUpLevel(.offlineEfficiency)))%")
+        }
+        if PowerUpID.allCases.contains(where: { $0.isCombo && game.powerUpLevel($0) > 0 }) {
             parts.append("combos up to \(CoinFormat.multiplier(game.comboMaxMultiplier))")
         }
         if !game.upgrades.isEmpty { parts.append("\(game.upgrades.count) upgrades") }

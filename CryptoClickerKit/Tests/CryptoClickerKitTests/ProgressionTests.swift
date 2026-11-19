@@ -72,6 +72,7 @@ struct PrestigeTests {
         game.unlockedGames = [.blackjack]
         game.achievementTiers = ["miner": 3]
         game.offlineMiningLevel = 4
+        game.powerUps[.offlineEfficiency] = 2
         game.boost = Boost(multiplier: 7, endsAt: at(60))
         game.difficulty = .hard
         let gained = game.prestige(at: at(100))
@@ -92,6 +93,7 @@ struct PrestigeTests {
         #expect(game.unlockedGames == [.blackjack])
         #expect(game.achievementTiers == ["miner": 3])
         #expect(game.offlineMiningLevel == 4)
+        #expect(game.powerUpLevel(.offlineEfficiency) == 2) // Power-ups are kept.
         #expect(game.runPrestigeMultiplier == 1.5)
         #expect(game.runStart == at(100))
         #expect(game.lastUpdate == at(100))
