@@ -1581,9 +1581,6 @@
     "Keeps" : {
 
     },
-    "Keeps miners earning while the app is closed, up to three days." : {
-
-    },
     "Kept when you prestige" : {
 
     },
@@ -1780,10 +1777,17 @@
     "Miners" : {
 
     },
-    "Miners earn for up to %@ away" : {
-
+    "Miners earn for %@ after you leave, at %lld%% of your income. Offline Mining keeps them earning for longer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Miners earn for %1$@ after you leave, at %2$lld%% of your income. Offline Mining keeps them earning for longer."
+          }
+        }
+      }
     },
-    "Miners stop a minute after you leave. Offline Mining keeps them earning while the app is closed." : {
+    "Miners earn for up to %@ away" : {
 
     },
     "Mining" : {
@@ -1985,8 +1989,18 @@
     "Offline Mining" : {
 
     },
-    "Offline Mining paid for %@ of that. Level it up to earn for longer." : {
+    "Offline Mining and Offline Efficiency" : {
 
+    },
+    "Offline Mining paid for %@ of that, at %lld%% of your income. Level it up to earn for longer, or raise Offline Efficiency to earn more." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Offline Mining paid for %1$@ of that, at %2$lld%% of your income. Level it up to earn for longer, or raise Offline Efficiency to earn more."
+          }
+        }
+      }
     },
     "OK" : {
 
@@ -2510,6 +2524,9 @@
     "Start Earning" : {
 
     },
+    "Starter milestones" : {
+
+    },
     "Statistics" : {
 
     },
@@ -2933,6 +2950,9 @@
 
     },
     "You reached the Moon: +%@ coins when the game ends. Keep going!" : {
+
+    },
+    "You start with five minutes of time away. Each level pays for more, up to three days, and Offline Efficiency sets how much of your income the miners earn." : {
 
     },
     "You were away for %@." : {

@@ -25,7 +25,7 @@ struct MiningLiveActivity: Widget {
                         .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    MiningClock(snapshot: snapshot, stopped: stopped)
+                    MiningClockAndShare(snapshot: snapshot, stopped: stopped)
                         .font(.subheadline.weight(.semibold))
                         .padding(.trailing, 4)
                 }
@@ -64,13 +64,15 @@ private struct MiningLockScreen: View {
             WidgetCoin(finish: snapshot.finish, image: "CoinLive")
                 .frame(width: 56, height: 56)
             VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .firstTextBaseline) {
+                HStack(alignment: .top) {
                     Text(stopped ? "Miners resting" : "Mining while you're away")
                         .font(.caption.weight(.heavy))
                         .textCase(.uppercase)
                         .foregroundStyle(WidgetStyle.subtext)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Spacer(minLength: 8)
-                    MiningClock(snapshot: snapshot, stopped: stopped)
+                    MiningClockAndShare(snapshot: snapshot, stopped: stopped)
                         .font(.caption.weight(.bold))
                 }
                 WidgetStyle.balance(stopped ? snapshot.coinsWhenMiningEnds : snapshot.coins, size: 32)
@@ -82,7 +84,23 @@ private struct MiningLockScreen: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(stopped
             ? "\(CoinFormat.short(snapshot.coinsWhenMiningEnds)) coins waiting. The miners are resting until you open the game."
-            : "\(CoinFormat.short(snapshot.coins)) coins, earning \(CoinFormat.rate(snapshot.income)) a second, \(CoinFormat.short(snapshot.coinsWhenMiningEnds)) when the miners stop")
+            : "\(CoinFormat.short(snapshot.coins)) coins, earning \(CoinFormat.rate(snapshot.income)) a second at \(snapshot.offlineEfficiencyPercent) percent of your income, \(CoinFormat.short(snapshot.coinsWhenMiningEnds)) when the miners stop")
+    }
+}
+
+/// The countdown with the share of the income the miners earn while the game is closed under it
+/// ("10%", "80%"...).
+private struct MiningClockAndShare: View {
+    let snapshot: BalanceSnapshot
+    let stopped: Bool
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 1) {
+            MiningClock(snapshot: snapshot, stopped: stopped)
+            Text(verbatim: "\(snapshot.offlineEfficiencyPercent)%")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(WidgetStyle.subtext)
+        }
     }
 }
 

@@ -16,6 +16,8 @@ public struct BalanceSnapshot: Codable, Hashable, Sendable {
     public var offlineCap: TimeInterval
     /// The share of the income paid for time away (Offline Efficiency), 0 to 1.
     public var offlineEfficiency: Double
+    /// That share as a whole percent: 10, 80, 100.
+    public var offlineEfficiencyPercent: Int { Int((min(max(0, offlineEfficiency), 1) * 100).rounded()) }
     /// The coin's finish, picked in Settings.
     public var finish: CoinFinish
     /// The game's clock: `coins` is the balance at this moment. While the app is closed its clock

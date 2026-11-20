@@ -14,6 +14,9 @@
         }
       }
     },
+    "%@ coins" : {
+
+    },
     "%@ coins in the Arcade" : {
 
     },
@@ -480,6 +483,16 @@
     "Bull Market" : {
 
     },
+    "Bull Run %@ for %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bull Run %1$@ for %2$@"
+          }
+        }
+      }
+    },
     "Bull Runs last 2 minutes" : {
 
     },
@@ -512,6 +525,12 @@
 
     },
     "Buy tokens in the Shop" : {
+
+    },
+    "Buy your first Chromebook" : {
+
+    },
+    "Buy your first upgrade" : {
 
     },
     "Can't be matched. Clear the tokens under it to bring it down: it's collected on the bottom row." : {
@@ -1036,6 +1055,9 @@
     "Finish closer to 21 than the dealer without going over." : {
 
     },
+    "Finish your first mini-game" : {
+
+    },
     "Fire Ring" : {
 
     },
@@ -1326,6 +1348,9 @@
     "In the Daily Puzzle every move counts: favor slides that merge." : {
 
     },
+    "Income while away" : {
+
+    },
     "Insurance" : {
 
     },
@@ -1613,6 +1638,9 @@
     "Miners cost 10% less" : {
 
     },
+    "Miners earn more while the app is closed, up to your full income." : {
+
+    },
     "Miners produce 40% less; prestiges earn 50% more points." : {
 
     },
@@ -1716,6 +1744,9 @@
     "Obsidian" : {
 
     },
+    "Offline Efficiency" : {
+
+    },
     "Offline Mining" : {
 
     },
@@ -1772,6 +1803,9 @@
 
     },
     "Own prestige perks" : {
+
+    },
+    "Own three miners" : {
 
     },
     "Own upgrades at once" : {
@@ -2603,6 +2637,9 @@
     "Three, four or five of a token in a row from the left reel pay on any of five lines, and every winning line pays. Three or more Bitcoins anywhere win free spins. Wins are rarer and bigger." : {
 
     },
+    "Time away pays %@ of your income" : {
+
+    },
     "Time between taps" : {
 
     },
@@ -2683,6 +2720,9 @@
 
     },
     "Unlock %@" : {
+
+    },
+    "Unlock your first mini-game" : {
 
     },
     "Unlocked %@" : {

@@ -329,6 +329,11 @@ struct ProductionTests {
         #expect(state.offlineEfficiency == 0.4)
     }
 
+    @Test func offlineEfficiencyIsTheFirstPowerUpSoTheShopListsItUnderOfflineMining() {
+        #expect(PowerUpID.allCases.first == .offlineEfficiency)
+        #expect(Array(PowerUpID.allCases.dropFirst()) == [.comboBooster, .comboOverdrive, .quickCombos, .comboKeeper])
+    }
+
     @Test func offlineEfficiencyStartsAtATenthAndAddsATenthPerLevel() {
         var state = GameState.make()
         #expect(state.offlineEfficiency == 0.1)

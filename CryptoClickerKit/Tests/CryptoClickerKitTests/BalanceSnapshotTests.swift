@@ -55,6 +55,20 @@ struct BalanceSnapshotTests {
         }
     }
 
+    @Test func theShareReadsAsAWholePercent() {
+        func percent(_ share: Double) -> Int {
+            BalanceSnapshot(coins: 0, income: 1, offlineCap: 0, offlineEfficiency: share, anchor: t0).offlineEfficiencyPercent
+        }
+        #expect(percent(0.1) == 10)
+        #expect(percent(0.3) == 30)
+        #expect(percent(0.8) == 80)
+        #expect(percent(1) == 100)
+        #expect(percent(7) == 100)
+        #expect(percent(-1) == 0)
+        // A snapshot from before time away paid a share is all of it.
+        #expect(BalanceSnapshot(coins: 0, income: 1, offlineCap: 0, anchor: t0).offlineEfficiencyPercent == 100)
+    }
+
     @Test func theBalanceGrowsAtTheEfficiencyShareOnceTheTimeIsAway() {
         let tenth = BalanceSnapshot(coins: 100, income: 10, offlineCap: 7_200, offlineEfficiency: 0.1, anchor: t0)
         #expect(tenth.coins(at: at(30)) == 400) // Under a minute is live play: paid in full.

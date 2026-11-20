@@ -1,13 +1,14 @@
 import Foundation
 
 /// Power-ups bought in levels with coins and kept through prestiges, like Offline Mining (which
-/// keeps its own rules: see `GameState.offlineMiningLevel`). Four of them build up the coin's
-/// combo: Combo Booster and then Combo Overdrive raise the biggest combo from ×2 to ×10, Quick
-/// Combos makes each step of a combo come sooner, up to four times as fast, and Combo Keeper gives
-/// more time between taps before a combo ends, up to twice as long. Offline Efficiency raises
-/// the share of the income that time away pays, from a tenth to all of it, in nine levels.
+/// keeps its own rules: see `GameState.offlineMiningLevel`). Offline Efficiency raises the share
+/// of the income that time away pays, from a tenth to all of it, in nine levels; it comes first so
+/// the Shop lists it right under Offline Mining. The other four build up the coin's combo: Combo
+/// Booster and then Combo Overdrive raise the biggest combo from ×2 to ×10, Quick Combos makes
+/// each step of a combo come sooner, up to four times as fast, and Combo Keeper gives more time
+/// between taps before a combo ends, up to twice as long.
 public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
-    case comboBooster, comboOverdrive, quickCombos, comboKeeper, offlineEfficiency
+    case offlineEfficiency, comboBooster, comboOverdrive, quickCombos, comboKeeper
 
     public var id: String { rawValue }
 
