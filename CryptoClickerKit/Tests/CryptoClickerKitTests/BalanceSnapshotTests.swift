@@ -16,9 +16,9 @@ struct BalanceSnapshotTests {
         #expect(snapshot.income(at: at(100)) == 10 && snapshot.income(at: at(7_200)) == 0)
         #expect(snapshot.miningProgress(at: at(3_600)) == 0.5)
         #expect(snapshot.miningProgress(at: at(-5)) == 0 && snapshot.miningProgress(at: at(9_999)) == 1)
-        // Without Offline Mining the miners stop after the five minutes the game starts with.
+        // Without Offline Mining the miners stop after the six minutes the game starts with.
         let short = BalanceSnapshot(coins: 100, income: 10, offlineCap: 0, anchor: t0)
-        #expect(short.miningEndsAt == at(300) && short.coinsWhenMiningEnds == 100 + 3_000)
+        #expect(short.miningEndsAt == at(360) && short.coinsWhenMiningEnds == 100 + 3_600)
     }
 
     @Test func aBullRunCountsUntilItEnds() {
@@ -42,13 +42,13 @@ struct BalanceSnapshotTests {
             #expect(approx(snapshot.coins(at: at(seconds)), played.coins), "\(seconds) s")
         }
         for level in [3, 62] {
-            for efficiency in [0, 4, 9] {
+            for efficiency in [0, 8, 18] {
                 var mining = game
                 mining.offlineMiningLevel = level
                 mining.powerUps[.offlineEfficiency] = efficiency
                 let snapshot = mining.balanceSnapshot()
                 #expect(snapshot.offlineCap == mining.offlineCap)
-                #expect(approx(snapshot.offlineEfficiency, Double(efficiency + 1) / 10))
+                #expect(approx(snapshot.offlineEfficiency, Double(10 + 5 * efficiency) / 100))
                 mining.advance(to: at(30 * 3_600))
                 #expect(approx(snapshot.coinsWhenMiningEnds, mining.coins), "level \(level), efficiency \(efficiency)")
             }

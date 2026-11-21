@@ -104,15 +104,36 @@ extension GameStore {
     }
 
     func announceAchievements() {
-        let earned = state.refreshAchievements()
-        guard !earned.isEmpty else { return }
+        let before = (income: state.baseIdleIncome, tap: state.baseTapValue, step: state.stepValue)
+        let tiers = state.refreshAchievements()
+        guard !tiers.isEmpty else { return }
         publish()
-        for earned in earned {
+        // The banner shows the numbers with the stars' boost in (the last one carries them, so
+        // several at once don't repeat them).
+        let gains = productionGains(since: before)
+        for (index, earned) in tiers.enumerated() {
             let xp = AchievementCatalog.arcadeIDs.contains(earned.achievement.id)
                 ? " · +\(Tuning.arcadeXPPerAchievementTier) Arcade XP" : ""
             show(Toast(icon: earned.achievement.emoji ?? "🏆",
                        title: "\(earned.achievement.name) · \(earned.tierName)",
-                       message: "Achievement unlocked · +\(CoinFormat.percent(game.productionPerAchievementTier)) production\(xp)"))
+                       message: "Achievement unlocked · +\(CoinFormat.percent(game.productionPerAchievementTier)) production\(xp)",
+                       gains: index == tiers.count - 1 ? gains : []))
         }
+    }
+
+    /// Per second, per tap and per step as they are now, each with what it gained since `before`.
+    private func productionGains(since before: (income: Double, tap: Double, step: Double)) -> [Toast.Gain] {
+        func gain(_ title: String, was: Double, now: Double, format: (Double) -> String) -> Toast.Gain {
+            let added = format(max(0, now - was))
+            return Toast.Gain(title: title, added: now > was && added != "0" ? added : nil, total: format(now))
+        }
+        var gains = [
+            gain("Per second", was: before.income, now: state.baseIdleIncome) { CoinFormat.rate($0) },
+            gain("Per tap", was: before.tap, now: state.baseTapValue) { CoinFormat.short($0) },
+        ]
+        if state.steps.isConnected {
+            gains.append(gain("Per step", was: before.step, now: state.stepValue) { CoinFormat.short($0) })
+        }
+        return gains
     }
 }

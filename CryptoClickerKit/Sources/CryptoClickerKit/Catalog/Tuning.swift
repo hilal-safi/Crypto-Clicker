@@ -15,7 +15,7 @@ public enum Tuning {
     /// Each additional unit of a miner costs this much more than the previous one.
     public static let costGrowth = 1.15
     /// Owning this many of one miner doubles that miner's output (once per milestone).
-    public static let milestones = [25, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1_000]
+    public static let milestones = [20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1_000]
     public static let milestoneMultiplier = 2.0
 
     // MARK: Legacy
@@ -30,9 +30,9 @@ public enum Tuning {
     public static let legacyUnits = 100
 
     // MARK: Miner Mk upgrades
-    /// Owning this many of a miner reveals its next Mk upgrade (Mk II to Mk VI), alongside the
+    /// Owning this many of a miner reveals its next Mk upgrade (Mk II to Mk X), alongside the
     /// milestone at the same count...
-    public static let minerUpgradeThresholds = [25, 50, 100, 200, 400]
+    public static let minerUpgradeThresholds = [20, 50, 100, 200, 400, 500, 600, 700, 800]
     /// ...which multiplies that miner's output by this much...
     public static let minerUpgradeMultiplier = 2.0
     /// ...and costs about this many units of the miner at the count that reveals it.
@@ -85,12 +85,12 @@ public enum Tuning {
     // MARK: Time
     /// Gaps shorter than this count as live play and are paid in full (ticks, a quick app switch).
     /// Longer gaps are time away: paid up to the Offline Mining limit, with a report, at the share
-    /// of the income that Offline Efficiency sets. Even without Offline Mining the first five
+    /// of the income that Offline Efficiency sets. Even without Offline Mining the first six
     /// minutes (`baseAwayTime`) are paid (at that share).
     public static let awayThreshold: TimeInterval = 60
-    /// How long time away is paid from the start of the game, before any Offline Mining: five
+    /// How long time away is paid from the start of the game, before any Offline Mining: six
     /// minutes (at the share of the income that Offline Efficiency sets, a tenth to begin with).
-    public static let baseAwayTime: TimeInterval = 5 * 60
+    public static let baseAwayTime: TimeInterval = 6 * 60
 
     // MARK: Offline Mining
     /// Without Offline Mining, time away pays for `baseAwayTime`. The table behind the levels
@@ -103,12 +103,12 @@ public enum Tuning {
     ]
     /// Levels in that table, which the prices below are listed by: 9 + 10 + 8 + 138.
     static let offlineMiningTableLevels = 165
-    /// The table's first four levels (2, 3, 4 and 5 minutes) are not for sale: five minutes is
+    /// The table's first five levels (2, 3, 4, 5 and 6 minutes) are not for sale: six minutes is
     /// what the game starts with (`baseAwayTime`), so the Shop's first Offline Mining level is the
-    /// table's fifth, six minutes away, and every level after it pays the same time and costs the
+    /// table's sixth, seven minutes away, and every level after it pays the same time and costs the
     /// same as before (less `offlineMiningPriceCut`).
-    public static let offlineMiningSkippedLevels = 4
-    /// The level that reaches three days: 5 + 10 + 8 + 138.
+    public static let offlineMiningSkippedLevels = 5
+    /// The level that reaches three days: 4 + 10 + 8 + 138.
     public static let offlineMiningMaxLevel = offlineMiningTableLevels - offlineMiningSkippedLevels
     /// What the Shop charges for each Offline Mining level, as a share of the table's price: 10% off.
     public static let offlineMiningPriceCut = 0.9
@@ -121,13 +121,13 @@ public enum Tuning {
     public static let offlineMiningPrices: [(hours: Double, price: Double)] = [
         (2.0 / 60, 1_702.64), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
     ]
-    /// What the table's first level costs: 3,500 coins (the Shop starts at the table's fourth)...
+    /// What the table's first level costs: 3,500 coins (the Shop starts at the table's sixth)...
     public static let offlineMiningOpeningPrices: [Double] = [3_500]
     /// ...then each level up to three and a half hours costs a steady step more than the one
     /// before: 40% more a level up to 15 minutes (level 10) and 35% more a level up to three and a
     /// half hours (level 28). After that each level keeps the step `offlineMiningPrices` takes
     /// from the one before, carried on from level 28's price. (Every level number in these notes
-    /// counts the table's, three more than the Shop's.)
+    /// counts the table's, five more than the Shop's.)
     public static let offlineMiningGrowth: [(levels: ClosedRange<Int>, factor: Double)] = [
         (2...10, 1.4), (11...28, 1.35),
     ]
@@ -155,16 +155,18 @@ public enum Tuning {
     /// Time away pays this share of the income, in percent (a gap shorter than `awayThreshold`
     /// is live play and pays in full)...
     public static let offlineEfficiencyBasePercent = 10
-    /// ...and each level of the Offline Efficiency power-up adds this many points, up to all of it.
-    public static let offlineEfficiencyStepPercent = 10
-    /// The Shop's price for each level of Offline Efficiency, in coins: ten times as much for each
-    /// level from 5,000 to 500 billion, with the first three raised by 100%, 50% and 25% and the
-    /// last three by 30%, 40% and 50%, so the first and last levels cost the most for their place.
-    /// The ninth level pays all of the income. These are the Shop's prices: the pace and the
-    /// Shop's premium don't apply.
+    /// ...and each level of the Offline Efficiency power-up adds this many points, up to all of it
+    /// at the 18th.
+    public static let offlineEfficiencyStepPercent = 5
+    /// The Shop's price for each level of Offline Efficiency, in coins, from 15,000 for the first
+    /// (15% of the income) to 999 trillion for the 18th (all of it). The even levels are set
+    /// prices and the odd ones in between sit about midway on the climb. These are the Shop's
+    /// prices: the pace and the Shop's premium don't apply.
     public static let offlineEfficiencyPrices: [Double] = [
-        10_000, 75_000, 625_000, 5_000_000, 50_000_000,
-        500_000_000, 6_500_000_000, 70_000_000_000, 750_000_000_000,
+        15_000, 75_000, 250_000, 3_000_000, 8_500_000, 25_000_000,
+        110_000_000, 500_000_000, 1_500_000_000, 5_000_000_000, 20_000_000_000, 85_000_000_000,
+        290_000_000_000, 1_000_000_000_000, 7_500_000_000_000, 56_000_000_000_000,
+        240_000_000_000_000, 999_999_999_999_999,
     ]
 
     /// What share of the income time away pays at `level` of Offline Efficiency, in percent.

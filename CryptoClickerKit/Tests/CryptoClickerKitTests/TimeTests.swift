@@ -24,29 +24,29 @@ struct TimeTests {
         #expect(approx(state.coins, 200 + 59 * 20))
     }
 
-    @Test func withoutOfflineMiningTimeAwayPaysTheFirstFiveMinutes() throws {
+    @Test func withoutOfflineMiningTimeAwayPaysTheFirstSixMinutes() throws {
         var state = earner()
         let result = state.advance(to: at(3 * 3_600))
         let report = try #require(result)
         #expect(report.elapsed == 3 * 3_600)
-        #expect(report.credited == 5 * 60)
+        #expect(report.credited == 6 * 60)
         #expect(report.wasCapped)
         #expect(report.offlineCap == 0)
-        #expect(approx(report.earned, 300 * 20))
-        #expect(approx(state.stats.earnedOffline, 300 * 20))
+        #expect(approx(report.earned, 360 * 20))
+        #expect(approx(state.stats.earnedOffline, 360 * 20))
         #expect(state.stats.earnedFromIdle == 0)
         #expect(state.lastUpdate == at(3 * 3_600))
         // The rest is gone for good: the next tick pays only new time.
         #expect(state.advance(to: at(3 * 3_600 + 1)) == nil)
-        #expect(approx(state.coins, 301 * 20))
+        #expect(approx(state.coins, 361 * 20))
     }
 
-    @Test func atFullEfficiencyTimeAwayPaysItsFullTimeUpToTheFiveMinutes() {
+    @Test func atFullEfficiencyTimeAwayPaysItsFullTimeUpToTheSixMinutes() {
         // 59 seconds is live play, 61 is time away; at full efficiency both pay their full time.
-        for seconds in [59.0, 60, 61, 299, 300, 600] {
+        for seconds in [59.0, 60, 61, 359, 360, 700] {
             var state = earner()
             state.advance(to: at(seconds))
-            #expect(approx(state.coins, min(seconds, 300) * 20), "\(seconds)s")
+            #expect(approx(state.coins, min(seconds, 360) * 20), "\(seconds)s")
         }
     }
 
@@ -71,7 +71,7 @@ struct TimeTests {
             var state = earner(offlineHours: 1, efficiency: level)
             let result = state.advance(to: at(3_600))
             let report = try #require(result)
-            let share = Double(level + 1) / 10
+            let share = Double(10 + 5 * level) / 100
             #expect(approx(report.efficiency, share), "level \(level)")
             // 20 coins a second for an hour, at the share.
             #expect(approx(report.earned, 20 * 3_600 * share), "level \(level)")
@@ -84,10 +84,10 @@ struct TimeTests {
         let plainResult = plain.advance(to: at(3_600))
         let plainReport = try #require(plainResult)
         #expect(approx(plainReport.earned, 20 * 3_600 * 0.1))
-        // Without Offline Mining, the first five minutes away pay a tenth of it.
+        // Without Offline Mining, the first six minutes away pay a tenth of it.
         var none = GameState.make(miners: minersEarning(20))
         none.advance(to: at(600))
-        #expect(approx(none.coins, 20 * 300 * 0.1))
+        #expect(approx(none.coins, 20 * 360 * 0.1))
     }
 
     @Test func aGapUnderAMinuteIsLivePlayAndPaidInFullButTimeAwayPaysTheShare() {
@@ -106,14 +106,14 @@ struct TimeTests {
 
     @Test func efficiencyAppliesToABullRunToo() throws {
         // A Bull Run that ends after a minute pays its extra at 30% too, like the rest.
-        var inside = earner(offlineHours: 0.5, efficiency: 2)
+        var inside = earner(offlineHours: 0.5, efficiency: 4) // 30%
         inside.boost = Boost(multiplier: 7, endsAt: at(60))
         let insideResult = inside.advance(to: at(600))
         let insideReport = try #require(insideResult)
         #expect(approx(insideReport.earned, (60 * 140 + 540 * 20) * 0.3))
         #expect(approx(insideReport.sources.reduce(0) { $0 + $1.coins }, insideReport.earned))
         // One that runs on for five minutes.
-        var long = earner(offlineHours: 0.5, efficiency: 2)
+        var long = earner(offlineHours: 0.5, efficiency: 4)
         long.boost = Boost(multiplier: 7, endsAt: at(300))
         let longResult = long.advance(to: at(600))
         let longReport = try #require(longResult)

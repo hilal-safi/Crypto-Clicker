@@ -327,10 +327,10 @@ extension GameState {
 
     // MARK: Offline Mining
 
-    /// Time away that Offline Mining pays for at `level`: 6 minutes for the first (the game starts
-    /// with 5, `Tuning.baseAwayTime`), then a minute a level up to 10 minutes, 5 minutes up to an
+    /// Time away that Offline Mining pays for at `level`: 7 minutes for the first (the game starts
+    /// with 6, `Tuning.baseAwayTime`), then a minute a level up to 10 minutes, 5 minutes up to an
     /// hour, 15 minutes up to 3 hours and half an hour up to three days. (The table of times
-    /// starts at two minutes: the Shop skips its first four levels,
+    /// starts at two minutes: the Shop skips its first five levels,
     /// `Tuning.offlineMiningSkippedLevels`.)
     public static func offlineCap(level: Int) -> TimeInterval {
         let level = min(max(0, level), Tuning.offlineMiningMaxLevel)
@@ -364,6 +364,13 @@ extension GameState {
     static func version9OfflineCap(level: Int) -> TimeInterval {
         let level = min(max(0, level), Tuning.offlineMiningTableLevels - 3)
         return level > 0 ? tableCap(level: level + 3) : 0
+    }
+
+    /// What Offline Mining levels paid for in version 10: the table from its fifth level, so the
+    /// first paid for six minutes.
+    static func version10OfflineCap(level: Int) -> TimeInterval {
+        let level = min(max(0, level), Tuning.offlineMiningTableLevels - 4)
+        return level > 0 ? tableCap(level: level + 4) : 0
     }
 
     /// What Offline Mining levels paid for in version 7: a minute each up to 10 minutes, 5 minutes
@@ -487,7 +494,7 @@ extension GameState {
     /// How long miners keep earning while the app is closed: nothing until Offline Mining is bought.
     public var offlineCap: TimeInterval { Self.offlineCap(level: offlineMiningLevel) }
 
-    /// The most time away one absence pays: the Offline Mining limit, but never less than the five
+    /// The most time away one absence pays: the Offline Mining limit, but never less than the six
     /// minutes the game starts with.
     public var timeAwayLimit: TimeInterval { max(offlineCap, Tuning.baseAwayTime) }
 

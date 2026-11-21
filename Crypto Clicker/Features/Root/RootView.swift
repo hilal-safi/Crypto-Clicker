@@ -18,7 +18,10 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var store = store
-        TabView(selection: $tab) {
+        // The tabs stay put while a Blackjack round is on, so the table can't be left mid-hand.
+        TabView(selection: Binding(get: { tab }, set: { newTab in
+            if !store.isBlackjackRoundOpen { tab = newTab }
+        })) {
             Tab("Mine", systemImage: "bitcoinsign.circle.fill", value: AppTab.mine) {
                 MineView(openShop: { tab = .shop }, openPowerUps: openPowerUps, openTokens: openTokens, openDaily: {
                     dailyRequests += 1

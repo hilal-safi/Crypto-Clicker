@@ -10,8 +10,8 @@ No real cryptocurrency, no ads, no purchases.
   Galactic Hashnet. Each unit costs 15% more, milestones and Mk upgrades double output, and the Shop
   marks the best value.
 - **Upgrades and power-ups.** 26 one-time upgrades, combo power-ups, and Offline Mining, which keeps
-  miners earning while the app is closed, from five minutes (what you start with) up to three days over 161 levels. Time
-  away pays a tenth of your income, and Offline Efficiency adds a tenth per level (nine levels) up
+  miners earning while the app is closed, from six minutes (what you start with) up to three days over 160 levels. Time
+  away pays a tenth of your income, and Offline Efficiency adds 5% per level (18 levels) up
   to all of it.
 - **Prestige.** After 15 billion coins mined, start a new run for points that add 5% production each
   and buy permanent perks.

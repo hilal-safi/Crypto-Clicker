@@ -494,7 +494,7 @@ struct OfflineMiningRow: View {
                     MaxedBadge()
                 }
             }
-            Text("You start with five minutes of time away. Each level pays for more, up to three days, and Offline Efficiency sets how much of your income the miners earn.")
+            Text("You start with six minutes of time away. Each level pays for more, up to three days, and Offline Efficiency sets how much of your income the miners earn.")
                 .font(.subheadline)
                 .foregroundStyle(.subtext)
                 .fixedSize(horizontal: false, vertical: true)
@@ -542,7 +542,9 @@ struct PowerUpRow: View {
                 .font(.subheadline)
                 .foregroundStyle(.subtext)
                 .fixedSize(horizontal: false, vertical: true)
-            LevelPips(level: level, maxLevel: powerUp.maxLevel, color: powerUp.color)
+            if powerUp.showsLevelPips {
+                LevelPips(level: level, maxLevel: powerUp.maxLevel, color: powerUp.color)
+            }
             NowAndNext(title: powerUp.valueName, now: powerUp.value(atLevel: level),
                        next: price != nil ? powerUp.value(atLevel: level + 1) : nil, color: powerUp.color)
         }

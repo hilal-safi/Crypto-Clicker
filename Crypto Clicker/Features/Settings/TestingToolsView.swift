@@ -192,7 +192,7 @@ struct TestingToolsView: View {
         } header: {
             Text("Events")
         } footer: {
-            SettingsNote("Airdrops and time away close this screen so you can see them. Right now time away pays for up to \(CoinFormat.duration(game.timeAwayLimit)): the first five minutes, or the Offline Mining limit once it's longer.")
+            SettingsNote("Airdrops and time away close this screen so you can see them. Right now time away pays for up to \(CoinFormat.duration(game.timeAwayLimit)): the first six minutes, or the Offline Mining limit once it's longer.")
         }
     }
 

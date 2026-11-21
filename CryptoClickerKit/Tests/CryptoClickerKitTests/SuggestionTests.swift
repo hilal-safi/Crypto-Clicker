@@ -17,11 +17,11 @@ struct SuggestionTests {
     }
 
     @Test func milestonesCount() throws {
-        // The 25th Chromebook doubles all of them.
-        let game = GameState.make(coins: 5_000, miners: [.chromebook: 24, .desktop: 3])
+        // The 20th Chromebook doubles all of them.
+        let game = GameState.make(coins: 5_000, miners: [.chromebook: 19, .desktop: 3])
         let best = try #require(game.bestPurchase)
         #expect(best.purchase == .miner(.chromebook))
-        #expect(best.incomeGain == 6.5) // 25 × 0.25 × 2, up from 24 × 0.25.
+        #expect(best.incomeGain == 5.25) // 20 × 0.25 × 2, up from 19 × 0.25.
     }
 
     @Test func onlyAffordableThingsThatAddIncomeAreSuggested() {

@@ -62,12 +62,12 @@ struct DebugToolsTests {
         var game = GameState.make()
         game.debugAddOfflineMining(hours: 4)
         #expect(game.offlineCap == 4 * 3_600)
-        #expect(game.offlineMiningLevel == 25) // 23 levels to 3 hours, then two half hours.
+        #expect(game.offlineMiningLevel == 24) // 22 levels to 3 hours, then two half hours.
         game.debugAddOfflineMining(hours: 4)
         #expect(game.offlineCap == 8 * 3_600)
         game.debugAddOfflineMining(hours: -7.5)
         #expect(game.offlineCap == 30 * 60)
-        #expect(game.offlineMiningLevel == 9) // Ten minutes in five levels, then four of 5 minutes.
+        #expect(game.offlineMiningLevel == 8) // Ten minutes in four levels, then four of 5 minutes.
         game.debugAddOfflineMining(hours: 500)
         #expect(game.offlineMiningLevel == Tuning.offlineMiningMaxLevel)
         game.debugAddOfflineMining(hours: -1_000)

@@ -192,8 +192,10 @@ public struct GameState: Codable, Equatable, Sendable {
     /// hour, 15 minutes to 3 hours, then half an hour. 8: the same, but with 165 levels from two
     /// minutes. 9: Offline Mining starts at five minutes, and time away pays only a share of the
     /// income, which Offline Efficiency raises. 10: the game starts with five minutes of time away
-    /// and Offline Mining's first level pays six (161 levels).
-    public static let saveVersion = 10
+    /// and Offline Mining's first level pays six (161 levels). 11: six minutes to start and seven
+    /// for the first level (160 levels), and Offline Efficiency in 18 levels of 5% (the 9 levels of
+    /// 10% before it count double).
+    public static let saveVersion = 11
 
     public internal(set) var coins: Double = 0
     public internal(set) var miners: [MinerID: Int] = [:]
@@ -302,7 +304,7 @@ public struct GameState: Codable, Equatable, Sendable {
         runPrestigeMultiplier = Difficulty.allCases.map(\.prestigeMultiplier).contains(multiplier)
             ? multiplier : difficulty.prestigeMultiplier
         boost = c.value(.boost, default: nil)
-        // Offline upgrades bought in earlier versions, and levels from before version 10 (which added
+        // Offline upgrades bought in earlier versions, and levels from before version 11 (which added
         // different amounts of time), become the level that pays for the same time away.
         let legacyCap = (savedUpgrades.compactMap { UpgradeID.legacyOfflineHours[$0] }.max() ?? 0) * 3_600
         let savedLevel: Int = c.value(.offlineMiningLevel, default: 0)
@@ -310,9 +312,15 @@ public struct GameState: Codable, Equatable, Sendable {
             : version == 6 ? Self.version6OfflineCap(level: savedLevel)
             : version == 7 ? Self.version7OfflineCap(level: savedLevel)
             : version == 8 ? Self.version8OfflineCap(level: savedLevel)
-            : version == 9 ? Self.version9OfflineCap(level: savedLevel) : Self.offlineCap(level: savedLevel)
+            : version == 9 ? Self.version9OfflineCap(level: savedLevel)
+            : version == 10 ? Self.version10OfflineCap(level: savedLevel) : Self.offlineCap(level: savedLevel)
         offlineMiningLevel = Self.offlineMiningLevel(reaching: max(savedCap, legacyCap))
         powerUps = c.enumKeyed(.powerUps, as: PowerUpID.self).mapValues { max(0, $0) }
+        // Offline Efficiency was in levels of 10% before version 11, and is in levels of 5% now:
+        // the same share of the income takes twice the level.
+        if version < 11, let efficiency = powerUps[.offlineEfficiency] {
+            powerUps[.offlineEfficiency] = efficiency * 2
+        }
         unlockedGames = c.enumSet(.unlockedGames, as: MiniGame.self)
         blackjackStake = c.value(.blackjackStake, default: nil)
         moonRound = c.value(.moonRound, default: nil)

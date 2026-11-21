@@ -55,15 +55,24 @@ struct ToastView: View {
     let toast: Toast
 
     var body: some View {
-        HStack(spacing: 12) {
-            Text(toast.icon)
-                .font(.title2)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(toast.title)
-                    .font(.headline)
-                Text(toast.message)
-                    .font(.subheadline)
-                    .foregroundStyle(.subtext)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Text(toast.icon)
+                    .font(.title2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(toast.title)
+                        .font(.headline)
+                    Text(toast.message)
+                        .font(.subheadline)
+                        .foregroundStyle(.subtext)
+                }
+            }
+            if !toast.gains.isEmpty {
+                HStack(spacing: 8) {
+                    ForEach(toast.gains) { gain in
+                        ToastGainTile(gain: gain)
+                    }
+                }
             }
         }
         .padding(.horizontal, 18)
@@ -170,6 +179,38 @@ struct PurchaseNoteView: View {
         .animation(.snappy, value: note)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isStaticText)
+    }
+}
+
+/// One number a toast changed: "PER SECOND  +217  now 21.7K", or just the new total when the
+/// change was too small to show.
+private struct ToastGainTile: View {
+    let gain: Toast.Gain
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(LocalizedStringKey(gain.title))
+                .font(.caption.weight(.semibold))
+                .textCase(.uppercase)
+                .foregroundStyle(.subtext)
+            if let added = gain.added {
+                Text("+\(added)")
+                    .font(.title3.bold().monospacedDigit())
+                    .foregroundStyle(Theme.gain)
+                Text("now \(gain.total)")
+                    .font(.footnote.monospacedDigit())
+                    .foregroundStyle(.subtext)
+            } else {
+                Text(gain.total)
+                    .font(.title3.bold().monospacedDigit())
+            }
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.07), in: .rect(cornerRadius: 14))
     }
 }
 

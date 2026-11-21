@@ -230,9 +230,17 @@ struct WelcomeBackView: View {
         .multilineTextAlignment(.center)
     }
 
-    /// What the time away unlocked: achievements, prestige points and finished quests.
+    /// What the time away gave: the steps walked and what they paid, then what it unlocked:
+    /// achievements, prestige points and finished quests.
     private var highlights: [AwayHighlights.Line] {
-        var lines = welcome.achievements.map { earned in
+        var lines: [AwayHighlights.Line] = []
+        if welcome.steps > 0 {
+            let steps = CoinFormat.grouped(welcome.steps)
+            lines.append(.init(icon: "👣", text: welcome.stepCoins > 0
+                               ? "\(steps) steps · +\(CoinFormat.short(welcome.stepCoins)) coins"
+                               : "\(steps) steps · paid tomorrow"))
+        }
+        lines += welcome.achievements.map { earned in
             AwayHighlights.Line(icon: earned.achievement.emoji ?? "🏆",
                                 text: "\(earned.achievement.name) · \(earned.tierName)")
         }
