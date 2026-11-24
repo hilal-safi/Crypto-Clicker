@@ -2952,7 +2952,7 @@
     "You reached the Moon: +%@ coins when the game ends. Keep going!" : {
 
     },
-    "You start with five minutes of time away. Each level pays for more, up to three days, and Offline Efficiency sets how much of your income the miners earn." : {
+    "You start with six minutes of time away. Each level pays for more, up to three days, and Offline Efficiency sets how much of your income the miners earn." : {
 
     },
     "You were away for %@." : {
