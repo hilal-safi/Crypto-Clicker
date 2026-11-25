@@ -27,12 +27,12 @@
     "%@ coins waiting. The miners are resting until you open the game." : {
 
     },
-    "%@ coins, earning %@ a second, %@ when the miners stop" : {
+    "%@ coins, earning %@ a second at %lld percent of your income, %@ when the miners stop" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@ coins, earning %2$@ a second, %3$@ when the miners stop"
+            "value" : "%1$@ coins, earning %2$@ a second at %3$lld percent of your income, %4$@ when the miners stop"
           }
         }
       }

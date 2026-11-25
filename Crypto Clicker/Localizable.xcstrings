@@ -1389,6 +1389,9 @@
     "Feedback" : {
 
     },
+    "Finish the round first" : {
+
+    },
     "Five lines" : {
 
     },
@@ -2947,6 +2950,9 @@
       }
     },
     "You haven't started mining yet. Open Crypto Clicker and tap the coin." : {
+
+    },
+    "You need to complete the round before exiting." : {
 
     },
     "You reached the Moon: +%@ coins when the game ends. Keep going!" : {
