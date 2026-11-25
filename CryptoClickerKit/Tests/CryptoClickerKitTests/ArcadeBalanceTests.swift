@@ -15,6 +15,13 @@ import Testing
 /// `RUN_BALANCE_TESTS=1 swift test --filter ArcadeBalanceTests`.
 @Suite("Arcade balance")
 struct ArcadeBalanceTests {
+    /// What a minute of skilled play pays, in seconds of idle income: about four minutes' worth,
+    /// twice what it paid before `Tuning.arcadePayBoost`, and level with what 21 Million pays at
+    /// its cap (see CasinoReturnTests)...
+    static let payBand = 90 * Tuning.arcadePayBoost...160 * Tuning.arcadePayBoost
+    /// ...and a game started further in, which pays a smaller share of its points.
+    static let startPayBand = 55 * Tuning.arcadePayBoost...170 * Tuning.arcadePayBoost
+
     /// Points a skilled player scores per minute of play, averaged over a few games.
     static func pointsPerMinute(_ game: MiniGame) -> Double {
         let seeds: [UInt64] = [11, 22, 33, 44]
@@ -50,11 +57,11 @@ struct ArcadeBalanceTests {
         for arena in SnakeGame.Arena.allCases {
             let classic = income(.classic, arena)
             print("Balance: Snake", arena.name, "| income seconds/min", Int(classic.rounded()))
-            #expect((90...160).contains(classic), "Snake in \(arena.name) pays \(classic)")
+            #expect((Self.payBand).contains(classic), "Snake in \(arena.name) pays \(classic)")
         }
         let rush = income(.coinRush, .open)
         print("Balance: Snake Coin Rush | income seconds/min", Int(rush.rounded()))
-        #expect((90...160).contains(rush), "Coin Rush pays \(rush)")
+        #expect((Self.payBand).contains(rush), "Coin Rush pays \(rush)")
     }
 
     /// Bubble Market's Flash Market pays about what its waves do: it scores faster, with rows on
@@ -67,7 +74,7 @@ struct ArcadeBalanceTests {
         let flash = seeds.map { BubbleBot.flashPointsPerMinute(seed: $0) }.reduce(0, +) / Double(seeds.count)
             * MiniGame.bubbleBlaster.secondsPerPoint
         print("Balance: Bubble Market | waves", Int(waves), "Flash Market", Int(flash))
-        #expect((90...160).contains(flash), "Flash Market pays \(flash)")
+        #expect((Self.payBand).contains(flash), "Flash Market pays \(flash)")
         #expect(abs(flash - waves) <= 0.15 * waves, "Flash Market pays \(flash), waves \(waves)")
     }
 
@@ -84,7 +91,7 @@ struct ArcadeBalanceTests {
         for board in PumpDumpGame.Board.allCases {
             let normal = income(board), slow = income(board, .slow), fast = income(board, .fast)
             print("Balance: Pump and Dump", board.name, "| slow", Int(slow), "normal", Int(normal), "fast", Int(fast))
-            #expect((90...160).contains(normal), "\(board.name) pays \(normal)")
+            #expect((Self.payBand).contains(normal), "\(board.name) pays \(normal)")
             #expect(abs(normal - small) <= 0.1 * small, "\(board.name) pays \(normal), the 3×3 \(small)")
             #expect(slow < normal && fast > normal && fast <= 1.5 * normal)
         }
@@ -105,7 +112,7 @@ struct ArcadeBalanceTests {
         let slow = income(.classic, .slow)
         let fast = income(.classic, .fast)
         print("Balance: Brick Breaker | classic", Int(classic), "random", Int(random), "slow", Int(slow), "fast", Int(fast))
-        #expect((90...160).contains(random), "Random walls pay \(random)")
+        #expect((Self.payBand).contains(random), "Random walls pay \(random)")
         #expect(abs(random - classic) <= 0.25 * classic)
         #expect(slow < classic && fast > classic)
         #expect(fast <= 1.5 * classic)
@@ -123,7 +130,7 @@ struct ArcadeBalanceTests {
         }
         let normal = income(.normal), random = income(.normal, .generated), slow = income(.slow), fast = income(.fast)
         print("Balance: Scam Invaders | classic", Int(normal), "random", Int(random), "slow", Int(slow), "fast", Int(fast))
-        #expect((90...160).contains(random), "Random waves pay \(random)")
+        #expect((Self.payBand).contains(random), "Random waves pay \(random)")
         #expect(abs(random - normal) <= 0.15 * normal)
         #expect(slow < normal && fast > normal * 0.9)
         #expect(fast <= 1.6 * normal)
@@ -148,13 +155,13 @@ struct ArcadeBalanceTests {
         for start in [3, 5, 6, 10, 11] {
             let income = smash(start)
             print("Balance: Hash Smash from level", start, "| income seconds/min", Int(income), "(from level 1:", Int(first), ")")
-            #expect((55...170).contains(income), "Hash Smash from level \(start) pays \(income)")
+            #expect((Self.startPayBand).contains(income), "Hash Smash from level \(start) pays \(income)")
         }
         let firstWave = invaders(1)
         for start in [3, 6, 11, 16] {
             let income = invaders(start)
             print("Balance: Scam Invaders from wave", start, "| income seconds/min", Int(income), "(from wave 1:", Int(firstWave), ")")
-            #expect((55...170).contains(income), "Scam Invaders from wave \(start) pays \(income)")
+            #expect((Self.startPayBand).contains(income), "Scam Invaders from wave \(start) pays \(income)")
         }
     }
 
@@ -164,8 +171,8 @@ struct ArcadeBalanceTests {
         let points = Self.pointsPerMinute(game)
         let income = points * game.secondsPerPoint
         print("Balance:", game.name, "| points/min", Int(points.rounded()), "| income seconds/min", Int(income.rounded()))
-        // Every game pays a skilled player about two minutes of income for each minute played.
-        #expect((90...160).contains(income), "\(game.name) pays \(income) seconds of income a minute")
+        // Every game pays a skilled player about four minutes of income for each minute played.
+        #expect((Self.payBand).contains(income), "\(game.name) pays \(income) seconds of income a minute")
     }
 }
 

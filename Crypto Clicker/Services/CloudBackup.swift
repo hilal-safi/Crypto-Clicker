@@ -6,8 +6,9 @@ import CryptoClickerKit
 /// every ten minutes while saving, and whenever the app leaves the screen; never over a copy from
 /// another device with more progress, which Settings offers to restore instead.
 ///
-/// Needs the iCloud capability (Key-value storage) on the app; without it, or without an iCloud
-/// account, `isAvailable` is false and nothing is backed up.
+/// Needs the iCloud capability (Key-value storage) on the app, which takes a paid developer
+/// account; without it, or without an iCloud account, `isAvailable` is false and nothing is backed
+/// up here. The file backups (`GameBackups`) work either way.
 @MainActor
 final class CloudBackup {
     /// What the backup in iCloud holds, for Settings.

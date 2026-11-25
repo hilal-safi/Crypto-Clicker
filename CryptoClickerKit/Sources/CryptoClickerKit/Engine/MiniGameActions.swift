@@ -450,6 +450,7 @@ extension GameState {
         stats.brickBreakerBosses = stats.brickBreakerBosses.addingCount(bosses)
         stats.brickBreakerPowerUps = stats.brickBreakerPowerUps.addingCount(powerUps)
         stats.brickBreakerBestStreak = max(stats.brickBreakerBestStreak, bestStreak)
+        if difficulty == .hard { stats.brickBreakerHardLevels = max(stats.brickBreakerHardLevels, level - start) }
         let share = Tuning.startPayShare(level: start, slope: Tuning.brickBreakerStartPaySlope) * difficulty.payMultiplier
         return payArcade(.brickBreaker, score: score, paidPoints: Int((Double(max(0, score)) * share).rounded()),
                          isNewBest: isNewBest, challengeValue: bricks)
@@ -476,6 +477,7 @@ extension GameState {
         stats.invadersBestStreak = max(stats.invadersBestStreak, bestStreak)
         stats.invadersVolleys = stats.invadersVolleys.addingCount(volleys)
         stats.invadersVolleysHit = stats.invadersVolleysHit.addingCount(min(max(0, volleysHit), max(0, volleys)))
+        if difficulty == .hard { stats.invadersHardWaves = max(stats.invadersHardWaves, wave - max(1, min(startWave, wave))) }
         let share = Tuning.startPayShare(level: max(1, min(startWave, wave)), slope: Tuning.invadersStartPaySlope)
             * difficulty.payMultiplier
         return payArcade(.invaders, score: score, paidPoints: Int((Double(max(0, score)) * share).rounded()),

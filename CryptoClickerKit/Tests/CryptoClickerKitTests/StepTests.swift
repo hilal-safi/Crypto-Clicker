@@ -222,6 +222,28 @@ struct StepTests {
         #expect(game.steps.counted.count == 7 && game.steps.credited.count == 7)
     }
 
+    /// This week's steps (Monday to Sunday) and the best week, kept as they're counted.
+    @Test func theBestWeekIsKept() {
+        var game = unlocked()
+        game.connectSteps(today: "2026-10-12") // Connected two weeks ago, so the whole window counts.
+        // Sunday the 18th ends one week; Monday the 19th starts the week holding the 24th.
+        game.creditSteps(week([9_000, 1_000, 2_000, 3_000, 4_000, 5_000, 6_000]), today: today, at: t0)
+        #expect(game.stepsInWeek(of: today) == 21_000)
+        #expect(game.stepsInWeek(of: "2026-10-18") == 9_000)
+        #expect(game.stats.bestWeekSteps == 21_000)
+        // A later sync of the same window adds today's new steps.
+        game.creditSteps(week([9_000, 1_000, 2_000, 3_000, 4_000, 5_000, 10_000]), today: today, at: at(3_600))
+        #expect(game.stepsInWeek(of: today) == 25_000 && game.stats.bestWeekSteps == 25_000)
+        // A quieter week never lowers it.
+        game.creditSteps([StepDay(key: "2026-10-26", steps: 500)], today: "2026-10-26", at: at(2 * 86_400))
+        #expect(game.stepsInWeek(of: "2026-10-26") == 500 && game.stats.bestWeekSteps == 25_000)
+        // Like the best day, it stays on the device when the game is copied.
+        let copy = game.withoutDeviceData
+        #expect(copy.stats.bestWeekSteps == 0)
+        #expect(GameState.make().continuing(with: copy, at: t0).stats.bestWeekSteps == 0)
+        #expect(game.continuing(with: copy, at: t0).stats.bestWeekSteps == 25_000)
+    }
+
     @Test func disconnectingPausesCounting() {
         var game = connected()
         game.disconnectSteps()
@@ -260,9 +282,9 @@ struct StepTests {
         game.upgrades.formUnion([.gigaStepBooster, .megaStepBooster])
         #expect(game.stepValue == 675) // ...the Giga and Mega Step Boosters (× 3 each) come later...
         game.upgrades.insert(.proofOfStride)
-        #expect(game.stepValue == 4_050) // ...and Proof of Stride (× 6), the last, is the biggest.
+        #expect(game.stepValue == 3_375) // ...and Proof of Stride (× 5), the last, is the biggest.
         let credit = game.creditSteps([StepDay(key: today, steps: 1_000)], today: today, at: t0)
-        #expect(credit.coins == 4_050_000)
+        #expect(credit.coins == 3_375_000)
     }
 
     @Test func stepsAreWorthWholeCoins() {

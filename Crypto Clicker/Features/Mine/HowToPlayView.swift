@@ -90,8 +90,10 @@ private struct HowToChapter: Identifiable {
         ]),
         HowToTopic("cpu", "Miners", "Miners earn coins every second while the app is open.", [
             "A Chromebook mines a coin every four seconds, and each tier after mines several times more.",
-            "Each unit costs 15% more than the last, so the next tier soon becomes the better buy.",
+            "Each unit costs 15% more than the last, so the next tier soon becomes the better buy. The first three GPU Rigs and Servers cost less, to bring them sooner.",
             "In the Shop, each miner shows what one more adds, its share of your income and how soon it pays for itself, and Best value marks the best buy.",
+            "Your first of each tier, and every milestone, gets a celebration that shows how much faster you now mine.",
+            "Once the list is long, the shortcuts at the top of the Shop jump to Miners, Power-ups, Upgrades and Prestige.",
         ]),
         HowToTopic("arrow.up.right.circle.fill", "Milestones and Mk upgrades", "The more of a miner you own, the more each one mines.", [
             "Owning every 25 of a miner up to 250, every 50 up to 1,000 and every 100 after that doubles its output each time.",
@@ -136,22 +138,26 @@ private struct HowToChapter: Identifiable {
         ]),
         HowToTopic("trophy.fill", "Achievements", "Bronze, silver, gold and mythic stars, in Trophies.", [
             "Every star adds 1% to production for good.",
+            "They're in collections (Mining, Fleet, Arcade, Casino, Market, Daily and Prestige), each showing how many of its stars you have.",
+            "Hard Hat and Scam Buster are badges for clearing levels of Hash Smash and waves of Scam Invaders in one game on Hard.",
             "Stars unlock finishes, rims and tap effects for the coin in Settings › Appearance.",
         ]),
     ]) }
 
     private static var games: HowToChapter { HowToChapter(title: "Tokens and Games", topics: [
         HowToTopic("chart.line.uptrend.xyaxis", "Tokens", "Buy and sell crypto in Shop › Tokens.", [
+            "The tokens and their prices are simulated by the game: they aren't real cryptocurrency prices, and no real money is involved.",
             "Prices drift every five minutes, usually a few percent a day, and news nudges them.",
             "Tether is a stablecoin: it barely moves, so it's a calm place to keep tokens.",
-            "Bet tokens at the casino, or sell them later: selling costs a 10% fee.",
+            "Bet tokens at the casino, or sell them later: selling costs a 10% fee. Before you sell, each token shows the fee, the coins you'd get, and how that compares with what you paid on average.",
+            "The wallet shows what your tokens cost against what they're worth now, and Recent Trades lists your latest 50 trades. Selling for more than you paid earns Buy Low, Sell High.",
             "Pick ×1, ×10, ×100 or Max to buy and sell in bulk.",
             "Settings › Statistics shows what you've paid for each token on average, and how it's done since.",
             "Tokens reset when you prestige.",
         ]),
         HowToTopic("gamecontroller.fill", "Arcade", "Games unlock one at a time, from a few thousand coins up to about one and a half trillion.", [
             "Arcade games pay coins for every point, and half as much again for a new best.",
-            "A minute of good play pays about two minutes of income.",
+            "A minute of good play pays about four minutes of income in the arcade, and three to four at the casino's tables.",
             "Playing earns XP for your Arcade Rank: each game shows what it earned, with more for a new best, the first game of each kind each day and the daily challenge. Casino rounds earn a little, up to a daily limit. Six different games in a week pay half an hour of income.",
             "Arcade Rank unlocks looks for every game in Style, on the Arcade's rank card. Some also come sooner with a game's achievement.",
             "Stats under a game's Play button shows its records before you start.",
@@ -165,8 +171,8 @@ private struct HowToChapter: Identifiable {
         ]),
         HowToTopic("square.grid.3x3.fill", "More ways to play", "Every action game opens on a start screen of its ways to play and its settings.", [
             "\(MiniGame.tetris.name): Endless, Block Rush and today's pieces. \(MiniGame.snake.name): Classic in four arenas, and Coin Rush.",
-            "\(MiniGame.merge2048.name): Classic and the Daily Puzzle. Building the Lunar Base pays ten minutes of income on top.",
-            "Token Swap has levels whose stars each pay once, a daily puzzle and random levels.",
+            "\(MiniGame.merge2048.name): Classic and the Daily Puzzle. Building the Lunar Base pays twenty minutes of income on top.",
+            "Token Swap has 30 levels in two chapters, whose stars each pay once, a daily puzzle and random levels.",
             "\(MiniGame.brickBreaker.name) and Scam Invaders have their levels or waves, random ones, and speed. Start at any level or wave you've reached; a later start pays a smaller share of its points.",
             "Pump and Dump plays on a 3×3, 4×4 or 5×5 board, at the speed you pick. Each board keeps its own best.",
             "\(MiniGame.bubbleBlaster.name): Waves, a two-minute Flash Market and today's market, with the shots' speed and a shorter aiming guide to pick.",
@@ -177,10 +183,12 @@ private struct HowToChapter: Identifiable {
     private static let progress = HowToChapter(title: "Progress", topics: [
         HowToTopic("flag.fill", "Goals", "Trophies › Goals shows what to aim for next.", [
             "The next miner, milestone, upgrade and game, the closest achievement star, and more.",
-            "Each goal shows how close you are.",
+            "Each goal shows how close you are: tap one to go where it's done.",
+            "When there's no tip, the Mine tab shows the goal closest to done, or the prestige the Shop suggests. Turn it off in Settings › Appearance.",
         ]),
         HowToTopic("chart.bar.xaxis", "Statistics", "Settings › Statistics keeps every record.", [
             "Chart your income over the last day, week or month, or all time.",
+            "This run against your best run and your best income, and your steps this week against your best week.",
             "Your Journey lists when each first happened, and how long after you started.",
         ]),
         HowToTopic("rosette", "Prestige and perks", "After 15 billion coins mined in all, start a new run for prestige points.", [
@@ -190,7 +198,7 @@ private struct HowToChapter: Identifiable {
             "Hard earns half as many points again, and Easy half as many: pick in Settings.",
         ]),
         HowToTopic("clock.arrow.circlepath", "Run History", "History on the Prestige card compares every run.", [
-            "How long each run took, what it mined, the points it earned, and your fastest and biggest.",
+            "How long each run took, what it mined, the points it earned, and your records: the fastest, the most points, the most coins and the highest income.",
             "Milestones at 1, 5, 10, 25 and 50 prestiges each unlock a coin finish.",
         ]),
     ])
@@ -208,9 +216,12 @@ private struct HowToChapter: Identifiable {
             "Ask Siri \u{201C}How many coins do I have in Crypto Clicker?\u{201D}",
             "Or add Check My Coins in the Shortcuts app.",
         ]),
-        HowToTopic("icloud.fill", "Backup", "Settings › Backup and Save Files keeps your game safe.", [
-            "Your game backs up to iCloud as you play, so a new iPhone can carry on from it.",
-            "Export a save file to keep or move your game yourself, and import one to carry on from it.",
+        HowToTopic("clock.arrow.circlepath", "Backup", "Settings › Backup and Save Files keeps your game safe.", [
+            "Your game is copied every ten minutes or so while you play and whenever you leave, with a copy a day for the last week. The copies are in the Files app, under On My iPhone › Crypto Clicker, and your iPhone's own backup includes them.",
+            "Pick a folder in Files, such as one in iCloud Drive, and your game is backed up there too. A new iPhone can pick the same folder and carry on from it.",
+            "Where iCloud is available, your game also backs up to iCloud as you play.",
+            "A backup never replaces one from another device that's further on, and the Backup page says when the last one was made.",
+            "Restore any backup, or export a save file to keep or move your game yourself and import one to carry on from it.",
             "Steps from Apple Health stay on your iPhone.",
         ]),
     ])

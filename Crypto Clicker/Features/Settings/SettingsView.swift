@@ -17,6 +17,7 @@ struct SettingsView: View {
     @AppStorage(Preferences.notifyMinersKey) private var notifyMiners = false
     @AppStorage(Preferences.notifyDailyKey) private var notifyDaily = false
     @AppStorage(Preferences.liveActivityKey) private var liveActivity = true
+    @AppStorage(Preferences.showsNextGoalKey) private var showsNextGoal = true
     @State private var showingHowToPlay = false
     @State private var handledHowToPlayRequests = 0
     @State private var confirmingReset = false
@@ -72,6 +73,7 @@ struct SettingsView: View {
                     } label: {
                         LabeledContent("Tap Effect", value: (tapEffect.isUnlocked(stars: game.earnedAchievementTiers) ? tapEffect : .none).name)
                     }
+                    Toggle("Next Goal on Mine", isOn: $showsNextGoal)
                 }
 
                 Section("Feedback") {
@@ -129,13 +131,13 @@ struct SettingsView: View {
                     NavigationLink {
                         BackupView()
                     } label: {
-                        Label("Backup and Save Files", systemImage: "icloud.and.arrow.up")
+                        Label("Backup and Save Files", systemImage: "clock.arrow.circlepath")
                     }
                     Button("Reset All Progress", role: .destructive) { confirmingReset = true }
                 } header: {
                     Text("Progress")
                 } footer: {
-                    SettingsNote("Back up to iCloud, or export and import a save file. Reset erases everything, prestige and achievements included.")
+                    SettingsNote("Backups, restoring, and save files to export and import. Reset erases everything, prestige and achievements included.")
                 }
             }
             // The same gap between every pair of sections, footer or not, and room above the

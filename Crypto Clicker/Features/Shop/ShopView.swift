@@ -23,20 +23,46 @@ enum BuyQuantity: Int, CaseIterable, Identifiable {
     }
 }
 
+/// The parts of the Shop other screens can ask for, and the shortcuts at the top of its
+/// Power-ups page jump to.
+enum ShopSection: String, CaseIterable, Identifiable {
+    case miners, powerUps, upgrades, prestige, tokens
+
+    var id: Self { self }
+
+    var title: LocalizedStringResource {
+        switch self {
+        case .miners: "Miners"
+        case .powerUps: "Power-ups"
+        case .upgrades: "Upgrades"
+        case .prestige: "Prestige"
+        case .tokens: "Tokens"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .miners: "cpu.fill"
+        case .powerUps: "bolt.fill"
+        case .upgrades: "sparkles"
+        case .prestige: "rosette"
+        case .tokens: "bitcoinsign.circle.fill"
+        }
+    }
+}
+
 /// The Shop, in two pages like Trophies: Power-ups (miners, power-ups, upgrades and prestige) and
 /// Tokens (the coin exchange: crypto to bet at the casino or trade).
 struct ShopView: View {
-    /// Goes up by one each time another screen asks to show the power-ups (the welcome-back
-    /// screen's Offline Mining button does).
-    var powerUpRequests = 0
-    /// Goes up by one each time another screen asks to show the tokens (the home screen's crypto card).
-    var tokenRequests = 0
+    /// The part of the Shop another screen asked for last: the welcome-back screen's Offline
+    /// Mining button asks for the power-ups, the Mine tab's crypto card for the tokens, and a goal
+    /// for where it's bought.
+    var request = TabRequest(ShopSection.miners)
     @Environment(GameStore.self) private var store
     @State private var page = ShopPage.powerUps
     @State private var quantity = BuyQuantity.one
     @State private var showsPurchased = false
-    @State private var handledPowerUpRequests = 0
-    @State private var handledTokenRequests = 0
+    @State private var handledRequest = 0
 
     enum ShopPage: String, CaseIterable, Identifiable {
         case powerUps = "Power-ups"
@@ -54,7 +80,6 @@ struct ShopView: View {
     }
 
     private static let topID = "top"
-    private static let powerUpsID = "power-ups"
 
     var body: some View {
         let game = store.game
@@ -70,6 +95,12 @@ struct ShopView: View {
                         if page == .tokens {
                             TokensPage()
                         } else {
+                            // Shortcuts once the list is long enough to scroll past.
+                            if MinerID.allCases.filter(game.isRevealed).count >= 4 {
+                                SectionShortcuts(sections: shortcutSections(game)) { section in
+                                    withAnimation(.smooth) { scroller.scrollTo(section, anchor: .top) }
+                                }
+                            }
                             powerUpsPage(game)
                         }
                     }
@@ -80,14 +111,10 @@ struct ShopView: View {
                     .frame(maxWidth: 700)
                     .frame(maxWidth: .infinity)
                 }
-                .onAppear {
-                    showTokensIfAsked(scroller)
-                    showPowerUpsIfAsked(scroller)
-                }
-                .onChange(of: powerUpRequests) { _, _ in showPowerUpsIfAsked(scroller) }
+                .onAppear { showIfAsked(scroller) }
+                .onChange(of: request) { _, _ in showIfAsked(scroller) }
                 .onChange(of: page) { _, _ in store.shopInfoMiner = nil; store.shopInfoToken = nil }
                 .onDisappear { store.shopInfoMiner = nil; store.shopInfoToken = nil }
-                .onChange(of: tokenRequests) { _, _ in showTokensIfAsked(scroller) }
             }
             .background { AppBackground(tint: page == .tokens ? .green : Theme.shop) }
             .navigationTitle("Shop")
@@ -110,9 +137,11 @@ struct ShopView: View {
         let offlineMiningPrice = game.offlineMiningPrice
         if game.isPrestigeRecommended {
             PrestigeCard()
+                .id(ShopSection.prestige)
         }
 
         SectionHeader(title: "Miners", detail: "\(CoinFormat.rate(game.baseProduction)) per second")
+            .id(ShopSection.miners)
         Picker("Buy quantity", selection: $quantity) {
             ForEach(BuyQuantity.allCases) { Text($0.title).tag($0) }
         }
@@ -127,7 +156,7 @@ struct ShopView: View {
         }
 
         SectionHeader(title: "Power-ups", detail: "Kept when you prestige")
-            .id(Self.powerUpsID)
+            .id(ShopSection.powerUps)
         OfflineMiningRow(level: game.offlineMiningLevel, price: offlineMiningPrice,
                          canAfford: offlineMiningPrice.map { $0 <= game.coins } ?? false)
         ForEach(PowerUpID.allCases) { powerUp in
@@ -142,6 +171,7 @@ struct ShopView: View {
 
         SectionHeader(title: "Upgrades",
                       detail: undiscovered > 0 ? "\(undiscovered) still hidden" : nil)
+            .id(ShopSection.upgrades)
         if available.isEmpty {
             Text(undiscovered > 0 ? "Keep mining to discover more upgrades." : "Every upgrade is yours.")
                 .font(.subheadline)
@@ -170,10 +200,22 @@ struct ShopView: View {
             .rowCard()
         }
 
-        if !game.isPrestigeRecommended
-            && (game.prestigePoints > 0 || game.stats.lifetimeCoins >= Tuning.prestigeScale / 10) {
+        if !game.isPrestigeRecommended && Self.showsPrestigeBelow(game) {
             PrestigeCard()
+                .id(ShopSection.prestige)
         }
+    }
+
+    /// The prestige card sits at the end of the list once prestige is in sight (and at the top
+    /// when the Shop suggests one).
+    private static func showsPrestigeBelow(_ game: GameState) -> Bool {
+        game.prestigePoints > 0 || game.stats.lifetimeCoins >= Tuning.prestigeScale / 10
+    }
+
+    /// The shortcuts for the sections on the Power-ups page now.
+    private func shortcutSections(_ game: GameState) -> [ShopSection] {
+        let prestige = game.isPrestigeRecommended || Self.showsPrestigeBelow(game)
+        return [.miners, .powerUps, .upgrades] + (prestige ? [.prestige] : [])
     }
 
     private func minerRow(_ miner: MinerID, game: GameState, isBestValue: Bool) -> MinerRow {
@@ -211,24 +253,56 @@ struct ShopView: View {
         return nil
     }
 
-    /// Shows the tokens page once for each request.
-    private func showTokensIfAsked(_ scroller: ScrollViewProxy) {
-        guard handledTokenRequests != tokenRequests else { return }
-        handledTokenRequests = tokenRequests
-        page = .tokens
-        scroller.scrollTo(Self.topID, anchor: .top)
-    }
-
-    /// Shows the power-ups page, scrolled to the power-ups, once for each request.
-    private func showPowerUpsIfAsked(_ scroller: ScrollViewProxy) {
-        guard handledPowerUpRequests != powerUpRequests else { return }
-        handledPowerUpRequests = powerUpRequests
+    /// Shows the part of the Shop asked for, once for each request: the tokens page from the top,
+    /// or the power-ups page scrolled to a section.
+    private func showIfAsked(_ scroller: ScrollViewProxy) {
+        guard handledRequest != request.number else { return }
+        handledRequest = request.number
+        let section = request.place
+        if section == .tokens {
+            page = .tokens
+            scroller.scrollTo(Self.topID, anchor: .top)
+            return
+        }
         page = .powerUps
         Task {
             // Let the tab switch settle so the list is on screen.
             try? await Task.sleep(for: .milliseconds(350))
-            withAnimation(.smooth) { scroller.scrollTo(Self.powerUpsID, anchor: .top) }
+            withAnimation(.smooth) { scroller.scrollTo(section, anchor: .top) }
         }
+    }
+}
+
+/// Buttons that jump down the Power-ups page to its sections.
+private struct SectionShortcuts: View {
+    let sections: [ShopSection]
+    let jump: (ShopSection) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(sections) { section in
+                    Button {
+                        jump(section)
+                    } label: {
+                        Label {
+                            Text(section.title)
+                        } icon: {
+                            Image(systemName: section.symbol)
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .accessibilityHint("Scrolls to \(Text(section.title))")
+                }
+            }
+            .padding(.vertical, 2)
+        }
+        .scrollIndicators(.hidden)
+        .scrollClipDisabled()
     }
 }
 

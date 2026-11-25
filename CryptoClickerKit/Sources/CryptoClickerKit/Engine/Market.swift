@@ -236,6 +236,7 @@ extension GameState {
         stats.tokensBought[token] = stats.tokensBought[token, default: 0].addingCount(quantity)
         stats.tokensBoughtWithPrice[token] = stats.tokensBoughtWithPrice[token, default: 0].addingCount(quantity)
         stats.coinsSpentOnTokens[token] = Self.finite(stats.coinsSpentOnTokens[token, default: 0] + cost)
+        record(TokenTrade(date: date, token: token, quantity: quantity, coins: cost))
         return true
     }
 
@@ -244,13 +245,109 @@ extension GameState {
     @discardableResult
     public mutating func sellTokens(_ token: TokenID, quantity: Int, at date: Date) -> Double? {
         guard quantity > 0, tokenCount(token) >= quantity else { return nil }
-        let value = saleValue(of: token, quantity: quantity, at: date)
+        let preview = salePreview(of: token, quantity: quantity, at: date)
+        let value = preview.net
         tokens[token] = tokenCount(token) - quantity
         coins += value
         stats.tokensSold += quantity
         stats.coinsFromSales += value
+        if let profit = preview.profit {
+            stats.tradingProfit = Self.finite(stats.tradingProfit + profit)
+            if profit > 0 {
+                stats.profitableSales += 1
+                stats.bestSaleProfit = Self.finite(max(stats.bestSaleProfit, profit))
+            }
+        }
+        record(TokenTrade(date: date, token: token, quantity: -quantity, coins: value, profit: preview.profit))
         return value
     }
+
+    /// What selling `quantity` tokens at `date` comes to, before it's done: their worth at the
+    /// market price, the fee, what's left, and how that compares with the average price paid.
+    public func salePreview(of token: TokenID, quantity: Int, at date: Date) -> SalePreview {
+        let count = max(0, quantity)
+        let worth = Self.wholeCoins(price(of: token, quantity: count, at: date))
+        let net = saleValue(of: token, quantity: count, at: date)
+        let paid = stats.averagePricePaid(token).map { $0 * Double(count) }
+        return SalePreview(worth: worth, fee: max(0, worth - net), net: net, paid: paid)
+    }
+
+    /// The wallet against what was paid for it, at `date`.
+    public func portfolio(at date: Date) -> Portfolio {
+        var worth = 0.0, paid = 0.0, worthOfPaid = 0.0
+        for token in TokenID.allCases {
+            let count = tokenCount(token)
+            guard count > 0 else { continue }
+            let value = price(of: token, quantity: count, at: date)
+            worth += value
+            if let average = stats.averagePricePaid(token) {
+                paid += average * Double(count)
+                worthOfPaid += value
+            }
+        }
+        return Portfolio(worth: Self.finite(worth), paid: Self.finite(paid), worthOfPaid: Self.finite(worthOfPaid))
+    }
+
+    /// Adds a trade to the history, dropping the oldest past `Tuning.tradeHistoryLimit`.
+    private mutating func record(_ trade: TokenTrade) {
+        recentTrades.append(trade)
+        if recentTrades.count > Tuning.tradeHistoryLimit {
+            recentTrades.removeFirst(recentTrades.count - Tuning.tradeHistoryLimit)
+        }
+    }
+}
+
+/// A trade on the market, for the Tokens page's history.
+public struct TokenTrade: Codable, Hashable, Sendable, Identifiable {
+    public let date: Date
+    public let token: TokenID
+    /// Tokens bought, or (below zero) sold.
+    public let quantity: Int
+    /// Coins paid for a purchase, or received for a sale after the fee.
+    public let coins: Double
+    /// For a sale: what it made (or lost) against the average price paid for the token, when one
+    /// was ever paid.
+    public let profit: Double?
+
+    public var isSale: Bool { quantity < 0 }
+    public var id: String { "\(date.timeIntervalSinceReferenceDate)|\(token.rawValue)|\(quantity)" }
+
+    public init(date: Date, token: TokenID, quantity: Int, coins: Double, profit: Double? = nil) {
+        self.date = date
+        self.token = token
+        self.quantity = quantity
+        self.coins = coins
+        self.profit = profit
+    }
+}
+
+/// What a sale comes to before it's made: the tokens' worth at the market price, the fee taken
+/// from it, the coins left, and what the same tokens cost at the average price paid (nil when none
+/// were ever bought, only won).
+public struct SalePreview: Equatable, Sendable {
+    public let worth: Double
+    public let fee: Double
+    public let net: Double
+    public let paid: Double?
+
+    /// The coins received against what was paid: nil without a price paid.
+    public var profit: Double? { paid.map { net - $0 } }
+}
+
+/// What the wallet's tokens are worth, and how the ones bought at a known price have done: what
+/// they cost at the average price paid for each token, and what they're worth now.
+public struct Portfolio: Equatable, Sendable {
+    /// Every token held, at the market price.
+    public let worth: Double
+    /// The tokens held that were bought at a known price, at the average price paid...
+    public let paid: Double
+    /// ...and at the market price.
+    public let worthOfPaid: Double
+
+    /// What those tokens have gained (or lost) since they were bought.
+    public var change: Double { worthOfPaid - paid }
+    /// The same as a share of what was paid, or nil with nothing paid.
+    public var changeShare: Double? { paid > 0 ? change / paid : nil }
 }
 
 /// How much a token's price moves, for the Tokens page.

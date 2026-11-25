@@ -38,6 +38,8 @@ struct RunHistoryTests {
         #expect(game.stats.quickRuns == 1) // Three days: not quick.
         #expect(game.stats.bestRunPoints == second)
         #expect(game.fastestRun?.number == 1 && game.biggestRun?.number == 2 && game.richestRun?.number == 2)
+        // The first run ended with five miners, the second with one Chromebook: the first earned more.
+        #expect(game.mostProductiveRun?.number == 1)
     }
 
     /// Runs before the first recorded one (prestiges from before version 2.1) keep their numbers.

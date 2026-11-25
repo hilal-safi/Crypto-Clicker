@@ -701,7 +701,7 @@ struct TokenSwapObstacleTests {
 
     @Test func randomPlayKeepsTheBoardWhole() {
         var rng = SeededGenerator(seed: 11)
-        for level in TokenSwapLevel.all.prefix(18) {
+        for level in TokenSwapLevel.all {
             var game = TokenSwapGame(level: level, refillSeed: UInt64(level.id))
             for _ in 0..<12 where game.phase == .playing {
                 let swaps = game.validSwaps
@@ -832,7 +832,7 @@ struct TokenSwapModeTests {
     @Test func theLevelsAreWellFormed() {
         let levels = TokenSwapLevel.all
         #expect(levels.map(\.id) == Array(1...levels.count))
-        #expect((12...24).contains(levels.count))
+        #expect((24...50).contains(levels.count))
         for level in levels + TokenSwapLevel.dailyTemplates {
             #expect((4...6).contains(level.kinds), "\(level.name)")
             #expect(level.layout.isEmpty || (level.layout.count == 8 && level.layout.allSatisfy { $0.count == 8 }), "\(level.name)")
@@ -854,6 +854,11 @@ struct TokenSwapModeTests {
         }
         // Difficulty never goes down.
         #expect(zip(levels.dropFirst(), levels).allSatisfy { $0.difficulty >= $1.difficulty })
+        // Two chapters: the first 18 levels, one idea at a time, then the harder boards.
+        #expect(TokenSwapLevel.chapters.map(\.number) == [1, 2])
+        #expect(TokenSwapLevel.chapters.first?.levels.map(\.id) == Array(1...18))
+        #expect(TokenSwapLevel.chapters.last?.levels.allSatisfy { $0.difficulty == .hard } == true)
+        #expect(Set(levels.map(\.name)).count == levels.count)
         #expect(levels[0].stars(won: false, score: 99_999) == 0)
         #expect(levels[0].stars(won: true, score: 0) == 1)
         #expect(levels[0].stars(won: true, score: levels[0].starScores[0]) == 2)

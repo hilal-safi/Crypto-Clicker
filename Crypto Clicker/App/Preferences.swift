@@ -25,6 +25,8 @@ enum Preferences {
     static let lastShortWelcomeDayKey = "lastShortWelcomeDay"
     /// First-run tips the player has closed, comma-separated.
     static let dismissedTipsKey = "dismissedTips"
+    /// The Mine tab shows the next goal when there's no tip (on unless the player turns it off).
+    static let showsNextGoalKey = "showsNextGoal"
     /// Each action game's Speed option.
     /// Hash Smash's and Scam Invaders' Speed, from before Difficulty took its place (read once, by
     /// `migrate`).
@@ -64,10 +66,12 @@ enum Preferences {
     static let runChartMetricKey = "runChartMetric"
     /// Set once the App Store rating prompt has been asked for (after the first prestige).
     static let reviewRequestedKey = "reviewRequested"
-    /// Whether the game is backed up to iCloud (on unless turned off), and this install's id for
-    /// telling its backups from another device's.
+    /// Whether the game is backed up to iCloud (on unless turned off, and only where the app has
+    /// the iCloud capability), this install's id for telling its backups from another device's,
+    /// and the bookmark to the folder the player picked for backups.
     static let iCloudBackupKey = "iCloudBackup"
     static let backupDeviceKey = "backupDevice"
+    static let backupFolderKey = "backupFolder"
     /// The balance shows as a Live Activity on the Lock Screen and in the Dynamic Island.
     static let liveActivityKey = "showsLiveActivity"
     /// Merge Mining shows each miner's number under its picture.

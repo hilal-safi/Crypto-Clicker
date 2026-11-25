@@ -3,13 +3,15 @@ import CryptoClickerKit
 
 /// What to work toward next, daily rewards and quests, and the achievements that add production.
 struct TrophiesView: View {
-    /// Goes up by one each time another tab asks to show the Daily page.
-    var dailyRequests = 0
+    /// The page another tab asked for last: Daily (the Mine tab's tip) or Achievements (a goal).
+    var request = TabRequest(Page.daily)
     /// Opens today's challenge in the Arcade.
     let openChallenge: () -> Void
+    /// Opens where a goal is worked toward.
+    let openGoal: (Goal.Kind) -> Void
     @Environment(GameStore.self) private var store
     @State private var page = Page.daily
-    @State private var handledDailyRequests = 0
+    @State private var handledRequest = 0
 
     enum Page: String, CaseIterable, Identifiable {
         case goals = "Goals"
@@ -52,18 +54,22 @@ struct TrophiesView: View {
                     .pickerStyle(.segmented)
                     switch page {
                     case .goals:
-                        GoalsPage(goals: game.nextGoals)
+                        GoalsPage(goals: game.nextGoals, open: openGoal)
                     case .daily:
                         DailyPage(openChallenge: openChallenge)
                     case .achievements:
                         TrophySummary(earned: game.earnedAchievementTiers, total: AchievementCatalog.tierCount,
                                       bonus: game.achievementBonus - 1)
-                        LazyVGrid(columns: columns, spacing: 12) {
-                            ForEach(AchievementCatalog.all) { achievement in
-                                AchievementCard(achievement: achievement,
-                                                tiers: game.tiersEarned(achievement),
-                                                value: game.value(of: achievement.metric),
-                                                next: game.nextThreshold(achievement))
+                        // In collections, each with its share of the stars.
+                        ForEach(AchievementCatalog.collections) { collection in
+                            CollectionHeader(collection: collection, earned: game.tiersEarned(in: collection))
+                            LazyVGrid(columns: columns, spacing: 12) {
+                                ForEach(collection.achievements) { achievement in
+                                    AchievementCard(achievement: achievement,
+                                                    tiers: game.tiersEarned(achievement),
+                                                    value: game.value(of: achievement.metric),
+                                                    next: game.nextThreshold(achievement))
+                                }
                             }
                         }
                     }
@@ -78,14 +84,39 @@ struct TrophiesView: View {
             .navigationTitle("Trophies")
             .balanceToolbar()
         }
-        .onAppear(perform: showDailyIfAsked)
-        .onChange(of: dailyRequests) { _, _ in showDailyIfAsked() }
+        .onAppear(perform: showPageIfAsked)
+        .onChange(of: request) { _, _ in showPageIfAsked() }
     }
 
-    private func showDailyIfAsked() {
-        guard handledDailyRequests != dailyRequests else { return }
-        handledDailyRequests = dailyRequests
-        page = .daily
+    private func showPageIfAsked() {
+        guard handledRequest != request.number else { return }
+        handledRequest = request.number
+        page = request.place
+    }
+}
+
+/// A collection's name over its achievements, with the stars it has of all it holds.
+private struct CollectionHeader: View {
+    let collection: AchievementCollection
+    let earned: Int
+
+    var body: some View {
+        let total = collection.tierCount
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Label(collection.name, systemImage: collection.symbol)
+                    .font(.title3.bold())
+                Spacer(minLength: 8)
+                Text("\(earned) of \(total) stars")
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(earned >= total ? Theme.gain : .subtext)
+            }
+            ProgressView(value: Double(earned), total: Double(max(1, total)))
+                .tint(earned >= total ? Theme.gain : Theme.gold)
+        }
+        .padding(.horizontal, 4)
+        .padding(.top, 8)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -95,6 +126,8 @@ struct TrophiesView: View {
 /// working toward, each with how far along it is.
 private struct GoalsPage: View {
     let goals: [Goal]
+    /// Opens where a goal is worked toward.
+    let open: (Goal.Kind) -> Void
     @Environment(GameStore.self) private var store
 
     var body: some View {
@@ -114,7 +147,13 @@ private struct GoalsPage: View {
                 .font(.title3.bold())
                 .padding(.horizontal, 4)
             ForEach(goals) { goal in
-                GoalCard(goal: goal)
+                Button {
+                    open(goal.kind)
+                } label: {
+                    GoalCard(goal: goal)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(goal.kind.destination)
             }
         }
     }
@@ -208,13 +247,27 @@ private struct GoalCard: View {
                 ProgressView(value: goal.progress)
                     .tint(goal.kind.color)
             }
+            Image(systemName: "chevron.right")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.subtext)
+                .accessibilityHidden(true)
         }
         .rowCard()
+        .contentShape(.rect)
         .accessibilityElement(children: .combine)
     }
 }
 
 extension Goal.Kind {
+    /// Where tapping the goal goes, for VoiceOver.
+    var destination: String {
+        switch self {
+        case .miner, .milestone, .upgrade, .prestige: String(localized: "Opens the Shop")
+        case .game, .arcadeRank, .tokenSwap: String(localized: "Opens the Arcade")
+        case .achievement: String(localized: "Opens the achievements")
+        }
+    }
+
     var symbol: String {
         switch self {
         case .miner: "cpu.fill"

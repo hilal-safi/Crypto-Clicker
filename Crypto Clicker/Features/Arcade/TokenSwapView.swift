@@ -153,14 +153,27 @@ struct TokenSwapLevelsView: View {
                 Label("\(progress.totalStars) of \(TokenSwapLevel.all.count * 3) stars", systemImage: "star.fill")
                     .font(.headline)
                     .labelStyle(GoldIconLabelStyle())
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 10)], spacing: 10) {
-                    ForEach(TokenSwapLevel.all) { level in
-                        let isOpen = progress.isUnlocked(level.id)
-                        NavigationLink(value: TokenSwapRoute.level(level.id)) {
-                            LevelTile(level: level, stars: progress.stars(for: level.id), isOpen: isOpen)
+                ForEach(TokenSwapLevel.chapters) { chapter in
+                    let stars = chapter.levels.reduce(0) { $0 + progress.stars(for: $1.id) }
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Chapter \(chapter.number)")
+                            .font(.title3.bold())
+                        Spacer(minLength: 8)
+                        Text("Levels \(chapter.levels.first?.id ?? 0)–\(chapter.levels.last?.id ?? 0) · \(stars) of \(chapter.levels.count * 3) stars")
+                            .font(.subheadline.weight(.semibold).monospacedDigit())
+                            .foregroundStyle(.subtext)
+                    }
+                    .padding(.top, 6)
+                    .accessibilityElement(children: .combine)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 10)], spacing: 10) {
+                        ForEach(chapter.levels) { level in
+                            let isOpen = progress.isUnlocked(level.id)
+                            NavigationLink(value: TokenSwapRoute.level(level.id)) {
+                                LevelTile(level: level, stars: progress.stars(for: level.id), isOpen: isOpen)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(!isOpen)
                         }
-                        .buttonStyle(.plain)
-                        .disabled(!isOpen)
                     }
                 }
             }

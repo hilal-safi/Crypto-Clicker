@@ -9,42 +9,37 @@ struct RootView: View {
     @State private var showingIncome = false
     /// Set when a tap on the greyed-out tab bar is turned away because a card round is on.
     @State private var showingRoundAlert = false
-    /// Counts requests (the welcome-back screen's Offline Mining button) to show the Shop's power-ups.
-    @State private var powerUpRequests = 0
-    /// Counts requests (the home screen's crypto card) to show the Shop's tokens.
-    @State private var tokenRequests = 0
+    /// The part of the Shop other screens last asked for: its power-ups (the welcome-back screen's
+    /// Offline Mining button), its tokens (the Mine tab's crypto card), or where a goal is bought.
+    @State private var shopRequest = TabRequest(ShopSection.miners)
     /// Counts requests (the home screen's tip) to open How to Play in Settings.
     @State private var howToPlayRequests = 0
     /// Counts requests (from the Daily page) to open today's challenge in the Arcade.
     @State private var challengeRequests = 0
-    /// Counts requests (from the Mine tab's tips) to show the Daily page.
-    @State private var dailyRequests = 0
+    /// The Arcade's list, or a game in it, asked for by a goal.
+    @State private var arcadeRequest = TabRequest<MiniGame?>(nil)
+    /// The Trophies page asked for: Daily (the Mine tab's tips), or Achievements (a goal).
+    @State private var trophiesRequest = TabRequest(TrophiesView.Page.daily)
 
     var body: some View {
         @Bindable var store = store
         TabView(selection: $tab) {
             Tab("Mine", systemImage: "bitcoinsign.circle.fill", value: AppTab.mine) {
-                MineView(openShop: { tab = .shop }, openPowerUps: openPowerUps, openTokens: openTokens, openDaily: {
-                    dailyRequests += 1
-                    tab = .trophies
-                }, openIncome: { showingIncome = true }, openHowToPlay: {
-                    howToPlayRequests += 1
-                    tab = .settings
-                })
+                mineTab
             }
             .disabled(store.isTableRoundOpen)
             Tab("Shop", systemImage: "cart.fill", value: AppTab.shop) {
-                ShopView(powerUpRequests: powerUpRequests, tokenRequests: tokenRequests)
+                ShopView(request: shopRequest)
             }
             .disabled(store.isTableRoundOpen)
             Tab("Arcade", systemImage: "gamecontroller.fill", value: AppTab.arcade) {
-                ArcadeView(challengeRequests: challengeRequests)
+                ArcadeView(challengeRequests: challengeRequests, gameRequest: arcadeRequest)
             }
             Tab("Trophies", systemImage: "trophy.fill", value: AppTab.trophies) {
-                TrophiesView(dailyRequests: dailyRequests, openChallenge: {
+                TrophiesView(request: trophiesRequest, openChallenge: {
                     challengeRequests += 1
                     tab = .arcade
-                })
+                }, openGoal: showGoal)
             }
             .badge(store.dailyBadgeCount)
             .disabled(store.isTableRoundOpen)
@@ -109,14 +104,44 @@ struct RootView: View {
         }
     }
 
+    /// The Mine tab, with the ways it opens the other tabs.
+    private var mineTab: some View {
+        MineView(openShop: { openShop(.miners) }, openPowerUps: openPowerUps, openTokens: openTokens, openDaily: {
+            trophiesRequest.ask(for: .daily)
+            tab = .trophies
+        }, openIncome: { showingIncome = true }, openHowToPlay: {
+            howToPlayRequests += 1
+            tab = .settings
+        }, openGoal: showGoal)
+    }
+
     private func openPowerUps() {
-        powerUpRequests += 1
-        tab = .shop
+        openShop(.powerUps)
     }
 
     private func openTokens() {
-        tokenRequests += 1
+        openShop(.tokens)
+    }
+
+    private func openShop(_ section: ShopSection) {
+        shopRequest.ask(for: section)
         tab = .shop
+    }
+
+    /// Opens where a goal is worked toward: the Shop's miners, upgrades or prestige, the Arcade (at
+    /// Token Swap's levels for its goal), or the Trophies tab's achievements.
+    private func showGoal(_ goal: Goal.Kind) {
+        switch goal {
+        case .miner, .milestone: openShop(.miners)
+        case .upgrade: openShop(.upgrades)
+        case .prestige: openShop(.prestige)
+        case .game, .arcadeRank, .tokenSwap:
+            arcadeRequest.ask(for: goal == .tokenSwap ? .tokenSwap : nil)
+            tab = .arcade
+        case .achievement:
+            trophiesRequest.ask(for: .achievements)
+            tab = .trophies
+        }
     }
 
     /// Asks for an App Store rating once, a few seconds after the first prestige: a moment the
@@ -203,5 +228,21 @@ struct BalanceAccessory: View {
         var text = "\(amount(balance)) coins, \(rate) a second"
         if let boost { text += ", Bull Run \(CoinFormat.multiplier(boost.multiplier))" }
         return text
+    }
+}
+
+/// A request from one screen to show a place on another tab: a Shop section, a Trophies page, a
+/// game. It's counted, so asking again for the same place goes there again.
+struct TabRequest<Place: Equatable>: Equatable {
+    private(set) var number = 0
+    private(set) var place: Place
+
+    init(_ place: Place) {
+        self.place = place
+    }
+
+    mutating func ask(for place: Place) {
+        number += 1
+        self.place = place
     }
 }

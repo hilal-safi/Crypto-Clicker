@@ -2,8 +2,8 @@ import SwiftUI
 import CryptoClickerKit
 
 /// The home screen, in order of importance: the balance with coins per second and per tap, the coin
-/// to tap, a tip for new players, what the player owns (miners and power-ups, and crypto), and steps
-/// once they are unlocked. No title and no buttons along the top, so the coin gets the room;
+/// to tap, a tip for new players (or the next goal), what the player owns (miners and power-ups,
+/// and crypto), and steps once they are unlocked. No title and no buttons along the top, so the coin gets the room;
 /// Statistics and How to Play are in the Settings tab.
 struct MineView: View {
     let openShop: () -> Void
@@ -15,6 +15,8 @@ struct MineView: View {
     let openIncome: () -> Void
     /// Opens How to Play in the Settings tab.
     let openHowToPlay: () -> Void
+    /// Opens where the next goal is worked toward.
+    let openGoal: (Goal.Kind) -> Void
     @Environment(GameStore.self) private var store
     @State private var showingStepsIntro = false
     @State private var effects = Effects()
@@ -110,7 +112,8 @@ struct MineView: View {
                 // Cards gather at the bottom, so the coin above stays where it is as they change.
                 Spacer(minLength: 0)
             }
-            GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openDaily: openDaily, openHowToPlay: openHowToPlay)
+            GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openTokens: openTokens, openDaily: openDaily,
+                         openHowToPlay: openHowToPlay, openGoal: openGoal)
             InventoryStrip(game: game, market: store.market, openShop: openShop, openTokens: openTokens)
             StepsCard(learnMore: { showingStepsIntro = true })
             // Without today's steps to sit beside, the prestige points get a row of their own.

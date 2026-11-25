@@ -41,6 +41,17 @@ struct PurchaseNote: Identifiable, Equatable {
     /// Milestones the purchases reached, and Mk upgrades they made available, newest last:
     /// "Desktop milestone: 50 owned, output ×2".
     private(set) var milestones: [String] = []
+
+    /// A purchase worth celebrating: the first miner of a tier ever bought, or a milestone.
+    enum Highlight: Hashable {
+        /// The miner's name.
+        case newMiner(String)
+        /// What was reached: "50 Desktops".
+        case milestone(String)
+    }
+
+    /// The latest purchase worth celebrating, if one was made while the popup was up.
+    private(set) var highlight: Highlight?
     /// Idle income, a tap's worth and a step's worth before the first of these purchases...
     let incomeBefore: Double
     let tapBefore: Double
@@ -67,7 +78,8 @@ struct PurchaseNote: Identifiable, Equatable {
         updatedAt = date
     }
 
-    mutating func add(_ name: String, count: Int, effect: String?, milestones reached: [String] = []) {
+    mutating func add(_ name: String, count: Int, effect: String?, milestones reached: [String] = [],
+                      highlight: Highlight? = nil) {
         if let index = items.firstIndex(where: { $0.name == name }) {
             items[index].count += count
             if let effect { items[index].effect = effect }
@@ -75,6 +87,15 @@ struct PurchaseNote: Identifiable, Equatable {
             items.append(Item(name: name, count: count, effect: effect))
         }
         milestones.append(contentsOf: reached)
+        if let highlight { self.highlight = highlight }
+    }
+
+    /// How many times the income was multiplied since the first of these purchases, when it was
+    /// worth showing (×1.05 or more).
+    var incomeMultiple: Double? {
+        guard incomeBefore > 0, incomeNow.isFinite else { return nil }
+        let multiple = incomeNow / incomeBefore
+        return multiple >= 1.05 ? multiple : nil
     }
 
     var itemCount: Int { items.reduce(0) { $0 + $1.count } }
@@ -204,6 +225,8 @@ final class GameStore {
     let watch = WatchBridge()
     let notifier = Notifier()
     let balanceSharing = BalanceSharing()
+    /// Backups as files (always), and in iCloud where the app has the iCloud capability.
+    let backups = GameBackups()
     let cloudBackup = CloudBackup()
     @ObservationIgnored private var ticker: Task<Void, Never>?
     /// Income is credited only while the app is on screen. In the background the game clock stays
@@ -293,7 +316,10 @@ final class GameStore {
             comboStreak = 0
             // Backed up as the app leaves, before the save (which backs up at most every ten
             // minutes, so it doesn't again now).
-            cloudBackup.backUp(state, force: true)
+            if !isSaveLocked {
+                backups.backUp(state, force: true)
+                cloudBackup.backUp(state, force: true)
+            }
             save()
             pushToWatch(force: true)
             shareBalance(force: true)
@@ -497,12 +523,12 @@ final class GameStore {
     /// Adds a purchase to the popup: to the one on screen if the last purchase was under nine
     /// seconds ago, else to a new one measured from `before` (`purchaseBaseline` before buying).
     func notePurchase(_ name: String, count: Int = 1, effect: String? = nil, milestones: [String] = [],
-                      before: (income: Double, tap: Double, step: Double)) {
+                      highlight: PurchaseNote.Highlight? = nil, before: (income: Double, tap: Double, step: Double)) {
         let now = Date.now
         var note = purchaseNote.flatMap { now.timeIntervalSince($0.updatedAt) < PurchaseNote.lifetime ? $0 : nil }
             ?? PurchaseNote(incomeBefore: before.income, tapBefore: before.tap, stepBefore: before.step,
                             showsSteps: state.steps.isConnected, at: now)
-        note.add(name, count: count, effect: effect, milestones: milestones)
+        note.add(name, count: count, effect: effect, milestones: milestones, highlight: highlight)
         note.incomeNow = state.baseIdleIncome
         note.tapNow = state.baseTapValue
         note.stepNow = state.stepValue
@@ -525,6 +551,7 @@ final class GameStore {
             try saves.save(state)
             lastSave = .now
             hasUnsavedChanges = false
+            backups.backUp(state)
             cloudBackup.backUp(state)
             return true
         } catch {
@@ -560,7 +587,7 @@ final class GameStore {
         save()
     }
 
-    /// Carries on from `copy` (a save file, or the iCloud backup) in place of the game here. This
+    /// Carries on from `copy` (a save file, or a backup) in place of the game here. This
     /// iPhone keeps its Apple Health ledger, so no day's steps are paid twice.
     func importGame(_ copy: GameState) {
         replaceGame(with: state.continuing(with: copy, at: .now))
@@ -570,6 +597,7 @@ final class GameStore {
         comboStreak = 0
         scheduleAirdrop(from: .now)
         refreshDaily(at: .now, force: true)
+        backups.backUp(state, force: true)
         cloudBackup.backUp(state, force: true)
         save()
         pushToWatch(force: true)

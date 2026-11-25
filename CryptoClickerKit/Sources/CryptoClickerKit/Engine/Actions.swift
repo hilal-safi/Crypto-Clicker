@@ -425,6 +425,11 @@ extension GameState {
             stats.bestDaySteps = max(stats.bestDaySteps, day.steps)
         }
         stats.lifetimeSteps = stats.lifetimeSteps.addingCount(counted)
+        // The best week: the sync window (a week) holds every day of this week so far, and of last
+        // week whatever is still in it, so late-arriving steps count too.
+        var weeks: [String: Int] = [:]
+        for (key, count) in steps.counted { weeks[StepDay.weekKey(of: key), default: 0] += count }
+        stats.bestWeekSteps = max(stats.bestWeekSteps, weeks.values.max() ?? 0)
         // Pay for the days that are over, and today's steps too after the first day, at today's
         // step value; the first day's steps (paid the day after) at a coin each.
         let paysToday = !stepsPaidNextDay(today: today)
@@ -450,6 +455,12 @@ extension GameState {
         stats.stepsPaid = stats.stepsPaid.addingCount(paid)
         credit(coins, source: .steps)
         return StepCredit(steps: paid, coins: coins, counted: counted, days: paidDays)
+    }
+
+    /// Steps counted so far in the week (Monday to Sunday) that holds `today`.
+    public func stepsInWeek(of today: String) -> Int {
+        let week = StepDay.weekKey(of: today)
+        return steps.counted.reduce(0) { $0 + (StepDay.weekKey(of: $1.key) == week ? $1.value : 0) }
     }
 
     /// Whether today's steps wait for tomorrow: only on the game's first day.

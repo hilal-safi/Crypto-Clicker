@@ -43,7 +43,8 @@ extension GameState {
 
     /// Price of the unit at position `index` (0 is the first unit), in whole coins.
     public func unitPrice(_ miner: MinerID, index: Int) -> Double {
-        Self.wholePrice(miner.baseCost * minerPriceFactor * pow(Tuning.costGrowth, Double(index)))
+        Self.wholePrice(miner.baseCost * minerPriceFactor * pow(Tuning.costGrowth, Double(index))
+            * miner.openingPriceShare(index: index))
     }
 
     /// Total price of the next `quantity` units: the geometric series, rounded up to a whole coin.
@@ -51,8 +52,17 @@ extension GameState {
     public func price(of miner: MinerID, quantity: Int) -> Double {
         guard quantity > 0 else { return 0 }
         let growth = Tuning.costGrowth
-        let first = miner.baseCost * minerPriceFactor * pow(growth, Double(owned(miner)))
-        return Self.wholePrice(first * ((pow(growth, Double(quantity)) - 1) / (growth - 1)))
+        let owned = owned(miner)
+        let first = miner.baseCost * minerPriceFactor * pow(growth, Double(owned))
+        var total = first * ((pow(growth, Double(quantity)) - 1) / (growth - 1))
+        // The first few GPU Rigs and Servers cost less (`MinerID.openingPriceShares`).
+        let shares = miner.openingPriceShares
+        if owned < shares.count {
+            for index in owned..<min(owned + quantity, shares.count) {
+                total -= miner.baseCost * minerPriceFactor * pow(growth, Double(index)) * (1 - shares[index])
+            }
+        }
+        return Self.wholePrice(total)
     }
 
     /// How many units the current balance (or `budget`) can buy right now.

@@ -49,7 +49,15 @@ extension GameState {
         case .weeklyVarietyGoals: Double(arcade.weeklyGoals)
         case .invadersDestroyed: Double(stats.invadersDestroyed)
         case .invadersBestWave: Double(stats.invadersBestWave)
+        case .profitableSales: Double(stats.profitableSales)
+        case .brickBreakerHardLevels: Double(stats.brickBreakerHardLevels)
+        case .invadersHardWaves: Double(stats.invadersHardWaves)
         }
+    }
+
+    /// Stars earned in a collection's achievements.
+    public func tiersEarned(in collection: AchievementCollection) -> Int {
+        collection.achievements.reduce(0) { $0 + tiersEarned($1) }
     }
 
     /// Tiers earned for an achievement (0 to 4).

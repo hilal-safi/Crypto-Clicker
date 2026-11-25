@@ -64,6 +64,15 @@ struct StatsPage: View {
             row("Started", "\(game.runStart.formatted(date: .abbreviated, time: .shortened))")
             row("Running for", CoinFormat.duration(now.timeIntervalSince(game.runStart)))
             row("Coins this run", amount(stats.runCoins))
+            // This run against the best finished one, and against all time.
+            if let richest = game.richestRun {
+                row("Best run's coins", "\(amount(richest.coins)) · run \(richest.number)")
+            }
+            if stats.lifetimeCoins > 0 {
+                row("Share of all coins mined", CoinFormat.percent(stats.runCoins / stats.lifetimeCoins))
+            }
+            row("Income vs best ever", stats.peakIncome > 0
+                ? "\(CoinFormat.percent(min(1, game.baseIdleIncome / stats.peakIncome))) of \(rate(stats.peakIncome))/s" : "–")
             row("Miners owned", CoinFormat.grouped(game.totalMiners))
             row("Upgrades owned", "\(game.upgrades.count) of \(UpgradeID.allCases.count)")
             row("Mk upgrades", CoinFormat.grouped(game.minerUpgrades.values.reduce(0, +)))
@@ -159,6 +168,10 @@ struct StatsPage: View {
             row("Steps walked", CoinFormat.grouped(stats.lifetimeSteps))
             row("Steps paid for", CoinFormat.grouped(stats.stepsPaid))
             row("Best day", "\(CoinFormat.grouped(stats.bestDaySteps)) steps")
+            if game.steps.isConnected {
+                row("This week", "\(CoinFormat.grouped(game.stepsInWeek(of: today))) steps")
+            }
+            row("Best week", "\(CoinFormat.grouped(stats.bestWeekSteps)) steps")
         }
     }
 
@@ -198,6 +211,11 @@ struct StatsPage: View {
                      StatItem("Sold", CoinFormat.grouped(stats.tokensSold))]
         if paid > 0 { items.append(StatItem("Paid", amount(paid))) }
         items.append(StatItem("From sales", amount(stats.coinsFromSales)))
+        if stats.tokensSold > 0 {
+            items.append(StatItem("Trading", "\(stats.tradingProfit >= 0 ? "+" : "−")\(amount(abs(stats.tradingProfit)))"))
+            items.append(StatItem("Sales at a profit", CoinFormat.grouped(stats.profitableSales)))
+            if stats.bestSaleProfit > 0 { items.append(StatItem("Best sale", "+\(amount(stats.bestSaleProfit))")) }
+        }
         return Section {
             WalletCard(value: amount(walletValue),
                        detail: stats.totalTokensBought > 0

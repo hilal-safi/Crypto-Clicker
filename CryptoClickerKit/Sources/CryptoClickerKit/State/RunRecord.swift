@@ -50,4 +50,9 @@ extension GameState {
     public var richestRun: RunRecord? {
         runHistory.max { $0.coins < $1.coins }
     }
+
+    /// The finished run whose miners earned the most a second by its end, the first of any ties.
+    public var mostProductiveRun: RunRecord? {
+        runHistory.max { $0.income < $1.income }
+    }
 }

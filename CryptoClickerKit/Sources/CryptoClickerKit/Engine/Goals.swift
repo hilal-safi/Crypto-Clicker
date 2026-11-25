@@ -34,6 +34,14 @@ extension GameState {
             .compactMap(\.self)
     }
 
+    /// The one goal the Mine tab shows: the prestige when the Shop suggests one, otherwise this
+    /// run's goal (the next miner, a milestone, an upgrade or a game to unlock) that's closest to
+    /// done, the first of them on a tie. Nil once there's nothing left to buy or unlock.
+    public var featuredGoal: Goal? {
+        if isPrestigeRecommended, let prestige = prestigeGoal { return prestige }
+        return [minerGoal, milestoneGoal, upgradeGoal, gameGoal].compactMap(\.self).max { $0.progress < $1.progress }
+    }
+
     /// The next tier to buy, or what reveals it.
     private var minerGoal: Goal? {
         guard let miner = MinerID.allCases.first(where: { owned($0) == 0 }) else { return nil }
@@ -138,7 +146,7 @@ extension GameState {
     /// `recommendedPrestigeSpeedUp` (10 for the first, then 17 plus 85% of the points already
     /// earned). A hair is taken off before rounding up, so floating-point noise can't ask for one
     /// point too many.
-    var prestigePointsToRecommend: Int {
+    public var prestigePointsToRecommend: Int {
         let needed = (recommendedPrestigeSpeedUp - 1)
             * (1 / Tuning.productionPerPrestigePoint + Double(prestigePoints))
         guard needed.isFinite else { return 1 }

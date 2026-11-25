@@ -109,6 +109,88 @@ struct MarketTests {
         #expect(game.tokenCount(.dogecoin) == 0)
     }
 
+    /// A time when `token` costs at least 20% more than at `noon`, within a week of it.
+    func rise(_ token: TokenID) -> Date? {
+        let start = Market.price(token, at: noon)
+        return (1...2_016).lazy.map { self.noon.addingTimeInterval(Double($0) * 300) }
+            .first { Market.price(token, at: $0) >= start * 1.2 }
+    }
+
+    @Test func aSaleIsPreviewedInFullAndComparedWithThePricePaid() throws {
+        let token = TokenID.dogecoin
+        let later = try #require(rise(token))
+        let bought = Market.price(token, at: noon)
+        var game = GameState.make(coins: bought * 10)
+        #expect(game.buyTokens(token, quantity: 10, at: noon) == true)
+        // Before selling: the tokens' worth, the fee and what's left, against what they cost.
+        let preview = game.salePreview(of: token, quantity: 4, at: later)
+        let worth = (Market.price(token, at: later) * 4).rounded()
+        #expect(preview.worth == worth)
+        #expect(preview.net == game.saleValue(of: token, quantity: 4, at: later))
+        #expect(preview.fee == worth - preview.net && preview.fee > 0)
+        #expect(preview.paid == bought * 4)
+        #expect(preview.profit == preview.net - bought * 4)
+        // The sale itself: a profit, counted once, in the history.
+        let sale = game.sellTokens(token, quantity: 4, at: later)
+        let paid = try #require(sale)
+        #expect(paid == preview.net)
+        #expect(game.stats.profitableSales == 1)
+        #expect(game.stats.tradingProfit == paid - bought * 4 && game.stats.bestSaleProfit == game.stats.tradingProfit)
+        #expect(game.recentTrades.map(\.quantity) == [10, -4])
+        #expect(game.recentTrades.last?.profit == paid - bought * 4 && game.recentTrades.last?.isSale == true)
+        #expect(game.recentTrades.first?.coins == bought * 10 && game.recentTrades.first?.profit == nil)
+        #expect(game.tiersEarned(AchievementCatalog.all.first { $0.id == "buy-low" }!) == 0)
+        game.refreshAchievements()
+        #expect(game.tiersEarned(AchievementCatalog.all.first { $0.id == "buy-low" }!) == 1)
+        // Selling at a loss counts against the total, not as a profitable sale.
+        let low = try #require((1...2_016).lazy.map { later.addingTimeInterval(Double($0) * 300) }
+            .first { Market.price(token, at: $0) * 0.9 < bought })
+        let lossSale = game.sellTokens(token, quantity: 2, at: low)
+        let loss = try #require(lossSale)
+        #expect(game.stats.profitableSales == 1)
+        #expect(abs(game.stats.tradingProfit - (paid - bought * 4 + loss - bought * 2)) < 1e-6)
+    }
+
+    @Test func tokensNeverBoughtHaveNoPricePaid() {
+        var game = GameState.make()
+        game.tokens = [.bitcoin: 3] // Won at the casino, say.
+        let preview = game.salePreview(of: .bitcoin, quantity: 3, at: noon)
+        #expect(preview.paid == nil && preview.profit == nil)
+        game.sellTokens(.bitcoin, quantity: 3, at: noon)
+        #expect(game.stats.profitableSales == 0 && game.stats.tradingProfit == 0)
+        #expect(game.recentTrades.last?.profit == nil)
+        #expect(game.portfolio(at: noon) == Portfolio(worth: 0, paid: 0, worthOfPaid: 0))
+    }
+
+    @Test func thePortfolioComparesWhatWasPaidWithWhatItsWorth() throws {
+        let later = try #require(rise(.dogecoin))
+        var game = GameState.make(coins: 1e9)
+        game.buyTokens(.dogecoin, quantity: 5, at: noon)
+        game.tokens[.bitcoin] = 2 // Never bought: worth something, paid nothing.
+        let portfolio = game.portfolio(at: later)
+        let dogecoin = Market.price(.dogecoin, at: later) * 5
+        #expect(portfolio.paid == Market.price(.dogecoin, at: noon) * 5)
+        #expect(portfolio.worthOfPaid == dogecoin)
+        #expect(portfolio.worth == dogecoin + Market.price(.bitcoin, at: later) * 2)
+        #expect(portfolio.change > 0 && (portfolio.changeShare ?? 0) >= 0.2 - 1e-9)
+    }
+
+    @Test func theTradeHistoryKeepsTheLatestFiftyAndIsSaved() throws {
+        var game = GameState.make(coins: 1e15)
+        for index in 0..<60 {
+            game.buyTokens(.shibaInu, quantity: index + 1, at: noon.addingTimeInterval(Double(index)))
+        }
+        #expect(game.recentTrades.count == Tuning.tradeHistoryLimit)
+        #expect(game.recentTrades.first?.quantity == 11 && game.recentTrades.last?.quantity == 60)
+        let loaded = try GameCoding.decoder().decode(GameState.self, from: GameCoding.encoder().encode(game))
+        #expect(loaded.recentTrades == game.recentTrades)
+        // An older save has none.
+        var json = try JSONSerialization.jsonObject(with: GameCoding.encoder().encode(game)) as! [String: Any]
+        json["recentTrades"] = nil
+        let old = try GameCoding.decoder().decode(GameState.self, from: JSONSerialization.data(withJSONObject: json))
+        #expect(old.recentTrades.isEmpty)
+    }
+
     @Test func theLadderClimbsFromSafeMoonToBitcoin() {
         let ladder: [TokenID] = [.safeMoon, .shibaInu, .tether, .dogecoin, .xrp, .bnb, .monero, .cardano, .solana, .ethereum, .bitcoin]
         #expect(TokenID.allCases == ladder)

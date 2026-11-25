@@ -227,10 +227,11 @@ struct PerkTests {
 
     @Test func miningPerks() {
         var game = rich(points: 25_000)
-        #expect(game.price(of: .server, quantity: 3) == GameState.wholePrice(MinerID.server.baseCost * (pow(1.15, 3) - 1) / 0.15))
+        // The Data Center: no opening discount to keep out of the sums.
+        #expect(game.price(of: .dataCenter, quantity: 3) == GameState.wholePrice(MinerID.dataCenter.baseCost * (pow(1.15, 3) - 1) / 0.15))
         #expect(game.buyPerk(.headStart) == true)
         #expect(game.buyPerk(.bulkDiscount) == true)
-        #expect(game.price(of: .server, quantity: 3) == GameState.wholePrice(MinerID.server.baseCost * 0.9 * (pow(1.15, 3) - 1) / 0.15))
+        #expect(game.price(of: .dataCenter, quantity: 3) == GameState.wholePrice(MinerID.dataCenter.baseCost * 0.9 * (pow(1.15, 3) - 1) / 0.15))
         game.achievementTiers = ["miner": 3]
         #expect(approx(game.achievementBonus, 1.03))
         #expect(game.buyPerk(.compoundInterest) == true)
@@ -589,11 +590,11 @@ struct AirdropTests {
 struct AchievementTests {
     @Test func catalogIsWellFormed() {
         let all = AchievementCatalog.all
-        // 66 with SafeMoon's "Exchanged" achievement, and 68 with Big Run and Speedrunner (prestige
-        // records, from version 2.1).
-        #expect(all.count == 68)
+        // 66 with SafeMoon's "Exchanged" achievement, 68 with Big Run and Speedrunner (prestige
+        // records, from version 2.1), and 71 with Buy Low, Sell High and the two Hard-mode badges.
+        #expect(all.count == 71)
         #expect(Set(all.map(\.id)).count == all.count)
-        #expect(AchievementCatalog.tierCount == 272)
+        #expect(AchievementCatalog.tierCount == 284)
         #expect(all.contains { $0.id == "token-safeMoon" })
         for achievement in all {
             #expect(achievement.thresholds.count == 4)
@@ -606,6 +607,26 @@ struct AchievementTests {
         #expect(all.first { $0.id == "own-spaceColony" }?.detail == "Own Space Mining Colonies at once")
         // Every coin finish can be unlocked.
         #expect(CoinFinish.allCases.allSatisfy { $0.starsNeeded <= AchievementCatalog.tierCount })
+    }
+
+    /// Every achievement is in exactly one collection, and a collection's stars add up.
+    @Test func collectionsHoldEveryAchievementOnce() {
+        let collections = AchievementCatalog.collections
+        let ids = collections.flatMap { $0.achievements.map(\.id) }
+        #expect(ids.count == AchievementCatalog.all.count)
+        #expect(Set(ids) == Set(AchievementCatalog.all.map(\.id)))
+        #expect(collections.reduce(0) { $0 + $1.tierCount } == AchievementCatalog.tierCount)
+        #expect(Set(collections.map(\.name)).count == collections.count)
+        let casino = collections.first { $0.id == "casino" }
+        #expect(casino?.achievements.map(\.id) == ["card-shark", "natural", "high-roller", "moonshot", "poker-face"])
+        let market = collections.first { $0.id == "market" }
+        #expect(market?.achievements.prefix(3).map(\.id) == ["exchanger", "trader", "buy-low"])
+        // The market's achievements don't give Arcade XP; the Hard-mode badges do.
+        #expect(!AchievementCatalog.arcadeIDs.contains("buy-low") && !AchievementCatalog.arcadeIDs.contains("trader"))
+        #expect(AchievementCatalog.arcadeIDs.isSuperset(of: ["hard-smash", "hard-invaders"]))
+        var game = GameState.make()
+        game.debugEarnAllAchievements()
+        #expect(collections.allSatisfy { game.tiersEarned(in: $0) == $0.tierCount })
     }
 
     /// Rims and tap effects unlock one after another with achievement stars, the first from the

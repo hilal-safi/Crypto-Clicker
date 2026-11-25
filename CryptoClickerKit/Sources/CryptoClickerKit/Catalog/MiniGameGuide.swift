@@ -220,7 +220,7 @@ extension MiniGame {
     private static var merge2048Guide: MiniGameGuide {
         typealias Game = Merge2048Game
         let stars = Game.dailyStarScores.map { CoinFormat.grouped($0) }
-        let daily = localized("The Daily Puzzle earns stars at \(stars[0]), \(stars[1]) and \(stars[2]) points. Each star pays \(Int(Tuning.merge2048DailyStarSeconds / 60)) minutes of income the first time you earn it that day.")
+        let daily = localized("The Daily Puzzle earns stars at \(stars[0]), \(stars[1]) and \(stars[2]) points. Each star pays about \(Int((Tuning.merge2048DailyStarSeconds / 60).rounded())) minutes of income the first time you earn it that day.")
         func miner(_ value: Int) -> String { "\(Game.miner(for: value).name) (\(CoinFormat.grouped(value)))" }
         let ladder = (1...11).map { 1 << $0 }.map(miner).joined(separator: ", ")
         return MiniGameGuide(
@@ -231,7 +231,7 @@ extension MiniGame {
             ],
             scoring: [
                 localized("Two equal miners that meet merge into the next one up, worth their sum, which is added to your score. A miner merges once per slide."),
-                localized("Classic sets goals one after another: the \(miner(128)), then the \(miner(256)), and on. Building the Lunar Base reaches the Moon: a bonus of \(Int(Tuning.merge2048WinSeconds / 60)) minutes of income, and you can keep going."),
+                localized("Classic sets goals one after another: the \(miner(128)), then the \(miner(256)), and on. Building the Lunar Base reaches the Moon: a bonus of \(Int((Tuning.merge2048WinSeconds / 60).rounded())) minutes of income, and you can keep going."),
                 daily,
             ],
             items: [

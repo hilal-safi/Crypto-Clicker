@@ -166,7 +166,7 @@ public enum UpgradeID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .upgradedStepBooster: .steps(1.5)
         case .ultimateStepBooster: .steps(2)
         case .gigaStepBooster, .megaStepBooster: .steps(3)
-        case .proofOfStride: .steps(6)
+        case .proofOfStride: .steps(5)
         case .bonusReward1: .miniGames(1.25)
         case .bonusReward2: .miniGames(1.5)
         case .bonusReward3: .miniGames(2)

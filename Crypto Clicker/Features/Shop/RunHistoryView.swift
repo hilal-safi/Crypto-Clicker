@@ -54,12 +54,19 @@ struct RunHistoryView: View {
     private func currentRun(_ game: GameState) -> some View {
         let elapsed = max(0, Date.now.timeIntervalSince(game.runStart))
         let tiers = MinerID.allCases.filter { game.owned($0) > 0 }.count
-        return Section("Run \(CoinFormat.grouped(game.stats.prestiges + 1)), so far") {
+        return Section {
             ValueRow(title: "Running for", value: CoinFormat.duration(elapsed))
             ValueRow(title: "Coins mined", value: amount(game.stats.runCoins))
             ValueRow(title: "Income", value: "\(rate(game.baseIdleIncome)) per second")
             ValueRow(title: "Miner tiers", value: CoinFormat.grouped(tiers))
             ValueRow(title: "Points ready", value: CoinFormat.grouped(game.claimablePrestigePoints))
+        } header: {
+            Text("Run \(CoinFormat.grouped(game.stats.prestiges + 1)), so far")
+        } footer: {
+            // How this run measures up to the best finished ones.
+            if let richest = game.richestRun, let productive = game.mostProductiveRun {
+                SettingsNote("Best finished runs: \(amount(richest.coins)) mined (run \(richest.number)), \(rate(productive.income)) a second (run \(productive.number)).")
+            }
         }
     }
 
@@ -73,6 +80,9 @@ struct RunHistoryView: View {
             }
             if let richest = game.richestRun {
                 ValueRow(title: "Most coins mined", value: "\(amount(richest.coins)) · run \(richest.number)")
+            }
+            if let productive = game.mostProductiveRun {
+                ValueRow(title: "Highest income", value: "\(rate(productive.income))/s · run \(productive.number)")
             }
             ValueRow(title: "Runs within two days", value: CoinFormat.grouped(game.stats.quickRuns))
         }

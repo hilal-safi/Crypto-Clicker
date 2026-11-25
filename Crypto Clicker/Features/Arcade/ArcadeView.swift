@@ -4,9 +4,12 @@ import CryptoClickerKit
 struct ArcadeView: View {
     /// Goes up by one each time the Daily page asks to open today's challenge.
     var challengeRequests = 0
+    /// The list (nil), or a game to open, asked for by a goal.
+    var gameRequest = TabRequest<MiniGame?>(nil)
     @Environment(GameStore.self) private var store
     @State private var path = NavigationPath()
     @State private var handledChallengeRequests = 0
+    @State private var handledGameRequest = 0
     /// The game whose records are showing in a sheet.
     @State private var statsGame: MiniGame?
     /// A game to open once the records sheet has closed (its Play button).
@@ -38,6 +41,8 @@ struct ArcadeView: View {
             }
             .onAppear(perform: showChallengeIfAsked)
             .onChange(of: challengeRequests) { _, _ in showChallengeIfAsked() }
+            .onAppear(perform: showGameIfAsked)
+            .onChange(of: gameRequest) { _, _ in showGameIfAsked() }
             .background { AppBackground(tint: Theme.arcade) }
             .navigationTitle("Arcade")
             .balanceToolbar()
@@ -135,6 +140,18 @@ struct ArcadeView: View {
             path.append(PumpDumpRoute.play(PumpDumpGame.Board(rawValue: side) ?? .three))
         } else {
             path.append(game)
+        }
+    }
+
+    /// Opens the game asked for (once it's unlocked), once for each request. A game screen that's
+    /// already open stays as it is, so a game in progress is never closed from another tab.
+    private func showGameIfAsked() {
+        guard handledGameRequest != gameRequest.number else { return }
+        handledGameRequest = gameRequest.number
+        guard path.isEmpty, let miniGame = gameRequest.place, store.game.isUnlocked(miniGame) else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(50))
+            path.append(miniGame)
         }
     }
 

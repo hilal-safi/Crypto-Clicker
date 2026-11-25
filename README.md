@@ -7,9 +7,11 @@ No real cryptocurrency, no ads, no purchases.
 ## Features
 
 - **Mining.** Tap for coins and build quick-tap combos, then buy 13 miners from a Chromebook to a
-  Galactic Hashnet. Each unit costs 15% more, milestones and Mk upgrades double output, and the Shop
-  marks the best value and shows what each miner and upgrade adds to your income and how soon it
-  pays for itself.
+  Galactic Hashnet. Each unit costs 15% more (the first three GPU Rigs and Servers less, so the
+  opening reaches them in about ten minutes and half an hour), milestones and Mk upgrades double
+  output, and the Shop marks the best value and shows what each miner and upgrade adds to your
+  income and how soon it pays for itself. A new tier or a milestone gets a celebration with the
+  income it adds, and shortcuts jump between the Shop's sections.
 - **Upgrades and power-ups.** 26 one-time upgrades, combo power-ups, and Offline Mining, which keeps
   miners earning while the app is closed, from six minutes (what you start with) up to three days over 160 levels. Time
   away pays a tenth of your income, and Offline Efficiency adds 5% per level (18 levels) up
@@ -20,15 +22,19 @@ No real cryptocurrency, no ads, no purchases.
   finishes.
 - **Daily play.** A daily reward streak, three quests a day, a daily challenge in one of your games,
   airdrops, whales and Bull Runs.
-- **Tokens.** Eleven tokens, from SafeMoon at 100 coins to Bitcoin, whose prices drift with in-game
-  news; each is tagged Stable, Moderate or Volatile. Buy them to bet in the casino or sell later.
-  Statistics keeps what you paid on average and how each token has done since.
+- **Tokens.** Eleven tokens, from SafeMoon at 100 coins to Bitcoin, whose simulated prices drift with
+  in-game news; each is tagged Stable, Moderate or Volatile. Buy them to bet in the casino or sell
+  later: each sale shows its fee, the coins it pays and how it compares with what you paid. The
+  wallet shows what your tokens cost against what they're worth, a guide explains trading, and the
+  latest 50 trades are kept. Statistics keeps what you paid on average and how each token has done
+  since.
 - **Casino.** 21 Million (blackjack), Crypto Slots (a classic 3×1 machine or a 5×3 video machine with
   five lines), Diamond Hands (video poker) and To the Moon (a crash game with a 2× or a riskier 5×
   rocket), played with tokens or practice chips.
-- **Arcade.** Eight games that pay coins for points, each with its own modes, speed or difficulty,
-  records and backdrop. Star favorites to pin them to the top; the last games played are a tap away,
-  and new ones are marked until played:
+- **Arcade.** Eight games that pay coins for points (a minute of good play pays about four minutes
+  of income, about what the casino's tables pay), each with its own modes, speed or difficulty,
+  records and backdrop. Star favorites to pin them to the top; the last games played are a tap away, and new
+  ones are marked until played:
 
   | Game | What it is |
   | --- | --- |
@@ -39,19 +45,27 @@ No real cryptocurrency, no ads, no purchases.
   | Bubble Market | Bubble shooting in Waves, a two-minute Flash Market, or Today's Market |
   | Scam Invaders | Shoot down scam coins and the Bear boss, with ships that take hits; fixed waves (start at any reached) or random ones, on Easy, Regular or Hard |
   | Pump and Dump | Tap coins as they list, on a 3×3, 4×4 or 5×5 board |
-  | Token Swap | Match-three with 18 levels, a daily puzzle, random levels and Classic |
+  | Token Swap | Match-three with 30 levels in two chapters, a daily puzzle, random levels and Classic |
 
-- **Progress.** 68 achievements with four tiers (each star adds 1% production), an Arcade Rank up to
+- **Progress.** 71 achievements with four tiers (each star adds 1% production) in seven
+  collections, Hard-mode badges for Hash Smash and Scam Invaders among them, an Arcade Rank up to
   Mythic, and Style looks for the coin and two kinds for every game (one look at each rank from 2 to
-  48, many sooner with a game's achievement). Goals shows what to aim for next, and Statistics charts your
-  income and keeps every record.
+  48, many sooner with a game's achievement). Goals shows what to aim for next (tap one to go
+  there), the Mine tab shows the closest goal when there's no tip, and Statistics charts your income
+  and keeps every record, this run against your best.
 - **Steps.** Steps from Apple Health on iPhone and Apple Watch pay a small share of income (a coin
-  at least), multiplied by six step boosters, the biggest of them late in a run. The first day's
-  steps are paid the next day, a coin each. Tap the steps card to see what a step pays.
+  at least), multiplied by six step boosters, the biggest of them (Proof of Stride, ×5) late in a
+  run. The first day's steps are paid the next day, a coin each. Tap the steps card to see what a
+  step pays; Statistics keeps your best day and best week.
 - **Beyond the app.** An Apple Watch app, Home Screen and Lock Screen widgets, a Live Activity, and a
   Siri shortcut for your balance.
-- **Backup.** The game backs up to iCloud and can be exported and imported as a save file (Settings,
-  Backup and Save Files). Steps from Apple Health stay on the device.
+- **Backup.** Settings, Backup and Save Files. The game is copied every ten minutes or so while
+  playing and whenever the app is left, with a copy a day for the last week, in the app's folder in
+  the Files app (which the iPhone's own backup includes): no account or capability needed. Pick a
+  folder in Files, iCloud Drive included, to keep a copy there too and carry on from it on another
+  iPhone. Where the app has the iCloud capability, it also backs up to iCloud's key-value storage.
+  Any backup can be restored, and a save file exported or imported. Steps from Apple Health stay
+  on the device.
 - **Help.** How to Play in Settings, plus a rules sheet in every game.
 
 ## Requirements
@@ -60,8 +74,9 @@ No real cryptocurrency, no ads, no purchases.
 - iOS 26 / iPadOS 26 and watchOS 26
 - Automatic signing. The app and its widgets share the app group `group.Hilal-Safi.Crypto-Clicker`; if
   Xcode reports it isn't set up, tick it under App Groups in both targets' Signing & Capabilities.
-- For the iCloud backup, the iCloud capability with Key-value storage on the Crypto Clicker target.
-  Without it the game runs the same, and Settings says iCloud isn't available.
+- Optional: the iCloud capability with Key-value storage on the Crypto Clicker target, for the
+  iCloud backup (it needs a paid developer account). Without it, as with a free Personal Team, the
+  game runs the same with its file backups, and Settings says iCloud isn't available.
 
 ## Project layout
 

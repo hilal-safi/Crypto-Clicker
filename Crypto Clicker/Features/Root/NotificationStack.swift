@@ -91,6 +91,7 @@ struct ToastView: View {
 /// to their new values, and long lists fold into "+N more" so it never grows past a few lines.
 struct PurchaseNoteView: View {
     let note: PurchaseNote
+    @AppStorage(Preferences.hapticsKey) private var haptics = true
 
     /// Names shown before "+N more", and effects likewise.
     private static let namesShown = 3
@@ -100,33 +101,9 @@ struct PurchaseNoteView: View {
         let latest = Array(note.items.reversed())
         let names = latest.prefix(Self.namesShown).map { $0.count > 1 ? "\($0.name) ×\(CoinFormat.grouped($0.count))" : $0.name }
         let effects = latest.compactMap(\.effect)
+        let highlight = note.highlight
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "bag.fill.badge.plus")
-                    .font(.title3)
-                    .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(Theme.accent.gradient, in: .circle)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(note.itemCount == 1 ? "Item purchased!" : "\(note.itemCount) items purchased!")
-                        .font(.headline)
-                        .contentTransition(.numericText())
-                    HStack(spacing: 4) {
-                        Text(names.joined(separator: ", "))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        if note.items.count > Self.namesShown {
-                            Text("+\(note.items.count - Self.namesShown) more")
-                                .foregroundStyle(.subtext)
-                                .fixedSize()
-                                .contentTransition(.numericText())
-                        }
-                    }
-                    .font(.subheadline.weight(.semibold))
-                }
-                Spacer(minLength: 0)
-            }
+            header(names: names, highlight: highlight)
             if note.addedIncome > 0 || note.addedTap > 0 || note.addedStep > 0 {
                 HStack(spacing: 8) {
                     if note.addedIncome > 0 {
@@ -184,12 +161,114 @@ struct PurchaseNoteView: View {
         .background(.regularMaterial, in: .rect(cornerRadius: 24))
         .overlay {
             RoundedRectangle(cornerRadius: 24)
-                .strokeBorder(Theme.accent.opacity(0.35), lineWidth: 1)
+                .strokeBorder(highlight == nil ? Theme.accent.opacity(0.35) : Theme.gold.opacity(0.9),
+                              lineWidth: highlight == nil ? 1 : 2)
         }
-        .shadow(color: .black.opacity(0.3), radius: 16, y: 6)
+        .overlay(alignment: .topLeading) {
+            if let highlight {
+                SparkleBurst()
+                    .frame(width: 40, height: 40)
+                    .padding(14)
+                    .id(highlight)
+                    .allowsHitTesting(false)
+            }
+        }
+        .shadow(color: highlight == nil ? .black.opacity(0.3) : Theme.gold.opacity(0.45), radius: 16, y: 6)
         .animation(.snappy, value: note)
+        .sensoryFeedback(.success, trigger: highlight) { _, new in haptics && new != nil }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isStaticText)
+    }
+
+    /// The icon, what was bought (or the purchase worth celebrating), and for a celebration how
+    /// many times faster the miners now mine.
+    private func header(names: [String], highlight: PurchaseNote.Highlight?) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: highlight.map(Self.symbol) ?? "bag.fill.badge.plus")
+                .font(.title3)
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 40)
+                .background(Theme.accent.gradient, in: .circle)
+                .symbolEffect(.bounce, value: highlight)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Group {
+                    if let highlight {
+                        Text(Self.title(of: highlight))
+                    } else {
+                        Text(note.itemCount == 1 ? "Item purchased!" : "\(note.itemCount) items purchased!")
+                    }
+                }
+                .font(.headline)
+                .contentTransition(.numericText())
+                HStack(spacing: 4) {
+                    Text(names.joined(separator: ", "))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if note.items.count > Self.namesShown {
+                        Text("+\(note.items.count - Self.namesShown) more")
+                            .foregroundStyle(.subtext)
+                            .fixedSize()
+                            .contentTransition(.numericText())
+                    }
+                }
+                .font(.subheadline.weight(.semibold))
+            }
+            Spacer(minLength: 0)
+            // A big purchase says how much faster the miners now mine.
+            if highlight != nil, let multiple = note.incomeMultiple {
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text(CoinFormat.multiplier(multiple))
+                        .font(.title2.weight(.heavy).monospacedDigit())
+                        .foregroundStyle(Theme.accent)
+                        .contentTransition(.numericText())
+                    Text("income")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.subtext)
+                }
+                .fixedSize()
+            }
+        }
+    }
+
+    private static func symbol(of highlight: PurchaseNote.Highlight) -> String {
+        switch highlight {
+        case .newMiner: "sparkles"
+        case .milestone: "star.fill"
+        }
+    }
+
+    private static func title(of highlight: PurchaseNote.Highlight) -> String {
+        switch highlight {
+        case .newMiner(let name): String(localized: "New miner: \(name)!")
+        case .milestone(let reached): String(localized: "Milestone: \(reached)!")
+        }
+    }
+}
+
+/// Sparks flying out from a celebrated purchase's icon, once. Still with Reduce Motion.
+private struct SparkleBurst: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isOut = false
+
+    var body: some View {
+        ZStack {
+            ForEach(0..<10, id: \.self) { index in
+                let angle = Angle.degrees(Double(index) * 36)
+                Image(systemName: index.isMultiple(of: 2) ? "sparkle" : "star.fill")
+                    .font(.system(size: index.isMultiple(of: 2) ? 12 : 8, weight: .bold))
+                    .foregroundStyle(Theme.gold)
+                    .offset(x: isOut ? cos(angle.radians) * 46 : 0, y: isOut ? sin(angle.radians) * 46 : 0)
+                    .scaleEffect(isOut ? 0.4 : 1)
+                    .opacity(isOut ? 0 : 1)
+            }
+        }
+        .opacity(reduceMotion ? 0 : 1)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeOut(duration: 0.9)) { isOut = true }
+        }
+        .accessibilityHidden(true)
     }
 }
 

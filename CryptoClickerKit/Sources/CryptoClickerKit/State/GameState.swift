@@ -259,6 +259,9 @@ public struct GameState: Codable, Equatable, Sendable {
     /// The latest finished runs (up to `Tuning.runHistoryLimit`), oldest first. Runs from before
     /// version 2.1, which kept no history, aren't in it.
     public internal(set) var runHistory: [RunRecord] = []
+    /// The latest trades on the market (up to `Tuning.tradeHistoryLimit`), oldest first, from
+    /// version 2.1.
+    public internal(set) var recentTrades: [TokenTrade] = []
 
     /// When income was last credited.
     public internal(set) var lastUpdate: Date
@@ -282,7 +285,7 @@ public struct GameState: Codable, Equatable, Sendable {
         case boost, offlineMiningLevel, powerUps, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun, tokenSwap
         case merge2048Daily, slotsFreeSpins, arcade, journey, starterMilestones, starterRewards
         case achievementTiers, daily
-        case incomeHistory, stats, steps, recentWatchBatches, watchSequences, recentAirdrops, runHistory
+        case incomeHistory, stats, steps, recentWatchBatches, watchSequences, recentAirdrops, runHistory, recentTrades
         case lastUpdate, runStart, created
     }
 
@@ -351,6 +354,8 @@ public struct GameState: Codable, Equatable, Sendable {
         recentAirdrops = c.value(.recentAirdrops, default: [])
         let history: [RunRecord] = c.value(.runHistory, default: [])
         runHistory = Array(history.suffix(Tuning.runHistoryLimit))
+        let trades: [TokenTrade] = c.value(.recentTrades, default: [])
+        recentTrades = Array(trades.suffix(Tuning.tradeHistoryLimit))
         lastUpdate = c.value(.lastUpdate, default: now)
         runStart = c.value(.runStart, default: now)
         created = c.value(.created, default: now)
@@ -400,6 +405,7 @@ public struct GameState: Codable, Equatable, Sendable {
         if !watchSequences.isEmpty { try c.encode(watchSequences, forKey: .watchSequences) }
         if !recentAirdrops.isEmpty { try c.encode(recentAirdrops, forKey: .recentAirdrops) }
         if !runHistory.isEmpty { try c.encode(runHistory, forKey: .runHistory) }
+        if !recentTrades.isEmpty { try c.encode(recentTrades, forKey: .recentTrades) }
         try c.encode(lastUpdate, forKey: .lastUpdate)
         try c.encode(runStart, forKey: .runStart)
         try c.encode(created, forKey: .created)

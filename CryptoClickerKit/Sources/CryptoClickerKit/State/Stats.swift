@@ -18,6 +18,8 @@ public struct Stats: Codable, Equatable, Sendable {
     /// Steps paid for (the day after they were walked); `lifetimeSteps` counts them as they're walked.
     public internal(set) var stepsPaid = 0
     public internal(set) var bestDaySteps = 0
+    /// The most steps counted in one week (Monday to Sunday), from version 2.1.
+    public internal(set) var bestWeekSteps = 0
 
     public internal(set) var maxOwned: [MinerID: Int] = [:]
     public internal(set) var maxTotalMiners = 0
@@ -154,6 +156,9 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var invadersClassicBestWave = 0
     /// Invaders shot down, in every game.
     public internal(set) var invadersDestroyed = 0
+    /// The most waves cleared in one game on Hard, and the most Hash Smash levels (from version 2.1).
+    public internal(set) var invadersHardWaves = 0
+    public internal(set) var brickBreakerHardLevels = 0
     public internal(set) var invadersWhales = 0
     public internal(set) var invadersBosses = 0
     public internal(set) var invadersPowerUps = 0
@@ -178,6 +183,11 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var tokensSold = 0
     /// Coins received for tokens sold on the market.
     public internal(set) var coinsFromSales: Double = 0
+    /// Sales for more than the average price paid for the tokens (after the fee); what every sale
+    /// made or lost against that price, in all; and the most one sale made (from version 2.1).
+    public internal(set) var profitableSales = 0
+    public internal(set) var tradingProfit: Double = 0
+    public internal(set) var bestSaleProfit: Double = 0
     public internal(set) var airdrops = 0
     public internal(set) var whaleAirdrops = 0
     /// Airdrops that went away before they were caught (counted from version 33 on).
@@ -242,6 +252,7 @@ public struct Stats: Codable, Equatable, Sendable {
         case pokerHands, pokerWins, pokerWagered, pokerPaidOut, pokerBestHand, pokerRoyals, pokerBiggestWin
         case tokenSwapGames, tokenSwapBestScore, tokenSwapTokens, tokenSwapBestChain, tokenSwapBlasts
         case tokensBought, coinsSpentOnTokens, tokensBoughtWithPrice, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
+        case profitableSales, tradingProfit, bestSaleProfit, bestWeekSteps, invadersHardWaves, brickBreakerHardLevels
         case airdropsMissed, bullRuns, bestAirdrop
         case invadersGames, invadersBestScore, invadersBestWave, invadersDestroyed, invadersWhales, invadersBosses
         case invadersPowerUps, invadersBestStreak, invadersVolleys, invadersVolleysHit
@@ -305,6 +316,12 @@ public struct Stats: Codable, Equatable, Sendable {
         tokensBoughtWithPrice = c.enumKeyed(.tokensBoughtWithPrice, as: TokenID.self)
         tokensSold = c.value(.tokensSold, default: 0)
         coinsFromSales = c.value(.coinsFromSales, default: 0)
+        profitableSales = max(0, c.value(.profitableSales, default: 0))
+        tradingProfit = c.value(.tradingProfit, default: 0)
+        bestSaleProfit = max(0, c.value(.bestSaleProfit, default: 0))
+        bestWeekSteps = max(0, c.value(.bestWeekSteps, default: 0))
+        invadersHardWaves = max(0, c.value(.invadersHardWaves, default: 0))
+        brickBreakerHardLevels = max(0, c.value(.brickBreakerHardLevels, default: 0))
         airdrops = c.value(.airdrops, default: 0)
         whaleAirdrops = c.value(.whaleAirdrops, default: 0)
         airdropsMissed = c.value(.airdropsMissed, default: 0)
@@ -448,6 +465,12 @@ public struct Stats: Codable, Equatable, Sendable {
         if !tokensBoughtWithPrice.isEmpty { try c.encode(tokensBoughtWithPrice.stringKeyed, forKey: .tokensBoughtWithPrice) }
         try c.encode(tokensSold, forKey: .tokensSold)
         try c.encode(coinsFromSales, forKey: .coinsFromSales)
+        if profitableSales > 0 { try c.encode(profitableSales, forKey: .profitableSales) }
+        if tradingProfit != 0 { try c.encode(tradingProfit, forKey: .tradingProfit) }
+        if bestSaleProfit > 0 { try c.encode(bestSaleProfit, forKey: .bestSaleProfit) }
+        if bestWeekSteps > 0 { try c.encode(bestWeekSteps, forKey: .bestWeekSteps) }
+        if invadersHardWaves > 0 { try c.encode(invadersHardWaves, forKey: .invadersHardWaves) }
+        if brickBreakerHardLevels > 0 { try c.encode(brickBreakerHardLevels, forKey: .brickBreakerHardLevels) }
         try c.encode(airdrops, forKey: .airdrops)
         try c.encode(whaleAirdrops, forKey: .whaleAirdrops)
         try c.encode(airdropsMissed, forKey: .airdropsMissed)

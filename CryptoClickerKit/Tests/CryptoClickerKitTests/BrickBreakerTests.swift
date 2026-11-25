@@ -57,6 +57,22 @@ struct BrickBreakerTests {
         #expect(state.payUnfinishedRun()?.payout.coins == state.arcadeReward(.brickBreaker, score: 400))
     }
 
+    /// The Hard-mode badge counts the levels cleared in one game on Hard, wherever it started.
+    @Test func hardGamesCountLevelsClearedTowardTheirBadge() {
+        var state = GameState.make()
+        state.finishBrickBreaker(score: 900, bricks: 90, level: 9, startLevel: 1) // Regular: no.
+        #expect(state.stats.brickBreakerHardLevels == 0)
+        state.finishBrickBreaker(score: 900, bricks: 90, level: 9, startLevel: 6, difficulty: .hard)
+        #expect(state.stats.brickBreakerHardLevels == 3)
+        state.finishBrickBreaker(score: 200, bricks: 20, level: 2, difficulty: .hard) // A shorter game keeps the best.
+        #expect(state.stats.brickBreakerHardLevels == 3)
+        state.refreshAchievements()
+        let badge = AchievementCatalog.all.first { $0.id == "hard-smash" }!
+        #expect(state.tiersEarned(badge) == 1) // 2 levels for bronze, 5 for silver.
+        let saved = try? GameCoding.decoder().decode(Stats.self, from: GameCoding.encoder().encode(state.stats))
+        #expect(saved?.brickBreakerHardLevels == 3)
+    }
+
     @Test func randomWallsDontUnlockClassicLevels() throws {
         var state = GameState.make()
         state.finishBrickBreaker(score: 500, bricks: 80, level: 6, levels: .generated)
