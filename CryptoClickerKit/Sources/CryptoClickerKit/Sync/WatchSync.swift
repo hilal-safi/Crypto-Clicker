@@ -12,6 +12,8 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     public var tapValue: Double
     /// The phone's Offline Mining limit (0 until the power-up is bought).
     public var offlineCap: TimeInterval
+    /// The share of the income the phone pays for time away. `nil` from phones that paid all of it.
+    public var offlineEfficiency: Double?
     public var stepsConnected: Bool
     /// Steps counted on `stepsDay` (a `StepDay` key), as of the phone's last sync.
     public var stepsToday: Int
@@ -34,8 +36,8 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     public var anchor: Date
 
     public init(coins: Double, income: Double, boostIncome: Double, boostEndsAt: Date?, tapValue: Double,
-                offlineCap: TimeInterval, stepsConnected: Bool, stepsToday: Int, stepsDay: String?, stepValue: Double,
-                stepsPaidNextDay: Bool? = nil, appliedBatches: [UUID], appliedSequences: [String: Int]? = nil,
+                offlineCap: TimeInterval, offlineEfficiency: Double? = nil, stepsConnected: Bool, stepsToday: Int,
+                stepsDay: String?, stepValue: Double, stepsPaidNextDay: Bool? = nil, appliedBatches: [UUID], appliedSequences: [String: Int]? = nil,
                 date: Date, anchor: Date) {
         self.coins = coins
         self.income = income
@@ -43,6 +45,7 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         self.boostEndsAt = boostEndsAt
         self.tapValue = tapValue
         self.offlineCap = offlineCap
+        self.offlineEfficiency = offlineEfficiency
         self.stepsConnected = stepsConnected
         self.stepsToday = stepsToday
         self.stepsDay = stepsDay
@@ -61,10 +64,12 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     }
 
     /// The phone's balance at `now`: while it is closed it keeps earning for its first minute and
-    /// then up to its Offline Mining limit, exactly as it will credit the time when it next opens.
+    /// then up to its Offline Mining limit (a gap under a minute in full, a longer one at the share
+    /// Offline Efficiency sets), as it will credit the time when it next opens.
     public func projectedCoins(at now: Date) -> Double {
         BalanceSnapshot.projected(coins: coins, income: income, boostIncome: boostIncome, boostEndsAt: boostEndsAt,
-                                  offlineCap: offlineCap, anchor: anchor, at: now)
+                                  offlineCap: offlineCap, offlineEfficiency: offlineEfficiency ?? 1,
+                                  anchor: anchor, at: now)
     }
 }
 
@@ -184,6 +189,7 @@ extension GameState {
             boostEndsAt: boost?.endsAt,
             tapValue: tapValue(at: lastUpdate),
             offlineCap: offlineCap,
+            offlineEfficiency: offlineEfficiency,
             stepsConnected: steps.isConnected,
             stepsToday: steps.todaySteps,
             stepsDay: steps.todayKey,

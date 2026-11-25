@@ -12,19 +12,26 @@ func approx(_ a: Double, _ b: Double, tolerance: Double = 1e-9) -> Bool {
     return abs(a - b) <= tolerance * max(abs(a), abs(b), 1)
 }
 
-/// Miners that earn exactly `coins` a second at today's rates, with no milestone reached: Desktops
-/// for most of it and Chromebooks for the rest. Fixtures that only need an income use this, so a
-/// change to the miners' rates doesn't change what the tests mean.
+/// Miners that earn exactly `coins` a second at today's rates, with no milestone reached (the
+/// first is at 25 of a miner): Desktops for most of it and Chromebooks for the rest, with GPU Rigs
+/// for what those can't make. Fixtures that only need an income use this, so a change to the
+/// miners' rates doesn't change what the tests mean.
 func minersEarning(_ coins: Double) -> [MinerID: Int] {
-    let desktops = min(24, Int((coins / MinerID.desktop.baseRate).rounded(.down)))
-    let rest = coins - Double(desktops) * MinerID.desktop.baseRate
-    let chromebooks = Int((rest / MinerID.chromebook.baseRate).rounded())
-    precondition(chromebooks < 25 && abs(Double(chromebooks) * MinerID.chromebook.baseRate - rest) < 1e-9,
-                 "\(coins) coins a second can't be made from Desktops and Chromebooks without a milestone")
-    var miners: [MinerID: Int] = [:]
-    if desktops > 0 { miners[.desktop] = desktops }
-    if chromebooks > 0 { miners[.chromebook] = chromebooks }
-    return miners
+    let below = Tuning.milestones[0] - 1
+    for rigs in 0...below {
+        let afterRigs = coins - Double(rigs) * MinerID.gpuRig.baseRate
+        guard afterRigs > -1e-9 else { break }
+        let desktops = min(below, Int((afterRigs / MinerID.desktop.baseRate).rounded(.down)))
+        let rest = afterRigs - Double(desktops) * MinerID.desktop.baseRate
+        let chromebooks = Int((rest / MinerID.chromebook.baseRate).rounded())
+        guard chromebooks <= below, abs(Double(chromebooks) * MinerID.chromebook.baseRate - rest) < 1e-9 else { continue }
+        var miners: [MinerID: Int] = [:]
+        if rigs > 0 { miners[.gpuRig] = rigs }
+        if desktops > 0 { miners[.desktop] = desktops }
+        if chromebooks > 0 { miners[.chromebook] = chromebooks }
+        return miners
+    }
+    preconditionFailure("\(coins) coins a second can't be made from GPU Rigs, Desktops and Chromebooks without a milestone")
 }
 
 extension GameState {

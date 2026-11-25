@@ -6,7 +6,7 @@ import Testing
 struct JourneyTests {
     @Test func firstsAreRecordedWhenTheyHappen() throws {
         var game = GameState(now: t0)
-        game.coins = 50_000
+        game.coins = 100_000
         game.advance(to: at(30))
         let chromebooks = game.buy(.chromebook, quantity: 3)
         game.advance(to: at(90))
@@ -48,6 +48,7 @@ struct JourneyTests {
         #expect(game.journey.coins[1] == at(10))
         // Time away counts at the moment of coming back.
         game.setOfflineMining(hours: 5)
+        game.powerUps[.offlineEfficiency] = PowerUpID.offlineEfficiency.maxLevel
         game.advance(to: at(4 * 3_600))
         #expect(game.journey.coins[2] == at(4 * 3_600))
     }

@@ -23,7 +23,7 @@ enum GuideTip: String, CaseIterable {
         case .tapCoin: "Tap the coin to mine your first coins."
         case .buyMiner: "You can afford a Chromebook. Miners earn coins for you every second."
         case .combo: "Tap quickly to build a combo: up to twice the coins per tap."
-        case .offlineMining: "Miners stop a minute after you leave. Offline Mining keeps them earning while the app is closed."
+        case .offlineMining: "Miners keep earning for six minutes after you leave, at a share of your income that Offline Efficiency raises. Offline Mining lengthens the time."
         case .howToPlay: "How to Play is in the Settings tab, with the full rules for every game."
         case .daily: "A daily reward is waiting. Claim one every day to build a streak, and check the day's quests."
         case .prestige: "Prestiging now would speed you up a lot. Your points also buy permanent perks."

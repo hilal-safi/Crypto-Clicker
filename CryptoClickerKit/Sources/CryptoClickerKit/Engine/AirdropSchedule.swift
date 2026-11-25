@@ -103,7 +103,7 @@ public enum ReturnGreeting: Equatable, Sendable {
     public static let welcomeBackThreshold: TimeInterval = 5 * 60
 
     /// With Offline Mining every long absence gets the welcome-back screen. Without it the miners
-    /// earned only a minute, so the screen (with its Offline Mining tip) shows once a day and a
+    /// earned little, so the screen (with its Offline Mining tip) shows once a day and a
     /// toast covers the other returns.
     public static func choose(for report: OfflineReport, lastWelcomeDay: String?, today: String) -> ReturnGreeting {
         guard report.earned >= 1 else { return .none }

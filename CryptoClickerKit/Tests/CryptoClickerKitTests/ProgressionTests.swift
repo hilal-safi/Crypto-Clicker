@@ -72,6 +72,7 @@ struct PrestigeTests {
         game.unlockedGames = [.blackjack]
         game.achievementTiers = ["miner": 3]
         game.offlineMiningLevel = 4
+        game.powerUps[.offlineEfficiency] = 2
         game.boost = Boost(multiplier: 7, endsAt: at(60))
         game.difficulty = .hard
         let gained = game.prestige(at: at(100))
@@ -92,6 +93,7 @@ struct PrestigeTests {
         #expect(game.unlockedGames == [.blackjack])
         #expect(game.achievementTiers == ["miner": 3])
         #expect(game.offlineMiningLevel == 4)
+        #expect(game.powerUpLevel(.offlineEfficiency) == 2) // Power-ups are kept.
         #expect(game.runPrestigeMultiplier == 1.5)
         #expect(game.runStart == at(100))
         #expect(game.lastUpdate == at(100))
@@ -276,12 +278,12 @@ struct PerkTests {
 @Suite("Miner Mk upgrades")
 struct MinerUpgradeTests {
     @Test func upgradesAppearAtOwnedCountsAndDoubleTheMiner() {
-        var game = GameState.make(coins: 1e9, miners: [.desktop: 24])
+        var game = GameState.make(coins: 1e9, miners: [.desktop: 19])
         #expect(game.availableMinerUpgrade(.desktop) == nil)
-        game.miners[.desktop] = 25
+        game.miners[.desktop] = 20
         let next = game.availableMinerUpgrade(.desktop)
         #expect(next?.level == 0)
-        #expect(next?.price == GameState.wholePrice(MinerID.desktop.baseCost * pow(1.15, 25) * 10))
+        #expect(next?.price == GameState.wholePrice(MinerID.desktop.baseCost * pow(1.15, 20) * 10))
         let rate = game.rate(of: .desktop)
         #expect(game.buyMinerUpgrade(.desktop) == true)
         #expect(game.minerUpgradeLevel(.desktop) == 1)
@@ -292,19 +294,22 @@ struct MinerUpgradeTests {
         #expect(game.availableMinerUpgrade(.desktop)?.level == 1)
     }
 
-    @Test func theLastUpgradeIsMkSix() {
-        var game = GameState.make(coins: 1e30, miners: [.chromebook: 500])
+    @Test func theLastUpgradeIsMkTen() {
+        // Mk II at 20 owned, then at 50, 80, 100, 150, 200, 300, 400 and 500: nine upgrades.
+        #expect(Tuning.minerUpgradeThresholds == [20, 50, 80, 100, 150, 200, 300, 400, 500])
+        var game = GameState.make(coins: 1e60, miners: [.chromebook: 600])
         var bought = 0
         while game.buyMinerUpgrade(.chromebook) { bought += 1 }
-        #expect(bought == 5)
+        #expect(bought == 9)
         #expect(game.availableMinerUpgrade(.chromebook) == nil)
-        #expect(game.rate(of: .chromebook) == 500 * MinerID.chromebook.baseRate * GameState.milestoneMultiplier(owned: 500) * 32)
+        #expect(game.rate(of: .chromebook) == 600 * MinerID.chromebook.baseRate * GameState.milestoneMultiplier(owned: 600) * 512)
         #expect(MinerID.gpuRig.upgradeName(level: 0) == "GPU Rig Mk II")
         #expect(MinerID.gpuRig.upgradeName(level: 4) == "GPU Rig Mk VI")
+        #expect(MinerID.gpuRig.upgradeName(level: 8) == "GPU Rig Mk X")
     }
 
     @Test func upgradesNeedTheCoins() {
-        var game = GameState.make(coins: 10, miners: [.desktop: 25])
+        var game = GameState.make(coins: 10, miners: [.desktop: 20])
         #expect(game.buyMinerUpgrade(.desktop) == false)
         #expect(game.minerUpgradeLevel(.desktop) == 0)
         #expect(game.coins == 10)

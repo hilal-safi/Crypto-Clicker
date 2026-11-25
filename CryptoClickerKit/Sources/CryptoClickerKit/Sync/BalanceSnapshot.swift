@@ -14,6 +14,10 @@ public struct BalanceSnapshot: Codable, Hashable, Sendable {
     public var boostEndsAt: Date?
     /// The Offline Mining limit (0 until the power-up is bought).
     public var offlineCap: TimeInterval
+    /// The share of the income paid for time away (Offline Efficiency), 0 to 1.
+    public var offlineEfficiency: Double
+    /// That share as a whole percent: 10, 80, 100.
+    public var offlineEfficiencyPercent: Int { Int((min(max(0, offlineEfficiency), 1) * 100).rounded()) }
     /// The coin's finish, picked in Settings.
     public var finish: CoinFinish
     /// The game's clock: `coins` is the balance at this moment. While the app is closed its clock
@@ -21,19 +25,20 @@ public struct BalanceSnapshot: Codable, Hashable, Sendable {
     public var anchor: Date
 
     public init(coins: Double, income: Double, boostIncome: Double = 0, boostEndsAt: Date? = nil,
-                offlineCap: TimeInterval, finish: CoinFinish = .gold, anchor: Date) {
+                offlineCap: TimeInterval, offlineEfficiency: Double = 1, finish: CoinFinish = .gold, anchor: Date) {
         self.coins = coins
         self.income = income
         self.boostIncome = boostIncome
         self.boostEndsAt = boostEndsAt
         self.offlineCap = offlineCap
+        self.offlineEfficiency = offlineEfficiency
         self.finish = finish
         self.anchor = anchor
     }
 
     /// How long the miners keep earning once the game clock stops: a minute, or the Offline
     /// Mining limit.
-    public var miningTime: TimeInterval { max(offlineCap, Tuning.awayThreshold) }
+    public var miningTime: TimeInterval { max(offlineCap, Tuning.baseAwayTime) }
 
     /// When the miners stop if the app stays closed.
     public var miningEndsAt: Date { anchor.addingTimeInterval(miningTime) }
@@ -52,7 +57,7 @@ public struct BalanceSnapshot: Codable, Hashable, Sendable {
     /// The balance at `now`, as the game will credit it.
     public func coins(at now: Date) -> Double {
         Self.projected(coins: coins, income: income, boostIncome: boostIncome, boostEndsAt: boostEndsAt,
-                       offlineCap: offlineCap, anchor: anchor, at: now)
+                       offlineCap: offlineCap, offlineEfficiency: offlineEfficiency, anchor: anchor, at: now)
     }
 
     /// The balance once the miners stop: what the player finds on opening the game after that.
@@ -82,17 +87,20 @@ public struct BalanceSnapshot: Codable, Hashable, Sendable {
     }
 
     /// The balance `seconds` after the game clock stopped at `anchor` with `coins`: the income for
-    /// the time the miners keep earning, and a Bull Run's extra for as long as it lasted.
+    /// the time the miners keep earning (a gap under a minute is live play, paid in full; a longer
+    /// one pays `offlineEfficiency` of it), and a Bull Run's extra for as long as it lasted.
     static func projected(coins: Double, income: Double, boostIncome: Double, boostEndsAt: Date?,
-                          offlineCap: TimeInterval, anchor: Date, at now: Date) -> Double {
-        let elapsed = min(max(0, now.timeIntervalSince(anchor)), max(offlineCap, Tuning.awayThreshold))
+                          offlineCap: TimeInterval, offlineEfficiency: Double = 1, anchor: Date,
+                          at now: Date) -> Double {
+        let elapsed = min(max(0, now.timeIntervalSince(anchor)), max(offlineCap, Tuning.baseAwayTime))
         var boosted = 0.0
         if let boostEndsAt { boosted = min(elapsed, max(0, boostEndsAt.timeIntervalSince(anchor))) }
-        return coins + income * elapsed + boostIncome * boosted
+        let share = elapsed < Tuning.awayThreshold ? 1 : min(max(0, offlineEfficiency), 1)
+        return coins + (income * elapsed + boostIncome * boosted) * share
     }
 
     private enum CodingKeys: String, CodingKey {
-        case coins, income, boostIncome, boostEndsAt, offlineCap, finish, anchor
+        case coins, income, boostIncome, boostEndsAt, offlineCap, offlineEfficiency, finish, anchor
     }
 
     /// Lenient, like the save: a snapshot left by another version of the app still reads.
@@ -103,6 +111,7 @@ public struct BalanceSnapshot: Codable, Hashable, Sendable {
         boostIncome = c.value(.boostIncome, default: 0)
         boostEndsAt = c.value(.boostEndsAt, default: nil)
         offlineCap = c.value(.offlineCap, default: 0)
+        offlineEfficiency = c.value(.offlineEfficiency, default: 1)
         finish = c.value(.finish, default: .gold)
         anchor = try c.decode(Date.self, forKey: .anchor)
     }
@@ -114,6 +123,7 @@ public struct BalanceSnapshot: Codable, Hashable, Sendable {
         try c.encode(boostIncome, forKey: .boostIncome)
         try c.encodeIfPresent(boostEndsAt, forKey: .boostEndsAt)
         try c.encode(offlineCap, forKey: .offlineCap)
+        try c.encode(offlineEfficiency, forKey: .offlineEfficiency)
         try c.encode(finish, forKey: .finish)
         try c.encode(anchor, forKey: .anchor)
     }
@@ -127,6 +137,7 @@ extension GameState {
         let boost = activeBoost(at: lastUpdate)
         return BalanceSnapshot(coins: coins, income: rates.normal,
                                boostIncome: boost == nil ? 0 : rates.boosted - rates.normal,
-                               boostEndsAt: boost?.endsAt, offlineCap: offlineCap, finish: finish, anchor: lastUpdate)
+                               boostEndsAt: boost?.endsAt, offlineCap: offlineCap,
+                               offlineEfficiency: offlineEfficiency, finish: finish, anchor: lastUpdate)
     }
 }

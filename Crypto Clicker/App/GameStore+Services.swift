@@ -23,7 +23,7 @@ extension GameStore {
             reminders.append(Notifier.Reminder(
                 id: .minersStopped, date: game.lastUpdate.addingTimeInterval(cap),
                 title: "Your miners have stopped",
-                body: "Offline Mining ran for \(CoinFormat.duration(cap)). Open Crypto Clicker to collect about \(CoinFormat.short(income * cap)) coins and start them again."))
+                body: "Offline Mining ran for \(CoinFormat.duration(cap)). Open Crypto Clicker to collect about \(CoinFormat.short(income * game.paidAwaySeconds(cap))) coins and start them again."))
         }
         if defaults.bool(forKey: Preferences.notifyDailyKey) {
             let today = StepDay.key(for: now)
@@ -71,9 +71,15 @@ extension GameStore {
         // Health data can't be read while the iPhone is locked; the next sync catches up.
         guard let days = try? await stepTracker.dailySteps(days: Tuning.stepWindowDays) else { return }
         let credit = perform { game, now in game.creditSteps(days, today: StepDay.key(for: now), at: now) }
+        // While the welcome-back screen is up, it lists the steps walked and what they paid
+        // (steps still waiting for tomorrow's payment included) instead of a separate toast.
+        let taken = max(credit.steps, credit.counted)
         // Steps are paid on every sync now, so a handful walked since the last one goes by quietly.
         let onlyToday = credit.days == [StepDay.key(for: now)]
-        if credit.steps > 0 && (!onlyToday || credit.steps >= Tuning.stepsToastMinimum) {
+        if taken > 0, var welcome = welcomeBack {
+            welcome.addSteps(taken, coins: credit.coins)
+            welcomeBack = welcome
+        } else if credit.steps > 0 && (!onlyToday || credit.steps >= Tuning.stepsToastMinimum) {
             let isYesterday = credit.days.first == StepDay.previousKey(before: now)
             show(Toast(icon: "👣", title: isYesterday ? "Yesterday's steps paid" : "Steps paid",
                        message: "\(CoinFormat.grouped(credit.steps)) steps · +\(CoinFormat.short(credit.coins)) coins"))

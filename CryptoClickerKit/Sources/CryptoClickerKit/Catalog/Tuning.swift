@@ -14,8 +14,12 @@ public enum Tuning {
     // MARK: Miners
     /// Each additional unit of a miner costs this much more than the previous one.
     public static let costGrowth = 1.15
-    /// Owning this many of one miner doubles that miner's output (once per milestone).
-    public static let milestones = [25, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1_000]
+    /// Owning this many of one miner doubles that miner's output (once per milestone): every 25 up
+    /// to 250, every 50 up to 1,000, then every 100 up to 5,000. The steps widen so late-game
+    /// counts don't compound past what the prices were tuned for.
+    public static let milestones = Array(stride(from: 25, through: 250, by: 25))
+        + Array(stride(from: 300, through: 1_000, by: 50))
+        + Array(stride(from: 1_100, through: 5_000, by: 100))
     public static let milestoneMultiplier = 2.0
 
     // MARK: Legacy
@@ -30,9 +34,8 @@ public enum Tuning {
     public static let legacyUnits = 100
 
     // MARK: Miner Mk upgrades
-    /// Owning this many of a miner reveals its next Mk upgrade (Mk II to Mk VI), alongside the
-    /// milestone at the same count...
-    public static let minerUpgradeThresholds = [25, 50, 100, 200, 400]
+    /// Owning this many of a miner reveals its next Mk upgrade (Mk II to Mk X)...
+    public static let minerUpgradeThresholds = [20, 50, 80, 100, 150, 200, 300, 400, 500]
     /// ...which multiplies that miner's output by this much...
     public static let minerUpgradeMultiplier = 2.0
     /// ...and costs about this many units of the miner at the count that reveals it.
@@ -84,20 +87,40 @@ public enum Tuning {
 
     // MARK: Time
     /// Gaps shorter than this count as live play and are paid in full (ticks, a quick app switch).
-    /// Longer gaps are time away: paid up to the Offline Mining limit, with a report. Even without
-    /// Offline Mining the first minute is paid, so a longer absence never pays less than a short one.
+    /// Longer gaps are time away: paid up to the Offline Mining limit, with a report, at the share
+    /// of the income that Offline Efficiency sets. Even without Offline Mining the first six
+    /// minutes (`baseAwayTime`) are paid (at that share).
     public static let awayThreshold: TimeInterval = 60
+    /// How long time away is paid from the start of the game, before any Offline Mining: six
+    /// minutes (at the share of the income that Offline Efficiency sets, a tenth to begin with).
+    public static let baseAwayTime: TimeInterval = 6 * 60
 
     // MARK: Offline Mining
-    /// Without Offline Mining, time away pays only the free first minute (`awayThreshold`). Each
-    /// level adds `step` more until the limit reaches `upTo`, then the next stage's: the first level
-    /// adds a minute (two in all), then a minute at a time to 10 minutes, 5 minutes to an hour,
-    /// 15 minutes to 3 hours, then half an hour up to three days.
+    /// Without Offline Mining, time away pays for `baseAwayTime`. The table behind the levels
+    /// starts from a minute (`awayThreshold`): each of its levels adds `step` more until the limit
+    /// reaches `upTo`, then the next stage's. It adds a minute a level (two in all for the table's
+    /// first), then a minute at a time to 10 minutes, 5 minutes to an hour, 15 minutes to 3 hours,
+    /// then half an hour up to three days.
     public static let offlineMiningStages: [(upTo: TimeInterval, step: TimeInterval)] = [
         (10 * 60, 60), (3_600, 5 * 60), (3 * 3_600, 15 * 60), (72 * 3_600, 30 * 60),
     ]
-    /// The level that reaches three days: 9 + 10 + 8 + 138.
-    public static let offlineMiningMaxLevel = 165
+    /// Levels in that table, which the prices below are listed by: 9 + 10 + 8 + 138.
+    static let offlineMiningTableLevels = 165
+    /// The table's first five levels (2, 3, 4, 5 and 6 minutes) are not for sale: six minutes is
+    /// what the game starts with (`baseAwayTime`), so the Shop's first Offline Mining level is the
+    /// table's sixth, seven minutes away, and every level after it pays the same time and costs the
+    /// same as before (less `offlineMiningPriceCut`).
+    public static let offlineMiningSkippedLevels = 5
+    /// The level that reaches three days: 4 + 10 + 8 + 138.
+    public static let offlineMiningMaxLevel = offlineMiningTableLevels - offlineMiningSkippedLevels
+    /// What the Shop charges for each Offline Mining level, as a share of the table's price: 10% off.
+    public static let offlineMiningPriceCut = 0.9
+    /// The first Offline Mining level costs exactly this...
+    public static let offlineMiningFirstLevelPrice = 10_000.0
+    /// ...and the first ten levels cost less than the table's: a share that climbs from what puts
+    /// the first at that price to this share at the tenth (the eleventh on are the table's own).
+    public static let offlineMiningScaledLevels = 10
+    public static let offlineMiningOpeningScaleEnd = 0.9
     /// List prices (before the pace) of the levels that reach each limit, in hours; the levels in
     /// between grow evenly from one to the next. The first level (two minutes) costs 3,500 coins at
     /// the opening's pace, to keep time away from coming too cheaply. Then prices climb steeply
@@ -107,12 +130,13 @@ public enum Tuning {
     public static let offlineMiningPrices: [(hours: Double, price: Double)] = [
         (2.0 / 60, 1_702.64), (1, 8e4), (10, 1.3e11), (24, 1e16), (72, 1e23),
     ]
-    /// What the first level costs in the Shop: 3,500 coins...
+    /// What the table's first level costs: 3,500 coins (the Shop starts at the table's sixth)...
     public static let offlineMiningOpeningPrices: [Double] = [3_500]
     /// ...then each level up to three and a half hours costs a steady step more than the one
     /// before: 40% more a level up to 15 minutes (level 10) and 35% more a level up to three and a
     /// half hours (level 28). After that each level keeps the step `offlineMiningPrices` takes
-    /// from the one before, carried on from level 28's price.
+    /// from the one before, carried on from level 28's price. (Every level number in these notes
+    /// counts the table's, five more than the Shop's.)
     public static let offlineMiningGrowth: [(levels: ClosedRange<Int>, factor: Double)] = [
         (2...10, 1.4), (11...28, 1.35),
     ]
@@ -126,15 +150,46 @@ public enum Tuning {
     /// What the Shop takes off the price from four and a half hours on: 15% for levels 31 to 50, 10%
     /// for levels 51 to 80 and 5% after.
     public static let offlineMiningDiscounts: [(levels: ClosedRange<Int>, factor: Double)] = [
-        (31...50, 0.85), (51...80, 0.9), (81...offlineMiningMaxLevel, 0.95),
+        (31...50, 0.85), (51...80, 0.9), (81...offlineMiningTableLevels, 0.95),
     ]
     /// How much more than the curve the half-hour levels cost: 20% for levels 28 to 30 and 10% for
     /// the rest. A level never costs less than `offlineMiningMinimumStep` times the one before.
     public static let offlineMiningPremiums: [(levels: ClosedRange<Int>, factor: Double)] = [
         (28...30, 1.2),
-        (31...offlineMiningMaxLevel, 1.1),
+        (31...offlineMiningTableLevels, 1.1),
     ]
     public static let offlineMiningMinimumStep = 1.02
+
+    // MARK: Offline Efficiency
+    /// Time away pays this share of the income, in percent (a gap shorter than `awayThreshold`
+    /// is live play and pays in full)...
+    public static let offlineEfficiencyBasePercent = 10
+    /// ...and each level of the Offline Efficiency power-up adds this many points, up to all of it
+    /// at the 18th.
+    public static let offlineEfficiencyStepPercent = 5
+    /// The Shop's price for each level of Offline Efficiency, in coins, from 15,000 for the first
+    /// (15% of the income) to 1.2 quadrillion for the 18th (all of it). The even levels are set
+    /// prices and the odd ones in between sit about midway on the climb. These are the Shop's
+    /// prices: the pace and the Shop's premium don't apply.
+    public static let offlineEfficiencyPrices: [Double] = [
+        15_000, 75_000, 250_000, 3_000_000, 8_500_000, 25_000_000,
+        110_000_000, 500_000_000, 1_500_000_000, 5_000_000_000, 20_000_000_000, 85_000_000_000,
+        290_000_000_000, 1_000_000_000_000, 7_500_000_000_000, 56_000_000_000_000,
+        340_000_000_000_000, 1_200_000_000_000_000,
+    ]
+
+    /// What share of the income time away pays at `level` of Offline Efficiency, in percent.
+    public static func offlineEfficiencyPercent(level: Int) -> Int {
+        min(100, offlineEfficiencyBasePercent + max(0, level) * offlineEfficiencyStepPercent)
+    }
+
+    /// The seconds of income at the full rate that `away` seconds pay: all of them for a gap
+    /// shorter than `awayThreshold` (the app was only out of sight, and is paid live), and
+    /// `efficiency` (0 to 1) of them for time away.
+    public static func awayPaidSeconds(_ away: TimeInterval, efficiency: Double) -> TimeInterval {
+        let away = max(0, away)
+        return away < awayThreshold ? away : away * min(max(0, efficiency), 1)
+    }
 
     // MARK: Steps
     /// Lifetime taps needed before steps can be connected, so early coins come from playing.
@@ -159,9 +214,9 @@ public enum Tuning {
     /// Every price is its list price times this: about double for everything under 5,000 coins,
     /// easing to about 52% more from a million coins up, so the opening is the slowest part.
     /// Raising every price is the same as slowing all income. (Four rounds of slowing: 15% early and
-    /// 10% overall, then 25% and 15% more, then 10% and 20%, then 30% more on the opening only.)
+    /// 10% overall, then 25% and 15% more, then 10% and 20%, then 20% more on the opening only.)
     public static func priceScale(forListPrice price: Double) -> Double {
-        let early = 1.15 * 1.25 * 1.1 * 1.3, late = 1.10 * 1.15 * 1.2, start = 5_000.0, end = 1e6
+        let early = 1.15 * 1.25 * 1.1 * 1.2, late = 1.10 * 1.15 * 1.2, start = 5_000.0, end = 1e6
         guard price.isFinite, price > start else { return early }
         guard price < end else { return late }
         return early + (late - early) * log10(price / start) / log10(end / start)
@@ -249,6 +304,21 @@ public enum Tuning {
     public static let bullRunChance = 0.3
     public static let bullRunMultiplier = 7.0
     public static let bullRunDuration: TimeInterval = 60
+
+    // MARK: Starter milestones
+    /// What the opening's first steps pay when claimed on the Goals page, in seconds of income like
+    /// the daily rewards, and about 30% of what those pay: the first login reward is 300 seconds
+    /// and the day's three quests 600, 1,200 and 1,800, so 90, 180, 360 and 540 seconds here, and a
+    /// 20-second Bull Run against the 60 seconds the daily one gives.
+    public static let starterChromebookSeconds = 90.0
+    public static let starterThreeMinersSeconds = 180.0
+    public static let starterUpgradeSeconds = 360.0
+    public static let starterGamePlayedSeconds = 540.0
+    public static let starterGameBullRun: TimeInterval = 20
+    /// A starter reward is locked in when its milestone is completed, and never worth more than
+    /// this many times what it pays at the income floor (the first Chromebook: 90 coins, at most
+    /// 900), so a late finish or a big income doesn't turn a small reward into a big one.
+    public static let starterRewardCapMultiple = 10.0
     /// With the Bull Market perk.
     public static let bullMarketDuration: TimeInterval = 120
     /// An ordinary coin airdrop pays this share of the balance, up to this many seconds of income

@@ -90,10 +90,19 @@ struct VideoPokerView: View {
         .gameHelp(.videoPoker, isPresented: $showingHelp)
         .sensoryFeedback(.selection, trigger: holdTaps) { _, _ in haptics }
         .sensoryFeedback(.success, trigger: wins) { _, _ in haptics }
+        .navigationBarBackButtonHidden(roundInProgress)
+        .onChange(of: roundInProgress) { _, inProgress in store.isTableRoundOpen = inProgress }
         .onAppear(perform: resume)
-        .onDisappear(perform: leaveTable)
+        .onDisappear {
+            store.isTableRoundOpen = false
+            leaveTable()
+        }
         .gameScreen()
     }
+
+    /// A hand is on from the deal until it's drawn and paid: the table can't be left in between
+    /// (the back button goes and the tab bar is greyed out), so a poor hand can't be dodged.
+    private var roundInProgress: Bool { phase != .betting }
 
     // MARK: Pieces
 

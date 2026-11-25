@@ -18,6 +18,13 @@ struct ChallengeCard: View {
         let game = challenge.kind.game
         let color = game?.color ?? Theme.accent
         VStack(alignment: .leading, spacing: 10) {
+            // On one line across the card, so it doesn't wrap beside the Play button.
+            Text("\(challenge.kind.dayName) · Daily Challenge")
+                .font(.footnote.weight(.heavy))
+                .textCase(.uppercase)
+                .foregroundStyle(game?.textColor(in: colorScheme) ?? Theme.accent)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
             HStack(spacing: 14) {
                 Text(game?.icon ?? "🎯")
                     .font(.system(size: 30))
@@ -25,10 +32,6 @@ struct ChallengeCard: View {
                     .background(color.opacity(0.18), in: .rect(cornerRadius: 14))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("\(challenge.kind.dayName) · Daily Challenge")
-                        .font(.footnote.weight(.heavy))
-                        .textCase(.uppercase)
-                        .foregroundStyle(game?.textColor(in: colorScheme) ?? Theme.accent)
                     Text(challenge.goal)
                         .font(.headline)
                         .fixedSize(horizontal: false, vertical: true)

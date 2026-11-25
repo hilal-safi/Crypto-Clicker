@@ -62,12 +62,12 @@ struct DebugToolsTests {
         var game = GameState.make()
         game.debugAddOfflineMining(hours: 4)
         #expect(game.offlineCap == 4 * 3_600)
-        #expect(game.offlineMiningLevel == 29) // 27 levels to 3 hours, then two half hours.
+        #expect(game.offlineMiningLevel == 24) // 22 levels to 3 hours, then two half hours.
         game.debugAddOfflineMining(hours: 4)
         #expect(game.offlineCap == 8 * 3_600)
         game.debugAddOfflineMining(hours: -7.5)
         #expect(game.offlineCap == 30 * 60)
-        #expect(game.offlineMiningLevel == 13) // Ten minutes, then four of 5 minutes.
+        #expect(game.offlineMiningLevel == 8) // Ten minutes in four levels, then four of 5 minutes.
         game.debugAddOfflineMining(hours: 500)
         #expect(game.offlineMiningLevel == Tuning.offlineMiningMaxLevel)
         game.debugAddOfflineMining(hours: -1_000)
@@ -81,12 +81,15 @@ struct DebugToolsTests {
         let result = game.advance(to: t0)
         let report = try #require(result)
         #expect(report.elapsed == 3_600)
-        #expect(approx(game.coins, 72_000))
+        // A tenth of the income, without Offline Efficiency.
+        #expect(approx(game.coins, 20 * 3_600 * 0.1))
+        #expect(approx(report.efficiency, 0.1))
     }
 
     @Test func rewindingKeepsABullRunToTheTimeItHadLeft() throws {
         var game = GameState.make(miners: minersEarning(20))
         game.debugAddOfflineMining(hours: 1)
+        game.powerUps[.offlineEfficiency] = PowerUpID.offlineEfficiency.maxLevel // All of the income.
         game.debugStartBullRun(at: t0)
         game.debugRewind(3_600)
         let result = game.advance(to: t0)

@@ -16,9 +16,9 @@ struct BalanceSnapshotTests {
         #expect(snapshot.income(at: at(100)) == 10 && snapshot.income(at: at(7_200)) == 0)
         #expect(snapshot.miningProgress(at: at(3_600)) == 0.5)
         #expect(snapshot.miningProgress(at: at(-5)) == 0 && snapshot.miningProgress(at: at(9_999)) == 1)
-        // Without Offline Mining the miners stop after a minute.
+        // Without Offline Mining the miners stop after the six minutes the game starts with.
         let short = BalanceSnapshot(coins: 100, income: 10, offlineCap: 0, anchor: t0)
-        #expect(short.miningEndsAt == at(60) && short.coinsWhenMiningEnds == 700)
+        #expect(short.miningEndsAt == at(360) && short.coinsWhenMiningEnds == 100 + 3_600)
     }
 
     @Test func aBullRunCountsUntilItEnds() {
@@ -42,13 +42,43 @@ struct BalanceSnapshotTests {
             #expect(approx(snapshot.coins(at: at(seconds)), played.coins), "\(seconds) s")
         }
         for level in [3, 62] {
-            var mining = game
-            mining.offlineMiningLevel = level
-            let snapshot = mining.balanceSnapshot()
-            #expect(snapshot.offlineCap == mining.offlineCap)
-            mining.advance(to: at(30 * 3_600))
-            #expect(approx(snapshot.coinsWhenMiningEnds, mining.coins), "level \(level)")
+            for efficiency in [0, 8, 18] {
+                var mining = game
+                mining.offlineMiningLevel = level
+                mining.powerUps[.offlineEfficiency] = efficiency
+                let snapshot = mining.balanceSnapshot()
+                #expect(snapshot.offlineCap == mining.offlineCap)
+                #expect(approx(snapshot.offlineEfficiency, Double(10 + 5 * efficiency) / 100))
+                mining.advance(to: at(30 * 3_600))
+                #expect(approx(snapshot.coinsWhenMiningEnds, mining.coins), "level \(level), efficiency \(efficiency)")
+            }
         }
+    }
+
+    @Test func theShareReadsAsAWholePercent() {
+        func percent(_ share: Double) -> Int {
+            BalanceSnapshot(coins: 0, income: 1, offlineCap: 0, offlineEfficiency: share, anchor: t0).offlineEfficiencyPercent
+        }
+        #expect(percent(0.1) == 10)
+        #expect(percent(0.3) == 30)
+        #expect(percent(0.8) == 80)
+        #expect(percent(1) == 100)
+        #expect(percent(7) == 100)
+        #expect(percent(-1) == 0)
+        // A snapshot from before time away paid a share is all of it.
+        #expect(BalanceSnapshot(coins: 0, income: 1, offlineCap: 0, anchor: t0).offlineEfficiencyPercent == 100)
+    }
+
+    @Test func theBalanceGrowsAtTheEfficiencyShareOnceTheTimeIsAway() {
+        let tenth = BalanceSnapshot(coins: 100, income: 10, offlineCap: 7_200, offlineEfficiency: 0.1, anchor: t0)
+        #expect(tenth.coins(at: at(30)) == 400) // Under a minute is live play: paid in full.
+        #expect(approx(tenth.coins(at: at(60)), 100 + 10 * 60 * 0.1)) // From a minute it is time away.
+        #expect(approx(tenth.coins(at: at(660)), 100 + 10 * 660 * 0.1))
+        #expect(approx(tenth.coinsWhenMiningEnds, 100 + 10 * 7_200 * 0.1))
+        // A Bull Run's extra is paid the same way.
+        let boosted = BalanceSnapshot(coins: 100, income: 10, boostIncome: 60, boostEndsAt: at(120),
+                                      offlineCap: 3_600, offlineEfficiency: 0.5, anchor: t0)
+        #expect(approx(boosted.coins(at: at(120)), 100 + (10 * 120 + 60 * 120) * 0.5))
     }
 
     @Test func aWidgetTimelineRunsUntilTheMinersStop() {
@@ -70,12 +100,13 @@ struct BalanceSnapshotTests {
 
     @Test func aSnapshotSurvivesTheTripAndReadsLeniently() throws {
         let snapshot = BalanceSnapshot(coins: 1.5e15, income: 2.5e9, boostIncome: 1e9, boostEndsAt: at(90),
-                                       offlineCap: 14_400, finish: .holographic, anchor: t0)
+                                       offlineCap: 14_400, offlineEfficiency: 0.3, finish: .holographic, anchor: t0)
         let data = try JSONEncoder().encode(snapshot)
         #expect(try JSONDecoder().decode(BalanceSnapshot.self, from: data) == snapshot)
         // Only the clock is needed: a snapshot from another version fills in the rest.
         let sparse = try JSONDecoder().decode(BalanceSnapshot.self, from: Data(#"{"anchor": 800000000, "coins": 42}"#.utf8))
         #expect(sparse.coins == 42 && sparse.income == 0 && sparse.finish == .gold && sparse.anchor == t0)
+        #expect(sparse.offlineEfficiency == 1) // From before time away paid a share: all of it.
         // An unknown finish falls back to gold.
         let odd = try JSONDecoder().decode(BalanceSnapshot.self, from: Data(#"{"anchor": 800000000, "finish": "plaid"}"#.utf8))
         #expect(odd.finish == .gold)

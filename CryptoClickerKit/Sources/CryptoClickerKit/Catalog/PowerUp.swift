@@ -1,14 +1,22 @@
 import Foundation
 
 /// Power-ups bought in levels with coins and kept through prestiges, like Offline Mining (which
-/// keeps its own rules: see `GameState.offlineMiningLevel`). These four build up the coin's combo:
-/// Combo Booster and then Combo Overdrive raise the biggest combo from ×2 to ×10, Quick Combos
-/// makes each step of a combo come sooner, up to four times as fast, and Combo Keeper gives more
-/// time between taps before a combo ends, up to twice as long.
+/// keeps its own rules: see `GameState.offlineMiningLevel`). Offline Efficiency raises the share
+/// of the income that time away pays, from a tenth to all of it, in 18 levels of 5%; it comes first so
+/// the Shop lists it right under Offline Mining. The other four build up the coin's combo: Combo
+/// Booster and then Combo Overdrive raise the biggest combo from ×2 to ×10, Quick Combos makes
+/// each step of a combo come sooner, up to four times as fast, and Combo Keeper gives more time
+/// between taps before a combo ends, up to twice as long.
 public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
-    case comboBooster, comboOverdrive, quickCombos, comboKeeper
+    case offlineEfficiency, comboBooster, comboOverdrive, quickCombos, comboKeeper
 
     public var id: String { rawValue }
+
+    /// Whether this power-up builds up the coin's combo (every one but Offline Efficiency).
+    public var isCombo: Bool { self != .offlineEfficiency }
+
+    /// Whether the Shop draws a bar per level: not for Offline Efficiency, which has too many.
+    public var showsLevelPips: Bool { self != .offlineEfficiency }
 
     public var name: String {
         switch self {
@@ -16,6 +24,7 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .comboOverdrive: localized("Combo Overdrive")
         case .quickCombos: localized("Quick Combos")
         case .comboKeeper: localized("Combo Keeper")
+        case .offlineEfficiency: localized("Offline Efficiency")
         }
     }
 
@@ -26,6 +35,7 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .comboOverdrive: "bolt.fill"
         case .quickCombos: "hare.fill"
         case .comboKeeper: "timer"
+        case .offlineEfficiency: "gauge.with.dots.needle.67percent"
         }
     }
 
@@ -39,6 +49,8 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
             localized("Combos build faster, up to \(CoinFormat.compact(Self.quickTop))× as fast.")
         case .comboKeeper:
             localized("A combo waits longer for your next tap, up to \(Self.seconds(Self.keeperTop)).")
+        case .offlineEfficiency:
+            localized("Miners earn more while the app is closed, up to your full income.")
         }
     }
 
@@ -48,6 +60,7 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .comboOverdrive: 5
         case .quickCombos: 6
         case .comboKeeper: 8
+        case .offlineEfficiency: Tuning.offlineEfficiencyPrices.count
         }
     }
 
@@ -57,9 +70,11 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
     }
 
     /// What the Shop charges for the level after `level`: the list price with the pace and the
-    /// Shop's premium, less 10% (the tapping power-ups were cut to help tapping keep up).
+    /// Shop's premium, less 10% (the tapping power-ups were cut to help tapping keep up). Offline
+    /// Efficiency's prices are the Shop's own, as listed.
     public func shopPrice(afterLevel level: Int) -> Double {
-        Tuning.shopPrice(listPrice(afterLevel: level), adjustedBy: Self.priceAdjustment)
+        if self == .offlineEfficiency { return listPrice(afterLevel: level) }
+        return Tuning.shopPrice(listPrice(afterLevel: level), adjustedBy: Self.priceAdjustment)
     }
 
     static let priceAdjustment = 0.9
@@ -73,6 +88,8 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .comboOverdrive: Tuning.comboOverdriveBaseCost * pow(Tuning.comboOverdriveCostGrowth, level)
         case .quickCombos: Tuning.quickCombosBaseCost * pow(Tuning.quickCombosCostGrowth, level)
         case .comboKeeper: Tuning.comboKeeperBaseCost * pow(Tuning.comboKeeperCostGrowth, level)
+        case .offlineEfficiency:
+            Tuning.offlineEfficiencyPrices[min(Int(level), Tuning.offlineEfficiencyPrices.count - 1)]
         }
     }
 
@@ -89,6 +106,8 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
             localized("Combos build \(CoinFormat.compact(1 + level * Tuning.quickComboStep))× as fast")
         case .comboKeeper:
             localized("Combos wait \(Self.seconds(Self.keeperWindow(level: level))) between taps")
+        case .offlineEfficiency:
+            localized("Time away pays \(Self.percent(level: level)) of your income")
         }
     }
 
@@ -101,6 +120,7 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .comboOverdrive: "×\(CoinFormat.compact(Self.boosterTop + level * Tuning.comboOverdriveStep))"
         case .quickCombos: localized("\(CoinFormat.compact(1 + level * Tuning.quickComboStep))× as fast")
         case .comboKeeper: Self.seconds(Self.keeperWindow(level: level))
+        case .offlineEfficiency: Self.percent(level: level)
         }
     }
 
@@ -110,7 +130,13 @@ public enum PowerUpID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .comboBooster, .comboOverdrive: localized("Biggest combo")
         case .quickCombos: localized("Combo speed")
         case .comboKeeper: localized("Time between taps")
+        case .offlineEfficiency: localized("Income while away")
         }
+    }
+
+    /// The share of the income that time away pays at Offline Efficiency's `level`: "10%", "30%".
+    static func percent(level: Double) -> String {
+        "\(Tuning.offlineEfficiencyPercent(level: Int(level)))%"
     }
 
     /// A short time in seconds: "0.6s", "1.2s", "0.84s".

@@ -41,7 +41,7 @@ extension GameState {
         offlineMiningLevel = Self.offlineMiningLevel(reaching: max(0, offlineCap + hours * 3_600))
     }
 
-    /// Puts every combo power-up at its last level.
+    /// Puts every power-up (the combo ones and Offline Efficiency) at its last level.
     public mutating func debugMaxPowerUps() {
         for powerUp in PowerUpID.allCases { powerUps[powerUp] = powerUp.maxLevel }
     }

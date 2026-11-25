@@ -11,6 +11,17 @@ struct Toast: Identifiable, Equatable {
     let icon: String
     let title: String
     let message: String
+    /// The numbers the player watches (per second, per tap, per step) as they are now, when the
+    /// toast changed them.
+    var gains: [Gain] = []
+
+    struct Gain: Identifiable, Equatable {
+        let title: String
+        /// What it added, or `nil` when the new total is all there is to show.
+        let added: String?
+        let total: String
+        var id: String { title }
+    }
 }
 
 /// The Shop's purchase popup. Purchases made while it's up add to it instead of stacking more
@@ -78,8 +89,17 @@ struct WelcomeBack: Identifiable {
     let newPrestigePoints: Int
     /// The affordable purchase that adds income fastest for its price, when there is one.
     let suggestion: PurchaseSuggestion?
+    /// Steps walked while away and the coins they paid: added when the step sync finishes while
+    /// this screen is up, so it shows them instead of a separate popup.
+    var steps = 0
+    var stepCoins = 0.0
 
     var id: Double { report.id }
+
+    mutating func addSteps(_ count: Int, coins: Double) {
+        steps += count
+        stepCoins += coins
+    }
 }
 
 /// An airdrop on screen, waiting to be caught before it expires (see `AirdropSchedule`).
@@ -145,6 +165,9 @@ final class GameStore {
     @ObservationIgnored var state: GameState
     @ObservationIgnored private var lastPublished = Date.distantPast
     var welcomeBack: WelcomeBack?
+    /// Whether a card round (Blackjack, Video Poker) is on, cards out and not yet settled: no
+    /// leaving the table until it's over, so a hand can't be dodged by leaving for a better one.
+    var isTableRoundOpen = false
     var errorMessage: String?
     /// Set when the save couldn't be read: the player is told before a new game starts saving.
     var unreadableSave: UnreadableSave?

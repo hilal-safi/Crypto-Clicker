@@ -5,6 +5,8 @@ struct RootView: View {
     @Environment(GameStore.self) private var store
     @State private var tab = AppTab.mine
     @State private var showingIncome = false
+    /// Set when a tap on the greyed-out tab bar is turned away because a card round is on.
+    @State private var showingRoundAlert = false
     /// Counts requests (the welcome-back screen's Offline Mining button) to show the Shop's power-ups.
     @State private var powerUpRequests = 0
     /// Counts requests (the home screen's crypto card) to show the Shop's tokens.
@@ -28,9 +30,11 @@ struct RootView: View {
                     tab = .settings
                 })
             }
+            .disabled(store.isTableRoundOpen)
             Tab("Shop", systemImage: "cart.fill", value: AppTab.shop) {
                 ShopView(powerUpRequests: powerUpRequests, tokenRequests: tokenRequests)
             }
+            .disabled(store.isTableRoundOpen)
             Tab("Arcade", systemImage: "gamecontroller.fill", value: AppTab.arcade) {
                 ArcadeView(challengeRequests: challengeRequests)
             }
@@ -41,11 +45,29 @@ struct RootView: View {
                 })
             }
             .badge(store.dailyBadgeCount)
+            .disabled(store.isTableRoundOpen)
             Tab("Settings", systemImage: "gearshape.fill", value: AppTab.settings) {
                 SettingsView(howToPlayRequests: howToPlayRequests)
             }
+            .disabled(store.isTableRoundOpen)
         }
         .tint(Theme.accent)
+        // While a card round is on, the other tabs are greyed out and tapping the bar says why:
+        // the round has to be finished before the table can be left.
+        .overlay(alignment: .bottom) {
+            if store.isTableRoundOpen {
+                Color.clear
+                    .frame(height: 88)
+                    .contentShape(.rect)
+                    .onTapGesture { showingRoundAlert = true }
+                    .ignoresSafeArea(edges: .bottom)
+            }
+        }
+        .alert("Finish the round first", isPresented: $showingRoundAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("You need to complete the round before exiting.")
+        }
         .tabBarMinimizeBehavior(.onScrollDown)
         // Mine shows the balance and rates at the top, so the bar is left off there.
         .balanceAccessory(isEnabled: tab != .mine) {

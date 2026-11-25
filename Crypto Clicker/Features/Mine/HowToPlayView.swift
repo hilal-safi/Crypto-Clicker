@@ -94,8 +94,8 @@ private struct HowToChapter: Identifiable {
             "In the Shop, each miner shows what one more adds, and Best value marks the best buy.",
         ]),
         HowToTopic("arrow.up.right.circle.fill", "Milestones and Mk upgrades", "The more of a miner you own, the more each one mines.", [
-            "Owning 25, 50, 100, 200, then every 100 up to 1,000, doubles a miner's output each time.",
-            "At 25, 50, 100, 200 and 400 owned, a Mk upgrade (Mk II to Mk VI) appears in the Shop.",
+            "Owning every 25 of a miner up to 250, every 50 up to 1,000 and every 100 after that doubles its output each time.",
+            "At 20, 50, 80, 100, 150, 200, 300, 400 and 500 owned, a Mk upgrade (Mk II to Mk X) appears in the Shop.",
             "Each Mk upgrade doubles that miner again for the rest of the run.",
             "Legacy, late in the game: each miner you own 100 of makes every miner four or more tiers older earn ×5.",
         ]),
@@ -106,8 +106,9 @@ private struct HowToChapter: Identifiable {
         ]),
         HowToTopic("moon.zzz.fill", "Offline Mining", "Keeps your miners earning while the app is closed.", [
             "Without it, miners stop a minute after you leave.",
-            "The first level adds a minute (two in all), then each adds a minute up to 10 minutes, 5 minutes up to an hour, 15 minutes up to 3 hours, and half an hour up to three days. Every level costs more than the last.",
-            "It's a power-up, so it stays when you prestige.",
+            "You start with six minutes of time away. The first level adds a minute, then each adds a minute up to 10 minutes, 5 minutes up to an hour, 15 minutes up to 3 hours, and half an hour up to three days. Every level costs more than the last.",
+            "Time away pays a tenth of your income. Offline Efficiency, also in Power-ups, adds 5% for each of its 18 levels, up to all of it.",
+            "Both are power-ups, so they stay when you prestige.",
         ]),
     ])
 

@@ -81,7 +81,7 @@ struct TestingToolsView: View {
             Button("Add 10 of Every Miner") { store.debugAddMiners(10) }
             Button("Add 100 of Every Miner") { store.debugAddMiners(100) }
             Button("Give Every Upgrade") { store.debugGiveAllUpgrades() }
-            Button("Max Every Combo Power-up") { store.debugMaxPowerUps() }
+            Button("Max Every Power-up") { store.debugMaxPowerUps() }
                 .disabled(game.upgrades.count == UpgradeID.allCases.count)
         } header: {
             Text("Shop")
@@ -192,7 +192,7 @@ struct TestingToolsView: View {
         } header: {
             Text("Events")
         } footer: {
-            SettingsNote("Airdrops and time away close this screen so you can see them. Right now time away pays for up to \(CoinFormat.duration(game.timeAwayLimit)): the first minute, or the Offline Mining limit once it's longer.")
+            SettingsNote("Airdrops and time away close this screen so you can see them. Right now time away pays for up to \(CoinFormat.duration(game.timeAwayLimit)): the first six minutes, or the Offline Mining limit once it's longer.")
         }
     }
 

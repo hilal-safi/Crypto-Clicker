@@ -113,7 +113,7 @@ struct PrestigeSheet: View {
                 Section("Keeps") {
                     Label("Prestige points, their bonus and your perks", systemImage: "rosette")
                     Label("Achievements and statistics", systemImage: "trophy")
-                    Label("Offline Mining", systemImage: "moon.zzz")
+                    Label("Offline Mining and Offline Efficiency", systemImage: "moon.zzz")
                     Label("Unlocked mini-games", systemImage: "gamecontroller")
                     Label("Your daily streak and quests", systemImage: "calendar")
                     Label("Steps already rewarded", systemImage: "figure.walk")

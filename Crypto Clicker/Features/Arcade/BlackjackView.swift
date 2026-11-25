@@ -46,6 +46,7 @@ struct BlackjackView: View {
                 ZStack {
                     if table.phase == .settled {
                         ResultBanner(results: table.results, insurance: table.insurance, bonus: lastBonus, unit: unit, xp: lastXP)
+                            .offset(y: Self.resultNudge)
                             .transition(.scale(scale: 0.6).combined(with: .opacity))
                     } else if let insurance = table.insurance {
                         InsuranceNote(insurance: insurance, unit: unit)
@@ -64,9 +65,11 @@ struct BlackjackView: View {
                                      isCompact: true)
                         }
                     }
+                    .offset(y: Self.handsNudge)
                 } else {
                     ForEach(table.hands) { hand in
                         handView(hand, cardSize: cardSize, isCompact: false)
+                            .offset(y: Self.handsNudge)
                     }
                 }
             }
@@ -105,6 +108,8 @@ struct BlackjackView: View {
                 }
             }
         }
+        .navigationBarBackButtonHidden(roundInProgress)
+        .onChange(of: roundInProgress) { _, inProgress in store.isTableRoundOpen = inProgress }
         .onAppear { table.setRules(tableRules) }
         .onChange(of: tableRules) { _, rules in table.setRules(rules) }
         .sensoryFeedback(trigger: settledRounds) { _, _ in
@@ -113,11 +118,28 @@ struct BlackjackView: View {
         }
         .task(id: table.phase) { await playDealer() }
         .onAppear(perform: pickOwnedToken)
-        .onDisappear(perform: leaveTable)
+        .onDisappear {
+            store.isTableRoundOpen = false
+            leaveTable()
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { leaveTable() }
         }
         .gameScreen()
+    }
+
+    /// How far the result banner sits below its place, and the player's hands (points).
+    private static let resultNudge: CGFloat = 6
+    private static let handsNudge: CGFloat = 12
+
+    /// A round is on from the moment the cards are out until it's settled: the table can't be left
+    /// in between (the back button goes and the tab bar is greyed out), so a hand can't be dodged
+    /// by leaving and coming back for a better one.
+    private var roundInProgress: Bool {
+        switch table.phase {
+        case .insurance, .playerTurn, .dealerTurn: true
+        case .betting, .settled: false
+        }
     }
 
     private func handView(_ hand: BlackjackHand, cardSize: CGSize, isCompact: Bool) -> some View {

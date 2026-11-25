@@ -146,9 +146,9 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
         localized("\(name) Mk \(Self.markName(level: level))")
     }
 
-    /// The mark an upgrade level gives: "II" for level 0, up to "VI".
+    /// The mark an upgrade level gives: "II" for level 0, up to "X".
     public static func markName(level: Int) -> String {
-        let marks = ["II", "III", "IV", "V", "VI"]
+        let marks = ["II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
         return marks.indices.contains(level) ? marks[level] : "\(level + 2)"
     }
 

@@ -40,6 +40,8 @@ struct TrophiesView: View {
                             Group {
                                 if page == .daily && store.dailyBadgeCount > 0 {
                                     Text("\(Text(page.title)) (\(store.dailyBadgeCount))")
+                                } else if page == .goals && !game.claimableStarterMilestones.isEmpty {
+                                    Text("\(Text(page.title)) (\(game.claimableStarterMilestones.count))")
                                 } else {
                                     Text(page.title)
                                 }
@@ -89,18 +91,91 @@ struct TrophiesView: View {
 
 // MARK: - Goals
 
-/// The next few things worth working toward, each with how far along it is.
+/// The opening's starter milestones (until all are claimed), then the next few things worth
+/// working toward, each with how far along it is.
 private struct GoalsPage: View {
     let goals: [Goal]
+    @Environment(GameStore.self) private var store
 
     var body: some View {
+        let game = store.game
         VStack(alignment: .leading, spacing: 12) {
+            if game.hasUnclaimedStarterMilestones {
+                Text("Starter milestones")
+                    .font(.title3.bold())
+                    .padding(.horizontal, 4)
+                ForEach(StarterMilestone.allCases) { milestone in
+                    StarterMilestoneCard(milestone: milestone, progress: game.progress(of: milestone),
+                                         reward: game.payout(of: milestone), isReached: game.isReached(milestone),
+                                         isClaimed: game.isClaimed(milestone))
+                }
+            }
             Text("Your next goals")
                 .font(.title3.bold())
                 .padding(.horizontal, 4)
             ForEach(goals) { goal in
                 GoalCard(goal: goal)
             }
+        }
+    }
+}
+
+/// One starter milestone: what to do, what it pays, and a Claim button once it's done.
+private struct StarterMilestoneCard: View {
+    let milestone: StarterMilestone
+    let progress: Double
+    let reward: StarterPayout
+    let isReached: Bool
+    let isClaimed: Bool
+    @Environment(GameStore.self) private var store
+    @AppStorage(Preferences.hapticsKey) private var haptics = true
+    @State private var claims = 0
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: isClaimed ? "checkmark" : milestone.symbol)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 46, height: 46)
+                .background((isClaimed ? Color.green : Theme.accent).gradient, in: .circle)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(milestone.title)
+                    .font(.headline)
+                    .fixedSize(horizontal: false, vertical: true)
+                Label(reward.text, systemImage: rewardSymbol)
+                    .font(.subheadline)
+                    .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !isReached {
+                    ProgressView(value: progress)
+                        .tint(Theme.accent)
+                }
+            }
+            Spacer(minLength: 8)
+            if isClaimed {
+                Text("Claimed")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.green)
+            } else if isReached {
+                Button("Claim") {
+                    store.claimStarterMilestone(milestone)
+                    claims += 1
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
+                .font(.subheadline.weight(.bold))
+            }
+        }
+        .rowCard()
+        .opacity(isClaimed ? 0.7 : 1)
+        .sensoryFeedback(.success, trigger: claims) { _, _ in haptics }
+    }
+
+    private var rewardSymbol: String {
+        switch reward {
+        case .coins: "bitcoinsign.circle.fill"
+        case .bullRun: "flame.fill"
         }
     }
 }

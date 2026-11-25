@@ -5,9 +5,12 @@ import Testing
 @Suite("Time and offline earnings")
 struct TimeTests {
     /// 10 Chromebooks and 10 Desktops: 20 coins per second, no taps involved.
-    func earner(offlineHours: Double = 0) -> GameState {
+    /// Offline Efficiency is at its last level unless a test says otherwise, so time away pays all
+    /// of its income (10% is the level 0 default: see the efficiency tests below).
+    func earner(offlineHours: Double = 0, efficiency: Int = PowerUpID.offlineEfficiency.maxLevel) -> GameState {
         var state = GameState.make(miners: minersEarning(20))
         state.setOfflineMining(hours: offlineHours)
+        state.powerUps[.offlineEfficiency] = efficiency
         return state
     }
 
@@ -21,29 +24,29 @@ struct TimeTests {
         #expect(approx(state.coins, 200 + 59 * 20))
     }
 
-    @Test func withoutOfflineMiningTimeAwayPaysOnlyTheFirstMinute() throws {
+    @Test func withoutOfflineMiningTimeAwayPaysTheFirstSixMinutes() throws {
         var state = earner()
         let result = state.advance(to: at(3 * 3_600))
         let report = try #require(result)
         #expect(report.elapsed == 3 * 3_600)
-        #expect(report.credited == 60)
+        #expect(report.credited == 6 * 60)
         #expect(report.wasCapped)
         #expect(report.offlineCap == 0)
-        #expect(approx(report.earned, 60 * 20))
-        #expect(approx(state.stats.earnedOffline, 60 * 20))
+        #expect(approx(report.earned, 360 * 20))
+        #expect(approx(state.stats.earnedOffline, 360 * 20))
         #expect(state.stats.earnedFromIdle == 0)
         #expect(state.lastUpdate == at(3 * 3_600))
         // The rest is gone for good: the next tick pays only new time.
         #expect(state.advance(to: at(3 * 3_600 + 1)) == nil)
-        #expect(approx(state.coins, 61 * 20))
+        #expect(approx(state.coins, 361 * 20))
     }
 
-    @Test func leavingForLongerNeverPaysLessThanAQuickSwitch() {
-        // 59 seconds is live play, 61 is time away; both pay their full time.
-        for seconds in [59.0, 60, 61, 600] {
+    @Test func atFullEfficiencyTimeAwayPaysItsFullTimeUpToTheSixMinutes() {
+        // 59 seconds is live play, 61 is time away; at full efficiency both pay their full time.
+        for seconds in [59.0, 60, 61, 359, 360, 700] {
             var state = earner()
             state.advance(to: at(seconds))
-            #expect(approx(state.coins, min(seconds, 60) * 20), "\(seconds)s")
+            #expect(approx(state.coins, min(seconds, 360) * 20), "\(seconds)s")
         }
     }
 
@@ -63,10 +66,67 @@ struct TimeTests {
         #expect(!longReport.wasCapped)
     }
 
+    @Test func timeAwayPaysOnlyTheEfficiencyShare() throws {
+        for level in 0...PowerUpID.offlineEfficiency.maxLevel {
+            var state = earner(offlineHours: 1, efficiency: level)
+            let result = state.advance(to: at(3_600))
+            let report = try #require(result)
+            let share = Double(10 + 5 * level) / 100
+            #expect(approx(report.efficiency, share), "level \(level)")
+            // 20 coins a second for an hour, at the share.
+            #expect(approx(report.earned, 20 * 3_600 * share), "level \(level)")
+            #expect(approx(state.coins, report.earned), "level \(level)")
+            #expect(approx(report.sources.reduce(0) { $0 + $1.coins }, report.earned), "level \(level)")
+        }
+        // Without any Offline Efficiency that is a tenth of the income.
+        var plain = GameState.make(miners: minersEarning(20))
+        plain.setOfflineMining(hours: 1)
+        let plainResult = plain.advance(to: at(3_600))
+        let plainReport = try #require(plainResult)
+        #expect(approx(plainReport.earned, 20 * 3_600 * 0.1))
+        // Without Offline Mining, the first six minutes away pay a tenth of it.
+        var none = GameState.make(miners: minersEarning(20))
+        none.advance(to: at(600))
+        #expect(approx(none.coins, 20 * 360 * 0.1))
+    }
+
+    @Test func aGapUnderAMinuteIsLivePlayAndPaidInFullButTimeAwayPaysTheShare() {
+        // 20 coins a second at a ten percent share, with Offline Mining for six minutes.
+        for seconds in [30.0, 59] {
+            var state = earner(offlineHours: 0.1, efficiency: 0)
+            state.advance(to: at(seconds))
+            #expect(approx(state.coins, 20 * seconds), "\(seconds)s") // Live play: all of it.
+        }
+        for seconds in [60.0, 61, 200, 360, 400] {
+            var state = earner(offlineHours: 0.1, efficiency: 0)
+            state.advance(to: at(seconds))
+            #expect(approx(state.coins, 20 * min(seconds, 6 * 60) * 0.1), "\(seconds)s") // Time away: a tenth.
+        }
+    }
+
+    @Test func efficiencyAppliesToABullRunToo() throws {
+        // A Bull Run that ends after a minute pays its extra at 30% too, like the rest.
+        var inside = earner(offlineHours: 0.5, efficiency: 4) // 30%
+        inside.boost = Boost(multiplier: 7, endsAt: at(60))
+        let insideResult = inside.advance(to: at(600))
+        let insideReport = try #require(insideResult)
+        #expect(approx(insideReport.earned, (60 * 140 + 540 * 20) * 0.3))
+        #expect(approx(insideReport.sources.reduce(0) { $0 + $1.coins }, insideReport.earned))
+        // One that runs on for five minutes.
+        var long = earner(offlineHours: 0.5, efficiency: 4)
+        long.boost = Boost(multiplier: 7, endsAt: at(300))
+        let longResult = long.advance(to: at(600))
+        let longReport = try #require(longResult)
+        #expect(longReport.boostedSeconds == 300)
+        #expect(approx(longReport.earned, (300 * 140.0 + 300 * 20) * 0.3))
+        #expect(approx(longReport.sources.reduce(0) { $0 + $1.coins }, longReport.earned))
+    }
+
     @Test func theReportBreaksDownWhatEarnedTheCoins() throws {
         var state = GameState.make(miners: [.desktop: 10, .chromebook: 2, .server: 2],
                                    upgrades: [.coinClicker, .upgradedClicker, .automatedClicker, .overclocking])
         state.setOfflineMining(hours: 1)
+        state.powerUps[.offlineEfficiency] = PowerUpID.offlineEfficiency.maxLevel
         state.prestigePoints = 2
         state.achievementTiers = ["miner": 2]
         state.boost = Boost(multiplier: 7, endsAt: at(100))
