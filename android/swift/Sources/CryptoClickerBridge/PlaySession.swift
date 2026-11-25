@@ -22,10 +22,21 @@ extension PlaySession {
     func close(session: GameSession) {}
 }
 
-/// The open mini-game's frame: the part for that game, and what every game screen shares.
+/// The open mini-game's frame: the part for that game.
 struct PlayView: Encodable {
     /// The game's id (`MiniGame.rawValue`).
     let game: String
+    let blackjack: BlackjackFrameView?
+    let poker: PokerFrameView?
+    let slots: SlotsFrameView?
+    let moon: MoonFrameView?
+}
+
+extension PlayView {
+    init(_ game: MiniGame, blackjack: BlackjackFrameView? = nil, poker: PokerFrameView? = nil,
+         slots: SlotsFrameView? = nil, moon: MoonFrameView? = nil) {
+        self.init(game: game.rawValue, blackjack: blackjack, poker: poker, slots: slots, moon: moon)
+    }
 }
 
 extension Bridge {
@@ -53,6 +64,12 @@ extension Bridge {
 
     /// The session for a game screen.
     static func makePlaySession(_ game: MiniGame, _ request: Request, session: GameSession) throws -> PlaySession {
-        throw BridgeError(message: "\(game.name) isn't on Android yet.")
+        switch game {
+        case .blackjack: return BlackjackPlay(request, session: session)
+        case .videoPoker: return PokerPlay(session: session)
+        case .slots: return SlotsPlay(request, session: session)
+        case .moon: return MoonPlay(request, session: session)
+        default: throw BridgeError(message: "\(game.name) isn't on Android yet.")
+        }
     }
 }

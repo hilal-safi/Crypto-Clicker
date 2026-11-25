@@ -99,13 +99,12 @@ private enum class TrophiesPage(val title: String, val view: String) {
 
 /** What to work toward next, daily rewards and quests, and the achievements that add production (iOS: TrophiesView). */
 @Composable
-fun TrophiesScreen(contentPadding: PaddingValues, requests: Requests, openChallenge: () -> Unit) {
+fun TrophiesScreen(contentPadding: PaddingValues, requests: Requests, openChallenge: (String?) -> Unit) {
     val game = LocalGame.current
     var page by rememberSaveable { mutableStateOf(TrophiesPage.Daily) }
-    var handledDaily by rememberSaveable { mutableIntStateOf(requests.daily) }
     LaunchedEffect(requests.daily) {
-        if (handledDaily != requests.daily) {
-            handledDaily = requests.daily
+        if (requests.daily) {
+            requests.daily = false
             page = TrophiesPage.Daily
         }
     }
@@ -177,11 +176,11 @@ private fun GoalCard(goal: Goal) {
 
 // MARK: - Daily
 
-private fun LazyListScope.dailyPage(daily: Daily, openChallenge: () -> Unit) {
+private fun LazyListScope.dailyPage(daily: Daily, openChallenge: (String?) -> Unit) {
     item(key = "reward") { Wide { DailyRewardCard(daily.reward, daily.resetsAt) } }
     item(key = "quests") { Wide { QuestsCard(daily) } }
     daily.challenge?.let { challenge ->
-        item(key = "challenge") { Wide { ChallengeCard(challenge, play = if (challenge.canPlay) openChallenge else null) } }
+        item(key = "challenge") { Wide { ChallengeCard(challenge, play = if (challenge.canPlay) ({ openChallenge(challenge.game) }) else null) } }
     }
     item(key = "dailyNote") {
         Wide { Text(daily.footnote, style = Type.subheadline, color = gameColors.subtext, modifier = Modifier.padding(horizontal = 4.dp)) }

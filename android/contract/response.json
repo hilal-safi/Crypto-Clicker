@@ -30,6 +30,70 @@
       "subtitle": "text",
       "title": "text"
     },
+    "arcade": {
+      "arcade": [
+        {
+          "canAfford": true,
+          "color": "text",
+          "icon": "text",
+          "id": "text",
+          "isUnlocked": true,
+          "name": "text",
+          "pitch": "text",
+          "records": [
+            {
+              "label": "text",
+              "value": "text"
+            }
+          ],
+          "textColorDark": "text",
+          "unlockPrice": "text"
+        }
+      ],
+      "casino": [
+        {
+          "canAfford": true,
+          "color": "text",
+          "icon": "text",
+          "id": "text",
+          "isUnlocked": true,
+          "name": "text",
+          "pitch": "text",
+          "records": [
+            {
+              "label": "text",
+              "value": "text"
+            }
+          ],
+          "textColorDark": "text",
+          "unlockPrice": "text"
+        }
+      ],
+      "challenge": {
+        "canPlay": true,
+        "color": "text",
+        "fraction": 1.5,
+        "game": "text",
+        "goal": "text",
+        "icon": "text",
+        "isComplete": true,
+        "progressText": "text",
+        "reward": "text",
+        "textColorDark": "text",
+        "title": "text",
+        "week": "text"
+      },
+      "challengeGame": "text",
+      "rank": {
+        "fraction": 1.5,
+        "playedIcons": "text",
+        "progress": "text",
+        "rank": 1,
+        "title": "text",
+        "weekly": "text",
+        "weeklyPaid": true
+      }
+    },
     "daily": {
       "challenge": {
         "canPlay": true,
@@ -81,6 +145,26 @@
     "dailyBadge": 1,
     "debugTools": true,
     "errorMessage": "text",
+    "gameCards": [
+      {
+        "color": "text",
+        "headlineTitle": "text",
+        "headlineValue": "text",
+        "icon": "text",
+        "id": "text",
+        "items": [
+          {
+            "title": "text",
+            "value": "text"
+          }
+        ],
+        "name": "text",
+        "note": "text",
+        "plays": "text",
+        "textColorDark": "text",
+        "timesPlayed": 1
+      }
+    ],
     "goals": {
       "goals": [
         {
@@ -95,6 +179,34 @@
         }
       ]
     },
+    "guides": [
+      {
+        "color": "text",
+        "controlHint": "text",
+        "controls": [
+          "text"
+        ],
+        "ending": "text",
+        "icon": "text",
+        "id": "text",
+        "items": [
+          {
+            "detail": "text",
+            "id": "text",
+            "name": "text",
+            "symbol": "text"
+          }
+        ],
+        "name": "text",
+        "objective": "text",
+        "scoring": [
+          "text"
+        ],
+        "tips": [
+          "text"
+        ]
+      }
+    ],
     "income": {
       "bullRun": "text",
       "headline": "text",
@@ -118,6 +230,9 @@
       ],
       "subline": "text"
     },
+    "looks": [
+      "text"
+    ],
     "mine": {
       "finishes": [
         "text"
@@ -370,6 +485,25 @@
     },
     "stepWindowDays": 1,
     "stepsConnected": true,
+    "style": {
+      "slots": [
+        {
+          "cosmetics": [
+            {
+              "achievementLine": "text",
+              "id": "text",
+              "isEquipped": true,
+              "isUnlocked": true,
+              "name": "text",
+              "rankLine": "text"
+            }
+          ],
+          "icons": "text",
+          "id": "text",
+          "name": "text"
+        }
+      ]
+    },
     "tokens": {
       "footnote": "text",
       "holdings": "text",
@@ -495,7 +629,389 @@
   },
   "ok": true,
   "play": {
-    "game": "text"
+    "blackjack": {
+      "advice": "text",
+      "adviceName": "text",
+      "bonusLine": "text",
+      "canAffordExtra": true,
+      "canChangeRules": true,
+      "canDeal": true,
+      "canDouble": true,
+      "canInsure": true,
+      "canSplit": true,
+      "celebration": "text",
+      "coachInsures": true,
+      "dealTitle": "text",
+      "dealer": [
+        {
+          "id": 1,
+          "isRed": true,
+          "label": "text",
+          "name": "text",
+          "suit": "text"
+        }
+      ],
+      "dealerTotal": "text",
+      "dealerTurnTitle": "text",
+      "feedback": "text",
+      "hands": [
+        {
+          "cards": [
+            {
+              "id": 1,
+              "isRed": true,
+              "label": "text",
+              "name": "text",
+              "suit": "text"
+            }
+          ],
+          "chip": "text",
+          "id": 1,
+          "isActive": true,
+          "outcome": "text",
+          "token": "text",
+          "tone": "text",
+          "total": "text"
+        }
+      ],
+      "holeHidden": true,
+      "insuranceCost": "text",
+      "insuranceNote": "text",
+      "insurancePaid": true,
+      "markings": "text",
+      "maxBonusBet": 1,
+      "phase": "text",
+      "result": {
+        "bonus": "text",
+        "insurance": "text",
+        "isWin": true,
+        "net": "text",
+        "netIsLoss": true,
+        "title": "text",
+        "xp": {
+          "capReached": true,
+          "parts": "text",
+          "text": "text"
+        }
+      },
+      "rounds": 1,
+      "ruleChoices": [
+        {
+          "id": "text",
+          "name": "text"
+        }
+      ],
+      "rules": "text",
+      "wallet": {
+        "bet": 1,
+        "betText": "text",
+        "canPractice": true,
+        "chips": "text",
+        "isBroke": true,
+        "isEnabled": true,
+        "isPracticing": true,
+        "maxBet": 1,
+        "noTokens": "text",
+        "owned": "text",
+        "practiceBet": 1,
+        "practiceBets": [
+          1
+        ],
+        "refill": "text",
+        "ticker": "text",
+        "token": "text",
+        "tokenName": "text",
+        "tokens": [
+          {
+            "id": "text",
+            "name": "text",
+            "owned": 1,
+            "ownedText": "text",
+            "price": "text",
+            "ticker": "text"
+          }
+        ]
+      }
+    },
+    "game": "text",
+    "moon": {
+      "autoCashOut": 1.5,
+      "autoChoices": [
+        1.5
+      ],
+      "autoLabel": "text",
+      "autoNote": "text",
+      "bonusLine": "text",
+      "canLaunch": true,
+      "celebration": 1,
+      "doublingTime": 1.5,
+      "elapsed": 1.5,
+      "endedAfter": 1.5,
+      "endsAfter": 1.5,
+      "feedback": "text",
+      "flight": 1,
+      "growth": 1.5,
+      "hasFlown": true,
+      "headline": "text",
+      "headlineTone": "text",
+      "intro": "text",
+      "isCrashed": true,
+      "isFlying": true,
+      "launchTitle": "text",
+      "multiplier": "text",
+      "result": {
+        "bonus": "text",
+        "id": 1,
+        "isWin": true,
+        "title": "text",
+        "xp": {
+          "capReached": true,
+          "parts": "text",
+          "text": "text"
+        }
+      },
+      "ride": "text",
+      "rocket": "text",
+      "rockets": [
+        {
+          "id": "text",
+          "name": "text"
+        }
+      ],
+      "roundBet": 1,
+      "shownRocket": "text",
+      "unit": "text",
+      "wallet": {
+        "bet": 1,
+        "betText": "text",
+        "canPractice": true,
+        "chips": "text",
+        "isBroke": true,
+        "isEnabled": true,
+        "isPracticing": true,
+        "maxBet": 1,
+        "noTokens": "text",
+        "owned": "text",
+        "practiceBet": 1,
+        "practiceBets": [
+          1
+        ],
+        "refill": "text",
+        "ticker": "text",
+        "token": "text",
+        "tokenName": "text",
+        "tokens": [
+          {
+            "id": "text",
+            "name": "text",
+            "owned": 1,
+            "ownedText": "text",
+            "price": "text",
+            "ticker": "text"
+          }
+        ]
+      }
+    },
+    "poker": {
+      "bonusLine": "text",
+      "canDeal": true,
+      "cards": [
+        {
+          "id": 1,
+          "isRed": true,
+          "label": "text",
+          "name": "text",
+          "suit": "text"
+        }
+      ],
+      "dealTitle": "text",
+      "hand": 1,
+      "held": [
+        1
+      ],
+      "instructions": "text",
+      "maxBonusBet": 1,
+      "payTable": [
+        {
+          "isLit": true,
+          "name": "text",
+          "pays": "text"
+        }
+      ],
+      "phase": "text",
+      "replaced": [
+        1
+      ],
+      "result": {
+        "bonus": "text",
+        "celebration": 1,
+        "id": 1,
+        "isBig": true,
+        "isWin": true,
+        "paid": "text",
+        "title": "text",
+        "winning": [
+          1
+        ],
+        "xp": {
+          "capReached": true,
+          "parts": "text",
+          "text": "text"
+        }
+      },
+      "unit": "text",
+      "wallet": {
+        "bet": 1,
+        "betText": "text",
+        "canPractice": true,
+        "chips": "text",
+        "isBroke": true,
+        "isEnabled": true,
+        "isPracticing": true,
+        "maxBet": 1,
+        "noTokens": "text",
+        "owned": "text",
+        "practiceBet": 1,
+        "practiceBets": [
+          1
+        ],
+        "refill": "text",
+        "ticker": "text",
+        "token": "text",
+        "tokenName": "text",
+        "tokens": [
+          {
+            "id": "text",
+            "name": "text",
+            "owned": 1,
+            "ownedText": "text",
+            "price": "text",
+            "ticker": "text"
+          }
+        ]
+      }
+    },
+    "slots": {
+      "bitcoins": "text",
+      "bitcoinsLabel": "text",
+      "bonusLine": "text",
+      "canChangeMachine": true,
+      "canSpin": true,
+      "classicStrip": [
+        "text"
+      ],
+      "free": "text",
+      "freeToken": "text",
+      "instructions": "text",
+      "isFree": true,
+      "isSpinning": true,
+      "machine": "text",
+      "machines": [
+        {
+          "id": "text",
+          "name": "text"
+        }
+      ],
+      "paylines": [
+        [
+          1
+        ]
+      ],
+      "paytable": [
+        {
+          "footer": "text",
+          "header": "text",
+          "items": [
+            {
+              "note": "text",
+              "pays": "text",
+              "runs": [
+                "text"
+              ],
+              "tokens": [
+                "text"
+              ]
+            }
+          ],
+          "showsLines": true
+        }
+      ],
+      "paytableTitle": "text",
+      "reelCount": 1,
+      "result": {
+        "bonus": "text",
+        "celebration": 1,
+        "collectionPrize": true,
+        "freeSpinsWon": true,
+        "id": 1,
+        "isLit": true,
+        "lines": [
+          [
+            1
+          ]
+        ],
+        "net": "text",
+        "netTone": "text",
+        "paid": "text",
+        "stake": "text",
+        "title": "text",
+        "winningCells": [
+          [
+            1
+          ]
+        ],
+        "winningReels": [
+          1
+        ],
+        "withPrize": true,
+        "xp": {
+          "capReached": true,
+          "parts": "text",
+          "text": "text"
+        }
+      },
+      "spin": 1,
+      "spinTitle": "text",
+      "stopTimes": [
+        1.5
+      ],
+      "stops": [
+        1
+      ],
+      "videoStrip": [
+        "text"
+      ],
+      "wallet": {
+        "bet": 1,
+        "betText": "text",
+        "canPractice": true,
+        "chips": "text",
+        "isBroke": true,
+        "isEnabled": true,
+        "isPracticing": true,
+        "maxBet": 1,
+        "noTokens": "text",
+        "owned": "text",
+        "practiceBet": 1,
+        "practiceBets": [
+          1
+        ],
+        "refill": "text",
+        "ticker": "text",
+        "token": "text",
+        "tokenName": "text",
+        "tokens": [
+          {
+            "id": "text",
+            "name": "text",
+            "owned": 1,
+            "ownedText": "text",
+            "price": "text",
+            "ticker": "text"
+          }
+        ]
+      }
+    }
   },
   "reminders": [
     {

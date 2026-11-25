@@ -73,6 +73,12 @@ struct GameView: Encodable {
     let goals: GoalsView?
     let daily: DailyView?
     let achievements: AchievementsView?
+    let arcade: ArcadeView?
+    let gameCards: [GameCardView]?
+    let guides: [GuideView]?
+    let style: StyleView?
+    /// The looks equipped for each kind, as "slot=cosmetic", for the game screens.
+    let looks: [String]?
     let mine: MineView?
     let income: IncomeView?
 }
@@ -218,6 +224,11 @@ extension GameSession {
                  goals: views.contains("goals") ? goalsView : nil,
                  daily: views.contains("daily") ? dailyView : nil,
                  achievements: views.contains("achievements") ? achievementsView : nil,
+                 arcade: views.contains("arcade") ? arcadeView : nil,
+                 gameCards: views.contains("gameCards") ? gameCardsView : nil,
+                 guides: views.contains("guides") ? guidesView : nil,
+                 style: views.contains("style") ? styleView : nil,
+                 looks: views.contains("looks") ? equippedLooks : nil,
                  mine: views.contains("mine") ? mineView : nil,
                  income: views.contains("income") ? incomeView : nil)
     }

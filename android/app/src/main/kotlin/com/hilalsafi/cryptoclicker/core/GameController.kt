@@ -178,15 +178,25 @@ class GameController(
 
     // MARK: Mini-games
 
-    /** A mini-game screen opened: start its play session, and hold toasts until it closes. */
-    fun openGame(id: String, args: Map<String, Any?> = emptyMap()) {
+    /** Game screens opened so far: a screen closes the game only if no other has opened since. */
+    private var gameScreens = 0
+
+    /**
+     * A mini-game screen opened: start its play session, and hold toasts until it closes. Returns
+     * the screen's number, for [closeGame].
+     */
+    fun openGame(id: String, args: Map<String, Any?> = emptyMap()): Int {
+        gameScreens += 1
+        _frame.value = null
         _inGame.value = true
         command("setInGame", mapOf("flag" to true))
         command("play.open", args + ("id" to id))
+        return gameScreens
     }
 
-    /** The mini-game screen closed. */
-    fun closeGame() {
+    /** The mini-game screen [screen] closed (nothing happens if another game screen has opened since). */
+    fun closeGame(screen: Int = gameScreens) {
+        if (screen != gameScreens) return
         command("play.close")
         command("setInGame", mapOf("flag" to false))
         _frame.value = null

@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
@@ -438,6 +439,7 @@ fun <T> SegmentedPicker(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
     tint: Color? = null,
+    enabled: Boolean = true,
 ) {
     val colors = gameColors
     val feedback = rememberFeedback()
@@ -446,6 +448,7 @@ fun <T> SegmentedPicker(
     Row(
         modifier
             .fillMaxWidth()
+            .alpha(if (enabled) 1f else 0.5f)
             .clip(RoundedCornerShape(10.dp))
             .background(track)
             .padding(2.dp),
@@ -457,7 +460,7 @@ fun <T> SegmentedPicker(
                     .weight(1f)
                     .clip(RoundedCornerShape(8.dp))
                     .background(if (isSelected) (tint ?: raised) else Color.Transparent)
-                    .clickable {
+                    .clickable(enabled = enabled) {
                         if (!isSelected) {
                             feedback.selection()
                             onSelect(option)

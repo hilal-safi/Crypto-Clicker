@@ -127,6 +127,12 @@ data class GameView(
     val goals: Goals?,
     val daily: Daily?,
     val achievements: Achievements?,
+    val arcade: Arcade?,
+    val gameCards: List<GameCard>?,
+    val guides: List<Guide>?,
+    val style: Style?,
+    /** The looks equipped for each kind, as "slot=cosmetic", for the game screens. */
+    val looks: List<String>?,
     val mine: Mine?,
     val income: Income?,
 ) {
@@ -147,6 +153,11 @@ data class GameView(
             goals = o.objOrNull("goals")?.let(Goals::from),
             daily = o.objOrNull("daily")?.let(Daily::from),
             achievements = o.objOrNull("achievements")?.let(Achievements::from),
+            arcade = o.objOrNull("arcade")?.let(Arcade::from),
+            gameCards = o.listOrNull("gameCards", GameCard::from),
+            guides = o.listOrNull("guides", Guide::from),
+            style = o.objOrNull("style")?.let(Style::from),
+            looks = o.stringsOrNull("looks"),
             mine = o.objOrNull("mine")?.let(Mine::from),
             income = o.objOrNull("income")?.let(Income::from),
         )
@@ -1085,6 +1096,236 @@ data class Achievement(
     }
 }
 
+/** The Arcade's list (iOS: ArcadeView). */
+data class Arcade(
+    /** Arcade Rank, once a game is unlocked. */
+    val rank: Rank?,
+    val challenge: Challenge?,
+    /** Opens today's challenge's game, when it's unlocked and not done. */
+    val challengeGame: String?,
+    val casino: List<MiniGameRow>,
+    val arcade: List<MiniGameRow>,
+) {
+    companion object {
+        fun from(o: JsonObject) = Arcade(
+            rank = o.objOrNull("rank")?.let(Rank::from),
+            challenge = o.objOrNull("challenge")?.let(Challenge::from),
+            challengeGame = o.stringOrNull("challengeGame"),
+            casino = o.list("casino", MiniGameRow::from),
+            arcade = o.list("arcade", MiniGameRow::from),
+        )
+    }
+}
+
+/** Arcade Rank at the top of the Arcade (iOS: ArcadeRankCard). */
+data class Rank(
+    val rank: Int,
+    val title: String,
+    /** "120 of 400 XP to rank 6" */
+    val progress: String,
+    val fraction: Double,
+    /** "This week: 3 of 5 games · +12K", or "Weekly variety goal met" */
+    val weekly: String,
+    val weeklyPaid: Boolean,
+    /** The icons of the games played this week. */
+    val playedIcons: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = Rank(
+            rank = o.int("rank"),
+            title = o.string("title"),
+            progress = o.string("progress"),
+            fraction = o.double("fraction"),
+            weekly = o.string("weekly"),
+            weeklyPaid = o.bool("weeklyPaid"),
+            playedIcons = o.string("playedIcons"),
+        )
+    }
+}
+
+/** One mini-game: what it is, its record, and Play (with Stats) or Unlock (iOS: MiniGameRow). */
+data class MiniGameRow(
+    val id: String,
+    val icon: String,
+    val name: String,
+    val pitch: String,
+    /** The game's colour ("#RRGGBB"), deep enough for white text, and lighter for text on dark cards. */
+    val color: String,
+    val textColorDark: String,
+    val isUnlocked: Boolean,
+    val canAfford: Boolean,
+    val unlockPrice: String,
+    val records: List<RecordFact>,
+) {
+    companion object {
+        fun from(o: JsonObject) = MiniGameRow(
+            id = o.string("id"),
+            icon = o.string("icon"),
+            name = o.string("name"),
+            pitch = o.string("pitch"),
+            color = o.string("color"),
+            textColorDark = o.string("textColorDark"),
+            isUnlocked = o.bool("isUnlocked"),
+            canAfford = o.bool("canAfford"),
+            unlockPrice = o.string("unlockPrice"),
+            records = o.list("records", RecordFact::from),
+        )
+    }
+}
+
+data class RecordFact(
+    val label: String,
+    val value: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = RecordFact(
+            label = o.string("label"),
+            value = o.string("value"),
+        )
+    }
+}
+
+/** One game's records (iOS: GameStatsCard): a casino game's biggest win or an arcade game's best score up top, the rest of its records as tiles. */
+data class GameCard(
+    val id: String,
+    val icon: String,
+    val name: String,
+    val color: String,
+    val textColorDark: String,
+    /** "42 games", "1,204 hands" */
+    val plays: String,
+    val timesPlayed: Int,
+    val headlineTitle: String,
+    val headlineValue: String,
+    val items: List<StatTile>,
+    /** "1.2M bet · 1.1M paid out" */
+    val note: String?,
+) {
+    companion object {
+        fun from(o: JsonObject) = GameCard(
+            id = o.string("id"),
+            icon = o.string("icon"),
+            name = o.string("name"),
+            color = o.string("color"),
+            textColorDark = o.string("textColorDark"),
+            plays = o.string("plays"),
+            timesPlayed = o.int("timesPlayed"),
+            headlineTitle = o.string("headlineTitle"),
+            headlineValue = o.string("headlineValue"),
+            items = o.list("items", StatTile::from),
+            note = o.stringOrNull("note"),
+        )
+    }
+}
+
+data class StatTile(
+    val title: String,
+    val value: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = StatTile(
+            title = o.string("title"),
+            value = o.string("value"),
+        )
+    }
+}
+
+/** A game's full rules (iOS: GameRulesPage, from `MiniGame.guide` in the kit). */
+data class Guide(
+    val id: String,
+    val icon: String,
+    val name: String,
+    val color: String,
+    val objective: String,
+    val controls: List<String>,
+    val scoring: List<String>,
+    val items: List<GuideItem>,
+    val ending: String,
+    val tips: List<String>,
+    val controlHint: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = Guide(
+            id = o.string("id"),
+            icon = o.string("icon"),
+            name = o.string("name"),
+            color = o.string("color"),
+            objective = o.string("objective"),
+            controls = o.strings("controls"),
+            scoring = o.strings("scoring"),
+            items = o.list("items", GuideItem::from),
+            ending = o.string("ending"),
+            tips = o.strings("tips"),
+            controlHint = o.string("controlHint"),
+        )
+    }
+}
+
+data class GuideItem(
+    val id: String,
+    val symbol: String,
+    val name: String,
+    val detail: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = GuideItem(
+            id = o.string("id"),
+            symbol = o.string("symbol"),
+            name = o.string("name"),
+            detail = o.string("detail"),
+        )
+    }
+}
+
+/** Looks for the games (iOS: StyleView): two kinds for every game, each kind headed by its games' icons; locked looks say what unlocks them. */
+data class Style(
+    val slots: List<CosmeticSlot>,
+) {
+    companion object {
+        fun from(o: JsonObject) = Style(
+            slots = o.list("slots", CosmeticSlot::from),
+        )
+    }
+}
+
+data class CosmeticSlot(
+    val id: String,
+    val name: String,
+    val icons: String,
+    val cosmetics: List<Cosmetic>,
+) {
+    companion object {
+        fun from(o: JsonObject) = CosmeticSlot(
+            id = o.string("id"),
+            name = o.string("name"),
+            icons = o.string("icons"),
+            cosmetics = o.list("cosmetics", Cosmetic::from),
+        )
+    }
+}
+
+data class Cosmetic(
+    val id: String,
+    val name: String,
+    val isUnlocked: Boolean,
+    val isEquipped: Boolean,
+    /** "Reach Arcade Rank 12", while locked. */
+    val rankLine: String?,
+    /** "Or earn the Card Shark achievement (Silver)", when an achievement can unlock it sooner. */
+    val achievementLine: String?,
+) {
+    companion object {
+        fun from(o: JsonObject) = Cosmetic(
+            id = o.string("id"),
+            name = o.string("name"),
+            isUnlocked = o.bool("isUnlocked"),
+            isEquipped = o.bool("isEquipped"),
+            rankLine = o.stringOrNull("rankLine"),
+            achievementLine = o.stringOrNull("achievementLine"),
+        )
+    }
+}
+
 /** The Mine tab under the balance and the coin (iOS: MineView). */
 data class Mine(
     /** The coin's looks that the player's achievement stars have unlocked (`CoinFinish`, `CoinRim` and `CoinTapEffect` raw values). A look picked and locked again (after a reset) falls back to the plain one, as on iOS. */
@@ -1321,14 +1562,592 @@ data class Info(
     }
 }
 
-/** The open mini-game's frame: the part for that game, and what every game screen shares. */
+/** The open mini-game's frame: the part for that game. */
 data class Play(
     /** The game's id (`MiniGame.rawValue`). */
     val game: String,
+    val blackjack: BlackjackFrame?,
+    val poker: PokerFrame?,
+    val slots: SlotsFrame?,
+    val moon: MoonFrame?,
 ) {
     companion object {
         fun from(o: JsonObject) = Play(
             game = o.string("game"),
+            blackjack = o.objOrNull("blackjack")?.let(BlackjackFrame::from),
+            poker = o.objOrNull("poker")?.let(PokerFrame::from),
+            slots = o.objOrNull("slots")?.let(SlotsFrame::from),
+            moon = o.objOrNull("moon")?.let(MoonFrame::from),
+        )
+    }
+}
+
+data class BlackjackFrame(
+    /** betting, insurance, playerTurn, dealerTurn or settled */
+    val phase: String,
+    val rules: String,
+    val ruleChoices: List<Choice>,
+    val canChangeRules: Boolean,
+    val dealer: List<CardInfo>,
+    val holeHidden: Boolean,
+    /** "Showing 10", or the dealer's total. */
+    val dealerTotal: String?,
+    val hands: List<BlackjackHand>,
+    /** The table printing's second line: "Dealer stands on soft 17 · practice". */
+    val markings: String,
+    val insuranceNote: String?,
+    val insurancePaid: Boolean,
+    val result: BlackjackResult?,
+    val wallet: Wallet,
+    /** "A win also pays 1.2K coins" */
+    val bonusLine: String?,
+    /** Set when Max Bonus would raise the bet. */
+    val maxBonusBet: Int?,
+    val dealTitle: String,
+    val canDeal: Boolean,
+    /** "It costs 3 SHIB and pays 2 to 1 if the dealer has blackjack." */
+    val insuranceCost: String,
+    val canInsure: Boolean,
+    val coachInsures: Boolean,
+    /** The coach's move (hit, stand, double or split) and its name. */
+    val advice: String?,
+    val adviceName: String?,
+    val canDouble: Boolean,
+    val canSplit: Boolean,
+    val canAffordExtra: Boolean,
+    val dealerTurnTitle: String,
+    /** Rounds settled so far, for the haptic and the celebration. */
+    val rounds: Int,
+    /** success, warning or error, for the settled round. */
+    val feedback: String?,
+    /** natural or win, when the round won. */
+    val celebration: String?,
+) {
+    companion object {
+        fun from(o: JsonObject) = BlackjackFrame(
+            phase = o.string("phase"),
+            rules = o.string("rules"),
+            ruleChoices = o.list("ruleChoices", Choice::from),
+            canChangeRules = o.bool("canChangeRules"),
+            dealer = o.list("dealer", CardInfo::from),
+            holeHidden = o.bool("holeHidden"),
+            dealerTotal = o.stringOrNull("dealerTotal"),
+            hands = o.list("hands", BlackjackHand::from),
+            markings = o.string("markings"),
+            insuranceNote = o.stringOrNull("insuranceNote"),
+            insurancePaid = o.bool("insurancePaid"),
+            result = o.objOrNull("result")?.let(BlackjackResult::from),
+            wallet = Wallet.from(o.obj("wallet")),
+            bonusLine = o.stringOrNull("bonusLine"),
+            maxBonusBet = o.intOrNull("maxBonusBet"),
+            dealTitle = o.string("dealTitle"),
+            canDeal = o.bool("canDeal"),
+            insuranceCost = o.string("insuranceCost"),
+            canInsure = o.bool("canInsure"),
+            coachInsures = o.bool("coachInsures"),
+            advice = o.stringOrNull("advice"),
+            adviceName = o.stringOrNull("adviceName"),
+            canDouble = o.bool("canDouble"),
+            canSplit = o.bool("canSplit"),
+            canAffordExtra = o.bool("canAffordExtra"),
+            dealerTurnTitle = o.string("dealerTurnTitle"),
+            rounds = o.int("rounds"),
+            feedback = o.stringOrNull("feedback"),
+            celebration = o.stringOrNull("celebration"),
+        )
+    }
+}
+
+/** One of a few choices (a table, a machine, a rocket). */
+data class Choice(
+    val id: String,
+    val name: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = Choice(
+            id = o.string("id"),
+            name = o.string("name"),
+        )
+    }
+}
+
+/** A playing card. */
+data class CardInfo(
+    val id: Int,
+    val label: String,
+    val suit: String,
+    val isRed: Boolean,
+    val name: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = CardInfo(
+            id = o.int("id"),
+            label = o.string("label"),
+            suit = o.string("suit"),
+            isRed = o.bool("isRed"),
+            name = o.string("name"),
+        )
+    }
+}
+
+data class BlackjackHand(
+    val id: Int,
+    val cards: List<CardInfo>,
+    /** "Soft 17", "Bust", "Natural 21!" */
+    val total: String,
+    /** "5 SHIB", "25 chips" */
+    val chip: String,
+    val token: String?,
+    val isActive: Boolean,
+    val outcome: String?,
+    /** win, push or lose */
+    val tone: String?,
+) {
+    companion object {
+        fun from(o: JsonObject) = BlackjackHand(
+            id = o.int("id"),
+            cards = o.list("cards", CardInfo::from),
+            total = o.string("total"),
+            chip = o.string("chip"),
+            token = o.stringOrNull("token"),
+            isActive = o.bool("isActive"),
+            outcome = o.stringOrNull("outcome"),
+            tone = o.stringOrNull("tone"),
+        )
+    }
+}
+
+data class BlackjackResult(
+    val title: String,
+    val isWin: Boolean,
+    val net: String?,
+    val netIsLoss: Boolean,
+    val insurance: String?,
+    val bonus: String?,
+    val xp: XP?,
+) {
+    companion object {
+        fun from(o: JsonObject) = BlackjackResult(
+            title = o.string("title"),
+            isWin = o.bool("isWin"),
+            net = o.stringOrNull("net"),
+            netIsLoss = o.bool("netIsLoss"),
+            insurance = o.stringOrNull("insurance"),
+            bonus = o.stringOrNull("bonus"),
+            xp = o.objOrNull("xp")?.let(XP::from),
+        )
+    }
+}
+
+/** What a game or round earned toward Arcade Rank (iOS: ArcadeXPEarned). */
+data class XP(
+    /** "+12 Arcade XP · Rank 6!", or nil when it earned none. */
+    val text: String?,
+    /** "Game played +10 · First today +15", when it came from more than one thing. */
+    val parts: String?,
+    /** Casino rounds past the day's XP: "No Arcade XP: today's casino XP is used up". */
+    val capReached: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = XP(
+            text = o.stringOrNull("text"),
+            parts = o.stringOrNull("parts"),
+            capReached = o.bool("capReached"),
+        )
+    }
+}
+
+/** The casino's bet controls (iOS: CasinoModePicker, PracticeBetControls, TokenBetControls). */
+data class Wallet(
+    val canPractice: Boolean,
+    val isPracticing: Boolean,
+    /** "1,000 chips" */
+    val chips: String,
+    val practiceBet: Int,
+    val practiceBets: List<Int>,
+    val isBroke: Boolean,
+    /** "New Stack of 1,000 Chips" */
+    val refill: String,
+    val token: String,
+    val ticker: String,
+    val tokenName: String,
+    /** "12 owned" */
+    val owned: String,
+    val bet: Int,
+    /** "Bet 5", or "Bet 5 × 5" on the video slots' five lines. */
+    val betText: String,
+    val maxBet: Int,
+    /** "Buy tokens in the Shop to play, or practice with chips.", when no token is held. */
+    val noTokens: String?,
+    val tokens: List<WalletToken>,
+    /** Off while a spin is revealed: the counts shown are only for display then. */
+    val isEnabled: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = Wallet(
+            canPractice = o.bool("canPractice"),
+            isPracticing = o.bool("isPracticing"),
+            chips = o.string("chips"),
+            practiceBet = o.int("practiceBet"),
+            practiceBets = o.ints("practiceBets"),
+            isBroke = o.bool("isBroke"),
+            refill = o.string("refill"),
+            token = o.string("token"),
+            ticker = o.string("ticker"),
+            tokenName = o.string("tokenName"),
+            owned = o.string("owned"),
+            bet = o.int("bet"),
+            betText = o.string("betText"),
+            maxBet = o.int("maxBet"),
+            noTokens = o.stringOrNull("noTokens"),
+            tokens = o.list("tokens", WalletToken::from),
+            isEnabled = o.bool("isEnabled"),
+        )
+    }
+}
+
+/** One token in the picker (iOS: TokenTile). */
+data class WalletToken(
+    val id: String,
+    val name: String,
+    val ticker: String,
+    val owned: Int,
+    /** "12 SHIB", or "None yet" */
+    val ownedText: String,
+    /** "1.2K coins each" */
+    val price: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = WalletToken(
+            id = o.string("id"),
+            name = o.string("name"),
+            ticker = o.string("ticker"),
+            owned = o.int("owned"),
+            ownedText = o.string("ownedText"),
+            price = o.string("price"),
+        )
+    }
+}
+
+data class PokerFrame(
+    /** betting, holding, or drawing (the drawn cards turning over, until the app reveals them) */
+    val phase: String,
+    /** Hands dealt so far, so the app turns a new hand's cards over. */
+    val hand: Int,
+    val cards: List<CardInfo>,
+    /** The cards being replaced, while drawing. */
+    val replaced: List<Int>,
+    val held: List<Int>,
+    val payTable: List<PayLine>,
+    val unit: String,
+    val result: PokerResult?,
+    val instructions: String,
+    val wallet: Wallet,
+    val bonusLine: String?,
+    val maxBonusBet: Int?,
+    val dealTitle: String,
+    val canDeal: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = PokerFrame(
+            phase = o.string("phase"),
+            hand = o.int("hand"),
+            cards = o.list("cards", CardInfo::from),
+            replaced = o.ints("replaced"),
+            held = o.ints("held"),
+            payTable = o.list("payTable", PayLine::from),
+            unit = o.string("unit"),
+            result = o.objOrNull("result")?.let(PokerResult::from),
+            instructions = o.string("instructions"),
+            wallet = Wallet.from(o.obj("wallet")),
+            bonusLine = o.stringOrNull("bonusLine"),
+            maxBonusBet = o.intOrNull("maxBonusBet"),
+            dealTitle = o.string("dealTitle"),
+            canDeal = o.bool("canDeal"),
+        )
+    }
+}
+
+data class PayLine(
+    val name: String,
+    val pays: String,
+    val isLit: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = PayLine(
+            name = o.string("name"),
+            pays = o.string("pays"),
+            isLit = o.bool("isLit"),
+        )
+    }
+}
+
+data class PokerResult(
+    val id: Int,
+    val title: String,
+    val isWin: Boolean,
+    /** Two pair or better: the bigger, glowing title. */
+    val isBig: Boolean,
+    /** "+5 SHIB", "Bet back" */
+    val paid: String?,
+    val bonus: String?,
+    val xp: XP?,
+    val winning: List<Int>,
+    /** 0 none, 1 confetti, 2 confetti and coins, 3 everything (4 for a royal flush). */
+    val celebration: Int,
+) {
+    companion object {
+        fun from(o: JsonObject) = PokerResult(
+            id = o.int("id"),
+            title = o.string("title"),
+            isWin = o.bool("isWin"),
+            isBig = o.bool("isBig"),
+            paid = o.stringOrNull("paid"),
+            bonus = o.stringOrNull("bonus"),
+            xp = o.objOrNull("xp")?.let(XP::from),
+            winning = o.ints("winning"),
+            celebration = o.int("celebration"),
+        )
+    }
+}
+
+data class SlotsFrame(
+    val machine: String,
+    val machines: List<Choice>,
+    val canChangeMachine: Boolean,
+    val reelCount: Int,
+    /** The classic reels' strip, and the video reels'. */
+    val classicStrip: List<String>,
+    val videoStrip: List<String>,
+    /** Every reel's stop: the spin's result while it's revealed. */
+    val stops: List<Int>,
+    /** Spins so far, so the app rolls the reels for a new one. */
+    val spin: Int,
+    val isSpinning: Boolean,
+    /** When each reel stops, in seconds after the lever. */
+    val stopTimes: List<Double>,
+    val result: SlotsResult?,
+    val instructions: String,
+    /** "3 free spins at 5 SHIB a line" */
+    val free: String?,
+    val freeToken: String?,
+    val wallet: Wallet,
+    val bonusLine: String,
+    /** "3/10" */
+    val bitcoins: String,
+    val bitcoinsLabel: String,
+    val spinTitle: String,
+    val isFree: Boolean,
+    val canSpin: Boolean,
+    val paytableTitle: String,
+    val paytable: List<PaySection>,
+    /** The video machine's pay lines: a row for each reel. */
+    val paylines: List<List<Int>>,
+) {
+    companion object {
+        fun from(o: JsonObject) = SlotsFrame(
+            machine = o.string("machine"),
+            machines = o.list("machines", Choice::from),
+            canChangeMachine = o.bool("canChangeMachine"),
+            reelCount = o.int("reelCount"),
+            classicStrip = o.strings("classicStrip"),
+            videoStrip = o.strings("videoStrip"),
+            stops = o.ints("stops"),
+            spin = o.int("spin"),
+            isSpinning = o.bool("isSpinning"),
+            stopTimes = o.doubles("stopTimes"),
+            result = o.objOrNull("result")?.let(SlotsResult::from),
+            instructions = o.string("instructions"),
+            free = o.stringOrNull("free"),
+            freeToken = o.stringOrNull("freeToken"),
+            wallet = Wallet.from(o.obj("wallet")),
+            bonusLine = o.string("bonusLine"),
+            bitcoins = o.string("bitcoins"),
+            bitcoinsLabel = o.string("bitcoinsLabel"),
+            spinTitle = o.string("spinTitle"),
+            isFree = o.bool("isFree"),
+            canSpin = o.bool("canSpin"),
+            paytableTitle = o.string("paytableTitle"),
+            paytable = o.list("paytable", PaySection::from),
+            paylines = o.intGrid("paylines"),
+        )
+    }
+}
+
+data class SlotsResult(
+    val id: Int,
+    val title: String,
+    val isLit: Boolean,
+    /** "Free spin" or "Bet 5" */
+    val stake: String,
+    val paid: String,
+    val net: String,
+    /** gain, loss or even */
+    val netTone: String,
+    val bonus: String?,
+    val withPrize: Boolean,
+    val winningReels: List<Int>,
+    /** [reel, row] for each winning position. */
+    val winningCells: List<List<Int>>,
+    /** Each winning line's rows, reel by reel from the left. */
+    val lines: List<List<Int>>,
+    val xp: XP?,
+    val freeSpinsWon: Boolean,
+    val collectionPrize: Boolean,
+    /** 0 none, 1 a win, 2 a big win, 3 the jackpot */
+    val celebration: Int,
+) {
+    companion object {
+        fun from(o: JsonObject) = SlotsResult(
+            id = o.int("id"),
+            title = o.string("title"),
+            isLit = o.bool("isLit"),
+            stake = o.string("stake"),
+            paid = o.string("paid"),
+            net = o.string("net"),
+            netTone = o.string("netTone"),
+            bonus = o.stringOrNull("bonus"),
+            withPrize = o.bool("withPrize"),
+            winningReels = o.ints("winningReels"),
+            winningCells = o.intGrid("winningCells"),
+            lines = o.intGrid("lines"),
+            xp = o.objOrNull("xp")?.let(XP::from),
+            freeSpinsWon = o.bool("freeSpinsWon"),
+            collectionPrize = o.bool("collectionPrize"),
+            celebration = o.int("celebration"),
+        )
+    }
+}
+
+data class PaySection(
+    val header: String?,
+    val footer: String?,
+    /** The video machine's pay lines diagram goes in this section. */
+    val showsLines: Boolean,
+    val items: List<PayItem>,
+) {
+    companion object {
+        fun from(o: JsonObject) = PaySection(
+            header = o.stringOrNull("header"),
+            footer = o.stringOrNull("footer"),
+            showsLines = o.bool("showsLines"),
+            items = o.list("items", PayItem::from),
+        )
+    }
+}
+
+data class PayItem(
+    val tokens: List<String>,
+    val note: String?,
+    val pays: String,
+    /** A video symbol's pays for three, four and five in a row ("3: ×5"), shown as columns. */
+    val runs: List<String>,
+) {
+    companion object {
+        fun from(o: JsonObject) = PayItem(
+            tokens = o.strings("tokens"),
+            note = o.stringOrNull("note"),
+            pays = o.string("pays"),
+            runs = o.strings("runs"),
+        )
+    }
+}
+
+data class MoonFrame(
+    val isFlying: Boolean,
+    /** Flights so far, so the app starts the chart for a new one. */
+    val flight: Int,
+    val rocket: String,
+    val rockets: List<Choice>,
+    /** The rocket on the chart: the flight's while it flies or was last flown, else the one picked. */
+    val shownRocket: String,
+    /** How much the multiplier grows every `doublingTime` seconds. */
+    val growth: Double,
+    val doublingTime: Double,
+    /** Seconds since launch now, while flying. */
+    val elapsed: Double,
+    /** When the flight ends by itself: the automatic cash-out or the crash. */
+    val endsAfter: Double,
+    /** Where the chart stops once the flight is over. */
+    val endedAfter: Double,
+    val hasFlown: Boolean,
+    val isCrashed: Boolean,
+    /** The multiplier the flight ended at, "2.35×". */
+    val multiplier: String,
+    val headline: String,
+    /** gold, gain or loss */
+    val headlineTone: String,
+    val roundBet: Int,
+    val unit: String,
+    /** " · auto at 2.00×" */
+    val autoNote: String,
+    val result: MoonResult?,
+    val intro: String,
+    val wallet: Wallet,
+    /** The picked rocket's automatic cash-out (0 is off). */
+    val autoCashOut: Double,
+    val autoChoices: List<Double>,
+    val autoLabel: String,
+    val bonusLine: String?,
+    val launchTitle: String,
+    val canLaunch: Boolean,
+    val ride: String,
+    /** 0 none, 1 confetti and coins, 2 more of both */
+    val celebration: Int,
+    /** success or error, for the flight that just ended. */
+    val feedback: String?,
+) {
+    companion object {
+        fun from(o: JsonObject) = MoonFrame(
+            isFlying = o.bool("isFlying"),
+            flight = o.int("flight"),
+            rocket = o.string("rocket"),
+            rockets = o.list("rockets", Choice::from),
+            shownRocket = o.string("shownRocket"),
+            growth = o.double("growth"),
+            doublingTime = o.double("doublingTime"),
+            elapsed = o.double("elapsed"),
+            endsAfter = o.double("endsAfter"),
+            endedAfter = o.double("endedAfter"),
+            hasFlown = o.bool("hasFlown"),
+            isCrashed = o.bool("isCrashed"),
+            multiplier = o.string("multiplier"),
+            headline = o.string("headline"),
+            headlineTone = o.string("headlineTone"),
+            roundBet = o.int("roundBet"),
+            unit = o.string("unit"),
+            autoNote = o.string("autoNote"),
+            result = o.objOrNull("result")?.let(MoonResult::from),
+            intro = o.string("intro"),
+            wallet = Wallet.from(o.obj("wallet")),
+            autoCashOut = o.double("autoCashOut"),
+            autoChoices = o.doubles("autoChoices"),
+            autoLabel = o.string("autoLabel"),
+            bonusLine = o.stringOrNull("bonusLine"),
+            launchTitle = o.string("launchTitle"),
+            canLaunch = o.bool("canLaunch"),
+            ride = o.string("ride"),
+            celebration = o.int("celebration"),
+            feedback = o.stringOrNull("feedback"),
+        )
+    }
+}
+
+data class MoonResult(
+    val id: Int,
+    val isWin: Boolean,
+    /** "+12 SHIB profit", "Lost 5 SHIB" */
+    val title: String,
+    val bonus: String?,
+    val xp: XP?,
+) {
+    companion object {
+        fun from(o: JsonObject) = MoonResult(
+            id = o.int("id"),
+            isWin = o.bool("isWin"),
+            title = o.string("title"),
+            bonus = o.stringOrNull("bonus"),
+            xp = o.objOrNull("xp")?.let(XP::from),
         )
     }
 }

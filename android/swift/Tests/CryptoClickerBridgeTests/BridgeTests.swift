@@ -22,7 +22,7 @@ final class Harness {
     }
 
     /// Every screen, so responses carry every view (a request can name its own).
-    static let allViews = ["shop", "tokens", "perks", "mine", "income", "goals", "daily", "achievements"]
+    static let allViews = ["shop", "tokens", "perks", "mine", "income", "goals", "daily", "achievements", "arcade", "gameCards", "guides", "style", "looks"]
 
     @discardableResult
     func send(_ request: [String: Any]) throws -> [String: Any] {

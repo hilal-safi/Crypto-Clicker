@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hilalsafi.cryptoclicker.R
 import com.hilalsafi.cryptoclicker.core.GameController
+import com.hilalsafi.cryptoclicker.ui.arcade.ArcadeScreen
 import com.hilalsafi.cryptoclicker.ui.design.CornerBadge
 import com.hilalsafi.cryptoclicker.ui.design.Type
 import com.hilalsafi.cryptoclicker.ui.mine.IncomeSheet
@@ -66,10 +67,10 @@ import com.hilalsafi.cryptoclicker.ui.root.BullRunFire
 import com.hilalsafi.cryptoclicker.ui.root.NotificationStack
 import com.hilalsafi.cryptoclicker.ui.root.WelcomeBackSheet
 import com.hilalsafi.cryptoclicker.ui.shop.ShopScreen
-import com.hilalsafi.cryptoclicker.ui.trophies.TrophiesScreen
 import com.hilalsafi.cryptoclicker.ui.theme.Palette
 import com.hilalsafi.cryptoclicker.ui.theme.gameColors
 import com.hilalsafi.cryptoclicker.ui.theme.glass
+import com.hilalsafi.cryptoclicker.ui.trophies.TrophiesScreen
 
 /** The tabs, in the iOS app's order. */
 enum class AppTab(val label: String) {
@@ -87,15 +88,15 @@ enum class AppTab(val label: String) {
 @Stable
 class Requests {
     /** The Shop's power-ups (the welcome-back screen's Offline Mining button). */
-    var powerUps by mutableIntStateOf(0)
+    var powerUps by mutableStateOf(false)
     /** The Shop's tokens (the home screen's crypto card). */
-    var tokens by mutableIntStateOf(0)
+    var tokens by mutableStateOf(false)
     /** How to Play in Settings (the home screen's tip). */
-    var howToPlay by mutableIntStateOf(0)
-    /** Today's challenge in the Arcade (from the Daily page). */
-    var challenge by mutableIntStateOf(0)
+    var howToPlay by mutableStateOf(false)
+    /** Today's challenge in the Arcade (from the Daily page): its game, or "" for the Arcade itself. */
+    var challenge by mutableStateOf<String?>(null)
     /** The Daily page (from the home screen's tips). */
-    var daily by mutableIntStateOf(0)
+    var daily by mutableStateOf(false)
 }
 
 /**
@@ -132,7 +133,7 @@ private fun Root() {
         return
     }
     fun openPowerUps() {
-        requests.powerUps++
+        requests.powerUps = true
         tab = AppTab.Shop
     }
 
@@ -159,23 +160,23 @@ private fun Root() {
                         openShop = { tab = AppTab.Shop },
                         openPowerUps = ::openPowerUps,
                         openTokens = {
-                            requests.tokens++
+                            requests.tokens = true
                             tab = AppTab.Shop
                         },
                         openDaily = {
-                            requests.daily++
+                            requests.daily = true
                             tab = AppTab.Trophies
                         },
                         openIncome = { showsIncome = true },
                         openHowToPlay = {
-                            requests.howToPlay++
+                            requests.howToPlay = true
                             tab = AppTab.Settings
                         },
                     )
                     AppTab.Shop -> ShopScreen(padding, requests)
-                    AppTab.Arcade -> ComingSoon("Arcade", "The arcade is on its way to Android.", Icons.Rounded.SportsEsports, Palette.arcade, padding)
-                    AppTab.Trophies -> TrophiesScreen(padding, requests, openChallenge = {
-                        requests.challenge++
+                    AppTab.Arcade -> ArcadeScreen(padding, requests)
+                    AppTab.Trophies -> TrophiesScreen(padding, requests, openChallenge = { game ->
+                        requests.challenge = game ?: ""
                         tab = AppTab.Arcade
                     })
                     AppTab.Settings -> {

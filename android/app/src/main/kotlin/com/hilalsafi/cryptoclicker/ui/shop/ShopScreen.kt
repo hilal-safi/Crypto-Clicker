@@ -73,8 +73,6 @@ fun ShopScreen(contentPadding: PaddingValues, requests: Requests) {
     var page by rememberSaveable { mutableStateOf(ShopPage.PowerUps) }
     var quantity by rememberSaveable { mutableIntStateOf(0) }
     var showsPurchased by rememberSaveable { mutableStateOf(false) }
-    var handledPowerUps by rememberSaveable { mutableIntStateOf(requests.powerUps) }
-    var handledTokens by rememberSaveable { mutableIntStateOf(requests.tokens) }
     val list = rememberLazyListState()
     // The pop-ups float over the list, pointing at the tapped icon.
     var infoMiner by remember { mutableStateOf<String?>(null) }
@@ -87,15 +85,15 @@ fun ShopScreen(contentPadding: PaddingValues, requests: Requests) {
     // A purchase that went through plays a success tap; one the balance couldn't cover, a warning.
     LaunchedEffect(game) { game.purchases.collect { feedback.purchase(it) } }
     LaunchedEffect(requests.tokens) {
-        if (handledTokens != requests.tokens) {
-            handledTokens = requests.tokens
+        if (requests.tokens) {
+            requests.tokens = false
             page = ShopPage.Tokens
             list.scrollToItem(0)
         }
     }
     LaunchedEffect(requests.powerUps) {
-        if (handledPowerUps != requests.powerUps) {
-            handledPowerUps = requests.powerUps
+        if (requests.powerUps) {
+            requests.powerUps = false
             page = ShopPage.PowerUps
             // Let the tab switch settle so the list is on screen.
             delay(350)
