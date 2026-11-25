@@ -10,7 +10,7 @@ public enum AchievementMetric: Hashable, Sendable {
     case moonBestMultiplier, pumpDumpCoinsHit, pokerWins, tokenSwapTokens, challengesCompleted
     case tokensExchanged, token(TokenID), tokensSold
     case questsCompleted, longestStreak
-    case airdrops, whaleAirdrops, prestiges, perks
+    case airdrops, whaleAirdrops, prestiges, perks, bestRunPoints, quickRuns
     case arcadeRank, tetrisSprints, brickBreakerBosses, bubbleBestWave, tokenSwapStars, merge2048DailyStars
     case weeklyVarietyGoals, invadersDestroyed, invadersBestWave
 }
@@ -159,6 +159,10 @@ public enum AchievementCatalog {
                     metric: .prestiges, thresholds: [1, 5, 25, 50]),
         Achievement(id: "perk-collector", name: localized("Perk Collector"), detail: localized("Own prestige perks"), emoji: "🎖️", imageName: nil,
                     metric: .perks, thresholds: [1, 5, 10, Double(PerkID.allCases.count)]),
+        Achievement(id: "big-run", name: localized("Big Run"), detail: localized("Prestige points earned in one run"), emoji: "🏔️",
+                    imageName: nil, metric: .bestRunPoints, thresholds: [10, 100, 1_000, 10_000]),
+        Achievement(id: "speedrunner", name: localized("Speedrunner"), detail: localized("Runs finished within two days"), emoji: "⚡",
+                    imageName: nil, metric: .quickRuns, thresholds: [1, 5, 20, 50]),
     ]
 }
 

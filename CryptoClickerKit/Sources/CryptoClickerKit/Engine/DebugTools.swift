@@ -79,6 +79,13 @@ extension GameState {
         prestigePoints = Self.addingPoints(prestigePoints, min(points, Tuning.maxPrestigePoints))
     }
 
+    /// Counts `count` more prestiges without starting over, for the coin finishes and achievements
+    /// that prestiges unlock. The runs aren't added to the run history.
+    public mutating func debugCountPrestiges(_ count: Int) {
+        guard count > 0 else { return }
+        stats.prestiges = stats.prestiges.addingCount(min(count, 1_000))
+    }
+
     /// Marks today's quests as done, ready to claim.
     public mutating func debugCompleteQuests() {
         daily.quests = daily.quests.map { quest in

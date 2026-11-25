@@ -81,6 +81,32 @@ extension GameState {
         return after.rate(of: miner) - rate(of: miner)
     }
 
+    /// Coins per second `upgrade` would add to idle income (production and automatic taps), or 0
+    /// once it's owned. Tapping upgrades add to it only through automatic taps.
+    public func incomeGain(of upgrade: UpgradeID) -> Double {
+        guard !upgrades.contains(upgrade) else { return 0 }
+        var after = self
+        after.upgrades.insert(upgrade)
+        let gain = after.baseIdleIncome - baseIdleIncome
+        return gain.isFinite ? max(0, gain) : 0
+    }
+
+    /// Coins `upgrade` would add to each tap (before any combo), or 0 once it's owned.
+    public func tapGain(of upgrade: UpgradeID) -> Double {
+        guard !upgrades.contains(upgrade) else { return 0 }
+        var after = self
+        after.upgrades.insert(upgrade)
+        let gain = after.baseTapValue - baseTapValue
+        return gain.isFinite ? max(0, gain) : 0
+    }
+
+    /// How long `gain` coins a second take to repay `price`, or nil when they never do.
+    public static func payback(price: Double, gain: Double) -> TimeInterval? {
+        guard gain > 0, price.isFinite, price >= 0 else { return nil }
+        let seconds = price / gain
+        return seconds.isFinite ? seconds : nil
+    }
+
     /// The Shop's "Best value": the revealed miner whose next unit adds the most production for its
     /// price, affordable or not. Early on that's the Chromebook for its first few units, then the
     /// Desktop once Chromebooks have grown dearer, and a miner about to reach a milestone.

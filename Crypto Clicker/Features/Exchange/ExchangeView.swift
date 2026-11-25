@@ -12,8 +12,14 @@ struct TokensPage: View {
         let game = store.game
         let market = store.market
         let holdings = TokenID.allCases.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
+        // What the same tokens were worth a day ago.
+        let dayAgo = TokenID.allCases.reduce(0.0) { total, token in
+            let quote = market.quote(token)
+            return total + quote.price / max(1 + quote.change, 1e-9) * Double(game.tokenCount(token))
+        }
         VStack(spacing: 12) {
-            WalletSummary(holdings: holdings, sale: (holdings * game.marketSellRate).rounded(),
+            WalletSummary(holdings: holdings, dayChange: holdings - dayAgo, dayAgo: dayAgo,
+                          sale: (holdings * game.marketSellRate).rounded(),
                           feeText: game.marketSellRate < 1
                             ? "Selling costs a \(CoinFormat.percent(1 - game.marketSellRate)) fee"
                             : "No selling fee (Market Insider)")
@@ -44,6 +50,9 @@ struct TokensPage: View {
 /// What the wallet's tokens are worth at today's prices.
 private struct WalletSummary: View {
     let holdings: Double
+    /// How much the same tokens' worth has moved in the last day, and what it was a day ago.
+    var dayChange: Double = 0
+    var dayAgo: Double = 0
     /// What selling everything would pay, after the fee.
     let sale: Double
     let feeText: String
@@ -58,6 +67,11 @@ private struct WalletSummary: View {
                 Text("Wallet")
                     .font(.headline)
                 CoinAmount(amount: holdings, font: .title2.bold(), iconSize: 24)
+                if holdings > 0 && dayAgo > 0 && abs(dayChange) >= 1 {
+                    Text("\(dayChange >= 0 ? "▲" : "▼") \(CoinFormat.short(abs(dayChange))) (\(CoinFormat.percent(abs(dayChange) / dayAgo))) in the last day")
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(dayChange >= 0 ? Theme.gain : Theme.loss)
+                }
                 Text(holdings > 0 ? "Sells for \(CoinFormat.short(sale)) · \(feeText)" : "Buy tokens below to bet them or trade them.")
                     .font(.subheadline)
                     .foregroundStyle(.subtext)

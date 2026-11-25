@@ -1,9 +1,12 @@
 import Foundation
 
-/// Finishes for the coin on the Mine screen, unlocked by achievement stars. Purely cosmetic:
-/// the choice is a preference on the device, not part of the saved game.
+/// Finishes for the coin on the Mine screen, unlocked by achievement stars, and the last five by
+/// prestiging (the prestige milestones). Purely cosmetic: the choice is a preference on the
+/// device, not part of the saved game.
 public enum CoinFinish: String, CaseIterable, Codable, Sendable, Identifiable {
     case gold, silver, roseGold, emerald, sapphire, amethyst, obsidian, holographic
+    // The prestige milestones' finishes.
+    case forged, platinum, ruby, nebula, aurora
 
     public var id: String { rawValue }
 
@@ -17,10 +20,15 @@ public enum CoinFinish: String, CaseIterable, Codable, Sendable, Identifiable {
         case .amethyst: localized("Amethyst")
         case .obsidian: localized("Obsidian")
         case .holographic: localized("Holographic")
+        case .forged: localized("Forged")
+        case .platinum: localized("Platinum")
+        case .ruby: localized("Ruby")
+        case .nebula: localized("Nebula")
+        case .aurora: localized("Aurora")
         }
     }
 
-    /// Achievement stars needed to use this finish.
+    /// Achievement stars needed to use this finish (none for the ones prestiges unlock).
     public var starsNeeded: Int {
         switch self {
         case .gold: 0
@@ -31,10 +39,44 @@ public enum CoinFinish: String, CaseIterable, Codable, Sendable, Identifiable {
         case .amethyst: 60
         case .obsidian: 80
         case .holographic: 100
+        case .forged, .platinum, .ruby, .nebula, .aurora: 0
         }
     }
 
-    public func isUnlocked(stars: Int) -> Bool { stars >= starsNeeded }
+    /// Prestiges needed for a prestige milestone's finish, or nil for the ones stars unlock.
+    public var prestigesNeeded: Int? {
+        switch self {
+        case .forged: 1
+        case .platinum: 5
+        case .ruby: 10
+        case .nebula: 25
+        case .aurora: 50
+        case .gold, .silver, .roseGold, .emerald, .sapphire, .amethyst, .obsidian, .holographic: nil
+        }
+    }
+
+    /// The prestige milestones: the prestige counts that unlock a finish.
+    public static let prestigeMilestones = allCases.compactMap(\.prestigesNeeded)
+
+    public func isUnlocked(stars: Int, prestiges: Int) -> Bool {
+        if let prestigesNeeded { return prestiges >= prestigesNeeded }
+        return stars >= starsNeeded
+    }
+
+    /// What unlocks it: "15 stars", or "5 prestiges".
+    public var requirement: String {
+        if let prestigesNeeded {
+            return prestigesNeeded == 1 ? localized("1 prestige") : localized("\(prestigesNeeded) prestiges")
+        }
+        return starsNeeded == 1 ? localized("1 star") : localized("\(starsNeeded) stars")
+    }
+}
+
+extension GameState {
+    /// Whether the coin can wear `finish`: enough achievement stars, or prestiges.
+    public func isUnlocked(_ finish: CoinFinish) -> Bool {
+        finish.isUnlocked(stars: earnedAchievementTiers, prestiges: stats.prestiges)
+    }
 }
 
 /// What rings the coin on the Mine screen: nothing, a glow, or something livelier. Unlocked by

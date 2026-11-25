@@ -110,7 +110,8 @@ struct TimeTests {
         inside.boost = Boost(multiplier: 7, endsAt: at(60))
         let insideResult = inside.advance(to: at(600))
         let insideReport = try #require(insideResult)
-        #expect(approx(insideReport.earned, (60 * 140 + 540 * 20) * 0.3))
+        let insideEarned: Double = (60 * 140 + 540 * 20) * 0.3
+        #expect(approx(insideReport.earned, insideEarned))
         #expect(approx(insideReport.sources.reduce(0) { $0 + $1.coins }, insideReport.earned))
         // One that runs on for five minutes.
         var long = earner(offlineHours: 0.5, efficiency: 4)

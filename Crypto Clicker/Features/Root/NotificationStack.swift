@@ -143,6 +143,17 @@ struct PurchaseNoteView: View {
                     }
                 }
             }
+            // Milestones reached: the newest two, with a star.
+            ForEach(Array(note.milestones.suffix(2).enumerated()), id: \.offset) { _, line in
+                Label {
+                    Text(line)
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "star.circle.fill")
+                        .foregroundStyle(Theme.gold)
+                }
+            }
             if !effects.isEmpty {
                 Label {
                     Text(effects.prefix(Self.effectsShown).joined(separator: " · ")

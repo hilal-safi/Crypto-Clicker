@@ -10,6 +10,7 @@ extension GameStore {
     func tap() -> Double {
         let now = Date.now
         comboStreak = now.timeIntervalSince(lastTapAt) <= state.comboWindow ? comboStreak + 1 : 1
+        if comboStreak == 1 { comboRecordBefore = state.stats.bestCombo }
         lastTapAt = now
         let streak = comboStreak
         return perform { game, now in game.tap(at: now, combo: streak) }
@@ -20,9 +21,30 @@ extension GameStore {
     @discardableResult
     func buy(_ miner: MinerID, quantity: Int) -> Bool {
         let before = purchaseBaseline
+        let ownedBefore = state.owned(miner)
+        let offerBefore = state.availableMinerUpgrade(miner)?.level
         let bought = perform { game, _ in game.buy(miner, quantity: quantity) }
-        if bought { notePurchase(miner.name, count: quantity, before: before) }
+        if bought {
+            notePurchase(miner.name, count: quantity,
+                         milestones: milestones(of: miner, from: ownedBefore, offerBefore: offerBefore), before: before)
+        }
         return bought
+    }
+
+    /// What buying `miner` up from `ownedBefore` reached, for the purchase popup: a milestone (or
+    /// several at once), and an Mk upgrade it made available.
+    private func milestones(of miner: MinerID, from ownedBefore: Int, offerBefore: Int?) -> [String] {
+        let owned = state.owned(miner)
+        let crossed = Tuning.milestones.filter { $0 > ownedBefore && $0 <= owned }
+        var lines: [String] = []
+        if let last = crossed.last {
+            let boost = CoinFormat.multiplier(pow(Tuning.milestoneMultiplier, Double(crossed.count)))
+            lines.append("\(miner.name) milestone: \(CoinFormat.grouped(last)) owned, output \(boost)")
+        }
+        if offerBefore == nil, let offer = state.availableMinerUpgrade(miner) {
+            lines.append("Mk \(MinerID.markName(level: offer.level)) upgrade for \(miner.name) is in the Shop")
+        }
+        return lines
     }
 
     @discardableResult

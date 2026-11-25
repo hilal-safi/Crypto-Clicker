@@ -91,7 +91,7 @@ private struct HowToChapter: Identifiable {
         HowToTopic("cpu", "Miners", "Miners earn coins every second while the app is open.", [
             "A Chromebook mines a coin every four seconds, and each tier after mines several times more.",
             "Each unit costs 15% more than the last, so the next tier soon becomes the better buy.",
-            "In the Shop, each miner shows what one more adds, and Best value marks the best buy.",
+            "In the Shop, each miner shows what one more adds, its share of your income and how soon it pays for itself, and Best value marks the best buy.",
         ]),
         HowToTopic("arrow.up.right.circle.fill", "Milestones and Mk upgrades", "The more of a miner you own, the more each one mines.", [
             "Owning every 25 of a miner up to 250, every 50 up to 1,000 and every 100 after that doubles its output each time.",
@@ -103,6 +103,7 @@ private struct HowToChapter: Identifiable {
             "Multiply production and power up taps.",
             "Add automatic taps, each worth half a tap.",
             "Boost steps and mini-games.",
+            "Each shows what it adds to your income, and how soon it pays for itself, or to each tap.",
         ]),
         HowToTopic("moon.zzz.fill", "Offline Mining", "Keeps your miners earning while the app is closed.", [
             "Without it, miners stop a minute after you leave.",
@@ -145,6 +146,7 @@ private struct HowToChapter: Identifiable {
             "Tether is a stablecoin: it barely moves, so it's a calm place to keep tokens.",
             "Bet tokens at the casino, or sell them later: selling costs a 10% fee.",
             "Pick ×1, ×10, ×100 or Max to buy and sell in bulk.",
+            "Settings › Statistics shows what you've paid for each token on average, and how it's done since.",
             "Tokens reset when you prestige.",
         ]),
         HowToTopic("gamecontroller.fill", "Arcade", "Games unlock one at a time, from a few thousand coins up to about one and a half trillion.", [
@@ -153,6 +155,7 @@ private struct HowToChapter: Identifiable {
             "Playing earns XP for your Arcade Rank: each game shows what it earned, with more for a new best, the first game of each kind each day and the daily challenge. Casino rounds earn a little, up to a daily limit. Six different games in a week pay half an hour of income.",
             "Arcade Rank unlocks looks for every game in Style, on the Arcade's rank card. Some also come sooner with a game's achievement.",
             "Stats under a game's Play button shows its records before you start.",
+            "Star a game to pin it to the top of the Arcade under Favorites. Your last games are under Jump back in, and new games are marked until you play them.",
             "Every game has a How to Play button with its full rules.",
         ]),
         HowToTopic("suit.spade.fill", "Casino", "\(MiniGame.blackjack.name), Crypto Slots, \(MiniGame.videoPoker.name) and To the Moon: bet your tokens.", [
@@ -186,6 +189,10 @@ private struct HowToChapter: Identifiable {
             "Your first prestige reveals three new miners.",
             "Hard earns half as many points again, and Easy half as many: pick in Settings.",
         ]),
+        HowToTopic("clock.arrow.circlepath", "Run History", "History on the Prestige card compares every run.", [
+            "How long each run took, what it mined, the points it earned, and your fastest and biggest.",
+            "Milestones at 1, 5, 10, 25 and 50 prestiges each unlock a coin finish.",
+        ]),
     ])
 
     private static let beyondTheApp = HowToChapter(title: "Beyond the App", topics: [
@@ -200,6 +207,11 @@ private struct HowToChapter: Identifiable {
         HowToTopic("mic.fill", "Siri and Shortcuts", "Hear your balance without opening the game.", [
             "Ask Siri \u{201C}How many coins do I have in Crypto Clicker?\u{201D}",
             "Or add Check My Coins in the Shortcuts app.",
+        ]),
+        HowToTopic("icloud.fill", "Backup", "Settings › Backup and Save Files keeps your game safe.", [
+            "Your game backs up to iCloud as you play, so a new iPhone can carry on from it.",
+            "Export a save file to keep or move your game yourself, and import one to carry on from it.",
+            "Steps from Apple Health stay on your iPhone.",
         ]),
     ])
 }

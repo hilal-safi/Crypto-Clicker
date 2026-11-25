@@ -50,7 +50,7 @@ struct SettingsView: View {
                     }
                     NumberFormatPicker()
                     // A finish that's locked again (after a reset) shows as the gold it falls back to.
-                    let shownFinish = finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold
+                    let shownFinish = game.isUnlocked(finish) ? finish : .gold
                     NavigationLink {
                         CoinFinishPicker()
                     } label: {
@@ -126,11 +126,16 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        BackupView()
+                    } label: {
+                        Label("Backup and Save Files", systemImage: "icloud.and.arrow.up")
+                    }
                     Button("Reset All Progress", role: .destructive) { confirmingReset = true }
                 } header: {
                     Text("Progress")
                 } footer: {
-                    SettingsNote("Erases everything, prestige and achievements included.")
+                    SettingsNote("Back up to iCloud, or export and import a save file. Reset erases everything, prestige and achievements included.")
                 }
             }
             // The same gap between every pair of sections, footer or not, and room above the

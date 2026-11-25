@@ -81,7 +81,7 @@ struct MineView: View {
                     // Looks locked again (after a reset) fall back to the plain coin.
                     let stars = game.earnedAchievementTiers
                     CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers,
-                               finish: finish.isUnlocked(stars: stars) ? finish : .gold,
+                               finish: game.isUnlocked(finish) ? finish : .gold,
                                rim: rim.isUnlocked(stars: stars) ? rim : .plain,
                                tapEffect: tapEffect.isUnlocked(stars: stars) ? tapEffect : .none,
                                maxSize: CoinButton.size(in: proxy.size, cap: cap)) {
@@ -98,7 +98,9 @@ struct MineView: View {
                     // Shown from the combo's first +0.1, so a few casual taps don't flicker it.
                     if store.comboMultiplier > 1 {
                         ComboPill(multiplier: store.comboMultiplier, taps: store.comboStreak,
-                                  isMax: store.comboMultiplier >= game.comboMaxMultiplier)
+                                  isMax: store.comboMultiplier >= game.comboMaxMultiplier,
+                                  isRecord: store.comboRecordBefore >= ComboPill.recordWorthShowing
+                                    && store.comboStreak > store.comboRecordBefore)
                             .transition(.scale.combined(with: .opacity))
                     }
                 }
@@ -414,10 +416,15 @@ private struct FloatingText: View {
 
 /// The combo under the coin while quick taps keep it going.
 struct ComboPill: View {
+    /// A record from this many quick taps is worth celebrating when it's beaten.
+    static let recordWorthShowing = 25
+
     let multiplier: Double
     /// Quick taps in a row so far.
     let taps: Int
     let isMax: Bool
+    /// Longer than the longest combo before this one.
+    var isRecord = false
 
     var body: some View {
         // The multiplier, with the run of quick taps on a line under it.
@@ -425,9 +432,9 @@ struct ComboPill: View {
             Label("Combo ×\(String(format: "%.1f", multiplier))", systemImage: "flame.fill")
                 .font(.headline.monospacedDigit())
                 .contentTransition(.numericText(value: multiplier))
-            Text("\(CoinFormat.grouped(taps)) taps!")
+            Text(isRecord ? "\(CoinFormat.grouped(taps)) taps · new best!" : "\(CoinFormat.grouped(taps)) taps!")
                 .font(.footnote.weight(.semibold).monospacedDigit())
-                .opacity(0.85)
+                .opacity(isRecord ? 1 : 0.85)
                 .contentTransition(.numericText(value: Double(taps)))
         }
         .foregroundStyle(.white)
@@ -437,7 +444,7 @@ struct ComboPill: View {
         .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
         .allowsHitTesting(false)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Combo of \(taps) quick taps, taps earn \(CoinFormat.multiplier(multiplier))")
+        .accessibilityLabel("Combo of \(taps) quick taps\(isRecord ? ", a new best" : ""), taps earn \(CoinFormat.multiplier(multiplier))")
     }
 }
 

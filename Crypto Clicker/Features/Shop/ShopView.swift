@@ -150,7 +150,7 @@ struct ShopView: View {
                 .rowCard()
         }
         ForEach(available) { upgrade in
-            UpgradeRow(upgrade: upgrade, canAfford: upgrade.cost <= game.coins)
+            UpgradeRow(upgrade: upgrade, canAfford: upgrade.cost <= game.coins, gain: gainText(of: upgrade, in: game))
         }
         if !purchased.isEmpty {
             DisclosureGroup(isExpanded: $showsPurchased) {
@@ -180,14 +180,35 @@ struct ShopView: View {
         let count = quantity.count(of: miner, in: game)
         let price = game.price(of: miner, quantity: count)
         let upgrade = game.availableMinerUpgrade(miner)
+        let perUnit = game.nextUnitGain(miner)
+        let income = game.baseIdleIncome
         return MinerRow(miner: miner, owned: game.owned(miner), rate: game.rate(of: miner),
-                        perUnit: game.nextUnitGain(miner), isBestValue: isBestValue,
+                        perUnit: perUnit, incomeShare: income > 0 ? perUnit / income : 0,
+                        payback: income > 0 ? GameState.payback(price: game.price(of: miner, quantity: 1), gain: perUnit) : nil,
+                        isBestValue: isBestValue,
                         nextMilestone: game.nextMilestone(for: miner), buyCount: count,
                         price: price, canAfford: price <= game.coins,
                         mkLevel: game.minerUpgradeLevel(miner), legacy: game.legacyMultiplier(miner),
                         legacyBoosts: game.legacyBeneficiaries(of: miner),
                         upgradeLevel: upgrade?.level, upgradePrice: upgrade?.price,
                         canAffordUpgrade: upgrade.map { $0.price <= game.coins } ?? false)
+    }
+
+    /// What an upgrade adds in this game: a share of income and how soon it repays its price, or a
+    /// share of each tap for tapping upgrades without automatic taps. Nil for upgrades that add
+    /// neither (steps and mini-games: their summaries say what they do).
+    private func gainText(of upgrade: UpgradeID, in game: GameState) -> String? {
+        let income = game.baseIdleIncome
+        let gain = game.incomeGain(of: upgrade)
+        if income > 0, gain > 0, let payback = GameState.payback(price: upgrade.cost, gain: gain) {
+            return "\(PaybackLine.shareText(gain / income)) income · pays for itself in \(CoinFormat.duration(payback))"
+        }
+        let tap = game.baseTapValue
+        let tapGain = game.tapGain(of: upgrade)
+        if tap > 0, tapGain > 0 {
+            return "\(PaybackLine.shareText(tapGain / tap)) per tap"
+        }
+        return nil
     }
 
     /// Shows the tokens page once for each request.

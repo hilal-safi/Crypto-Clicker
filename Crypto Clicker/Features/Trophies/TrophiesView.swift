@@ -505,7 +505,7 @@ private struct TrophySummary: View {
                     .foregroundStyle(.subtext)
                 ProgressView(value: Double(earned), total: Double(max(1, total)))
                     .tint(Theme.trophies)
-                if let next = CoinFinish.allCases.first(where: { !$0.isUnlocked(stars: earned) }) {
+                if let next = CoinFinish.allCases.first(where: { $0.prestigesNeeded == nil && $0.starsNeeded > earned }) {
                     Text("\(next.starsNeeded - earned) more for the \(next.name) coin")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.accent)

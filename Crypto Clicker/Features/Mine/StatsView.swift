@@ -93,6 +93,11 @@ struct StatsPage: View {
         let stats = game.stats
         let today = store.today
         Section("Prestige") {
+            NavigationLink {
+                RunHistoryView()
+            } label: {
+                Label("Run History", systemImage: "clock.arrow.circlepath")
+            }
             row("Prestiges", CoinFormat.grouped(stats.prestiges))
             row("Points earned", "\(CoinFormat.grouped(game.prestigePoints)) · +\(CoinFormat.percent(game.prestigeGain(game.prestigePoints)))")
             row("Points to spend", CoinFormat.grouped(game.availablePrestigePoints))
@@ -178,25 +183,43 @@ struct StatsPage: View {
         }
     }
 
-    @ViewBuilder
     private func marketSection(_ game: GameState) -> some View {
         let stats = game.stats
         let market = store.market
         let tokens = TokenID.allCases.filter { game.tokenCount($0) > 0 || stats.tokensBought[$0, default: 0] > 0 }
         let walletValue = TokenID.allCases.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
         let held = TokenID.allCases.reduce(0) { $0 + game.tokenCount($1) }
-        Section("Market") {
+        let paid = stats.totalCoinsSpentOnTokens
+        // Today's price against the average paid, for each token with prices kept.
+        let moves = TokenID.allCases.compactMap { token in
+            stats.averagePricePaid(token).map { (token: token, change: market.quote(token).price / max($0, 1e-9) - 1) }
+        }
+        var items = [StatItem("Bought", CoinFormat.grouped(stats.totalTokensBought)),
+                     StatItem("Sold", CoinFormat.grouped(stats.tokensSold))]
+        if paid > 0 { items.append(StatItem("Paid", amount(paid))) }
+        items.append(StatItem("From sales", amount(stats.coinsFromSales)))
+        return Section {
             WalletCard(value: amount(walletValue),
                        detail: stats.totalTokensBought > 0
                            ? "\(counted(held, "token")) held, at today's prices"
                            : "Buy tokens in the Shop's Tokens page",
-                       items: [StatItem("Bought", CoinFormat.grouped(stats.totalTokensBought)),
-                               StatItem("Sold", CoinFormat.grouped(stats.tokensSold)),
-                               StatItem("From sales", amount(stats.coinsFromSales))])
+                       items: items)
+            if moves.count >= 2, let best = moves.max(by: { $0.change < $1.change }),
+               let worst = moves.min(by: { $0.change < $1.change }) {
+                PortfolioMoversRow(best: best, worst: worst)
+            }
             ForEach(tokens) { token in
                 let price = market.quote(token).price
+                let average = stats.averagePricePaid(token)
                 TokenStatRow(token: token, held: game.tokenCount(token), bought: stats.tokensBought[token, default: 0],
-                             worth: amount(price * Double(game.tokenCount(token))), price: amount(price))
+                             worth: amount(price * Double(game.tokenCount(token))), price: amount(price),
+                             averagePaid: average.map(amount), change: average.map { price / max($0, 1e-9) - 1 })
+            }
+        } header: {
+            Text("Market")
+        } footer: {
+            if stats.tokensBoughtWithPrice.values.reduce(0, +) < stats.totalTokensBought {
+                SettingsNote("What tokens cost is kept for purchases from version 2.1 on, so Paid and the averages count those.")
             }
         }
     }
@@ -243,9 +266,7 @@ struct StatsPage: View {
 
     /// Whether a game has anything to show yet: a game played, a record or a daily win.
     private func hasRecords(_ miniGame: MiniGame, in game: GameState) -> Bool {
-        game.timesPlayed(miniGame) > 0 || game.bestScore(miniGame) > 0
-            || (miniGame == .merge2048 && game.merge2048Daily.wins > 0)
-            || (miniGame == .tokenSwap && (game.tokenSwap.levelsWon > 0 || game.tokenSwap.dailyWins > 0))
+        game.hasPlayed(miniGame)
     }
 
     private func card(for miniGame: MiniGame, in game: GameState) -> GameStatsCard {

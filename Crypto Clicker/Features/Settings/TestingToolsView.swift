@@ -94,10 +94,11 @@ struct TestingToolsView: View {
             Button("Add 10 Prestige Points") { store.debugAddPrestigePoints(10) }
             Button("Add 1,000 Prestige Points") { store.debugAddPrestigePoints(1_000) }
             Button("Add 10,000 Prestige Points") { store.debugAddPrestigePoints(10_000) }
+            Button("Count 5 More Prestiges") { store.debugCountPrestiges(5) }
         } header: {
             Text("Prestige")
         } footer: {
-            SettingsNote("Points added here raise production and can be spent on perks, without starting over.")
+            SettingsNote("Points added here raise production and can be spent on perks, without starting over. Counted prestiges unlock the coin finishes and achievements that prestiges earn, but don't appear in the run history.")
         }
 
         Section {
@@ -137,8 +138,10 @@ struct TestingToolsView: View {
             Button("Unlock Every Look") {
                 store.debugReachArcadeRank(Self.legendRank)
                 store.debugEarnAllAchievements()
+                store.debugCountPrestiges((CoinFinish.prestigeMilestones.max() ?? 0) - game.stats.prestiges)
             }
-            .disabled(Cosmetic.allCases.allSatisfy(game.isUnlocked) && game.earnedAchievementTiers >= AchievementCatalog.tierCount)
+            .disabled(Cosmetic.allCases.allSatisfy(game.isUnlocked) && CoinFinish.allCases.allSatisfy(game.isUnlocked)
+                      && game.earnedAchievementTiers >= AchievementCatalog.tierCount)
             Button("Arcade Rank \(Self.legendRank) (\(ArcadeRank.title(forRank: Self.legendRank)))") {
                 store.debugReachArcadeRank(Self.legendRank)
             }
@@ -148,7 +151,7 @@ struct TestingToolsView: View {
         } header: {
             Text("Looks")
         } footer: {
-            SettingsNote("Rank \(Self.legendRank) and every star unlock every look in Style and every coin finish, rim and tap effect. The stars' production bonus comes with them.")
+            SettingsNote("Rank \(Self.legendRank) and every star unlock every look in Style and every coin rim and tap effect, and the coin finishes stars unlock. Unlock Every Look also counts prestiges up to \(CoinFinish.prestigeMilestones.max() ?? 0), for the finishes prestiges unlock. The stars' production bonus comes with them.")
         }
 
         Section("Arcade") {

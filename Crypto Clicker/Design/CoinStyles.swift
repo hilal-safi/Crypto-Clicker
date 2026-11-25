@@ -316,7 +316,7 @@ struct CoinRimPicker: View {
 
     var body: some View {
         let stars = store.game.earnedAchievementTiers
-        let shownFinish = finish.isUnlocked(stars: stars) ? finish : .gold
+        let shownFinish = store.game.isUnlocked(finish) ? finish : .gold
         CoinStyleGrid(intro: "Earn achievement stars to unlock rims for the coin. You have \(stars) \(stars == 1 ? "star" : "stars").",
                       items: CoinRim.allCases, selected: $selected, stars: stars, tint: shownFinish.glow,
                       name: \.name, detail: \.detail, starsNeeded: \.starsNeeded) { rim, size in
@@ -342,7 +342,7 @@ struct CoinTapEffectPicker: View {
 
     var body: some View {
         let stars = store.game.earnedAchievementTiers
-        let shownFinish = finish.isUnlocked(stars: stars) ? finish : .gold
+        let shownFinish = store.game.isUnlocked(finish) ? finish : .gold
         let shownRim = rim.isUnlocked(stars: stars) ? rim : .plain
         CoinStyleGrid(intro: "Earn achievement stars to unlock effects for each tap on the coin. Tap the big coin to try the one picked. You have \(stars) \(stars == 1 ? "star" : "stars").",
                       items: CoinTapEffect.allCases, selected: $selected, stars: stars, tint: shownFinish.glow,
@@ -400,6 +400,10 @@ struct CoinStyleGrid<Item: Identifiable & Hashable, Preview: View>: View {
     /// What the look is, under the big preview.
     var detail: KeyPath<Item, String>? = nil
     let starsNeeded: KeyPath<Item, Int>
+    /// Whether a look can be picked, when stars alone don't decide it (the finishes prestiges
+    /// unlock), and what a locked one needs ("5 prestiges").
+    var isUnlocked: ((Item) -> Bool)? = nil
+    var requirement: ((Item) -> String)? = nil
     /// Plays the picked look on the big preview, when it has something to play.
     var tryIt: (() -> Void)? = nil
     @ViewBuilder let preview: (Item, CGFloat) -> Preview
@@ -448,9 +452,10 @@ struct CoinStyleGrid<Item: Identifiable & Hashable, Preview: View>: View {
     }
 
     private func tile(_ item: Item) -> some View {
-        let unlocked = stars >= item[keyPath: starsNeeded]
+        let unlocked = isUnlocked?(item) ?? (stars >= item[keyPath: starsNeeded])
         let isSelected = selected == item
-        let status = unlocked ? (isSelected ? "Selected" : "Unlocked") : "\(item[keyPath: starsNeeded]) stars"
+        let needs = requirement?(item) ?? "\(item[keyPath: starsNeeded]) stars"
+        let status = unlocked ? (isSelected ? "Selected" : "Unlocked") : needs
         return Button {
             if unlocked { selected = item }
         } label: {
@@ -479,7 +484,7 @@ struct CoinStyleGrid<Item: Identifiable & Hashable, Preview: View>: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(item[keyPath: name])
-        .accessibilityValue(unlocked ? status : "Locked, needs \(item[keyPath: starsNeeded]) stars")
+        .accessibilityValue(unlocked ? status : "Locked, needs \(needs)")
         .accessibilityHint(detail.map { item[keyPath: $0] } ?? "")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

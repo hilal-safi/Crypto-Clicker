@@ -76,6 +76,13 @@ extension GameState {
         }
     }
 
+    /// Whether `game` has been played at all: a game, hand, spin or flight, a score, or a daily win.
+    public func hasPlayed(_ game: MiniGame) -> Bool {
+        timesPlayed(game) > 0 || bestScore(game) > 0
+            || (game == .merge2048 && merge2048Daily.wins > 0)
+            || (game == .tokenSwap && (tokenSwap.levelsWon > 0 || tokenSwap.dailyWins > 0))
+    }
+
     /// The best score in an arcade game (0 for casino games, which have no score).
     public func bestScore(_ game: MiniGame) -> Int {
         let s = stats

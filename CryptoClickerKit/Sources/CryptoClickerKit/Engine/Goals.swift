@@ -153,7 +153,7 @@ extension GameState {
 
 extension MinerID {
     /// "a" or "an", for "Buy an AI Miner".
-    var article: String {
+    public var article: String {
         let first = name.lowercased().first
         return first.map { "aeiou".contains($0) } == true ? "an" : "a"
     }

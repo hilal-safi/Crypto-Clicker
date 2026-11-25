@@ -4,7 +4,7 @@ import CryptoClickerKit
 /// Tips for a new player, one at a time, each shown when the game reaches the moment it's about.
 /// A tip goes away once it no longer applies, or for good when the player closes it.
 enum GuideTip: String, CaseIterable {
-    case tapCoin, buyMiner, combo, offlineMining, howToPlay, daily, prestige
+    case tapCoin, buyMiner, combo, offlineMining, nextTier, howToPlay, daily, prestige
 
     var icon: String {
         switch self {
@@ -12,14 +12,26 @@ enum GuideTip: String, CaseIterable {
         case .buyMiner: "💻"
         case .combo: "🔥"
         case .offlineMining: "🌙"
+        case .nextTier: "🚀"
         case .howToPlay: "📖"
         case .daily: "🎁"
         case .prestige: "🌟"
         }
     }
 
-    var text: String {
+    func text(in game: GameState) -> String {
         switch self {
+        case .nextTier:
+            let miner = Self.nextTier(in: game) ?? .desktop
+            return "You can afford \(miner.article) \(miner.name). Each new tier earns far more a second than the one before."
+        default:
+            return text
+        }
+    }
+
+    private var text: String {
+        switch self {
+        case .nextTier: ""
         case .tapCoin: "Tap the coin to mine your first coins."
         case .buyMiner: "You can afford a Chromebook. Miners earn coins for you every second."
         case .combo: "Tap quickly to build a combo: up to twice the coins per tap."
@@ -34,7 +46,7 @@ enum GuideTip: String, CaseIterable {
     var actionTitle: String? {
         switch self {
         case .tapCoin, .combo: nil
-        case .buyMiner: "Shop"
+        case .buyMiner, .nextTier: "Shop"
         case .offlineMining: "Get It"
         case .howToPlay: "Open"
         case .daily: "Daily"
@@ -53,6 +65,8 @@ enum GuideTip: String, CaseIterable {
             game.stats.bestCombo < 10 && game.stats.taps >= 60
         case .offlineMining:
             game.offlineMiningLevel == 0 && game.totalMiners >= 3 && game.offlineMiningPrice.map { game.coins >= $0 } == true
+        case .nextTier:
+            game.stats.prestiges == 0 && Self.nextTier(in: game).map { game.coins >= game.price(of: $0, quantity: 1) } == true
         case .howToPlay:
             // Once the first miners are working, for the rest of the first run's opening.
             (2...15).contains(game.totalMiners) && game.stats.prestiges == 0
@@ -61,6 +75,13 @@ enum GuideTip: String, CaseIterable {
         case .prestige:
             game.stats.prestiges == 0 && game.isPrestigeRecommended
         }
+    }
+}
+
+extension GuideTip {
+    /// The first of the early tiers (Desktop to Data Center) not owned yet, once it shows in the Shop.
+    static func nextTier(in game: GameState) -> MinerID? {
+        MinerID.allCases.prefix(5).dropFirst().first { game.isRevealed($0) && game.owned($0) == 0 }
     }
 }
 
@@ -85,7 +106,7 @@ struct GuideTipCard: View {
                     Text(tip.icon)
                         .font(.title2)
                         .accessibilityHidden(true)
-                    Text(tip.text)
+                    Text(tip.text(in: store.game))
                         .font(.subheadline.weight(.medium))
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -114,7 +135,7 @@ struct GuideTipCard: View {
 
     private func act(on tip: GuideTip) {
         switch tip {
-        case .buyMiner, .prestige: openShop()
+        case .buyMiner, .nextTier, .prestige: openShop()
         case .offlineMining: openPowerUps()
         case .daily: openDaily()
         case .howToPlay: openHowToPlay()

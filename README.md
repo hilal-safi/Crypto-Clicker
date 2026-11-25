@@ -8,22 +8,27 @@ No real cryptocurrency, no ads, no purchases.
 
 - **Mining.** Tap for coins and build quick-tap combos, then buy 13 miners from a Chromebook to a
   Galactic Hashnet. Each unit costs 15% more, milestones and Mk upgrades double output, and the Shop
-  marks the best value.
+  marks the best value and shows what each miner and upgrade adds to your income and how soon it
+  pays for itself.
 - **Upgrades and power-ups.** 26 one-time upgrades, combo power-ups, and Offline Mining, which keeps
   miners earning while the app is closed, from six minutes (what you start with) up to three days over 160 levels. Time
   away pays a tenth of your income, and Offline Efficiency adds 5% per level (18 levels) up
   to all of it.
 - **Prestige.** After 15 billion coins mined, start a new run for points that add 5% production each
-  and buy permanent perks.
+  and buy permanent perks. Run History compares every run (how long it took, what it mined, the
+  points it earned), and prestige milestones at 1, 5, 10, 25 and 50 prestiges unlock five coin
+  finishes.
 - **Daily play.** A daily reward streak, three quests a day, a daily challenge in one of your games,
   airdrops, whales and Bull Runs.
 - **Tokens.** Eleven tokens, from SafeMoon at 100 coins to Bitcoin, whose prices drift with in-game
   news; each is tagged Stable, Moderate or Volatile. Buy them to bet in the casino or sell later.
+  Statistics keeps what you paid on average and how each token has done since.
 - **Casino.** 21 Million (blackjack), Crypto Slots (a classic 3×1 machine or a 5×3 video machine with
   five lines), Diamond Hands (video poker) and To the Moon (a crash game with a 2× or a riskier 5×
   rocket), played with tokens or practice chips.
 - **Arcade.** Eight games that pay coins for points, each with its own modes, speed or difficulty,
-  records and backdrop:
+  records and backdrop. Star favorites to pin them to the top; the last games played are a tap away,
+  and new ones are marked until played:
 
   | Game | What it is |
   | --- | --- |
@@ -36,7 +41,7 @@ No real cryptocurrency, no ads, no purchases.
   | Pump and Dump | Tap coins as they list, on a 3×3, 4×4 or 5×5 board |
   | Token Swap | Match-three with 18 levels, a daily puzzle, random levels and Classic |
 
-- **Progress.** 66 achievements with four tiers (each star adds 1% production), an Arcade Rank up to
+- **Progress.** 68 achievements with four tiers (each star adds 1% production), an Arcade Rank up to
   Mythic, and Style looks for the coin and two kinds for every game (one look at each rank from 2 to
   48, many sooner with a game's achievement). Goals shows what to aim for next, and Statistics charts your
   income and keeps every record.
@@ -45,6 +50,8 @@ No real cryptocurrency, no ads, no purchases.
   steps are paid the next day, a coin each. Tap the steps card to see what a step pays.
 - **Beyond the app.** An Apple Watch app, Home Screen and Lock Screen widgets, a Live Activity, and a
   Siri shortcut for your balance.
+- **Backup.** The game backs up to iCloud and can be exported and imported as a save file (Settings,
+  Backup and Save Files). Steps from Apple Health stay on the device.
 - **Help.** How to Play in Settings, plus a rules sheet in every game.
 
 ## Requirements
@@ -53,6 +60,8 @@ No real cryptocurrency, no ads, no purchases.
 - iOS 26 / iPadOS 26 and watchOS 26
 - Automatic signing. The app and its widgets share the app group `group.Hilal-Safi.Crypto-Clicker`; if
   Xcode reports it isn't set up, tick it under App Groups in both targets' Signing & Capabilities.
+- For the iCloud backup, the iCloud capability with Key-value storage on the Crypto Clicker target.
+  Without it the game runs the same, and Settings says iCloud isn't available.
 
 ## Project layout
 
@@ -78,7 +87,8 @@ Config/                    Entitlements
 - **No server.** Token prices, news, quests and daily seeds are worked out from the clock, so every
   device agrees without a network.
 - **Saves are protected.** A save that can't be read is set aside, never deleted, and unfinished bets
-  and arcade runs are settled on the next launch.
+  and arcade runs are settled on the next launch. Backups and save files leave Apple Health data
+  behind, and a backup never replaces one with more progress from another device.
 - **The watch and widgets project the balance** from a snapshot the app shares, and watch taps are
   numbered so each is paid exactly once.
 
@@ -101,9 +111,11 @@ RUN_BALANCE_TESTS=1 swift test --filter ArcadeBalanceTests # just the arcade bot
 
 The package builds anywhere Swift 6 runs, Linux included, since it uses no Apple frameworks.
 
-GitHub Actions runs the suite on pushes and pull requests (`.github/workflows/kit-tests.yml`).
+GitHub Actions runs the suite on pushes and pull requests, and the balance simulations every Monday
+(`.github/workflows/kit-tests.yml`).
 
 ## Testing tools
 
 Debug builds have a Testing Tools screen at the bottom of Settings: add coins, tokens and miners,
-unlock every game and look, start a new day, and more. It's compiled out of Release builds.
+unlock every game and look, count prestiges, start a new day, and more. It's compiled out of
+Release builds.

@@ -38,6 +38,9 @@ struct PurchaseNote: Identifiable, Equatable {
     /// The same while purchases add to the popup, so it updates in place.
     let id = UUID()
     private(set) var items: [Item] = []
+    /// Milestones the purchases reached, and Mk upgrades they made available, newest last:
+    /// "Desktop milestone: 50 owned, output ×2".
+    private(set) var milestones: [String] = []
     /// Idle income, a tap's worth and a step's worth before the first of these purchases...
     let incomeBefore: Double
     let tapBefore: Double
@@ -64,13 +67,14 @@ struct PurchaseNote: Identifiable, Equatable {
         updatedAt = date
     }
 
-    mutating func add(_ name: String, count: Int, effect: String?) {
+    mutating func add(_ name: String, count: Int, effect: String?, milestones reached: [String] = []) {
         if let index = items.firstIndex(where: { $0.name == name }) {
             items[index].count += count
             if let effect { items[index].effect = effect }
         } else {
             items.append(Item(name: name, count: count, effect: effect))
         }
+        milestones.append(contentsOf: reached)
     }
 
     var itemCount: Int { items.reduce(0) { $0 + $1.count } }
@@ -182,6 +186,8 @@ final class GameStore {
     var isSyncingSteps = false
     /// Quick taps in a row (0 once the combo has lapsed).
     var comboStreak = 0
+    /// The longest combo before the one going now, so beating it can be shown as it happens.
+    var comboRecordBefore = 0
     /// Today's daily reward hasn't been claimed yet.
     var isDailyRewardReady = false
     /// Daily rewards waiting to be claimed, for the Trophies tab's badge. Kept up to date after every
@@ -198,6 +204,7 @@ final class GameStore {
     let watch = WatchBridge()
     let notifier = Notifier()
     let balanceSharing = BalanceSharing()
+    let cloudBackup = CloudBackup()
     @ObservationIgnored private var ticker: Task<Void, Never>?
     /// Income is credited only while the app is on screen. In the background the game clock stays
     /// at `game.lastUpdate`, so wake-ups from the watch can't add up to more than the offline cap.
@@ -284,6 +291,9 @@ final class GameStore {
             isInForeground = false
             clearAirdrop()
             comboStreak = 0
+            // Backed up as the app leaves, before the save (which backs up at most every ten
+            // minutes, so it doesn't again now).
+            cloudBackup.backUp(state, force: true)
             save()
             pushToWatch(force: true)
             shareBalance(force: true)
@@ -486,13 +496,13 @@ final class GameStore {
 
     /// Adds a purchase to the popup: to the one on screen if the last purchase was under nine
     /// seconds ago, else to a new one measured from `before` (`purchaseBaseline` before buying).
-    func notePurchase(_ name: String, count: Int = 1, effect: String? = nil,
+    func notePurchase(_ name: String, count: Int = 1, effect: String? = nil, milestones: [String] = [],
                       before: (income: Double, tap: Double, step: Double)) {
         let now = Date.now
         var note = purchaseNote.flatMap { now.timeIntervalSince($0.updatedAt) < PurchaseNote.lifetime ? $0 : nil }
             ?? PurchaseNote(incomeBefore: before.income, tapBefore: before.tap, stepBefore: before.step,
                             showsSteps: state.steps.isConnected, at: now)
-        note.add(name, count: count, effect: effect)
+        note.add(name, count: count, effect: effect, milestones: milestones)
         note.incomeNow = state.baseIdleIncome
         note.tapNow = state.baseTapValue
         note.stepNow = state.stepValue
@@ -515,6 +525,7 @@ final class GameStore {
             try saves.save(state)
             lastSave = .now
             hasUnsavedChanges = false
+            cloudBackup.backUp(state)
             return true
         } catch {
             lastSave = .now // Retry on the normal schedule rather than every tick.
@@ -547,6 +558,22 @@ final class GameStore {
         isSaveLocked = false
         finishLoading()
         save()
+    }
+
+    /// Carries on from `copy` (a save file, or the iCloud backup) in place of the game here. This
+    /// iPhone keeps its Apple Health ledger, so no day's steps are paid twice.
+    func importGame(_ copy: GameState) {
+        replaceGame(with: state.continuing(with: copy, at: .now))
+        toasts = []
+        clearAirdrop()
+        welcomeBack = nil
+        comboStreak = 0
+        scheduleAirdrop(from: .now)
+        refreshDaily(at: .now, force: true)
+        cloudBackup.backUp(state, force: true)
+        save()
+        pushToWatch(force: true)
+        shareBalance(force: true)
     }
 
     func resetGame() {

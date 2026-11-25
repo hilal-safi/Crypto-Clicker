@@ -282,6 +282,10 @@ public enum Tuning {
     /// Prestige points stop counting here. Far beyond reach in play, and small enough for `Int`
     /// on Apple Watch, where `Int` is 32 bits.
     public static let maxPrestigePoints = 1_000_000_000
+    /// Finished runs the run history keeps: the latest, about 30 KB of save at most.
+    public static let runHistoryLimit = 200
+    /// A run finished within this counts towards the Speedrunner achievement.
+    public static let quickRunDuration: TimeInterval = 2 * 86_400
     /// The first prestige is suggested once its points would make production at least this much
     /// faster...
     public static let firstPrestigeSpeedUp = 1.5

@@ -256,6 +256,9 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var watchSequences: [String: Int] = [:]
     /// The latest airdrops, caught or missed, newest last.
     public internal(set) var recentAirdrops: [AirdropLog] = []
+    /// The latest finished runs (up to `Tuning.runHistoryLimit`), oldest first. Runs from before
+    /// version 2.1, which kept no history, aren't in it.
+    public internal(set) var runHistory: [RunRecord] = []
 
     /// When income was last credited.
     public internal(set) var lastUpdate: Date
@@ -279,7 +282,8 @@ public struct GameState: Codable, Equatable, Sendable {
         case boost, offlineMiningLevel, powerUps, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun, tokenSwap
         case merge2048Daily, slotsFreeSpins, arcade, journey, starterMilestones, starterRewards
         case achievementTiers, daily
-        case incomeHistory, stats, steps, recentWatchBatches, watchSequences, recentAirdrops, lastUpdate, runStart, created
+        case incomeHistory, stats, steps, recentWatchBatches, watchSequences, recentAirdrops, runHistory
+        case lastUpdate, runStart, created
     }
 
     public init(from decoder: Decoder) throws {
@@ -345,6 +349,8 @@ public struct GameState: Codable, Equatable, Sendable {
         recentWatchBatches = c.value(.recentWatchBatches, default: [])
         watchSequences = c.value(.watchSequences, default: [:])
         recentAirdrops = c.value(.recentAirdrops, default: [])
+        let history: [RunRecord] = c.value(.runHistory, default: [])
+        runHistory = Array(history.suffix(Tuning.runHistoryLimit))
         lastUpdate = c.value(.lastUpdate, default: now)
         runStart = c.value(.runStart, default: now)
         created = c.value(.created, default: now)
@@ -393,6 +399,7 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encode(recentWatchBatches, forKey: .recentWatchBatches)
         if !watchSequences.isEmpty { try c.encode(watchSequences, forKey: .watchSequences) }
         if !recentAirdrops.isEmpty { try c.encode(recentAirdrops, forKey: .recentAirdrops) }
+        if !runHistory.isEmpty { try c.encode(runHistory, forKey: .runHistory) }
         try c.encode(lastUpdate, forKey: .lastUpdate)
         try c.encode(runStart, forKey: .runStart)
         try c.encode(created, forKey: .created)

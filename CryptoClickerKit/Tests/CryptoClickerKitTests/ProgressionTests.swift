@@ -589,10 +589,11 @@ struct AirdropTests {
 struct AchievementTests {
     @Test func catalogIsWellFormed() {
         let all = AchievementCatalog.all
-        // 66 with SafeMoon's "Exchanged" achievement.
-        #expect(all.count == 66)
+        // 66 with SafeMoon's "Exchanged" achievement, and 68 with Big Run and Speedrunner (prestige
+        // records, from version 2.1).
+        #expect(all.count == 68)
         #expect(Set(all.map(\.id)).count == all.count)
-        #expect(AchievementCatalog.tierCount == 264)
+        #expect(AchievementCatalog.tierCount == 272)
         #expect(all.contains { $0.id == "token-safeMoon" })
         for achievement in all {
             #expect(achievement.thresholds.count == 4)

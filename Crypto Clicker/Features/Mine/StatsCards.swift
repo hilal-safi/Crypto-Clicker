@@ -389,7 +389,8 @@ struct WalletCard: View {
     }
 }
 
-/// One token: how many are held and have been bought, and what they're worth now.
+/// One token: how many are held and have been bought, what they're worth now, and the average
+/// price paid with how today's price compares.
 struct TokenStatRow: View {
     let token: TokenID
     let held: Int
@@ -398,6 +399,9 @@ struct TokenStatRow: View {
     let worth: String
     /// One token's price.
     let price: String
+    /// The average price paid (purchases since version 2.1), and today's price against it.
+    var averagePaid: String? = nil
+    var change: Double? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -413,6 +417,18 @@ struct TokenStatRow: View {
                 Text("\(CoinFormat.grouped(held)) held · \(CoinFormat.grouped(bought)) bought")
                     .font(.subheadline)
                     .foregroundStyle(.subtext)
+                if let averagePaid, let change {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("Paid \(averagePaid) on average ·")
+                            .foregroundStyle(.subtext)
+                        Text(PortfolioMoversRow.changeText(change))
+                            .fontWeight(.semibold)
+                            .foregroundStyle(change >= 0 ? Theme.gain : Theme.loss)
+                    }
+                    .font(.subheadline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                }
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 2) {
@@ -428,6 +444,52 @@ struct TokenStatRow: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// The tokens that have done best and worst against the average price paid for them.
+struct PortfolioMoversRow: View {
+    let best: (token: TokenID, change: Double)
+    let worst: (token: TokenID, change: Double)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Against what you paid")
+                .font(.footnote.weight(.heavy))
+                .textCase(.uppercase)
+                .foregroundStyle(Theme.accent)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    mover(title: "Best", best)
+                    mover(title: "Worst", worst)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    mover(title: "Best", best)
+                    mover(title: "Worst", worst)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func mover(title: String, _ move: (token: TokenID, change: Double)) -> some View {
+        HStack(spacing: 8) {
+            TokenImage(token: move.token, size: 28)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("\(title): \(move.token.ticker)")
+                    .font(.subheadline.weight(.semibold))
+                Text(Self.changeText(move.change))
+                    .font(.subheadline.weight(.bold).monospacedDigit())
+                    .foregroundStyle(move.change >= 0 ? Theme.gain : Theme.loss)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// "▲ 12%", "▼ 3.5%".
+    static func changeText(_ change: Double) -> String {
+        "\(change >= 0 ? "▲" : "▼") \(CoinFormat.percent(abs(change)))"
     }
 }
 

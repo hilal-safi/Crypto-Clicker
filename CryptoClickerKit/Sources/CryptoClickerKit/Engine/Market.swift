@@ -234,6 +234,8 @@ extension GameState {
         spend(cost)
         giveTokens(token, amount: quantity)
         stats.tokensBought[token] = stats.tokensBought[token, default: 0].addingCount(quantity)
+        stats.tokensBoughtWithPrice[token] = stats.tokensBoughtWithPrice[token, default: 0].addingCount(quantity)
+        stats.coinsSpentOnTokens[token] = Self.finite(stats.coinsSpentOnTokens[token, default: 0] + cost)
         return true
     }
 

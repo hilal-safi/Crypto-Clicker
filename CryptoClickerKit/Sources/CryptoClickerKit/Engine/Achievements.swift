@@ -38,6 +38,8 @@ extension GameState {
         case .whaleAirdrops: Double(stats.whaleAirdrops)
         case .prestiges: Double(stats.prestiges)
         case .perks: Double(perks.count)
+        case .bestRunPoints: Double(stats.bestRunPoints)
+        case .quickRuns: Double(stats.quickRuns)
         case .arcadeRank: Double(arcadeRank)
         case .tetrisSprints: Double(stats.tetrisSprints)
         case .brickBreakerBosses: Double(stats.brickBreakerBosses)

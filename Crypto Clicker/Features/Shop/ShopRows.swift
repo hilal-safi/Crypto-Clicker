@@ -8,8 +8,11 @@ struct MinerRow: View {
     let miner: MinerID
     let owned: Int
     let rate: Double
-    /// Coins per second the next unit adds (a milestone doubles them all).
+    /// Coins per second the next unit adds (a milestone doubles them all), as a share of idle
+    /// income, and how long that takes to repay one unit's price.
     let perUnit: Double
+    var incomeShare: Double = 0
+    var payback: TimeInterval? = nil
     let isBestValue: Bool
     let nextMilestone: Int?
     let buyCount: Int
@@ -111,6 +114,9 @@ struct MinerRow: View {
                 Label("Next one: +\(CoinFormat.rate(perUnit))/s", systemImage: "plus.circle.fill")
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(Theme.accent)
+                if let payback {
+                    PaybackLine(share: incomeShare, payback: payback)
+                }
                 // Each bar sits with its own caption, with clear space between the two.
                 VStack(alignment: .leading, spacing: 12) {
                     if let nextMilestone, owned > 0 {
@@ -150,6 +156,25 @@ struct MinerRow: View {
             }
             .fixedSize()
         }
+    }
+}
+
+/// What the next unit adds as a share of income, and how soon it repays its price: "+2.1% income ·
+/// pays for itself in 4m 10s".
+struct PaybackLine: View {
+    let share: Double
+    let payback: TimeInterval
+
+    var body: some View {
+        Text("\(PaybackLine.shareText(share)) income · pays for itself in \(CoinFormat.duration(payback))")
+            .font(.subheadline.monospacedDigit())
+            .foregroundStyle(.subtext)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// "+2.1%", or "+<0.1%" for a sliver.
+    static func shareText(_ share: Double) -> String {
+        share > 0 && share < 0.001 ? "+<0.1%" : "+\(CoinFormat.percent(share))"
     }
 }
 
@@ -422,6 +447,8 @@ struct LockedMinerRow: View {
 struct UpgradeRow: View {
     let upgrade: UpgradeID
     let canAfford: Bool
+    /// What it adds, worked out for this game: "+12% income · pays for itself in 4m".
+    var gain: String? = nil
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var purchases = 0
@@ -444,6 +471,12 @@ struct UpgradeRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
+                if let gain {
+                    Text(gain)
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(Theme.accent)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Button {

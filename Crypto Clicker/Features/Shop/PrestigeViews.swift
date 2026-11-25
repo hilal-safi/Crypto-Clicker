@@ -1,11 +1,13 @@
 import SwiftUI
 import CryptoClickerKit
 
-/// Prestige: points earned so far, what prestiging now would bring, and the way into the perks.
+/// Prestige: points earned so far, what prestiging now would bring, and the ways into the perks
+/// and the run history.
 struct PrestigeCard: View {
     @Environment(GameStore.self) private var store
     @State private var confirming = false
     @State private var showingPerks = false
+    @State private var showingHistory = false
 
     var body: some View {
         let game = store.game
@@ -38,18 +40,33 @@ struct PrestigeCard: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.subtext)
             }
+            // Prestige, Perks and History side by side when they fit; Prestige above the other two
+            // when they don't, and all three stacked at the largest text sizes.
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 10) { buttons(claimable: claimable, recommended: recommended, perks: affordablePerks) }
-                VStack(spacing: 10) { buttons(claimable: claimable, recommended: recommended, perks: affordablePerks) }
+                HStack(spacing: 10) {
+                    prestigeButton(claimable: claimable, recommended: recommended)
+                    otherButtons(perks: affordablePerks)
+                }
+                VStack(spacing: 10) {
+                    prestigeButton(claimable: claimable, recommended: recommended)
+                    HStack(spacing: 10) { otherButtons(perks: affordablePerks) }
+                }
+                VStack(spacing: 10) {
+                    prestigeButton(claimable: claimable, recommended: recommended)
+                    otherButtons(perks: affordablePerks)
+                }
             }
         }
         .glassCard(tint: Theme.arcade)
         .sheet(isPresented: $confirming) { PrestigeSheet() }
         .sheet(isPresented: $showingPerks) { PerkTreeView() }
+        .sheet(isPresented: $showingHistory) {
+            NavigationStack { RunHistoryView(showsDone: true) }
+        }
     }
 
     @ViewBuilder
-    private func buttons(claimable: Int, recommended: Bool, perks: Int) -> some View {
+    private func prestigeButton(claimable: Int, recommended: Bool) -> some View {
         if claimable > 0 {
             Button {
                 confirming = true
@@ -61,10 +78,24 @@ struct PrestigeCard: View {
             .buttonStyle(.borderedProminent)
             .tint(recommended ? Theme.arcadeButton : Theme.arcadeButton.opacity(0.75))
         }
+    }
+
+    /// Perks, and the run history with the prestige milestones.
+    @ViewBuilder
+    private func otherButtons(perks: Int) -> some View {
         Button {
             showingPerks = true
         } label: {
             Label(perks > 0 ? "Perks (\(perks) ready)" : "Perks", systemImage: "rosette")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(Theme.arcadeButton)
+        Button {
+            showingHistory = true
+        } label: {
+            Label("History", systemImage: "clock.arrow.circlepath")
                 .font(.headline)
                 .frame(maxWidth: .infinity)
         }
@@ -125,6 +156,16 @@ struct PrestigeSheet: View {
                     Section {
                         Label("Your first prestige also reveals three new miners beyond the Space Mining Colony.",
                               systemImage: "sparkles")
+                    }
+                }
+                if let finish = CoinFinish.allCases.first(where: { $0.prestigesNeeded == game.stats.prestiges + 1 }) {
+                    Section {
+                        Label {
+                            Text("This prestige unlocks the \(finish.name) coin finish.")
+                        } icon: {
+                            CoinArt(finish: finish)
+                                .frame(width: 26, height: 26)
+                        }
                     }
                 }
             }

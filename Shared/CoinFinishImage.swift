@@ -15,12 +15,17 @@ extension CoinFinish {
         case .amethyst: Color(red: 0.65, green: 0.35, blue: 0.95)
         case .obsidian: Color(red: 0.45, green: 0.30, blue: 0.60)
         case .holographic: Color(red: 0.40, green: 0.85, blue: 1.00)
+        case .forged: Color(red: 0.80, green: 0.45, blue: 0.22)
+        case .platinum: Color(red: 0.75, green: 0.88, blue: 1.00)
+        case .ruby: Color(red: 0.95, green: 0.12, blue: 0.18)
+        case .nebula: Color(red: 0.55, green: 0.30, blue: 1.00)
+        case .aurora: Color(red: 0.25, green: 0.95, blue: 0.75)
         }
     }
 }
 
-/// The coin artwork in a finish, held still: the gold coin, recoloured. Holographic shows one
-/// moment of its shimmer.
+/// The coin artwork in a finish, held still: the gold coin, recoloured. Holographic and Aurora
+/// show one moment of their shimmer.
 struct CoinFinishImage: View {
     var finish = CoinFinish.gold
     /// The image asset: the widgets have smaller copies of the coin ("CoinLive", "CoinMini") for
@@ -46,6 +51,23 @@ struct CoinFinishImage: View {
             coin.saturation(0.15).brightness(-0.32).contrast(1.45)
         case .holographic:
             coin.hueRotation(.degrees(150))
+        // The prestige milestones' finishes: dark bronze, icy platinum, deep red, violet, and
+        // (in the app) a green that drifts to violet.
+        case .forged:
+            coin.hueRotation(.degrees(-10)).saturation(0.7).brightness(-0.14).contrast(1.4)
+        case .platinum:
+            coin.hueRotation(.degrees(170)).saturation(0.3).brightness(0.12).contrast(1.2)
+        case .ruby:
+            coin.hueRotation(.degrees(-40)).saturation(1.7).brightness(-0.12).contrast(1.3)
+        case .nebula:
+            coin.hueRotation(.degrees(225)).saturation(1.6).brightness(-0.12).contrast(1.4)
+        case .aurora:
+            Self.aurora(coin, degrees: 135)
         }
+    }
+
+    /// The Aurora finish at one point of its drift: green at 115 degrees, violet at 235.
+    static func aurora(_ coin: some View, degrees: Double) -> some View {
+        coin.hueRotation(.degrees(degrees)).saturation(1.45).brightness(0.02).contrast(1.15)
     }
 }

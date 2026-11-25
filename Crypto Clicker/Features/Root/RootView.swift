@@ -1,8 +1,10 @@
 import SwiftUI
+import StoreKit
 import CryptoClickerKit
 
 struct RootView: View {
     @Environment(GameStore.self) private var store
+    @Environment(\.requestReview) private var requestReview
     @State private var tab = AppTab.mine
     @State private var showingIncome = false
     /// Set when a tap on the greyed-out tab bar is turned away because a card round is on.
@@ -86,6 +88,9 @@ struct RootView: View {
         .sheet(item: $store.welcomeBack) { welcome in
             WelcomeBackView(welcome: welcome, openPowerUps: openPowerUps)
         }
+        .onChange(of: store.game.stats.prestiges) { before, after in
+            askForReviewAfterFirstPrestige(before: before, after: after)
+        }
         .alert("Something went wrong", isPresented: Binding(
             get: { store.errorMessage != nil },
             set: { if !$0 { store.errorMessage = nil } }
@@ -112,6 +117,17 @@ struct RootView: View {
     private func openTokens() {
         tokenRequests += 1
         tab = .shop
+    }
+
+    /// Asks for an App Store rating once, a few seconds after the first prestige: a moment the
+    /// player has seen what the game is about. The system decides whether the prompt shows.
+    private func askForReviewAfterFirstPrestige(before: Int, after: Int) {
+        guard before == 0, after >= 1, !UserDefaults.standard.bool(forKey: Preferences.reviewRequestedKey) else { return }
+        UserDefaults.standard.set(true, forKey: Preferences.reviewRequestedKey)
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            requestReview()
+        }
     }
 }
 
