@@ -407,15 +407,16 @@ struct PacingTests {
         // more, and the first production upgrades give less). Time away pays a share of the income
         // now (a tenth to begin with, 5% more a level), so the later tiers come about 40% later
         // than they did when it paid all of it: the first prestige point (15 billion mined) in
-        // about six days, the tenth tier in about nine and a half, and the Shop suggests the first
-        // prestige at about ten and a half (a walker gets there sooner: see the walking test).
+        // about five days, the tenth tier in about eight, and the Shop suggests the first prestige
+        // at about eight and a half, with two more by the end of the second week (a walker gets
+        // there sooner: see the walking test).
         #expect(player.firstBought[.dataCenter].map { (1.6 * 86_400...3 * 86_400).contains($0) } == true)
         #expect(player.firstUpgrade[.immersionCooling].map { (2.5 * 86_400...5.5 * 86_400).contains($0) } == true)
         #expect(player.firstPointAt.map { (4.5 * 86_400...7.5 * 86_400).contains($0) } == true)
         let tenthTier = player.firstBought[.spaceColony]
         #expect(tenthTier.map { (7.5 * 86_400...12 * 86_400).contains($0) } == true)
-        #expect(player.firstPrestigeAt.map { (9 * 86_400...13 * 86_400).contains($0) } == true)
-        #expect((1...2).contains(player.prestigeTimes.count))
+        #expect(player.firstPrestigeAt.map { (7 * 86_400...11 * 86_400).contains($0) } == true)
+        #expect((2...4).contains(player.prestigeTimes.count))
         // Every game within about ten days, and the whole first ladder before the first prestige
         // (which opens the three tiers beyond it).
         #expect(player.gamesUnlockedAt.count == MiniGame.allCases.count)

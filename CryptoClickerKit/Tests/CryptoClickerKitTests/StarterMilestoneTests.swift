@@ -56,7 +56,9 @@ struct StarterMilestoneTests {
         #expect(game.isClaimed(.firstUpgrade))
         #expect(game.claim(.firstUpgrade, at: t0) == nil) // Once only.
         #expect(game.coins == 3_600)
-        #expect(game.claimableStarterMilestones.isEmpty)
+        // The miners behind the income also reach "own three miners", which is still to claim.
+        #expect(!game.claimableStarterMilestones.contains(.firstUpgrade))
+        #expect(game.claimableStarterMilestones == [.threeMiners])
     }
 
     @Test func rewardsAreSecondsOfIncomeWithTheDailyFloorOnDayOne() {

@@ -395,12 +395,12 @@ struct ProductionTests {
     }
 
     @Test func offlineEfficiencyIsBoughtInEighteenLevelsAtTheShopsPrices() {
-        // 15,000 for the first (15%) to 999 trillion for the 18th (all of it); the even levels
+        // 15,000 for the first (15%) to 1.2 quadrillion for the 18th (all of it); the even levels
         // are set prices, the odd ones sit between; no pace or premium.
         let prices: [Double] = [15_000, 75_000, 250_000, 3_000_000, 8_500_000, 25_000_000,
                                 110_000_000, 500_000_000, 1_500_000_000, 5_000_000_000, 20_000_000_000,
                                 85_000_000_000, 290_000_000_000, 1_000_000_000_000, 7_500_000_000_000,
-                                56_000_000_000_000, 240_000_000_000_000, 999_999_999_999_999]
+                                56_000_000_000_000, 340_000_000_000_000, 1_200_000_000_000_000]
         #expect(Tuning.offlineEfficiencyPrices == prices)
         #expect(prices.count == 18)
         for (level, expected) in prices.enumerated() {
@@ -409,12 +409,12 @@ struct ProductionTests {
         // The levels that were set one by one.
         let set: [Int: Double] = [1: 15_000, 2: 75_000, 3: 250_000, 4: 3_000_000, 6: 25_000_000, 8: 500_000_000,
                                   10: 5_000_000_000, 12: 85_000_000_000, 14: 1_000_000_000_000,
-                                  16: 56_000_000_000_000, 18: 999_999_999_999_999]
+                                  16: 56_000_000_000_000, 17: 340_000_000_000_000, 18: 1_200_000_000_000_000]
         for (level, price) in set { #expect(prices[level - 1] == price, "level \(level)") }
         // Every level costs more than the one before, and the odd ones in between sit between
         // their neighbours.
         #expect(zip(prices, prices.dropFirst()).allSatisfy { $0 < $1 })
-        #expect(prices.reduce(0, +) == 1_304_902_146_839_999) // All 18 levels.
+        #expect(prices.reduce(0, +) == 1_604_902_146_840_000) // All 18 levels.
         // It shows in the Shop from the start of the game (the six minutes away are paid at its
         // share), once lifetime coins reach a tenth of its first price.
         var state = GameState.make(coins: 2e15)
@@ -528,8 +528,8 @@ struct ShopTests {
         #expect(state.isUnlocked(.blackjack))
         #expect(state.unlock(.blackjack) == false)
         #expect(state.unlock(.tetris) == false)
-        #expect(state.coins == 5_000 - 2_056) // A list price of 1,000, about doubled for the opening's pace.
-        #expect(MiniGame.tetris.unlockCost == 8_223)
+        #expect(state.coins == 5_000 - 1_898) // A list price of 1,000, about 1.9 times that for the opening's pace.
+        #expect(MiniGame.tetris.unlockCost == 7_590)
     }
 
     @Test func tappingPaysAndRecords() {
