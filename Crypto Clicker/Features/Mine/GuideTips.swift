@@ -99,8 +99,7 @@ extension GuideTip {
     }
 }
 
-/// The first tip that applies and hasn't been closed, in a small card on the Mine tab; when there's
-/// none, the next goal (unless the player turned it off in Settings).
+/// The first tip that applies and hasn't been closed, in a small card on the Mine tab.
 struct GuideTipCard: View {
     let openShop: () -> Void
     let openPowerUps: () -> Void
@@ -111,7 +110,6 @@ struct GuideTipCard: View {
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.dismissedTipsKey) private var dismissed = ""
     @AppStorage(Preferences.howToPlaySeenKey) private var seenHowToPlay = false
-    @AppStorage(Preferences.showsNextGoalKey) private var showsNextGoal = true
 
     var body: some View {
         let game = store.game
@@ -119,14 +117,8 @@ struct GuideTipCard: View {
         let tip = GuideTip.allCases.first {
             !closed.contains($0.rawValue) && $0.applies(to: game, dailyRewardReady: store.isDailyRewardReady)
         }
-        // The goal waits for the first miner: until then the tips say what to do.
-        let goal = tip == nil && showsNextGoal && game.totalMiners > 0 ? game.featuredGoal : nil
         Group {
-            if let goal {
-                NextGoalCard(goal: goal) { openGoal(goal.kind) }
-                    .id(goal.id)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else if let tip {
+            if let tip {
                 HStack(spacing: 12) {
                     Text(tip.icon)
                         .font(.title2)
@@ -156,7 +148,6 @@ struct GuideTipCard: View {
             }
         }
         .animation(.smooth, value: tip)
-        .animation(.smooth, value: goal?.id)
     }
 
     private func act(on tip: GuideTip) {
@@ -175,58 +166,5 @@ struct GuideTipCard: View {
         var closed = dismissed.split(separator: ",").map(String.init)
         closed.append(tip.rawValue)
         withAnimation(.smooth) { dismissed = closed.joined(separator: ",") }
-    }
-}
-
-/// The next goal, in the tip's place: what to do, what it brings, how close it is, and a tap to
-/// go where it's done (the Shop, the Arcade, the achievements).
-struct NextGoalCard: View {
-    let goal: Goal
-    let open: () -> Void
-
-    var body: some View {
-        let isReady = goal.progress >= 1
-        Button(action: open) {
-            HStack(spacing: 12) {
-                Image(systemName: goal.kind.symbol)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .background(goal.kind.color.gradient, in: .circle)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(goal.title)
-                            .font(.subheadline.weight(.bold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                        Spacer(minLength: 4)
-                        Text(isReady ? String(localized: "Ready") : CoinFormat.percent((goal.progress * 100).rounded(.down) / 100))
-                            .font(.subheadline.weight(.bold).monospacedDigit())
-                            .foregroundStyle(isReady ? Theme.gain : goal.kind.color)
-                    }
-                    Text(goal.detail)
-                        .font(.subheadline)
-                        .foregroundStyle(.subtext)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    ProgressView(value: goal.progress)
-                        .tint(isReady ? Theme.gain : goal.kind.color)
-                        .padding(.top, 2)
-                }
-                Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.subtext)
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Next goal: \(goal.title). \(goal.detail). \(isReady ? String(localized: "Ready") : CoinFormat.percent((goal.progress * 100).rounded(.down) / 100))")
-        .accessibilityHint(goal.kind.destination)
     }
 }

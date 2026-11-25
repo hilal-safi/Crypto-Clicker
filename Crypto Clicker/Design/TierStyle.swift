@@ -48,7 +48,9 @@ enum TierStyle {
 }
 
 /// A band of light that sweeps across a surface every few seconds. The sweep runs as a repeating
-/// animation, so it costs nothing between frames, and it's left out with Reduce Motion on.
+/// animation, so it costs nothing between frames, and it's left out with Reduce Motion on. The
+/// animation belongs to the band alone (not a `withAnimation` on appearing, which also animated
+/// whatever else changed at that moment, such as a scrolling page's layout, over and over).
 struct MetalShine: View {
     let period: Double
     /// Seconds before the first sweep, so neighbouring cards don't shine in step.
@@ -66,11 +68,8 @@ struct MetalShine: View {
                     .rotationEffect(.degrees(18))
                     // Travels well past the right edge, so each sweep is followed by a pause.
                     .offset(x: sweeping ? width * 2.6 : -width * 0.6, y: -proxy.size.height * 0.5)
-                    .onAppear {
-                        withAnimation(.linear(duration: period).delay(delay).repeatForever(autoreverses: false)) {
-                            sweeping = true
-                        }
-                    }
+                    .animation(.linear(duration: period).delay(delay).repeatForever(autoreverses: false), value: sweeping)
+                    .onAppear { sweeping = true }
             }
         }
         .blendMode(.plusLighter)
@@ -79,7 +78,8 @@ struct MetalShine: View {
     }
 }
 
-/// A slowly turning ring of color for mythic borders.
+/// A slowly turning ring of color for mythic borders. Like `MetalShine`, the turning belongs to
+/// the ring alone.
 struct MythicGradient: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var turning = false
@@ -87,10 +87,11 @@ struct MythicGradient: View {
     var body: some View {
         AngularGradient(colors: TierStyle.mythic, center: .center)
             .rotationEffect(.degrees(turning ? 360 : 0))
+            .animation(.linear(duration: 6).repeatForever(autoreverses: false), value: turning)
             .scaleEffect(1.6) // Keeps the corners covered while it turns.
             .onAppear {
                 guard !reduceMotion else { return }
-                withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) { turning = true }
+                turning = true
             }
     }
 }

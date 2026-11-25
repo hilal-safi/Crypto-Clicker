@@ -28,6 +28,13 @@ enum WidgetStyle {
         "+\(CoinFormat.rate(income))/s"
     }
 
+    /// The Live Activity, for VoiceOver.
+    static func activityLabel(_ snapshot: BalanceSnapshot, stopped: Bool) -> String {
+        stopped
+            ? "\(CoinFormat.short(snapshot.coinsWhenMiningEnds)) coins waiting. The miners are resting until you open the game."
+            : "\(CoinFormat.short(snapshot.coins)) coins when you left, \(CoinFormat.short(snapshot.coinsWhenMiningEnds)) when the miners stop. Earning \(CoinFormat.rate(snapshot.income)) a second at \(snapshot.offlineEfficiencyPercent) percent while you're away."
+    }
+
     /// The balance and what it's doing, for VoiceOver.
     static func accessibilityLabel(_ snapshot: BalanceSnapshot, at date: Date) -> String {
         let coins = "\(CoinFormat.short(snapshot.coins(at: date))) coins"

@@ -91,7 +91,7 @@ private struct HowToChapter: Identifiable {
         HowToTopic("cpu", "Miners", "Miners earn coins every second while the app is open.", [
             "A Chromebook mines a coin every four seconds, and each tier after mines several times more.",
             "Each unit costs 15% more than the last, so the next tier soon becomes the better buy. The first three GPU Rigs and Servers cost less, to bring them sooner.",
-            "In the Shop, each miner shows what one more adds, its share of your income and how soon it pays for itself, and Best value marks the best buy.",
+            "In the Shop, each miner shows what one more adds, and Best value marks the best buy. Tap a miner's icon for its share of your income and how soon one more pays for itself.",
             "Your first of each tier, and every milestone, gets a celebration that shows how much faster you now mine.",
             "Once the list is long, the shortcuts at the top of the Shop jump to Miners, Power-ups, Upgrades and Prestige.",
         ]),
@@ -184,7 +184,7 @@ private struct HowToChapter: Identifiable {
         HowToTopic("flag.fill", "Goals", "Trophies › Goals shows what to aim for next.", [
             "The next miner, milestone, upgrade and game, the closest achievement star, and more.",
             "Each goal shows how close you are: tap one to go where it's done.",
-            "When there's no tip, the Mine tab shows the goal closest to done, or the prestige the Shop suggests. Turn it off in Settings › Appearance.",
+            "On the Mine tab, the flag beside your tokens fills as the closest goal nears: tap it for your next goals.",
         ]),
         HowToTopic("chart.bar.xaxis", "Statistics", "Settings › Statistics keeps every record.", [
             "Chart your income over the last day, week or month, or all time.",
@@ -209,7 +209,7 @@ private struct HowToChapter: Identifiable {
         ]),
         HowToTopic("rectangle.stack.fill", "Widgets and the Lock Screen", "Watch your balance grow without opening the game.", [
             "Add the Balance widget to your Home Screen or Lock Screen: its number grows as your miners earn.",
-            "A Live Activity shows your coin and balance on the Lock Screen and in the Dynamic Island, and how long your miners keep going.",
+            "A Live Activity on the Lock Screen, in the Dynamic Island and in CarPlay shows your balance when you left and when your miners stop, with a bar that fills and a countdown as they earn.",
             "Turn the Live Activity off in Settings › Lock Screen and Widgets.",
         ]),
         HowToTopic("mic.fill", "Siri and Shortcuts", "Hear your balance without opening the game.", [

@@ -3,16 +3,15 @@ import CryptoClickerKit
 
 /// One miner tier, with its next Mk upgrade once enough are owned. Takes plain values, so SwiftUI
 /// skips redrawing rows whose numbers did not change. Shows what one more unit adds, and marks the
-/// miner whose next unit adds the most for its price ("Best value").
+/// miner whose next unit adds the most for its price ("Best value"); its share of the income and
+/// how soon it pays for itself are in the pop-up from the icon, so late-game numbers don't crowd
+/// the row.
 struct MinerRow: View {
     let miner: MinerID
     let owned: Int
     let rate: Double
-    /// Coins per second the next unit adds (a milestone doubles them all), as a share of idle
-    /// income, and how long that takes to repay one unit's price.
+    /// Coins per second the next unit adds (a milestone doubles them all).
     let perUnit: Double
-    var incomeShare: Double = 0
-    var payback: TimeInterval? = nil
     let isBestValue: Bool
     let nextMilestone: Int?
     let buyCount: Int
@@ -114,9 +113,6 @@ struct MinerRow: View {
                 Label("Next one: +\(CoinFormat.rate(perUnit))/s", systemImage: "plus.circle.fill")
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(Theme.accent)
-                if let payback {
-                    PaybackLine(share: incomeShare, payback: payback)
-                }
                 // Each bar sits with its own caption, with clear space between the two.
                 VStack(alignment: .leading, spacing: 12) {
                     if let nextMilestone, owned > 0 {
@@ -159,19 +155,8 @@ struct MinerRow: View {
     }
 }
 
-/// What the next unit adds as a share of income, and how soon it repays its price: "+2.1% income ·
-/// pays for itself in 4m 10s".
-struct PaybackLine: View {
-    let share: Double
-    let payback: TimeInterval
-
-    var body: some View {
-        Text("\(PaybackLine.shareText(share)) income · pays for itself in \(CoinFormat.duration(payback))")
-            .font(.subheadline.monospacedDigit())
-            .foregroundStyle(.subtext)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
+/// A purchase's share of the income, as the Shop writes it.
+enum PaybackLine {
     /// "+2.1%", or "+<0.1%" for a sliver.
     static func shareText(_ share: Double) -> String {
         share > 0 && share < 0.001 ? "+<0.1%" : "+\(CoinFormat.percent(share))"
@@ -255,6 +240,15 @@ private struct MinerInfoBubble: View {
                 Text("Owned \(CoinFormat.grouped(owned)) · \(CoinFormat.rate(game.rate(of: miner))) coins per second")
                     .font(.footnote.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // What one more adds against the income, and how soon it repays its price.
+            let gain = game.nextUnitGain(miner)
+            let income = game.baseIdleIncome
+            if gain > 0, income > 0, let payback = GameState.payback(price: game.price(of: miner, quantity: 1), gain: gain) {
+                Text("One more adds \(CoinFormat.rate(gain)) a second, \(PaybackLine.shareText(gain / income)) of your income, and pays for itself in \(CoinFormat.duration(payback)).")
+                    .font(.footnote.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(Theme.accent)
                     .fixedSize(horizontal: false, vertical: true)
             }
             // What lifts it: the next milestone, and Legacy from the newer tiers.

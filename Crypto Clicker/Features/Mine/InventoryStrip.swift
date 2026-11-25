@@ -2,13 +2,16 @@ import SwiftUI
 import CryptoClickerKit
 
 /// What the player owns, under the coin, in two slim cards with no titles: miners and power-ups
-/// (tapping opens the Shop), and crypto tokens (tapping opens the Shop's tokens). Each card
-/// appears once there is something to show, so a new game's home screen stays simple.
+/// (tapping opens the Shop), and crypto tokens (tapping opens the Shop's tokens), which share their
+/// row with the goals button (a fifth of it). Each card appears once there is something to show, so
+/// a new game's home screen stays simple.
 struct InventoryStrip: View {
     let game: GameState
     let market: MarketBoard
     let openShop: () -> Void
     let openTokens: () -> Void
+    /// Opens the goals pop-up.
+    let openGoals: () -> Void
 
     /// The cards' size, and the gap between them, against their original design: 5% smaller.
     /// Every measurement in this file is multiplied by it.
@@ -94,39 +97,55 @@ struct InventoryStrip: View {
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            if !tokens.isEmpty {
-                let value = tokens.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
-                HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Shop's tokens",
-                            size: Self.tokensSize, action: openTokens) {
-                    ForEach(tokens) { token in
-                        InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token))),
-                                      size: Self.tokensSize * Self.tokenChipGrowth) {
-                            TokenImage(token: token, size: 29 * scale * Self.tokensSize * Self.tokenChipGrowth)
-                        }
-                    }
+            // The tokens (or the invitation to buy some) take four fifths of their row, and the
+            // goals button the rest, so the goals add nothing to the screen's height.
+            if !tokens.isEmpty || !miners.isEmpty {
+                SplitRow(share: 0.8, spacing: 10 * scale) {
+                    tokensCard(tokens)
+                    GoalsButton(goal: game.featuredGoal,
+                                cornerRadius: (tokens.isEmpty ? 18 : 24 * Self.tokensSize) * scale, action: openGoals)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else if !miners.isEmpty {
-                Button(action: openTokens) {
-                    HStack(spacing: 10 * scale) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.headline)
-                            .foregroundStyle(Theme.gain)
-                        Text("Buy crypto tokens in the Shop to bet or trade")
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        Image(systemName: "chevron.right")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(Theme.gain)
-                    }
-                    .padding(.horizontal, 14 * scale)
-                    .padding(.vertical, 9 * scale)
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18 * scale))
-                .accessibilityHint("Opens the Shop's tokens")
             }
+        }
+    }
+
+    /// The tokens held, or before there are any, a button to the Shop's tokens.
+    @ViewBuilder
+    private func tokensCard(_ tokens: [TokenID]) -> some View {
+        let scale = Self.scale
+        if !tokens.isEmpty {
+            let value = tokens.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
+            HoldingCard(label: tokensLabel(tokens, value: value), hint: "Opens the Shop's tokens",
+                        size: Self.tokensSize, action: openTokens) {
+                ForEach(tokens) { token in
+                    InventoryChip(count: CoinFormat.short(Double(game.tokenCount(token))),
+                                  size: Self.tokensSize * Self.tokenChipGrowth) {
+                        TokenImage(token: token, size: 29 * scale * Self.tokensSize * Self.tokenChipGrowth)
+                    }
+                }
+            }
+        } else {
+            Button(action: openTokens) {
+                HStack(spacing: 10 * scale) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.headline)
+                        .foregroundStyle(Theme.gain)
+                    Text("Buy crypto tokens to bet or trade")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: "chevron.right")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Theme.gain)
+                }
+                .padding(.horizontal, 14 * scale)
+                .padding(.vertical, 9 * scale)
+                .frame(maxHeight: .infinity)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18 * scale))
+            .accessibilityHint("Opens the Shop's tokens")
         }
     }
 
@@ -151,6 +170,34 @@ struct InventoryStrip: View {
 
     private func tokensLabel(_ tokens: [TokenID], value: Double) -> String {
         "Crypto worth \(CoinFormat.short(value)) coins: " + tokens.map { "\(game.tokenCount($0)) \($0.name)" }.joined(separator: ", ")
+    }
+}
+
+/// Two views side by side: the first takes `share` of the width (less the gap between them), the
+/// second the rest, and both are as tall as the taller.
+private struct SplitRow: Layout {
+    var share: CGFloat
+    var spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 360
+        let widths = self.widths(for: width, count: subviews.count)
+        let height = zip(subviews, widths).map { $0.sizeThatFits(ProposedViewSize(width: $1, height: nil)).height }.max() ?? 0
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        for (subview, width) in zip(subviews, widths(for: bounds.width, count: subviews.count)) {
+            subview.place(at: CGPoint(x: x, y: bounds.minY), proposal: ProposedViewSize(width: width, height: bounds.height))
+            x += width + spacing
+        }
+    }
+
+    private func widths(for width: CGFloat, count: Int) -> [CGFloat] {
+        guard count > 1 else { return [width] }
+        let room = max(0, width - spacing)
+        return [room * share, room * (1 - share)]
     }
 }
 

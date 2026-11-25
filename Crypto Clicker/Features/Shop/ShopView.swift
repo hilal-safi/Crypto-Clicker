@@ -222,12 +222,8 @@ struct ShopView: View {
         let count = quantity.count(of: miner, in: game)
         let price = game.price(of: miner, quantity: count)
         let upgrade = game.availableMinerUpgrade(miner)
-        let perUnit = game.nextUnitGain(miner)
-        let income = game.baseIdleIncome
         return MinerRow(miner: miner, owned: game.owned(miner), rate: game.rate(of: miner),
-                        perUnit: perUnit, incomeShare: income > 0 ? perUnit / income : 0,
-                        payback: income > 0 ? GameState.payback(price: game.price(of: miner, quantity: 1), gain: perUnit) : nil,
-                        isBestValue: isBestValue,
+                        perUnit: game.nextUnitGain(miner), isBestValue: isBestValue,
                         nextMilestone: game.nextMilestone(for: miner), buyCount: count,
                         price: price, canAfford: price <= game.coins,
                         mkLevel: game.minerUpgradeLevel(miner), legacy: game.legacyMultiplier(miner),

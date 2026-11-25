@@ -45,11 +45,6 @@ struct TokensPage: View {
             if !game.recentTrades.isEmpty {
                 RecentTradesCard(trades: game.recentTrades)
             }
-            Text("Prices here are simulated by the game: they aren't real cryptocurrency prices, and no real money is involved. Most drift within about a third of each token's usual price, volatile ones much further and faster, and news nudges them up or down. Tap a token's icon to see how it moves. Bet tokens at the casino games in the Arcade, or sell them back for coins. Tokens reset when you prestige.")
-                .font(.subheadline)
-                .foregroundStyle(.subtext)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 4)
         }
         // The volatility pop-up floats over the page, pointing at the tapped icon.
         .overlayPreferenceValue(VolatilityIconAnchors.self) { VolatilityInfoLayer(anchors: $0) }
@@ -117,7 +112,7 @@ private struct MarketGuide: View {
         DisclosureGroup(isExpanded: $isExpanded) {
             VStack(alignment: .leading, spacing: 10) {
                 point("gamecontroller.fill", "These are the game's own tokens. Their prices are simulated, not real cryptocurrency prices, and no real money is involved.")
-                point("clock.arrow.2.circlepath", "Prices move every five minutes, and news nudges them up or down. Volatile tokens move the most; Tether hardly at all.")
+                point("clock.arrow.2.circlepath", "Prices move every five minutes, and news nudges them up or down. Volatile tokens move the most; Tether hardly at all. Tap a token's icon to see how it moves.")
                 if feeShare > 0 {
                     point("arrow.up.right", "Buy low and sell high. Selling takes a \(CoinFormat.percent(feeShare)) fee, so a token has to rise by more than that before selling it pays.")
                 } else {

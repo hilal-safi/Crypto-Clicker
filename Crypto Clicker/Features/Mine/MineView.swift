@@ -2,8 +2,8 @@ import SwiftUI
 import CryptoClickerKit
 
 /// The home screen, in order of importance: the balance with coins per second and per tap, the coin
-/// to tap, a tip for new players (or the next goal), what the player owns (miners and power-ups,
-/// and crypto), and steps once they are unlocked. No title and no buttons along the top, so the coin gets the room;
+/// to tap, a tip for new players, what the player owns (miners and power-ups, and crypto beside
+/// the goals button), and steps once they are unlocked. No title and no buttons along the top, so the coin gets the room;
 /// Statistics and How to Play are in the Settings tab.
 struct MineView: View {
     let openShop: () -> Void
@@ -17,8 +17,11 @@ struct MineView: View {
     let openHowToPlay: () -> Void
     /// Opens where the next goal is worked toward.
     let openGoal: (Goal.Kind) -> Void
+    /// Opens Trophies › Goals.
+    let openGoalsPage: () -> Void
     @Environment(GameStore.self) private var store
     @State private var showingStepsIntro = false
+    @State private var showingGoals = false
     @State private var effects = Effects()
     /// Every digit or the short form, for the balance and tap values. Tapping the balance switches.
     @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
@@ -57,6 +60,7 @@ struct MineView: View {
             .navigationTitle("Crypto Clicker") // Kept for VoiceOver and the app switcher, but not shown.
             .toolbarVisibility(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingStepsIntro) { StepsIntroView() }
+            .sheet(isPresented: $showingGoals) { GoalsSheet(open: openGoal, openGoalsPage: openGoalsPage) }
         }
     }
 
@@ -114,7 +118,8 @@ struct MineView: View {
             }
             GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openTokens: openTokens, openDaily: openDaily,
                          openHowToPlay: openHowToPlay, openGoal: openGoal)
-            InventoryStrip(game: game, market: store.market, openShop: openShop, openTokens: openTokens)
+            InventoryStrip(game: game, market: store.market, openShop: openShop, openTokens: openTokens,
+                           openGoals: { showingGoals = true })
             StepsCard(learnMore: { showingStepsIntro = true })
             // Without today's steps to sit beside, the prestige points get a row of their own.
             if game.stats.prestiges > 0 && !StepsCard.showsCounter(game, canTrackSteps: store.canTrackSteps) {
@@ -482,10 +487,12 @@ private struct BullRunBadge: View {
                         in: .capsule)
             .shadow(color: FireEdges.red.opacity(0.6), radius: beat ? 14 : 6)
             .scaleEffect(beat ? 1.05 : 1)
+            // The beat animates the badge alone, not the screen around it.
+            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: beat)
         }
         .onAppear {
             guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) { beat = true }
+            beat = true
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Bull Run, production \(CoinFormat.multiplier(boost.multiplier))")

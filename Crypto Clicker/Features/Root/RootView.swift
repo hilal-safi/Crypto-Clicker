@@ -36,10 +36,7 @@ struct RootView: View {
                 ArcadeView(challengeRequests: challengeRequests, gameRequest: arcadeRequest)
             }
             Tab("Trophies", systemImage: "trophy.fill", value: AppTab.trophies) {
-                TrophiesView(request: trophiesRequest, openChallenge: {
-                    challengeRequests += 1
-                    tab = .arcade
-                }, openGoal: showGoal)
+                trophiesTab
             }
             .badge(store.dailyBadgeCount)
             .disabled(store.isTableRoundOpen)
@@ -112,6 +109,17 @@ struct RootView: View {
         }, openIncome: { showingIncome = true }, openHowToPlay: {
             howToPlayRequests += 1
             tab = .settings
+        }, openGoal: showGoal, openGoalsPage: {
+            trophiesRequest.ask(for: .goals)
+            tab = .trophies
+        })
+    }
+
+    /// The Trophies tab, with the ways it opens the Arcade and where goals are done.
+    private var trophiesTab: some View {
+        TrophiesView(request: trophiesRequest, openChallenge: {
+            challengeRequests += 1
+            tab = .arcade
         }, openGoal: showGoal)
     }
 

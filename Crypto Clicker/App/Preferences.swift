@@ -25,8 +25,6 @@ enum Preferences {
     static let lastShortWelcomeDayKey = "lastShortWelcomeDay"
     /// First-run tips the player has closed, comma-separated.
     static let dismissedTipsKey = "dismissedTips"
-    /// The Mine tab shows the next goal when there's no tip (on unless the player turns it off).
-    static let showsNextGoalKey = "showsNextGoal"
     /// Each action game's Speed option.
     /// Hash Smash's and Scam Invaders' Speed, from before Difficulty took its place (read once, by
     /// `migrate`).

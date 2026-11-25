@@ -30,8 +30,6 @@ struct TrophiesView: View {
         }
     }
 
-    private let columns = [GridItem(.adaptive(minimum: 160), spacing: 12)]
-
     var body: some View {
         let game = store.game
         NavigationStack {
@@ -60,10 +58,11 @@ struct TrophiesView: View {
                     case .achievements:
                         TrophySummary(earned: game.earnedAchievementTiers, total: AchievementCatalog.tierCount,
                                       bonus: game.achievementBonus - 1)
-                        // In collections, each with its share of the stars.
+                        // In collections, each with its share of the stars. Not lazy: the page's
+                        // height stays put as it scrolls (see `CardGrid`).
                         ForEach(AchievementCatalog.collections) { collection in
                             CollectionHeader(collection: collection, earned: game.tiersEarned(in: collection))
-                            LazyVGrid(columns: columns, spacing: 12) {
+                            CardGrid(minimum: 160, spacing: 12) {
                                 ForEach(collection.achievements) { achievement in
                                     AchievementCard(achievement: achievement,
                                                     tiers: game.tiersEarned(achievement),
@@ -219,7 +218,9 @@ private struct StarterMilestoneCard: View {
     }
 }
 
-private struct GoalCard: View {
+/// A goal: what to do, what it brings, and how close it is. On the Goals page and in the Mine
+/// tab's goals pop-up.
+struct GoalCard: View {
     let goal: Goal
 
     var body: some View {
@@ -629,7 +630,8 @@ private struct AchievementCard: View {
                 .accessibilityLabel("Mythic, \(CoinFormat.short(needed)) needed")
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // As tall as the tallest card in its row, so the rows line up.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(14)
         .background { background }
         .opacity(tiers == 0 ? 0.75 : 1)

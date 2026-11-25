@@ -10,8 +10,9 @@ No real cryptocurrency, no ads, no purchases.
   Galactic Hashnet. Each unit costs 15% more (the first three GPU Rigs and Servers less, so the
   opening reaches them in about ten minutes and half an hour), milestones and Mk upgrades double
   output, and the Shop marks the best value and shows what each miner and upgrade adds to your
-  income and how soon it pays for itself. A new tier or a milestone gets a celebration with the
-  income it adds, and shortcuts jump between the Shop's sections.
+  income and how soon it pays for itself (a miner's in the pop-up from its icon). A new tier or a
+  milestone gets a celebration with the income it adds, and shortcuts jump between the Shop's
+  sections.
 - **Upgrades and power-ups.** 26 one-time upgrades, combo power-ups, and Offline Mining, which keeps
   miners earning while the app is closed, from six minutes (what you start with) up to three days over 160 levels. Time
   away pays a tenth of your income, and Offline Efficiency adds 5% per level (18 levels) up
@@ -51,14 +52,15 @@ No real cryptocurrency, no ads, no purchases.
   collections, Hard-mode badges for Hash Smash and Scam Invaders among them, an Arcade Rank up to
   Mythic, and Style looks for the coin and two kinds for every game (one look at each rank from 2 to
   48, many sooner with a game's achievement). Goals shows what to aim for next (tap one to go
-  there), the Mine tab shows the closest goal when there's no tip, and Statistics charts your income
+  there), also from the flag beside the tokens on the Mine tab, and Statistics charts your income
   and keeps every record, this run against your best.
 - **Steps.** Steps from Apple Health on iPhone and Apple Watch pay a small share of income (a coin
   at least), multiplied by six step boosters, the biggest of them (Proof of Stride, ×5) late in a
   run. The first day's steps are paid the next day, a coin each. Tap the steps card to see what a
   step pays; Statistics keeps your best day and best week.
-- **Beyond the app.** An Apple Watch app, Home Screen and Lock Screen widgets, a Live Activity, and a
-  Siri shortcut for your balance.
+- **Beyond the app.** An Apple Watch app, Home Screen and Lock Screen widgets, a Live Activity (on
+  the Lock Screen, in the Dynamic Island, and in CarPlay and the watch's Smart Stack, with a
+  countdown and a bar that fill as the miners earn), and a Siri shortcut for your balance.
 - **Backup.** Settings, Backup and Save Files. The game is copied every ten minutes or so while
   playing and whenever the app is left, with a copy a day for the last week, in the app's folder in
   the Files app (which the iPhone's own backup includes): no account or capability needed. Pick a

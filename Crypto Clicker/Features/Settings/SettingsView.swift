@@ -17,7 +17,6 @@ struct SettingsView: View {
     @AppStorage(Preferences.notifyMinersKey) private var notifyMiners = false
     @AppStorage(Preferences.notifyDailyKey) private var notifyDaily = false
     @AppStorage(Preferences.liveActivityKey) private var liveActivity = true
-    @AppStorage(Preferences.showsNextGoalKey) private var showsNextGoal = true
     @State private var showingHowToPlay = false
     @State private var handledHowToPlayRequests = 0
     @State private var confirmingReset = false
@@ -73,7 +72,6 @@ struct SettingsView: View {
                     } label: {
                         LabeledContent("Tap Effect", value: (tapEffect.isUnlocked(stars: game.earnedAchievementTiers) ? tapEffect : .none).name)
                     }
-                    Toggle("Next Goal on Mine", isOn: $showsNextGoal)
                 }
 
                 Section("Feedback") {
@@ -101,7 +99,7 @@ struct SettingsView: View {
                     Toggle("Live Activity", isOn: $liveActivity)
                         .onChange(of: liveActivity) { _, _ in store.liveActivitySettingChanged() }
                 } header: {
-                    SettingsHeader("Lock Screen and Widgets", info: "The Live Activity shows your coin and balance on the Lock Screen and in the Dynamic Island while the game is closed: what your miners earn a second, how long they keep going, and what you'll have when they stop. It updates each time you leave the game.\n\nThe Balance widget does the same on the Home Screen or the Lock Screen, its number growing as your miners earn. To add it, touch and hold an empty spot, tap Edit, then Add Widget, and pick Crypto Clicker.")
+                    SettingsHeader("Lock Screen and Widgets", info: "The Live Activity shows your coin and balance on the Lock Screen, in the Dynamic Island and in CarPlay while the game is closed: what your miners earn a second, how long they keep going, and what you'll have when they stop. It updates each time you leave the game.\n\nThe Balance widget does the same on the Home Screen or the Lock Screen, its number growing as your miners earn. To add it, touch and hold an empty spot, tap Edit, then Add Widget, and pick Crypto Clicker.")
                 } footer: {
                     SettingsNote("Add the Balance widget from the Home Screen or Lock Screen editor.")
                 }

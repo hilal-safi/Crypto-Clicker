@@ -346,19 +346,28 @@ struct MiniGameRow: View {
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var refusals = 0
 
-    /// The icon's width and the gap after it, which the records line up under the name with.
+    /// The icon's width and the gap after it.
     private static let iconWidth: CGFloat = 58
     private static let gap: CGFloat = 14
 
     var body: some View {
-        // The records run under the buttons too, to the card's edge, so a long one ("BEST HAND
-        // Jacks or Better") keeps to one line.
-        VStack(alignment: .leading, spacing: 6) {
-            mainRow
-            if isUnlocked && !record.isEmpty {
-                RecordLine(facts: record, tint: miniGame.textColor(in: colorScheme))
-                    .padding(.leading, Self.iconWidth + Self.gap)
+        // The name runs over the buttons and the records under them, both to the card's edge, so
+        // a two-word name with its New badge and star, or a long record ("BEST HAND Jacks or
+        // Better"), keeps to one line; only the description shares its width with the buttons.
+        HStack(spacing: Self.gap) {
+            Text(miniGame.icon)
+                .font(.system(size: 32))
+                .frame(width: Self.iconWidth, height: Self.iconWidth)
+                .background(miniGame.color.opacity(0.18), in: .rect(cornerRadius: 16))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 6) {
+                title
                     .frame(maxWidth: .infinity, alignment: .leading)
+                mainRow
+                if isUnlocked && !record.isEmpty {
+                    RecordLine(facts: record, tint: miniGame.textColor(in: colorScheme))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
         .rowCard()
@@ -398,23 +407,16 @@ struct MiniGameRow: View {
         }
     }
 
+    /// The description beside Play and Stats (or Unlock).
     private var mainRow: some View {
         HStack(spacing: Self.gap) {
-            Text(miniGame.icon)
-                .font(.system(size: 32))
-                .frame(width: Self.iconWidth, height: Self.iconWidth)
-                .background(miniGame.color.opacity(0.18), in: .rect(cornerRadius: 16))
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                title
-                Text(miniGame.pitch)
-                    .font(.subheadline)
-                    .foregroundStyle(.subtext)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // 10 points between the text and the buttons (the row's gap of 14 less 4).
-            .padding(.trailing, -4)
+            Text(miniGame.pitch)
+                .font(.subheadline)
+                .foregroundStyle(.subtext)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // 10 points between the text and the buttons (the row's gap of 14 less 4).
+                .padding(.trailing, -4)
             if isUnlocked {
                 VStack(spacing: 8) {
                     NavigationLink(value: miniGame) {
