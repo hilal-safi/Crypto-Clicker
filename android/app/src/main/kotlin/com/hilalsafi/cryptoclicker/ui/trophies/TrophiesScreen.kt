@@ -65,7 +65,9 @@ import com.hilalsafi.cryptoclicker.core.Achievements
 import com.hilalsafi.cryptoclicker.core.Daily
 import com.hilalsafi.cryptoclicker.core.DailyReward
 import com.hilalsafi.cryptoclicker.core.Goal
+import com.hilalsafi.cryptoclicker.core.Goals
 import com.hilalsafi.cryptoclicker.core.Quest
+import com.hilalsafi.cryptoclicker.core.Starter
 import com.hilalsafi.cryptoclicker.ui.LocalGame
 import com.hilalsafi.cryptoclicker.ui.Requests
 import com.hilalsafi.cryptoclicker.ui.WantViews
@@ -115,6 +117,7 @@ fun TrophiesScreen(contentPadding: PaddingValues, requests: Requests, openChalle
     }
     val view by game.game.collectAsState()
     val badge = view?.dailyBadge ?: 0
+    val starterClaims = view?.starterClaims ?: 0
     Box(Modifier.fillMaxSize()) {
         AppBackground(Palette.trophies)
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -130,11 +133,15 @@ fun TrophiesScreen(contentPadding: PaddingValues, requests: Requests, openChalle
                 item(key = "title") { TabTitle("Trophies", Modifier.statusBarsPadding()) }
                 item(key = "page") {
                     SegmentedPicker(TrophiesPage.entries, page, {
-                        if (it == TrophiesPage.Daily && badge > 0) "${it.title} ($badge)" else it.title
+                        when {
+                            it == TrophiesPage.Daily && badge > 0 -> "${it.title} ($badge)"
+                            it == TrophiesPage.Goals && starterClaims > 0 -> "${it.title} ($starterClaims)"
+                            else -> it.title
+                        }
                     }, { page = it }, Modifier.widthIn(max = 900.dp))
                 }
                 when (page) {
-                    TrophiesPage.Goals -> view?.goals?.let { goalsPage(it.goals) }
+                    TrophiesPage.Goals -> view?.goals?.let { goalsPage(it) }
                     TrophiesPage.Daily -> view?.daily?.let { dailyPage(it, openChallenge) }
                     TrophiesPage.Achievements -> view?.achievements?.let { achievementsPage(it, columns) }
                 }
@@ -150,9 +157,49 @@ private fun Wide(content: @Composable () -> Unit) {
 
 // MARK: - Goals
 
-private fun LazyListScope.goalsPage(goals: List<Goal>) {
+/** The opening's starter milestones (until every one is claimed), then the next few things worth working toward. */
+private fun LazyListScope.goalsPage(goals: Goals) {
+    if (goals.starters.isNotEmpty()) {
+        item(key = "startersTitle") { Wide { Text("Starter milestones", style = Type.title3.bold, modifier = Modifier.padding(horizontal = 4.dp)) } }
+        items(goals.starters, key = { "starter:${it.id}" }) { starter -> Wide { StarterCard(starter) } }
+    }
     item(key = "goalsTitle") { Wide { Text("Your next goals", style = Type.title3.bold, modifier = Modifier.padding(horizontal = 4.dp)) } }
-    items(goals, key = { "goal:${it.id}" }) { goal -> Wide { GoalCard(goal) } }
+    items(goals.goals, key = { "goal:${it.id}" }) { goal -> Wide { GoalCard(goal) } }
+}
+
+/** One starter milestone: what to do, what it pays, and Claim once it's done (iOS: StarterMilestoneCard). */
+@Composable
+private fun StarterCard(starter: Starter) {
+    val colors = gameColors
+    val game = LocalGame.current
+    val feedback = rememberFeedback()
+    val fill = if (starter.isClaimed) colors.gain else colors.accent
+    Row(
+        Modifier.fillMaxWidth().alpha(if (starter.isClaimed) 0.7f else 1f).rowCard(colors).semantics(mergeDescendants = true) {},
+        horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(46.dp).clip(CircleShape).background(Brush.verticalGradient(listOf(fill.copy(alpha = 0.85f), fill))), contentAlignment = Alignment.Center) {
+            Symbol(if (starter.isClaimed) "checkmark" else starter.symbol, tint = Color.White, size = 22.dp)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(starter.title, style = Type.headline)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Symbol(if (starter.rewardKind == "bullRun") "flame.fill" else "bitcoinsign.circle.fill", tint = colors.subtext, size = 15.dp)
+                Text(starter.reward, style = Type.subheadline, color = colors.subtext)
+            }
+            if (!starter.isReached) ProgressBar(starter.progress.toFloat(), colors.accent)
+        }
+        when {
+            starter.isClaimed -> Text("Claimed", style = Type.subheadline.semibold, color = colors.gain)
+            starter.isReached -> ProminentButton(
+                "Claim", onClick = {
+                    feedback.success()
+                    game.command("claimStarter", mapOf("id" to starter.id))
+                },
+                style = Type.subheadline.bold, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+            )
+        }
+    }
 }
 
 @Composable

@@ -36,6 +36,7 @@ import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.MilitaryTech
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -141,7 +142,8 @@ private const val MINER_GROWTH = 1.08f
 @Composable
 fun InventoryStrip(inventory: Inventory, openShop: () -> Unit, openTokens: () -> Unit) {
     val colors = gameColors
-    val hasPowerUps = inventory.offline != null || inventory.combo != null || inventory.upgrades != null || inventory.perks != null
+    val hasPowerUps = inventory.offline != null || inventory.efficiency != null || inventory.combo != null ||
+        inventory.upgrades != null || inventory.perks != null
     Column(verticalArrangement = Arrangement.spacedBy((10 * SCALE).dp)) {
         if (inventory.miners.isNotEmpty() || hasPowerUps) {
             HoldingCard(inventory.minersLabel, size = 1f, extraHeight = 5 * SCALE, onClick = openShop) {
@@ -152,6 +154,7 @@ fun InventoryStrip(inventory: Inventory, openShop: () -> Unit, openTokens: () ->
                     }
                 }
                 inventory.offline?.let { InventoryChip(it, 1f) { PowerUpSymbol(Icons.Rounded.Bedtime, Palette.indigo) } }
+                inventory.efficiency?.let { InventoryChip(it, 1f) { PowerUpSymbol(Icons.Rounded.Speed, Palette.indigo) } }
                 inventory.combo?.let { InventoryChip(it, 1f) { PowerUpSymbol(Icons.Rounded.LocalFireDepartment, Palette.red) } }
                 inventory.upgrades?.let { InventoryChip(it, 1f) { PowerUpSymbol(Icons.Rounded.AutoAwesome, colors.accent) } }
                 inventory.perks?.let { InventoryChip(it, 1f) { PowerUpSymbol(Icons.Rounded.MilitaryTech, Palette.arcadeButton) } }

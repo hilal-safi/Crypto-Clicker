@@ -64,10 +64,13 @@ import com.hilalsafi.cryptoclicker.core.Gain
 import com.hilalsafi.cryptoclicker.core.GameView
 import com.hilalsafi.cryptoclicker.core.PurchaseNote
 import com.hilalsafi.cryptoclicker.core.Toast
+import com.hilalsafi.cryptoclicker.core.ToastGain
 import com.hilalsafi.cryptoclicker.ui.LocalGame
+import com.hilalsafi.cryptoclicker.ui.design.AutoSizeText
 import com.hilalsafi.cryptoclicker.ui.design.Emoji
 import com.hilalsafi.cryptoclicker.ui.design.ProgressBar
 import com.hilalsafi.cryptoclicker.ui.design.Type
+import com.hilalsafi.cryptoclicker.ui.design.bold
 import com.hilalsafi.cryptoclicker.ui.design.digits
 import com.hilalsafi.cryptoclicker.ui.design.rememberFeedback
 import com.hilalsafi.cryptoclicker.ui.design.semibold
@@ -133,20 +136,51 @@ private class Holder<T> {
 @Composable
 fun ToastCard(toast: Toast, onDismiss: () -> Unit) {
     val colors = gameColors
-    Row(
+    Column(
         Modifier
             .widthIn(max = 440.dp)
             .glass(colors, RoundedCornerShape(22.dp))
             .clickable(onClick = onDismiss)
             .padding(horizontal = 18.dp, vertical = 12.dp)
             .semantics(mergeDescendants = true) {},
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Emoji(toast.icon, 22.sp)
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(toast.title, style = Type.headline)
-            Text(toast.message, style = Type.subheadline, color = colors.subtext)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Emoji(toast.icon, 22.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(toast.title, style = Type.headline)
+                Text(toast.message, style = Type.subheadline, color = colors.subtext)
+            }
+        }
+        if (toast.gains.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                toast.gains.forEach { gain -> ToastGainTile(gain, Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+/**
+ * One number a toast changed: "PER SECOND  +217  now 21.7K", or just the new total when the
+ * change was too small to show (iOS: ToastGainTile).
+ */
+@Composable
+private fun ToastGainTile(gain: ToastGain, modifier: Modifier) {
+    val colors = gameColors
+    Column(
+        modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.text.copy(alpha = 0.07f))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(1.dp),
+    ) {
+        Text(gain.title.uppercase(), style = Type.caption.semibold, color = colors.subtext, maxLines = 1)
+        val added = gain.added
+        if (added != null) {
+            AutoSizeText("+$added", style = Type.title3.bold.digits, color = colors.gain)
+            Text("now ${gain.total}", style = Type.footnote.digits, color = colors.subtext, maxLines = 1)
+        } else {
+            AutoSizeText(gain.total, style = Type.title3.bold.digits)
         }
     }
 }

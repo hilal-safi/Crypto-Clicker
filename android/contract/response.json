@@ -177,6 +177,18 @@
           "symbol": "text",
           "title": "text"
         }
+      ],
+      "starters": [
+        {
+          "id": "text",
+          "isClaimed": true,
+          "isReached": true,
+          "progress": 1.5,
+          "reward": "text",
+          "rewardKind": "text",
+          "symbol": "text",
+          "title": "text"
+        }
       ]
     },
     "guides": [
@@ -239,6 +251,7 @@
       ],
       "inventory": {
         "combo": "text",
+        "efficiency": "text",
         "miners": [
           {
             "count": "text",
@@ -408,6 +421,7 @@
           "next": "text",
           "now": "text",
           "price": "text",
+          "showsPips": true,
           "subtitle": "text",
           "summary": "text",
           "symbol": "text",
@@ -483,6 +497,7 @@
       "upgradesDetail": "text",
       "upgradesEmpty": "text"
     },
+    "starterClaims": 1,
     "stepWindowDays": 1,
     "stepsConnected": true,
     "style": {
@@ -1028,6 +1043,13 @@
   },
   "toasts": [
     {
+      "gains": [
+        {
+          "added": "text",
+          "title": "text",
+          "total": "text"
+        }
+      ],
       "icon": "text",
       "id": 1,
       "message": "text",

@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hilalsafi.cryptoclicker.core.Challenge
+import com.hilalsafi.cryptoclicker.ui.design.AutoSizeText
 import com.hilalsafi.cryptoclicker.ui.design.Emoji
 import com.hilalsafi.cryptoclicker.ui.design.ProgressBar
 import com.hilalsafi.cryptoclicker.ui.design.ProminentButton
@@ -46,12 +47,13 @@ fun ChallengeCard(challenge: Challenge, play: (() -> Unit)?) {
     val tint = Palette.named(challenge.color)
     val textTint = if (colors.isDark) Palette.named(challenge.textColorDark) else tint
     Column(Modifier.fillMaxWidth().rowCard(colors).semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // On one line across the card, so it doesn't wrap beside the Play button.
+        AutoSizeText(challenge.title.uppercase(), style = Type.footnote.heavy, color = textTint, minScale = 0.75f)
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(52.dp).background(tint.copy(alpha = 0.18f), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
                 Emoji(challenge.icon, 28.sp)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(challenge.title.uppercase(), style = Type.footnote.heavy, color = textTint)
                 Text(challenge.goal, style = Type.headline)
                 Text(challenge.progressText, style = Type.subheadline.digits, color = colors.subtext)
             }

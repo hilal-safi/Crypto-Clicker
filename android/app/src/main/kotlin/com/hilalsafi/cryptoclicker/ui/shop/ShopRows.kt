@@ -281,7 +281,10 @@ fun OfflineMiningRow(offline: OfflineMining) {
                 Maxed()
             }
         }
-        Text("Keeps miners earning while the app is closed, up to three days.", style = Type.subheadline, color = colors.subtext)
+        Text(
+            "You start with six minutes of time away. Each level pays for more, up to three days, and Offline Efficiency sets how much of your income the miners earn.",
+            style = Type.subheadline, color = colors.subtext,
+        )
         NowAndNext("Time away paid", offline.now, offline.next, Palette.indigo)
     }
 }
@@ -327,7 +330,7 @@ fun PowerUpRow(powerUp: PowerUp) {
                 Text(locked, style = Type.subheadline.semibold, color = tint)
             }
         } else {
-            LevelPips(powerUp.level, powerUp.maxLevel, tint)
+            if (powerUp.showsPips) LevelPips(powerUp.level, powerUp.maxLevel, tint)
             NowAndNext(powerUp.valueName, powerUp.now, powerUp.next, tint)
         }
     }

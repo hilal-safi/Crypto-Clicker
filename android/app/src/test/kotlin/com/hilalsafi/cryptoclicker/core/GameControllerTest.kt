@@ -120,7 +120,7 @@ class GameControllerTest {
         var next = 0
         engine.answer = {
             response {
-                put("toasts", (1..3).map { ++next }.map { mapOf("id" to it, "icon" to "🏆", "title" to "T$it", "message" to "M") })
+                put("toasts", (1..3).map { ++next }.map { mapOf("id" to it, "icon" to "🏆", "title" to "T$it", "message" to "M", "gains" to emptyList<Any?>()) })
             }
         }
         controller.start()

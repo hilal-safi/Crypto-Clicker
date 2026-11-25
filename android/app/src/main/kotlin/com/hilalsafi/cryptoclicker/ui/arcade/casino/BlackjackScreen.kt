@@ -165,6 +165,9 @@ fun BlackjackScreen(onBack: () -> Unit) {
 
     GameScaffold(
         title = "Blackjack", onBack = onBack, helpGame = "blackjack", effects = effects,
+        // A round is on from the deal until it's settled: the table can't be left in between, so a
+        // hand can't be dodged by leaving and coming back for a better one.
+        lockBack = frame?.phase in setOf("insurance", "playerTurn", "dealerTurn"),
         actions = { if (frame != null) TableOptions(frame, showsCoach, select = { rulesPref.set(it) }, toggleCoach = { coachPref.set(!showsCoach) }) },
         background = { FeltBackground(looks.look("felt")) },
         bottomBar = {
@@ -195,7 +198,7 @@ fun BlackjackScreen(onBack: () -> Unit) {
                             label = "table middle",
                         ) { middle ->
                             when (middle) {
-                                "result" -> if (result != null) ResultBanner(result)
+                                "result" -> if (result != null) ResultBanner(result, Modifier.offset(y = 6.dp))
                                 "insurance" -> if (note != null) InsuranceNote(note, frame.insurancePaid)
                                 else -> TableMarkings(frame.markings)
                             }
@@ -203,13 +206,13 @@ fun BlackjackScreen(onBack: () -> Unit) {
                     }
                     if (frame.hands.size > 1) {
                         // Split hands sit side by side, so the whole table fits without scrolling.
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                        Row(Modifier.offset(y = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
                             frame.hands.forEach { hand ->
                                 HandArea(hand, DpSize(cardSize.width * 0.82f, cardSize.height * 0.82f), cardBack, isCompact = true, Modifier.weight(1f))
                             }
                         }
                     } else {
-                        frame.hands.forEach { hand -> HandArea(hand, cardSize, cardBack, isCompact = false, Modifier.fillMaxWidth()) }
+                        frame.hands.forEach { hand -> HandArea(hand, cardSize, cardBack, isCompact = false, Modifier.fillMaxWidth().offset(y = 12.dp)) }
                     }
                 }
             }
@@ -335,10 +338,10 @@ private fun InsuranceNote(text: String, paid: Boolean) {
 }
 
 @Composable
-private fun ResultBanner(result: BlackjackResult) {
+private fun ResultBanner(result: BlackjackResult, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(20.dp)
     Column(
-        Modifier
+        modifier
             .clip(shape)
             .background(if (result.isWin) Palette.gold.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.12f))
             .border(1.dp, Color.White.copy(alpha = 0.15f), shape)

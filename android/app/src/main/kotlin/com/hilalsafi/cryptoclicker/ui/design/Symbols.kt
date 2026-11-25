@@ -249,6 +249,8 @@ object Symbols {
         "fanblades" to Icons.Rounded.Toys,
         "fuelpump" to Icons.Rounded.LocalGasStation,
         "gauge.with.dots.needle.33percent" to Icons.Rounded.Speed,
+        "gauge.with.dots.needle.67percent" to Icons.Rounded.Speed,
+        "square.stack.3d.up" to Icons.Rounded.Layers,
         "speedometer" to Icons.Rounded.Speed,
         "tag" to Icons.Rounded.LocalOffer,
         "wrench.and.screwdriver" to Icons.Rounded.Build,

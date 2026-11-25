@@ -3,6 +3,7 @@ package com.hilalsafi.cryptoclicker.ui.arcade
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.UnfoldMore
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -132,7 +134,8 @@ fun GameSession(id: String, options: Map<String, String> = emptyMap(), extra: Ma
  * A game's page (iOS: a game screen pushed in the Arcade): always dark, with a title bar (back,
  * the title, How to Play and the game's own buttons), the game's backdrop behind everything, the
  * controls pinned to the bottom, and celebration effects over the top. How to Play opens by itself
- * the first time the game is opened.
+ * the first time the game is opened. While [lockBack] is set (a card round is on) the game can't be
+ * left: the back arrow goes, and the back gesture says to finish the round first.
  */
 @Composable
 fun GameScaffold(
@@ -141,6 +144,7 @@ fun GameScaffold(
     helpGame: String?,
     effects: Effects? = null,
     helpEnabled: Boolean = true,
+    lockBack: Boolean = false,
     onHelpOpen: () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     background: @Composable BoxScope.() -> Unit,
@@ -151,6 +155,8 @@ fun GameScaffold(
     CryptoClickerTheme(dark = true) {
         val prefs = LocalPrefs.current
         var showsHelp by rememberSaveable { mutableStateOf(false) }
+        var showsRoundAlert by remember { mutableStateOf(false) }
+        BackHandler(enabled = lockBack) { showsRoundAlert = true }
         val seen = helpGame?.let { prefs.helpSeen(it) }
         val currentHelpEnabled by rememberUpdatedState(helpEnabled)
         if (seen != null) {
@@ -167,7 +173,7 @@ fun GameScaffold(
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             Box(Modifier.fillMaxSize(), content = background)
             Column(Modifier.fillMaxSize()) {
-                GameTitleBar(title, onBack, actions = {
+                GameTitleBar(title, onBack, showsBack = !lockBack, actions = {
                     actions()
                     if (helpGame != null) {
                         IconButton(onClick = {
@@ -194,6 +200,14 @@ fun GameScaffold(
                 showsHelp = false
                 seen?.set(true)
             }
+        }
+        if (showsRoundAlert) {
+            AlertDialog(
+                onDismissRequest = { showsRoundAlert = false },
+                confirmButton = { TextButton(onClick = { showsRoundAlert = false }) { Text("OK") } },
+                title = { Text("Finish the round first") },
+                text = { Text("You need to complete the round before exiting.") },
+            )
         }
     }
 }
@@ -226,10 +240,12 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
 
 /** The bar at the top of a game: back, the title in the middle, and the game's buttons. */
 @Composable
-fun GameTitleBar(title: String, onBack: () -> Unit, actions: @Composable RowScope.() -> Unit = {}) {
+fun GameTitleBar(title: String, onBack: () -> Unit, showsBack: Boolean = true, actions: @Composable RowScope.() -> Unit = {}) {
     Box(Modifier.fillMaxWidth().statusBarsPadding().heightIn(min = 52.dp).padding(horizontal = 4.dp)) {
-        IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
+        if (showsBack) {
+            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
+            }
         }
         Text(
             title, style = Type.headline, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -430,7 +446,7 @@ fun CasinoButton(
  * table, which keeps the bet. [tokenExtra] goes under the token controls (a bonus line).
  */
 @Composable
-fun CasinoBetControls(wallet: Wallet, enabled: Boolean = true, tokenExtra: @Composable ColumnScope.() -> Unit = {}) {
+fun CasinoBetControls(wallet: Wallet, enabled: Boolean = true, tokenExtra: @Composable () -> Unit = {}) {
     val game = LocalGame.current
     val colors = gameColors
     if (wallet.canPractice) {
@@ -456,8 +472,10 @@ fun CasinoBetControls(wallet: Wallet, enabled: Boolean = true, tokenExtra: @Comp
             )
         }
         if (wallet.isBroke) {
-            TextButton(onClick = { game.play("refillChips") }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                Text(wallet.refill, style = Type.subheadline.bold, color = Palette.gold)
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                TextButton(onClick = { game.play("refillChips") }) {
+                    Text(wallet.refill, style = Type.subheadline.bold, color = Palette.gold)
+                }
             }
         }
     } else {

@@ -346,6 +346,11 @@ extension Bridge {
             session.claimQuest(id)
         case "claimDailyReward":
             session.claimDailyReward()
+        case "claimStarter":
+            guard let milestone = request.id.flatMap(StarterMilestone.init(rawValue:)) else {
+                throw BridgeError(message: "Unknown starter milestone \(request.id ?? "").")
+            }
+            session.claimStarterMilestone(milestone)
         default:
             return nil
         }

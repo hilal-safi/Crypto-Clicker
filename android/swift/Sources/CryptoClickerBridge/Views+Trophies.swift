@@ -7,7 +7,23 @@ import CryptoClickerKit
 
 /// The next few things worth working toward (iOS: GoalsPage).
 struct GoalsView: Encodable {
+    /// The opening's starter milestones, until every one is claimed.
+    let starters: [StarterView]
     let goals: [GoalView]
+}
+
+/// A starter milestone on the Goals page: what to do, what it pays, and Claim once it's done.
+struct StarterView: Encodable {
+    let id: String
+    let title: String
+    let symbol: String
+    /// "1.2K coins", or the Bull Run it starts.
+    let reward: String
+    /// coins or bullRun, for the reward's symbol.
+    let rewardKind: String
+    let progress: Double
+    let isReached: Bool
+    let isClaimed: Bool
 }
 
 struct GoalView: Encodable {
@@ -123,7 +139,21 @@ struct AchievementView: Encodable {
 
 extension GameSession {
     var goalsView: GoalsView {
-        GoalsView(goals: state.nextGoals.map { goal in
+        let game = state
+        var starters: [StarterView] = []
+        if game.hasUnclaimedStarterMilestones {
+            starters = StarterMilestone.allCases.map { milestone -> StarterView in
+                let payout = game.payout(of: milestone)
+                let kind = switch payout {
+                case .coins: "coins"
+                case .bullRun: "bullRun"
+                }
+                return StarterView(id: milestone.rawValue, title: milestone.title, symbol: milestone.symbol, reward: payout.text,
+                                   rewardKind: kind, progress: clamped(game.progress(of: milestone)),
+                                   isReached: game.isReached(milestone), isClaimed: game.isClaimed(milestone))
+            }
+        }
+        return GoalsView(starters: starters, goals: game.nextGoals.map { goal in
             GoalView(
                 id: goal.id, title: goal.title, detail: goal.detail, progress: clamped(goal.progress),
                 progressText: goal.progress >= 1 ? "Ready" : CoinFormat.percent((goal.progress * 100).rounded(.down) / 100),

@@ -61,6 +61,8 @@ struct GameView: Encodable {
     let debugTools: Bool
     /// Daily rewards waiting to be claimed, for the Trophies tab's badge.
     let dailyBadge: Int
+    /// Starter milestones reached and waiting to be claimed (the Goals page's count).
+    let starterClaims: Int
     /// Whether steps are connected (the app reads Health Connect every few minutes while open) and
     /// how many days back it reads.
     let stepsConnected: Bool
@@ -216,7 +218,7 @@ extension GameSession {
     func gameView(views: Set<String>, debugTools: Bool) -> GameView {
         GameView(welcomeBack: welcomeBackView, purchaseNote: purchaseNoteView, airdrop: airdropView,
                  unreadableSave: unreadableSaveView, errorMessage: errorMessage, debugTools: debugTools,
-                 dailyBadge: dailyBadgeCount, stepsConnected: game.steps.isConnected,
+                 dailyBadge: dailyBadgeCount, starterClaims: game.claimableStarterMilestones.count, stepsConnected: game.steps.isConnected,
                  stepWindowDays: Tuning.stepWindowDays,
                  shop: views.contains("shop") ? shopView : nil,
                  tokens: views.contains("tokens") ? tokensView : nil,
@@ -277,7 +279,14 @@ extension GameSession {
         guard let welcome = welcomeBack else { return nil }
         let game = state
         let report = welcome.report
-        var highlights = welcome.achievements.map { earned in
+        // What the time away gave: the steps walked and what they paid, then what it unlocked.
+        var highlights: [IconLine] = []
+        if welcome.steps > 0 {
+            let steps = CoinFormat.grouped(welcome.steps)
+            highlights.append(IconLine(icon: "👣", text: welcome.stepCoins > 0
+                ? "\(steps) steps · +\(CoinFormat.short(welcome.stepCoins)) coins" : "\(steps) steps · paid tomorrow"))
+        }
+        highlights += welcome.achievements.map { earned in
             IconLine(icon: earned.achievement.emoji ?? "🏆", text: "\(earned.achievement.name) · \(earned.tierName)")
         }
         if welcome.newPrestigePoints > 0 {
@@ -297,11 +306,12 @@ extension GameSession {
                 bought: welcome.boughtSuggestion)
         }
         let hasOfflineMining = report.offlineCap > 0
+        let percent = Int((report.efficiency * 100).rounded())
         let offlineNote = report.wasCapped
             ? OfflineNoteView(
                 text: hasOfflineMining
-                    ? "Offline Mining paid for \(CoinFormat.duration(report.credited)) of that. Level it up to earn for longer."
-                    : "Miners stop a minute after you leave. Offline Mining keeps them earning while the app is closed.",
+                    ? "Offline Mining paid for \(CoinFormat.duration(report.credited)) of that, at \(percent)% of your income. Level it up to earn for longer, or raise Offline Efficiency to earn more."
+                    : "Miners earn for \(CoinFormat.duration(Tuning.baseAwayTime)) after you leave, at \(percent)% of your income. Offline Mining keeps them earning for longer.",
                 button: hasOfflineMining ? "Upgrade Offline Mining" : "Get Offline Mining")
             : nil
         let paidFor = report.offlineCap == 0 ? "\(CoinFormat.duration(report.credited)) (no Offline Mining)"
@@ -309,6 +319,9 @@ extension GameSession {
             : CoinFormat.duration(report.credited)
         var time = [TitledValue(title: "Away", value: CoinFormat.duration(report.elapsed)),
                     TitledValue(title: "Paid for", value: paidFor)]
+        if report.offlineCap > 0 {
+            time.append(TitledValue(title: "Income paid", value: "\(percent)%"))
+        }
         if report.boostedSeconds > 0 {
             time.append(TitledValue(title: "Bull Run \(CoinFormat.multiplier(report.boostMultiplier))",
                                     value: CoinFormat.duration(report.boostedSeconds)))

@@ -168,6 +168,8 @@ fun PokerScreen(onBack: () -> Unit) {
     val canHold = frame?.phase == "holding" && !animating
     GameScaffold(
         title = "Diamond Hands", onBack = onBack, helpGame = "videoPoker", effects = effects,
+        // A hand is on from the deal until it's drawn and paid: no leaving to dodge a poor one.
+        lockBack = frame != null && (frame.phase != "betting" || animating),
         background = { PokerBackground(looks.look("pokerTable")) },
         bottomBar = {
             if (frame != null) {

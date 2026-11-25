@@ -118,7 +118,7 @@ struct BridgeTests {
         let back = try harness.send(["cmd": "foreground"])
         let welcome = try back.object("game").object("welcomeBack")
         #expect(welcome.string("away")?.hasPrefix("You were away for 2h") == true)
-        // Without Offline Mining, only the first minute is paid, and the screen says so.
+        // Without Offline Mining, only the first six minutes are paid, and the screen says so.
         #expect(try welcome.object("offlineNote").string("button") == "Get Offline Mining")
         #expect(try welcome.objects("time").first?.string("title") == "Away")
         #expect(try welcome.objects("sources").first?.string("name") == "Chromebook")

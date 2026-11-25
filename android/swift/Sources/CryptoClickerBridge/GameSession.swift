@@ -7,6 +7,18 @@ struct Toast: Equatable, Sendable, Encodable {
     let icon: String
     let title: String
     let message: String
+    /// The numbers the player watches (per second, per tap, per step) as they are now, when the
+    /// toast changed them.
+    let gains: [ToastGainView]
+}
+
+/// One number a toast changed: "PER SECOND  +217  now 21.7K", or just the new total when the
+/// change was too small to show.
+struct ToastGainView: Equatable, Sendable, Encodable {
+    let title: String
+    /// What it added, or nil when the new total is all there is to show.
+    let added: String?
+    let total: String
 }
 
 /// The Shop's purchase popup. Purchases made while it's up add to it instead of stacking more
@@ -80,6 +92,10 @@ struct WelcomeBack: Sendable {
     let suggestion: PurchaseSuggestion?
     /// The suggestion was bought from the screen.
     var boughtSuggestion = false
+    /// Steps walked while away and the coins they paid: added when the step sync finishes while
+    /// this screen is up, so it shows them instead of a separate popup.
+    var steps = 0
+    var stepCoins = 0.0
 }
 
 /// An airdrop on screen, waiting to be caught before it expires (see `AirdropSchedule`).
@@ -415,8 +431,8 @@ final class GameSession {
 
     // MARK: Toasts
 
-    func makeToast(_ icon: String, _ title: String, _ message: String) -> Toast {
-        Toast(id: makeID(), icon: icon, title: title, message: message)
+    func makeToast(_ icon: String, _ title: String, _ message: String, gains: [ToastGainView] = []) -> Toast {
+        Toast(id: makeID(), icon: icon, title: title, message: message, gains: gains)
     }
 
     func show(_ icon: String, _ title: String, _ message: String) {

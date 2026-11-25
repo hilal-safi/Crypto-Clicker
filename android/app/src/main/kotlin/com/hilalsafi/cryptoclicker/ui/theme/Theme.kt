@@ -101,6 +101,7 @@ object Palette {
         "comboOverdrive" -> Color(0.62f, 0.25f, 0.95f)
         "quickCombos" -> Color(0.05f, 0.62f, 0.62f)
         "comboKeeper" -> Color(0.18f, 0.48f, 0.95f)
+        "offlineEfficiency" -> Color(0.36f, 0.34f, 0.84f)
         else -> bitcoin
     }
 

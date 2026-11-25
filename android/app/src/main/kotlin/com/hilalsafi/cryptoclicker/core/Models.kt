@@ -118,6 +118,8 @@ data class GameView(
     val debugTools: Boolean,
     /** Daily rewards waiting to be claimed, for the Trophies tab's badge. */
     val dailyBadge: Int,
+    /** Starter milestones reached and waiting to be claimed (the Goals page's count). */
+    val starterClaims: Int,
     /** Whether steps are connected (the app reads Health Connect every few minutes while open) and how many days back it reads. */
     val stepsConnected: Boolean,
     val stepWindowDays: Int,
@@ -145,6 +147,7 @@ data class GameView(
             errorMessage = o.stringOrNull("errorMessage"),
             debugTools = o.bool("debugTools"),
             dailyBadge = o.int("dailyBadge"),
+            starterClaims = o.int("starterClaims"),
             stepsConnected = o.bool("stepsConnected"),
             stepWindowDays = o.int("stepWindowDays"),
             shop = o.objOrNull("shop")?.let(Shop::from),
@@ -665,6 +668,8 @@ data class PowerUp(
     val subtitle: String,
     val level: Int,
     val maxLevel: Int,
+    /** Whether the row draws a bar per level (not for Offline Efficiency, which has too many). */
+    val showsPips: Boolean,
     /** The next level's price; nil at the last level (or while locked). */
     val price: String?,
     val canAfford: Boolean,
@@ -684,6 +689,7 @@ data class PowerUp(
             subtitle = o.string("subtitle"),
             level = o.int("level"),
             maxLevel = o.int("maxLevel"),
+            showsPips = o.bool("showsPips"),
             price = o.stringOrNull("price"),
             canAfford = o.bool("canAfford"),
             valueName = o.string("valueName"),
@@ -878,11 +884,41 @@ data class Perk(
 
 /** The next few things worth working toward (iOS: GoalsPage). */
 data class Goals(
+    /** The opening's starter milestones, until every one is claimed. */
+    val starters: List<Starter>,
     val goals: List<Goal>,
 ) {
     companion object {
         fun from(o: JsonObject) = Goals(
+            starters = o.list("starters", Starter::from),
             goals = o.list("goals", Goal::from),
+        )
+    }
+}
+
+/** A starter milestone on the Goals page: what to do, what it pays, and Claim once it's done. */
+data class Starter(
+    val id: String,
+    val title: String,
+    val symbol: String,
+    /** "1.2K coins", or the Bull Run it starts. */
+    val reward: String,
+    /** coins or bullRun, for the reward's symbol. */
+    val rewardKind: String,
+    val progress: Double,
+    val isReached: Boolean,
+    val isClaimed: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = Starter(
+            id = o.string("id"),
+            title = o.string("title"),
+            symbol = o.string("symbol"),
+            reward = o.string("reward"),
+            rewardKind = o.string("rewardKind"),
+            progress = o.double("progress"),
+            isReached = o.bool("isReached"),
+            isClaimed = o.bool("isClaimed"),
         )
     }
 }
@@ -1377,6 +1413,8 @@ data class Inventory(
     val miners: List<InventoryMiner>,
     /** Offline Mining's time, once bought. */
     val offline: String?,
+    /** Offline Efficiency's share of the income, once it has a level: "40%". */
+    val efficiency: String?,
     /** The biggest combo, once a combo power-up is bought. */
     val combo: String?,
     /** Upgrades bought of all: "3/42". */
@@ -1391,6 +1429,7 @@ data class Inventory(
         fun from(o: JsonObject) = Inventory(
             miners = o.list("miners", InventoryMiner::from),
             offline = o.stringOrNull("offline"),
+            efficiency = o.stringOrNull("efficiency"),
             combo = o.stringOrNull("combo"),
             upgrades = o.stringOrNull("upgrades"),
             perks = o.stringOrNull("perks"),
@@ -1520,6 +1559,8 @@ data class Toast(
     val icon: String,
     val title: String,
     val message: String,
+    /** The numbers the player watches (per second, per tap, per step) as they are now, when the toast changed them. */
+    val gains: List<ToastGain>,
 ) {
     companion object {
         fun from(o: JsonObject) = Toast(
@@ -1527,6 +1568,23 @@ data class Toast(
             icon = o.string("icon"),
             title = o.string("title"),
             message = o.string("message"),
+            gains = o.list("gains", ToastGain::from),
+        )
+    }
+}
+
+/** One number a toast changed: "PER SECOND  +217  now 21.7K", or just the new total when the change was too small to show. */
+data class ToastGain(
+    val title: String,
+    /** What it added, or nil when the new total is all there is to show. */
+    val added: String?,
+    val total: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = ToastGain(
+            title = o.string("title"),
+            added = o.stringOrNull("added"),
+            total = o.string("total"),
         )
     }
 }

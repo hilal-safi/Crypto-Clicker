@@ -38,6 +38,8 @@ struct InventoryView: Encodable {
     let miners: [InventoryMinerView]
     /// Offline Mining's time, once bought.
     let offline: String?
+    /// Offline Efficiency's share of the income, once it has a level: "40%".
+    let efficiency: String?
     /// The biggest combo, once a combo power-up is bought.
     let combo: String?
     /// Upgrades bought of all: "3/42".
@@ -169,7 +171,7 @@ enum GuideTip: String, CaseIterable {
         case .tapCoin: "Tap the coin to mine your first coins."
         case .buyMiner: "You can afford a Chromebook. Miners earn coins for you every second."
         case .combo: "Tap quickly to build a combo: up to twice the coins per tap."
-        case .offlineMining: "Miners stop a minute after you leave. Offline Mining keeps them earning while the app is closed."
+        case .offlineMining: "Miners keep earning for six minutes after you leave, at a share of your income that Offline Efficiency raises. Offline Mining lengthens the time."
         case .howToPlay: "How to Play is in the Settings tab, with the full rules for every game."
         case .daily: "A daily reward is waiting. Claim one every day to build a streak, and check the day's quests."
         case .prestige: "Prestiging now would speed you up a lot. Your points also buy permanent perks."
@@ -237,13 +239,15 @@ extension GameSession {
         let game = state
         let miners = MinerID.allCases.filter { game.owned($0) > 0 }
         let tokens = TokenID.allCases.filter { game.tokenCount($0) > 0 }
-        let hasComboPowerUps = PowerUpID.allCases.contains { game.powerUpLevel($0) > 0 }
+        let hasComboPowerUps = PowerUpID.allCases.contains { $0.isCombo && game.powerUpLevel($0) > 0 }
+        let efficiencyLevel = game.powerUpLevel(.offlineEfficiency)
+        let efficiency = "\(Tuning.offlineEfficiencyPercent(level: efficiencyLevel))%"
         // Legacy as a plain number ("5", "3,125"), then short once it's long ("48.8K").
         func legacyText(_ multiplier: Double) -> String {
             multiplier < 10_000 ? CoinFormat.grouped(Int(multiplier.rounded())) : CoinFormat.short(multiplier)
         }
         var parts = miners.map { "\(game.owned($0)) \($0.name)" }
-        if game.offlineMiningLevel > 0 { parts.append("Offline Mining \(CoinFormat.duration(game.offlineCap))") }
+        if game.offlineMiningLevel > 0 { parts.append("Offline Mining \(CoinFormat.duration(game.offlineCap)) at \(efficiency)") }
         if hasComboPowerUps { parts.append("combos up to \(CoinFormat.multiplier(game.comboMaxMultiplier))") }
         if !game.upgrades.isEmpty { parts.append("\(game.upgrades.count) upgrades") }
         if !game.perks.isEmpty { parts.append("\(game.perks.count) perks") }
@@ -258,6 +262,7 @@ extension GameSession {
                                           legacy: legacy > 1 ? legacyText(legacy) : nil)
             },
             offline: game.offlineMiningLevel > 0 ? CoinFormat.duration(game.offlineCap) : nil,
+            efficiency: efficiencyLevel > 0 ? efficiency : nil,
             combo: hasComboPowerUps ? CoinFormat.multiplier(game.comboMaxMultiplier) : nil,
             upgrades: game.upgrades.isEmpty ? nil : "\(game.upgrades.count)/\(UpgradeID.allCases.count)",
             perks: game.perks.isEmpty ? nil : "\(game.perks.count)",
@@ -372,9 +377,7 @@ extension GameSession {
         }
 
         var other: [LineView] = [
-            .value("While away", game.offlineCap > 0
-                ? "Up to \(CoinFormat.duration(game.offlineCap)) · \(amount(game.baseIdleIncome * game.offlineCap))"
-                : "First minute only (no Offline Mining)"),
+            .value("While away", "Up to \(CoinFormat.duration(game.timeAwayLimit)) at \(Tuning.offlineEfficiencyPercent(level: game.powerUpLevel(.offlineEfficiency)))% · \(amount(game.baseIdleIncome * game.paidAwaySeconds(game.timeAwayLimit)))"),
         ]
         if game.steps.isConnected {
             other.append(.value("Each step", game.stepsPaidNextDay(today: today)

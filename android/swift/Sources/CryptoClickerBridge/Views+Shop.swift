@@ -116,6 +116,8 @@ struct PowerUpView: Encodable {
     let subtitle: String
     let level: Int
     let maxLevel: Int
+    /// Whether the row draws a bar per level (not for Offline Efficiency, which has too many).
+    let showsPips: Bool
     /// The next level's price; nil at the last level (or while locked).
     let price: String?
     let canAfford: Bool
@@ -377,7 +379,7 @@ extension GameSession {
         return OfflineMiningView(
             subtitle: level > 0 ? "Level \(level)" : "Not bought yet",
             price: price.map(CoinFormat.cost), canAfford: price.map { $0 <= game.coins } ?? false,
-            now: CoinFormat.duration(max(cap, Tuning.awayThreshold)),
+            now: CoinFormat.duration(max(cap, Tuning.baseAwayTime)),
             next: price != nil ? CoinFormat.duration(nextCap) : nil)
     }
 
@@ -390,6 +392,7 @@ extension GameSession {
             return PowerUpView(
                 id: powerUp.rawValue, name: powerUp.name, symbol: powerUp.symbol, summary: powerUp.summary,
                 subtitle: "Level \(level) of \(powerUp.maxLevel)", level: level, maxLevel: powerUp.maxLevel,
+                showsPips: powerUp.showsLevelPips,
                 price: price.map(CoinFormat.cost), canAfford: price.map { $0 <= game.coins } ?? false,
                 valueName: powerUp.valueName, now: powerUp.value(atLevel: level),
                 next: price != nil ? powerUp.value(atLevel: level + 1) : nil, locked: nil)
@@ -397,7 +400,7 @@ extension GameSession {
         guard let required = powerUp.requires, game.powerUpLevel(required) > 0 else { return nil }
         return PowerUpView(
             id: powerUp.rawValue, name: powerUp.name, symbol: powerUp.symbol, summary: powerUp.summary,
-            subtitle: "Locked", level: level, maxLevel: powerUp.maxLevel,
+            subtitle: "Locked", level: level, maxLevel: powerUp.maxLevel, showsPips: powerUp.showsLevelPips,
             price: nil, canAfford: false, valueName: powerUp.valueName, now: powerUp.value(atLevel: level),
             next: nil, locked: "Opens when \(required.name) reaches level \(required.maxLevel)")
     }
@@ -472,7 +475,7 @@ extension GameSession {
         var keeps = [
             SymbolLineView(symbol: "rosette", text: "Prestige points, their bonus and your perks"),
             SymbolLineView(symbol: "trophy", text: "Achievements and statistics"),
-            SymbolLineView(symbol: "moon.zzz", text: "Offline Mining"),
+            SymbolLineView(symbol: "moon.zzz", text: "Offline Mining and Offline Efficiency"),
             SymbolLineView(symbol: "gamecontroller", text: "Unlocked mini-games"),
             SymbolLineView(symbol: "calendar", text: "Your daily streak and quests"),
             SymbolLineView(symbol: "figure.walk", text: "Steps already rewarded"),
