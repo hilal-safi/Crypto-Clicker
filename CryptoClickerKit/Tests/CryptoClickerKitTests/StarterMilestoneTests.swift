@@ -118,6 +118,75 @@ struct StarterMilestoneTests {
         #expect(game.claim(.firstChromebook, at: at(20)) == nil)
     }
 
+    @Test func aRewardIsLockedWhenTheMilestoneIsCompletedWhateverTheIncomeDoesAfter() {
+        var game = GameState.make(miners: minersEarning(5)) // 5 coins a second.
+        game.upgrades = [.coinClicker]
+        #expect(game.starterRewardsLocked.isEmpty)
+        game.lockStarterRewards()
+        // 360 seconds of income, locked in when the milestone was seen completed.
+        #expect(game.starterRewardsLocked[.firstUpgrade] == 1_800)
+        // The income grows a great deal, but the reward doesn't follow it.
+        game.miners = [.server: 10]
+        #expect(game.baseIdleIncome > 100)
+        #expect(game.payout(of: .firstUpgrade) == .coins(1_800))
+        // Looking again doesn't re-lock a milestone that is already locked.
+        game.lockStarterRewards()
+        #expect(game.starterRewardsLocked[.firstUpgrade] == 1_800)
+        // Claiming stays manual: nothing is paid until then, and then the locked amount is.
+        #expect(game.coins == 0)
+        #expect(game.claim(.firstUpgrade, at: t0) == .coins(1_800))
+        #expect(game.coins == 1_800)
+        #expect(game.starterRewardsLocked[.firstUpgrade] == nil)
+        // A milestone completed later is locked at its own time, here at its cap.
+        game.stats.snakeGames = 1
+        game.lockStarterRewards()
+        #expect(game.starterRewardsLocked[.firstGamePlayed] == 5_400)
+    }
+
+    @Test func aRewardIsNeverWorthMoreThanTenTimesWhatItPaysAtTheFloor() {
+        // At this income the reward income would pay far more than ten times the 360 coins the
+        // first upgrade pays at the one-coin floor.
+        var game = GameState.make(coins: 10_000, miners: [.server: 10])
+        game.upgrades = [.coinClicker]
+        #expect(game.baseIdleIncome > 100)
+        #expect(Tuning.starterRewardCapMultiple == 10)
+        #expect(game.payout(of: .firstUpgrade) == .coins(3_600))
+        // Each coin reward has its own cap: 900, 1,800, 3,600 and 5,400.
+        game.buy(.chromebook, quantity: 3)
+        game.stats.snakeGames = 1
+        game.lockStarterRewards()
+        #expect(game.payout(of: .firstChromebook) == .coins(900))
+        #expect(game.payout(of: .threeMiners) == .coins(1_800))
+        #expect(game.payout(of: .firstUpgrade) == .coins(3_600))
+        #expect(game.payout(of: .firstGamePlayed) == .coins(5_400))
+        // Below the cap it is plain seconds of income, and never under the day-one floor.
+        #expect(GameState.make().payout(of: .firstChromebook) == .coins(90))
+    }
+
+    @Test func lockedRewardsAreSaved() throws {
+        var game = GameState.make(miners: minersEarning(5))
+        game.upgrades = [.coinClicker]
+        game.lockStarterRewards()
+        var saved = try GameCoding.decoder().decode(GameState.self, from: GameCoding.encoder().encode(game))
+        #expect(saved.starterRewardsLocked[.firstUpgrade] == 1_800)
+        saved.miners = [.server: 10]
+        #expect(saved.payout(of: .firstUpgrade) == .coins(1_800))
+        // A save from before the rewards were locked has none locked.
+        let none = try GameCoding.decoder().decode(GameState.self, from: Data("{}".utf8))
+        #expect(none.starterRewardsLocked.isEmpty)
+    }
+
+    @Test func refreshingTheAchievementsLocksTheRewards() {
+        var game = GameState.make()
+        game.unlockedGames = [.snake]
+        _ = game.refreshAchievements()
+        #expect(game.claimableStarterMilestones == [.firstGameUnlocked])
+        #expect(game.starterRewardsLocked.isEmpty) // A Bull Run has no coins to lock.
+        game.upgrades = [.coinClicker]
+        _ = game.refreshAchievements()
+        #expect(game.starterRewardsLocked[.firstUpgrade] == 360) // 360 seconds at the one-coin floor.
+    }
+
     @Test func theSectionHidesOnceEveryMilestoneIsClaimed() {
         var game = GameState.make(coins: 10_000)
         game.buy(.chromebook, quantity: 3)

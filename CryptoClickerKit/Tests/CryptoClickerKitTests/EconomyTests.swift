@@ -78,29 +78,52 @@ struct PriceTests {
 @Suite("Production")
 struct ProductionTests {
     @Test func milestonesDoubleOutput() {
+        // Every 25 up to 250 (10), every 50 up to 1,000 (15), every 100 up to 5,000 (40).
+        #expect(Tuning.milestones.count == 65)
+        #expect(Tuning.milestones.first == 25)
+        #expect(Tuning.milestones.last == 5_000)
         #expect(GameState.milestoneMultiplier(owned: 0) == 1)
-        #expect(GameState.milestoneMultiplier(owned: 19) == 1)
-        #expect(GameState.milestoneMultiplier(owned: 20) == 2)
+        #expect(GameState.milestoneMultiplier(owned: 24) == 1)
+        #expect(GameState.milestoneMultiplier(owned: 25) == 2)
+        #expect(GameState.milestoneMultiplier(owned: 49) == 2)
         #expect(GameState.milestoneMultiplier(owned: 50) == 4)
-        #expect(GameState.milestoneMultiplier(owned: 99) == 4)
-        #expect(GameState.milestoneMultiplier(owned: 100) == 8)
-        #expect(GameState.milestoneMultiplier(owned: 1_000) == 4_096)
-        #expect(GameState.milestoneMultiplier(owned: 5_000) == 4_096)
+        #expect(GameState.milestoneMultiplier(owned: 75) == 8)
+        #expect(GameState.milestoneMultiplier(owned: 100) == 16)
+        #expect(GameState.milestoneMultiplier(owned: 200) == 256)
+        #expect(GameState.milestoneMultiplier(owned: 250) == 1_024)
+        #expect(GameState.milestoneMultiplier(owned: 299) == 1_024)
+        #expect(GameState.milestoneMultiplier(owned: 300) == 2_048)
+        #expect(GameState.milestoneMultiplier(owned: 349) == 2_048)
+        #expect(GameState.milestoneMultiplier(owned: 350) == 4_096)
+        #expect(GameState.milestoneMultiplier(owned: 500) == 32_768)
+        #expect(GameState.milestoneMultiplier(owned: 1_000) == 33_554_432)
+        #expect(GameState.milestoneMultiplier(owned: 1_099) == 33_554_432)
+        #expect(GameState.milestoneMultiplier(owned: 1_100) == 67_108_864)
+        #expect(GameState.milestoneMultiplier(owned: 5_000) == 0x1p65)
+        #expect(GameState.milestoneMultiplier(owned: 10_000) == 0x1p65)
+        // The gap is 25 owned through 250, 50 through 1,000 and 100 after that.
+        for (previous, next) in zip(Tuning.milestones, Tuning.milestones.dropFirst()) {
+            #expect(next - previous == (next <= 250 ? 25 : next <= 1_000 ? 50 : 100))
+        }
     }
 
     @Test func nextMilestone() {
-        #expect(GameState.make().nextMilestone(for: .server) == 20)
-        #expect(GameState.make(miners: [.server: 20]).nextMilestone(for: .server) == 50)
-        #expect(GameState.make(miners: [.server: 1_000]).nextMilestone(for: .server) == nil)
+        #expect(GameState.make().nextMilestone(for: .server) == 25)
+        #expect(GameState.make(miners: [.server: 25]).nextMilestone(for: .server) == 50)
+        #expect(GameState.make(miners: [.server: 76]).nextMilestone(for: .server) == 100)
+        #expect(GameState.make(miners: [.server: 250]).nextMilestone(for: .server) == 300)
+        #expect(GameState.make(miners: [.server: 300]).nextMilestone(for: .server) == 350)
+        #expect(GameState.make(miners: [.server: 1_000]).nextMilestone(for: .server) == 1_100)
+        #expect(GameState.make(miners: [.server: 5_000]).nextMilestone(for: .server) == nil)
     }
 
     @Test func rateCombinesCountMilestonesAndMultipliers() {
-        var state = GameState.make(miners: [.chromebook: 20], upgrades: [.overclocking, .fiberUplink])
-        #expect(approx(state.rate(of: .chromebook), 20 * 0.25 * 2 * 1.25 * 2)) // A Chromebook earns a coin every four seconds.
+        var state = GameState.make(miners: [.chromebook: 25], upgrades: [.overclocking, .fiberUplink])
+        #expect(approx(state.rate(of: .chromebook), 25 * 0.25 * 2 * 1.25 * 2)) // A Chromebook earns a coin every four seconds.
         state.prestigePoints = 4
         state.achievementTiers = ["miner": 3, "tapper": 2]
         state.difficulty = .easy
-        let expected = 20 * 0.25 * 2 * 1.25 * 2 * 1.2 * 1.05 * 1.5
+        let expected = 25 * 0.25 * 2 * 1.25 * 2 * 1.2 * 1.05 * 1.5
         #expect(approx(state.rate(of: .chromebook), expected))
         #expect(approx(state.baseProduction, expected))
         #expect(state.rate(of: .desktop) == 0)
@@ -244,14 +267,15 @@ struct ProductionTests {
 
     @Test func offlineMiningLevelsCostMoreEachTimeAndStopAtTheMaximum() {
         var state = GameState.make(coins: 1_000)
-        // The first level (seven minutes) costs 16,942: what the table charges for seven minutes
-        // (3,500 and 40% more five times), less 10%. The second costs 40% more.
-        #expect(state.offlineMiningPrice == 16_942)
+        // The first level (seven minutes) costs 10,000, where the table (3,500 and 40% more five
+        // times, less 10%) would charge 16,942: the first ten levels are marked down, the first
+        // the most. The second costs 14,817.
+        #expect(state.offlineMiningPrice == 10_000)
         state.coins = 1_000
         #expect(state.buyOfflineMining() == false) // Can't afford it yet.
         let secondPrice = GameState.offlineMiningShopPrice(level: 2)
-        #expect(secondPrice == 23_719)
-        state.coins = 16_942 + secondPrice + 100
+        #expect(secondPrice == 14_817)
+        state.coins = 10_000 + secondPrice + 100
         let first = state.buyOfflineMining()
         #expect(first)
         #expect(state.offlineMiningLevel == 1)
@@ -261,20 +285,32 @@ struct ProductionTests {
         #expect(second)
         #expect(state.coins == 100)
         #expect(state.offlineCap == 8 * 60)
-        // The Shop's levels cost what the same time away costs in the whole table, less 10%:
-        // 40% more a level to 15 minutes (table level 10, Shop level 5), 35% more a level to three
-        // and a half hours (table level 28, Shop level 23), in whole coins.
+        // The Shop's levels cost what the same time away costs in the whole table, less 10%
+        // (35% more a level from the eleventh, to three and a half hours at table level 28, Shop
+        // level 23), in whole coins. The first ten are marked down, more the earlier they are.
         let cut = Tuning.offlineMiningPriceCut
         #expect(cut == 0.9)
         let price = GameState.offlineMiningShopPrice(level:)
-        for level in 2...23 {
+        let unscaled = GameState.offlineMiningUnscaledPrice(level:)
+        #expect(price(1) == 10_000)
+        #expect(abs(GameState.offlineMiningOpeningScale(level: 10) - 0.9) < 1e-12)
+        for level in 1...10 {
+            #expect(price(level) < unscaled(level), "level \(level)")
+            #expect(GameState.offlineMiningOpeningScale(level: level) < 1, "level \(level)")
+            if level > 1 {
+                #expect(GameState.offlineMiningOpeningScale(level: level) > GameState.offlineMiningOpeningScale(level: level - 1))
+            }
+        }
+        #expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(price)
+                == [10_000, 14_817, 21_886, 32_240, 47_376, 66_981, 94_506, 133_093, 187_115, 262_649])
+        for level in 11...23 {
             let table = level + 5
-            let step = table <= 10 ? 1.4 : 1.35
+            #expect(GameState.offlineMiningOpeningScale(level: level) == 1, "level \(level)")
             #expect(price(level) == Tuning.whole(3_500 * pow(1.4, Double(min(table, 10) - 1)) * pow(1.35, Double(max(0, table - 10))) * cut),
                     "level \(level)")
-            #expect(abs(price(level) / price(level - 1) - step) < 0.001, "level \(level)")
+            if level > 11 { #expect(abs(price(level) / price(level - 1) - 1.35) < 0.001, "level \(level)") }
         }
-        #expect(price(5) == 65_083) // Fifteen minutes.
+        #expect(price(11) == 393_973)
         #expect(price(23) == 14_436_793)
         // From here on, `tablePrice` is the Shop's price for a level of the whole table (five
         // more than the Shop's).
@@ -390,13 +426,15 @@ struct ProductionTests {
         #expect(state.offlineMiningLevel == 0) // No Offline Mining needed.
         for (level, price) in prices.enumerated() {
             let before = state.coins
-            #expect(state.buyPowerUp(.offlineEfficiency), "level \(level + 1)")
+            let bought = state.buyPowerUp(.offlineEfficiency)
+            #expect(bought, "level \(level + 1)")
             #expect(state.coins == before - price)
             #expect(state.powerUpLevel(.offlineEfficiency) == level + 1)
             #expect(approx(state.offlineEfficiency, Double(15 + 5 * level) / 100), "level \(level + 1)")
         }
         #expect(state.powerUpLevel(.offlineEfficiency) == 18)
-        #expect(!state.buyPowerUp(.offlineEfficiency)) // Nothing after the 18th.
+        let boughtPastTheEnd = state.buyPowerUp(.offlineEfficiency)
+        #expect(!boughtPastTheEnd) // Nothing after the 18th.
         #expect(state.offlineEfficiency == 1)
     }
 

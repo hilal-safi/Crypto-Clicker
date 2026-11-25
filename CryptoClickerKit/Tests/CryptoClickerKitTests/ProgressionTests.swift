@@ -295,14 +295,14 @@ struct MinerUpgradeTests {
     }
 
     @Test func theLastUpgradeIsMkTen() {
-        // Mk II at 20 owned, then at 50, 100, 200, 400, 500, 600, 700 and 800: nine upgrades.
-        #expect(Tuning.minerUpgradeThresholds == [20, 50, 100, 200, 400, 500, 600, 700, 800])
-        var game = GameState.make(coins: 1e60, miners: [.chromebook: 900])
+        // Mk II at 20 owned, then at 50, 80, 100, 150, 200, 300, 400 and 500: nine upgrades.
+        #expect(Tuning.minerUpgradeThresholds == [20, 50, 80, 100, 150, 200, 300, 400, 500])
+        var game = GameState.make(coins: 1e60, miners: [.chromebook: 600])
         var bought = 0
         while game.buyMinerUpgrade(.chromebook) { bought += 1 }
         #expect(bought == 9)
         #expect(game.availableMinerUpgrade(.chromebook) == nil)
-        #expect(game.rate(of: .chromebook) == 900 * MinerID.chromebook.baseRate * GameState.milestoneMultiplier(owned: 900) * 512)
+        #expect(game.rate(of: .chromebook) == 600 * MinerID.chromebook.baseRate * GameState.milestoneMultiplier(owned: 600) * 512)
         #expect(MinerID.gpuRig.upgradeName(level: 0) == "GPU Rig Mk II")
         #expect(MinerID.gpuRig.upgradeName(level: 4) == "GPU Rig Mk VI")
         #expect(MinerID.gpuRig.upgradeName(level: 8) == "GPU Rig Mk X")

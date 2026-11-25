@@ -240,6 +240,9 @@ public struct GameState: Codable, Equatable, Sendable {
     public internal(set) var journey = Journey()
     /// The starter milestones whose rewards were claimed. Kept through prestiges.
     public internal(set) var starterMilestonesClaimed: Set<StarterMilestone> = []
+    /// What each completed starter milestone's coins were worth when it was completed, until it is
+    /// claimed (see `lockStarterRewards`).
+    public internal(set) var starterRewardsLocked: [StarterMilestone: Double] = [:]
     /// Highest tier count earned per achievement id (0 to 4).
     public internal(set) var achievementTiers: [String: Int] = [:]
     public internal(set) var daily = DailyProgress()
@@ -274,7 +277,7 @@ public struct GameState: Codable, Equatable, Sendable {
         case runPrestigeMultiplier = "runForkMultiplier"
         case prestigePointsSpent, perks, difficulty
         case boost, offlineMiningLevel, powerUps, unlockedGames, blackjackStake, moonRound, pokerRound, unfinishedRun, tokenSwap
-        case merge2048Daily, slotsFreeSpins, arcade, journey, starterMilestones
+        case merge2048Daily, slotsFreeSpins, arcade, journey, starterMilestones, starterRewards
         case achievementTiers, daily
         case incomeHistory, stats, steps, recentWatchBatches, watchSequences, recentAirdrops, lastUpdate, runStart, created
     }
@@ -333,6 +336,7 @@ public struct GameState: Codable, Equatable, Sendable {
         // A save from before the journey was kept starts recording now.
         journey = c.value(.journey, default: Journey(since: now))
         starterMilestonesClaimed = c.enumSet(.starterMilestones, as: StarterMilestone.self)
+        starterRewardsLocked = c.enumKeyed(.starterRewards, as: StarterMilestone.self)
         achievementTiers = c.value(.achievementTiers, default: [:])
         daily = c.value(.daily, default: DailyProgress())
         incomeHistory = c.value(.incomeHistory, default: [])
@@ -377,6 +381,9 @@ public struct GameState: Codable, Equatable, Sendable {
         try c.encode(journey, forKey: .journey)
         if !starterMilestonesClaimed.isEmpty {
             try c.encode(starterMilestonesClaimed.sortedRawValues, forKey: .starterMilestones)
+        }
+        if !starterRewardsLocked.isEmpty {
+            try c.encode(starterRewardsLocked.stringKeyed, forKey: .starterRewards)
         }
         try c.encode(achievementTiers, forKey: .achievementTiers)
         try c.encode(daily, forKey: .daily)

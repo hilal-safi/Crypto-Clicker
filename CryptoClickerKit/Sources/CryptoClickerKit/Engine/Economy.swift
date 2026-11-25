@@ -414,9 +414,27 @@ extension GameState {
     /// step that eases (`Tuning.offlineMiningEasing` and `Tuning.offlineMiningLateEasing`)), less the
     /// discount (`Tuning.offlineMiningDiscounts`) and the cut (`Tuning.offlineMiningPriceCut`).
     public static func offlineMiningShopPrice(level: Int) -> Double {
-        let level = min(max(1, level), Tuning.offlineMiningMaxLevel) + Tuning.offlineMiningSkippedLevels
-        return Tuning.whole(offlineMiningFullPrices[level - 1] * offlineMiningDiscount(level: level)
-                            * Tuning.offlineMiningPriceCut)
+        let level = min(max(1, level), Tuning.offlineMiningMaxLevel)
+        return Tuning.whole(offlineMiningUnscaledPrice(level: level) * offlineMiningOpeningScale(level: level))
+    }
+
+    /// What the table charges for `level` of the Shop's: the table's price less its discount and
+    /// the cut, before the first levels are marked down.
+    static func offlineMiningUnscaledPrice(level: Int) -> Double {
+        let table = level + Tuning.offlineMiningSkippedLevels
+        return offlineMiningFullPrices[table - 1] * offlineMiningDiscount(level: table) * Tuning.offlineMiningPriceCut
+    }
+
+    /// The share of its unscaled price the first ten levels cost: what makes the first exactly
+    /// `Tuning.offlineMiningFirstLevelPrice`, climbing evenly to `offlineMiningOpeningScaleEnd` at the
+    /// tenth. 1 from the eleventh.
+    static func offlineMiningOpeningScale(level: Int) -> Double {
+        guard level < Tuning.offlineMiningScaledLevels else {
+            return level == Tuning.offlineMiningScaledLevels ? Tuning.offlineMiningOpeningScaleEnd : 1
+        }
+        let first = Tuning.offlineMiningFirstLevelPrice / offlineMiningUnscaledPrice(level: 1)
+        let steps = Double(Tuning.offlineMiningScaledLevels - 1)
+        return first + (Tuning.offlineMiningOpeningScaleEnd - first) * Double(max(1, level) - 1) / steps
     }
 
     /// Every table level's price before the discount, worked out once.

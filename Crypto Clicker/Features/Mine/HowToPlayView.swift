@@ -94,8 +94,8 @@ private struct HowToChapter: Identifiable {
             "In the Shop, each miner shows what one more adds, and Best value marks the best buy.",
         ]),
         HowToTopic("arrow.up.right.circle.fill", "Milestones and Mk upgrades", "The more of a miner you own, the more each one mines.", [
-            "Owning 20, 50, 100, 200, then every 100 up to 1,000, doubles a miner's output each time.",
-            "At 20, 50, 100, 200, 400, 500, 600, 700 and 800 owned, a Mk upgrade (Mk II to Mk X) appears in the Shop.",
+            "Owning every 25 of a miner up to 250, every 50 up to 1,000 and every 100 after that doubles its output each time.",
+            "At 20, 50, 80, 100, 150, 200, 300, 400 and 500 owned, a Mk upgrade (Mk II to Mk X) appears in the Shop.",
             "Each Mk upgrade doubles that miner again for the rest of the run.",
             "Legacy, late in the game: each miner you own 100 of makes every miner four or more tiers older earn ×5.",
         ]),

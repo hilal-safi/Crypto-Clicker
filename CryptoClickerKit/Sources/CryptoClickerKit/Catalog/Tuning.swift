@@ -14,8 +14,12 @@ public enum Tuning {
     // MARK: Miners
     /// Each additional unit of a miner costs this much more than the previous one.
     public static let costGrowth = 1.15
-    /// Owning this many of one miner doubles that miner's output (once per milestone).
-    public static let milestones = [20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1_000]
+    /// Owning this many of one miner doubles that miner's output (once per milestone): every 25 up
+    /// to 250, every 50 up to 1,000, then every 100 up to 5,000. The steps widen so late-game
+    /// counts don't compound past what the prices were tuned for.
+    public static let milestones = Array(stride(from: 25, through: 250, by: 25))
+        + Array(stride(from: 300, through: 1_000, by: 50))
+        + Array(stride(from: 1_100, through: 5_000, by: 100))
     public static let milestoneMultiplier = 2.0
 
     // MARK: Legacy
@@ -30,9 +34,8 @@ public enum Tuning {
     public static let legacyUnits = 100
 
     // MARK: Miner Mk upgrades
-    /// Owning this many of a miner reveals its next Mk upgrade (Mk II to Mk X), alongside the
-    /// milestone at the same count...
-    public static let minerUpgradeThresholds = [20, 50, 100, 200, 400, 500, 600, 700, 800]
+    /// Owning this many of a miner reveals its next Mk upgrade (Mk II to Mk X)...
+    public static let minerUpgradeThresholds = [20, 50, 80, 100, 150, 200, 300, 400, 500]
     /// ...which multiplies that miner's output by this much...
     public static let minerUpgradeMultiplier = 2.0
     /// ...and costs about this many units of the miner at the count that reveals it.
@@ -112,6 +115,12 @@ public enum Tuning {
     public static let offlineMiningMaxLevel = offlineMiningTableLevels - offlineMiningSkippedLevels
     /// What the Shop charges for each Offline Mining level, as a share of the table's price: 10% off.
     public static let offlineMiningPriceCut = 0.9
+    /// The first Offline Mining level costs exactly this...
+    public static let offlineMiningFirstLevelPrice = 10_000.0
+    /// ...and the first ten levels cost less than the table's: a share that climbs from what puts
+    /// the first at that price to this share at the tenth (the eleventh on are the table's own).
+    public static let offlineMiningScaledLevels = 10
+    public static let offlineMiningOpeningScaleEnd = 0.9
     /// List prices (before the pace) of the levels that reach each limit, in hours; the levels in
     /// between grow evenly from one to the next. The first level (two minutes) costs 3,500 coins at
     /// the opening's pace, to keep time away from coming too cheaply. Then prices climb steeply
@@ -159,14 +168,14 @@ public enum Tuning {
     /// at the 18th.
     public static let offlineEfficiencyStepPercent = 5
     /// The Shop's price for each level of Offline Efficiency, in coins, from 15,000 for the first
-    /// (15% of the income) to 999 trillion for the 18th (all of it). The even levels are set
+    /// (15% of the income) to 1.2 quadrillion for the 18th (all of it). The even levels are set
     /// prices and the odd ones in between sit about midway on the climb. These are the Shop's
     /// prices: the pace and the Shop's premium don't apply.
     public static let offlineEfficiencyPrices: [Double] = [
         15_000, 75_000, 250_000, 3_000_000, 8_500_000, 25_000_000,
         110_000_000, 500_000_000, 1_500_000_000, 5_000_000_000, 20_000_000_000, 85_000_000_000,
         290_000_000_000, 1_000_000_000_000, 7_500_000_000_000, 56_000_000_000_000,
-        240_000_000_000_000, 999_999_999_999_999,
+        340_000_000_000_000, 1_200_000_000_000_000,
     ]
 
     /// What share of the income time away pays at `level` of Offline Efficiency, in percent.
@@ -306,6 +315,10 @@ public enum Tuning {
     public static let starterUpgradeSeconds = 360.0
     public static let starterGamePlayedSeconds = 540.0
     public static let starterGameBullRun: TimeInterval = 20
+    /// A starter reward is locked in when its milestone is completed, and never worth more than
+    /// this many times what it pays at the income floor (the first Chromebook: 90 coins, at most
+    /// 900), so a late finish or a big income doesn't turn a small reward into a big one.
+    public static let starterRewardCapMultiple = 10.0
     /// With the Bull Market perk.
     public static let bullMarketDuration: TimeInterval = 120
     /// An ordinary coin airdrop pays this share of the balance, up to this many seconds of income

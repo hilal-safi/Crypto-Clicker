@@ -32,6 +32,8 @@ struct SimulatedPlayer {
     private(set) var chromebooksAtFirstDesktop: Int?
     private(set) var desktopsAtFirstGPU: Int?
     private(set) var gamesUnlockedAt: [MiniGame: TimeInterval] = [:]
+    /// When each starter milestone's reward was claimed on the Goals page.
+    private(set) var starterClaimedAt: [StarterMilestone: TimeInterval] = [:]
     private(set) var firstPointAt: TimeInterval?
     private(set) var prestigeTimes: [TimeInterval] = []
     private(set) var perksBoughtAt: [PerkID: TimeInterval] = [:]
@@ -96,18 +98,29 @@ struct SimulatedPlayer {
             if second % 30 == 0 {
                 dailies()
                 game.refreshAchievements()
+                claimStarterMilestones()
             }
             notePrestige()
         }
         game.refreshAchievements()
+        claimStarterMilestones()
     }
 
     mutating func leave(for seconds: TimeInterval) {
         now += seconds
         game.advance(to: now)
         game.refreshAchievements()
+        claimStarterMilestones()
         shop()
         notePrestige()
+    }
+
+    /// Presses Claim on every starter milestone that is done (the Goals page), whenever the player
+    /// looks: the rewards are coins, or a short Bull Run, and are worth having early.
+    mutating func claimStarterMilestones() {
+        for milestone in game.claimableStarterMilestones where game.claim(milestone, at: now) != nil {
+            starterClaimedAt[milestone] = elapsed
+        }
     }
 
     /// Steps walked so far today: the day's steps spread evenly from 7 am to 10 pm.
@@ -199,9 +212,11 @@ struct SimulatedPlayer {
     }
 
     /// What one more level of Offline Efficiency adds, as income per second of play: the share of
-    /// each absence it pays, spread over the ten minutes played per session.
+    /// each absence it pays, spread over the ten minutes played per session. It counts from the
+    /// start of the game: it raises what the six minutes away the game starts with pay, with or
+    /// without Offline Mining.
     private func offlineEfficiencyGain() -> Double {
-        guard !awayHours.isEmpty, game.offlineMiningLevel > 0 else { return 0 }
+        guard !awayHours.isEmpty else { return 0 }
         let limit = game.timeAwayLimit
         let current = game.offlineEfficiency
         let next = Double(Tuning.offlineEfficiencyPercent(level: game.powerUpLevel(.offlineEfficiency) + 1)) / 100
@@ -320,8 +335,10 @@ struct PacingTests {
         // from 50,000 coins mined, don't help this early).
         #expect(player.gamesUnlockedAt[.blackjack].map { $0 < 15 * 60 } == true)
         #expect(player.gamesUnlockedAt[.tetris].map { $0 < 25 * 60 } == true)
-        // No daily reward or quests on the first day.
-        #expect(player.game.stats.earnedFromDaily == 0)
+        // No daily reward or quests on the first day: the only coins counted with them are the
+        // starter milestones' rewards, which are capped (900, 1,800, 3,600 and 5,400 coins).
+        #expect(player.game.stats.earnedFromDaily <= 900 + 1_800 + 3_600 + 5_400)
+        #expect(player.game.daily.streak == 0)
     }
 
     @Test func anActivePlayerUnlocksSeveralTiersAndGamesInTheFirstSession() {
@@ -368,48 +385,59 @@ struct PacingTests {
         print("Light 12h:", CoinFormat.short(lifetime), "mined | tiers", player.firstBought.count,
               "| offline", CoinFormat.duration(player.game.offlineCap))
         // Twenty minutes of play spread over twelve hours: a few miner tiers and some tens of
-        // thousands of coins, not millions. Offline Mining starts at five minutes and pays a tenth
-        // of the income, so time away pays little in the first half day: a few minutes at most.
+        // thousands of coins, not millions. The game starts with six minutes away at a tenth of the
+        // income, so time away pays little in the first half day: a few minutes more at most.
         #expect((15_000...150_000).contains(lifetime))
         #expect((2...4).contains(player.firstBought.count))
         #expect(player.game.timeAwayLimit <= 10 * 60)
     }
 
-    @Test func aCasualPlayerReachesTheTenthTierAndAPrestigeInAboutAWeek() {
-        let player = casualPlayer(days: 10)
+    @Test func aCasualPlayerReachesTheTenthTierAndAPrestigeInAboutTenDays() {
+        let player = casualPlayer(days: 14)
         let tiers = MinerID.allCases.map { "\($0.name) \(days(player.firstBought[$0]))" }
         let lastGame = player.gamesUnlockedAt.values.max()
-        print("Casual 10 days:", tiers.joined(separator: ", "), "| first point", days(player.firstPointAt),
+        let starter = StarterMilestone.allCases.map { "\($0.rawValue) \(hours(player.starterClaimedAt[$0]))" }
+        print("Casual 14 days:", tiers.joined(separator: ", "), "| first point", days(player.firstPointAt),
               "| prestiges", player.prestigeTimes.map(days), "| every game by", days(lastGame),
               "| points", player.game.prestigePoints, "| offline", CoinFormat.duration(player.game.offlineCap),
-              "| Immersion Cooling", days(player.firstUpgrade[.immersionCooling]))
+              "| efficiency", player.game.powerUpLevel(.offlineEfficiency), "of", PowerUpID.offlineEfficiency.maxLevel,
+              "| Immersion Cooling", days(player.firstUpgrade[.immersionCooling]),
+              "| starter", starter.joined(separator: ", "))
         // Without steps: the Data Center takes about two days (the Server and the Data Center cost
-        // more, and the first production upgrades give less). Immersion Cooling picks the pace up
-        // from the third day: the first prestige point (15 billion mined) comes in about four days,
-        // the tenth tier in about seven, and the Shop suggests the first prestige at about seven
-        // and a half (a walker gets there sooner: see the walking test).
-        #expect(player.firstBought[.dataCenter].map { (1.5 * 86_400...2.5 * 86_400).contains($0) } == true)
-        #expect(player.firstUpgrade[.immersionCooling].map { (2 * 86_400...4 * 86_400).contains($0) } == true)
-        #expect(player.firstPointAt.map { (3 * 86_400...4.5 * 86_400).contains($0) } == true)
+        // more, and the first production upgrades give less). Time away pays a share of the income
+        // now (a tenth to begin with, 5% more a level), so the later tiers come about 40% later
+        // than they did when it paid all of it: the first prestige point (15 billion mined) in
+        // about six days, the tenth tier in about nine and a half, and the Shop suggests the first
+        // prestige at about ten and a half (a walker gets there sooner: see the walking test).
+        #expect(player.firstBought[.dataCenter].map { (1.6 * 86_400...3 * 86_400).contains($0) } == true)
+        #expect(player.firstUpgrade[.immersionCooling].map { (2.5 * 86_400...5.5 * 86_400).contains($0) } == true)
+        #expect(player.firstPointAt.map { (4.5 * 86_400...7.5 * 86_400).contains($0) } == true)
         let tenthTier = player.firstBought[.spaceColony]
-        #expect(tenthTier.map { (6 * 86_400...7.5 * 86_400).contains($0) } == true)
-        #expect(player.firstPrestigeAt.map { (7 * 86_400...8 * 86_400).contains($0) } == true)
+        #expect(tenthTier.map { (7.5 * 86_400...12 * 86_400).contains($0) } == true)
+        #expect(player.firstPrestigeAt.map { (9 * 86_400...13 * 86_400).contains($0) } == true)
         #expect((1...2).contains(player.prestigeTimes.count))
-        // Every game within about a week, and the whole first ladder before the first prestige
+        // Every game within about ten days, and the whole first ladder before the first prestige
         // (which opens the three tiers beyond it).
         #expect(player.gamesUnlockedAt.count == MiniGame.allCases.count)
-        #expect(lastGame.map { $0 < 7.5 * 86_400 } == true)
+        #expect(lastGame.map { $0 < 11 * 86_400 } == true)
         #expect(tenthTier.map { $0 <= (player.firstPrestigeAt ?? 0) } == true)
-        // Offline Mining covers the longest absence (ten hours) within the first week.
+        // Offline Mining covers the longest absence (ten hours) by about the twelfth day, and
+        // Offline Efficiency, bought from the first day, is past half of the income by the end.
         #expect(player.game.offlineCap >= 10 * 3_600)
+        #expect(player.game.powerUpLevel(.offlineEfficiency) >= 8)
+        // Every starter milestone is done and claimed on the first day.
+        #expect(player.starterClaimedAt.count == StarterMilestone.allCases.count)
+        #expect(player.starterClaimedAt.values.max().map { $0 < 86_400 } == true)
     }
 
     @Test func offlineMiningGrowsOverTheFirstWeekNotTheFirstDay() {
         let player = casualPlayer(days: 1)
-        // The first levels climb 35% each, so the first day ends with about ten minutes of time away
-        // and the first nights pay only part of it; the hour comes on the second day.
-        print("Casual 1 day: offline", CoinFormat.duration(player.game.offlineCap), "| level", player.game.offlineMiningLevel)
-        #expect((5 * 60...2 * 3_600).contains(player.game.timeAwayLimit))
+        // The game starts with six minutes away, and the first levels add only a minute each, so
+        // the first day ends with about that and a few levels of Offline Efficiency; the hour
+        // comes on the third day.
+        print("Casual 1 day: time away", CoinFormat.duration(player.game.timeAwayLimit), "| level",
+              player.game.offlineMiningLevel, "| efficiency", player.game.powerUpLevel(.offlineEfficiency))
+        #expect((6 * 60...2 * 3_600).contains(player.game.timeAwayLimit))
     }
 
     /// Three weeks of casual play take a while to simulate, so this runs with the balance tests:
@@ -421,19 +449,19 @@ struct PacingTests {
         print("Casual 21 days: prestiges", player.prestigeTimes.map(days), "| points", player.game.prestigePoints,
               "| Lunar Base", days(player.firstBought[.lunarBase]), "| Galactic Hashnet", days(player.firstBought[.galacticHashnet]),
               "| perks", perks.joined(separator: ", "))
-        // Without steps, about eight prestiges and a few thousand points in three weeks (the
-        // 5,000-step walker makes nine and about five thousand): later prestiges wait until they
-        // would nearly double production, so each is a bigger jump than the first.
-        #expect((7...9).contains(player.prestigeTimes.count))
-        #expect((1_500...5_000).contains(player.game.prestigePoints))
+        // Without steps, about six or seven prestiges and a few thousand points in three weeks
+        // (time away pays a share of the income now, so it is fewer than it was): later prestiges
+        // wait until they would nearly double production, so each is a bigger jump than the first.
+        #expect((5...9).contains(player.prestigeTimes.count))
+        #expect((800...5_000).contains(player.game.prestigePoints))
         // The cheap perks come with the first prestige, the dearest ones after two weeks or more,
         // and the last miner tier within the three weeks.
-        #expect(player.perksBoughtAt[.headStart].map { $0 < 8 * 86_400 } == true)
+        #expect(player.perksBoughtAt[.headStart].map { $0 < 11 * 86_400 } == true)
         #expect(player.firstBought[.lunarBase] != nil)
         #expect(player.firstBought[.galacticHashnet] != nil)
         #expect(player.perksBoughtAt[.engineeringTeam].map { $0 > 14 * 86_400 } ?? true)
         #expect(player.perksBoughtAt[.compoundInterest].map { $0 > 18 * 86_400 } ?? true)
-        #expect(player.perksBoughtAt.count >= 10)
+        #expect(player.perksBoughtAt.count >= 8)
     }
 
     /// The casual player again, walking 2,500, 5,000 or 10,000 steps a day. A step pays a twentieth
@@ -474,12 +502,22 @@ struct PacingTests {
         #expect(walker.firstUpgrade[.proofOfStride].map { (10 * 86_400...13.5 * 86_400).contains($0) } == true)
     }
 
-    @Test func offlineMiningIsEarnedInTheFirstSessionsNotGivenAtTheStart() {
+    @Test func offlineUpgradesAreEarnedOverTheFirstDaysNotTheFirstHalfHour() {
         var player = SimulatedPlayer(tapsPerSecond: 3, awayHours: [3, 4, 5, 10])
         player.play(seconds: 60)
         #expect(player.game.offlineMiningLevel == 0) // Not affordable in the first minute.
+        #expect(player.game.powerUpLevel(.offlineEfficiency) == 0)
         player.play(seconds: 29 * 60)
-        #expect(player.game.offlineMiningLevel >= 1) // Bought in the first half hour of play.
+        // Six minutes away at a tenth of the income pay so little that a miner pays back far
+        // sooner: Offline Mining and Offline Efficiency wait for the first days (see the casual
+        // player), though either can be bought from the first minute.
+        #expect(player.game.offlineMiningLevel == 0)
+        #expect(player.game.powerUpLevel(.offlineEfficiency) == 0)
+        // The starter milestones are another matter: the Chromebook, three miners and the first
+        // game unlocked are done and claimed in the first minutes.
+        #expect(player.starterClaimedAt[.firstChromebook].map { $0 < 5 * 60 } == true)
+        #expect(player.starterClaimedAt[.threeMiners].map { $0 < 15 * 60 } == true)
+        #expect(player.starterClaimedAt[.firstGameUnlocked].map { $0 < 30 * 60 } == true)
     }
 
     @Test func tapsStayWorthHavingAllGameLong() {

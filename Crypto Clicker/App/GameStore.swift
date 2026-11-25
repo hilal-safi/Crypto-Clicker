@@ -165,9 +165,9 @@ final class GameStore {
     @ObservationIgnored var state: GameState
     @ObservationIgnored private var lastPublished = Date.distantPast
     var welcomeBack: WelcomeBack?
-    /// Whether a Blackjack round is on (cards out, not yet settled): no leaving the table until
-    /// it's over, so a hand can't be dodged by leaving and coming back.
-    var isBlackjackRoundOpen = false
+    /// Whether a card round (Blackjack, Video Poker) is on, cards out and not yet settled: no
+    /// leaving the table until it's over, so a hand can't be dodged by leaving for a better one.
+    var isTableRoundOpen = false
     var errorMessage: String?
     /// Set when the save couldn't be read: the player is told before a new game starts saving.
     var unreadableSave: UnreadableSave?

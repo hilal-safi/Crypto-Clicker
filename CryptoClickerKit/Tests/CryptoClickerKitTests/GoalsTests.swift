@@ -37,16 +37,16 @@ struct GoalsTests {
     }
 
     @Test func theNearestMilestoneIsTheGoal() throws {
-        let game = GameState.make(miners: [.chromebook: 17, .desktop: 3])
+        let game = GameState.make(miners: [.chromebook: 22, .desktop: 3])
         let milestone = try #require(goal(.milestone, in: game))
-        #expect(milestone.title == "Own 20 Chromebooks")
+        #expect(milestone.title == "Own 25 Chromebooks")
         #expect(milestone.detail == "3 more doubles what they mine")
-        #expect(abs(milestone.progress - 17.0 / 20) < 1e-9)
+        #expect(abs(milestone.progress - 22.0 / 25) < 1e-9)
         // Past the first, progress counts from the milestone before.
         let further = GameState.make(miners: [.chromebook: 40])
         let next = try #require(goal(.milestone, in: further))
         #expect(next.title == "Own 50 Chromebooks")
-        #expect(abs(next.progress - 20.0 / 30) < 1e-9)
+        #expect(abs(next.progress - 15.0 / 25) < 1e-9)
     }
 
     @Test func prestigeGoalsFollowTheShopsSuggestion() throws {

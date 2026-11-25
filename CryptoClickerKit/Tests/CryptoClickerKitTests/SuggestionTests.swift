@@ -17,11 +17,11 @@ struct SuggestionTests {
     }
 
     @Test func milestonesCount() throws {
-        // The 20th Chromebook doubles all of them.
-        let game = GameState.make(coins: 5_000, miners: [.chromebook: 19, .desktop: 3])
+        // The 25th Chromebook doubles all of them.
+        let game = GameState.make(coins: 5_000, miners: [.chromebook: 24, .desktop: 3])
         let best = try #require(game.bestPurchase)
         #expect(best.purchase == .miner(.chromebook))
-        #expect(best.incomeGain == 5.25) // 20 × 0.25 × 2, up from 19 × 0.25.
+        #expect(best.incomeGain == 6.5) // 25 × 0.25 × 2, up from 24 × 0.25.
     }
 
     @Test func onlyAffordableThingsThatAddIncomeAreSuggested() {
@@ -33,13 +33,13 @@ struct SuggestionTests {
         // With one Chromebook, another is the cheapest way to add production.
         var game = GameState.make(miners: [.chromebook: 1])
         #expect(game.bestValueMiner == .chromebook)
-        // Two Chromebooks in, a third costs 83 × 1.15² ≈ 110 for a quarter coin a second (439 a
-        // coin), and a Desktop 823 for two (412 a coin): the Desktop is the better buy.
+        // Two Chromebooks in, a third costs 82 × 1.15² ≈ 109 for a quarter coin a second (436 a
+        // coin), and a Desktop 866 for two (433 a coin): the Desktop is the better buy.
         game.miners[.chromebook] = 2
         #expect(game.bestValueMiner == .desktop)
         #expect(game.nextUnitGain(.desktop) == 2)
         // The 25th Chromebook doubles all of them, which makes it worth it again.
-        game.miners = [.chromebook: 24, .desktop: 20]
+        game.miners = [.chromebook: 24, .desktop: 5]
         #expect(game.nextUnitGain(.chromebook) == 6.5)
         #expect(game.bestValueMiner == .chromebook)
         // Nothing revealed adds production: no suggestion.

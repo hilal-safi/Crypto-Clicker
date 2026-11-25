@@ -109,7 +109,7 @@ struct BlackjackView: View {
             }
         }
         .navigationBarBackButtonHidden(roundInProgress)
-        .onChange(of: roundInProgress) { _, inProgress in store.isBlackjackRoundOpen = inProgress }
+        .onChange(of: roundInProgress) { _, inProgress in store.isTableRoundOpen = inProgress }
         .onAppear { table.setRules(tableRules) }
         .onChange(of: tableRules) { _, rules in table.setRules(rules) }
         .sensoryFeedback(trigger: settledRounds) { _, _ in
@@ -119,7 +119,7 @@ struct BlackjackView: View {
         .task(id: table.phase) { await playDealer() }
         .onAppear(perform: pickOwnedToken)
         .onDisappear {
-            store.isBlackjackRoundOpen = false
+            store.isTableRoundOpen = false
             leaveTable()
         }
         .onChange(of: scenePhase) { _, phase in
@@ -133,8 +133,8 @@ struct BlackjackView: View {
     private static let handsNudge: CGFloat = 12
 
     /// A round is on from the moment the cards are out until it's settled: the table can't be left
-    /// in between (the back button goes and the tabs hold still), so a hand can't be dodged by
-    /// leaving and coming back for a better one.
+    /// in between (the back button goes and the tab bar is greyed out), so a hand can't be dodged
+    /// by leaving and coming back for a better one.
     private var roundInProgress: Bool {
         switch table.phase {
         case .insurance, .playerTurn, .dealerTurn: true

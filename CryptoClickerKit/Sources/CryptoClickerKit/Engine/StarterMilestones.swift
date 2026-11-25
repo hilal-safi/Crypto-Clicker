@@ -35,12 +35,32 @@ extension GameState {
         }
     }
 
-    /// What claiming `milestone` pays now: coins worth its seconds of the reward income (the same
-    /// one the daily rewards use, with its floor on day one), or its Bull Run.
+    /// What a coin reward of `seconds` is worth at today's income: its seconds of the reward income
+    /// (the same one the daily rewards use, with its floor on day one), but never more than
+    /// `Tuning.starterRewardCapMultiple` times its seconds at the floor.
+    private func coinReward(seconds: Double) -> Double {
+        let cap = seconds * Tuning.minimumRewardIncome * Tuning.starterRewardCapMultiple
+        return Self.wholeCoins(min(seconds * rewardIncome, cap), minimum: 1)
+    }
+
+    /// What claiming `milestone` pays: the coins it was worth when it was completed (see
+    /// `lockStarterRewards`), or its Bull Run. A milestone nobody has looked at since it was
+    /// completed pays what it is worth now.
     public func payout(of milestone: StarterMilestone) -> StarterPayout {
         switch milestone.reward {
-        case .coins(let seconds): .coins(Self.wholeCoins(seconds * rewardIncome, minimum: 1))
+        case .coins(let seconds): .coins(starterRewardsLocked[milestone] ?? coinReward(seconds: seconds))
         case .bullRun(let seconds): .bullRun(seconds: seconds)
+        }
+    }
+
+    /// Locks in what every milestone completed since the last look is worth at today's income, so
+    /// waiting to claim it (with the income growing) doesn't change it. Claiming stays manual.
+    public mutating func lockStarterRewards() {
+        for milestone in StarterMilestone.allCases
+        where isReached(milestone) && !isClaimed(milestone) && starterRewardsLocked[milestone] == nil {
+            if case .coins(let seconds) = milestone.reward {
+                starterRewardsLocked[milestone] = coinReward(seconds: seconds)
+            }
         }
     }
 
@@ -61,6 +81,7 @@ extension GameState {
         guard isReached(milestone), !isClaimed(milestone) else { return nil }
         let paid = payout(of: milestone)
         starterMilestonesClaimed.insert(milestone)
+        starterRewardsLocked[milestone] = nil
         switch paid {
         case .coins(let amount): credit(amount, source: .daily)
         case .bullRun(let seconds): startBullRun(duration: seconds, at: now)

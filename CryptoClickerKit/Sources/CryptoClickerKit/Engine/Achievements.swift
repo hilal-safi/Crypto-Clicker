@@ -65,6 +65,8 @@ extension GameState {
     /// Earned tiers are stored, so they stay earned even if a metric could ever drop.
     @discardableResult
     public mutating func refreshAchievements() -> [EarnedTier] {
+        // The same look locks in what any starter milestone completed since the last one is worth.
+        lockStarterRewards()
         var newlyEarned: [EarnedTier] = []
         for achievement in AchievementCatalog.all {
             let current = value(of: achievement.metric)
