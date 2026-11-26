@@ -591,7 +591,7 @@ struct AchievementTests {
     @Test func catalogIsWellFormed() {
         let all = AchievementCatalog.all
         // 66 with SafeMoon's "Exchanged" achievement, 68 with Big Run and Speedrunner (prestige
-        // records, from version 2.1), and 71 with Buy Low, Sell High and the two Hard-mode badges.
+        // records, from version 2), and 71 with Buy Low, Sell High and the two Hard-mode badges.
         #expect(all.count == 71)
         #expect(Set(all.map(\.id)).count == all.count)
         #expect(AchievementCatalog.tierCount == 284)

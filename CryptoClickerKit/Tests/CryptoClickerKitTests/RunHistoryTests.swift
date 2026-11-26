@@ -42,7 +42,7 @@ struct RunHistoryTests {
         #expect(game.mostProductiveRun?.number == 1)
     }
 
-    /// Runs before the first recorded one (prestiges from before version 2.1) keep their numbers.
+    /// Runs before the first recorded one (prestiges from before version 2) keep their numbers.
     @Test func runsAreNumberedByPrestige() {
         var game = run()
         game.stats.prestiges = 7

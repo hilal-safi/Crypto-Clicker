@@ -238,7 +238,7 @@ struct StatsPage: View {
             Text("Market")
         } footer: {
             if !tokens.isEmpty {
-                SettingsNote("A token's cost is what the ones you hold that you bought cost. Those are sold first, tokens lost in the casino come out of the ones you won first, and won tokens cost nothing, so they never count as a profit or a loss. A prestige clears it with the tokens. Paid in all and Trading count every purchase and sale since version 2.1.")
+                SettingsNote("A token's cost is what the ones you hold that you bought cost. Those are sold first, tokens lost in the casino come out of the ones you won first, and won tokens cost nothing, so they never count as a profit or a loss. A prestige clears it with the tokens. Paid in all and Trading count every purchase and sale since version 2.")
             }
         }
     }

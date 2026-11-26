@@ -289,12 +289,12 @@ public struct GameState: Codable, Equatable, Sendable {
     /// The latest airdrops, caught or missed, newest last.
     public internal(set) var recentAirdrops: [AirdropLog] = []
     /// The latest finished runs (up to `Tuning.runHistoryLimit`), oldest first. Runs from before
-    /// version 2.1, which kept no history, aren't in it.
+    /// version 2, which kept no history, aren't in it.
     public internal(set) var runHistory: [RunRecord] = []
-    /// The record runs of all time, including runs that have left the history (from version 2.1).
+    /// The record runs of all time, including runs that have left the history (from version 2).
     public internal(set) var runRecords = RunRecords()
     /// The latest trades on the market (up to `Tuning.tradeHistoryLimit`), oldest first, from
-    /// version 2.1.
+    /// version 2.
     public internal(set) var recentTrades: [TokenTrade] = []
     /// The tokens of each kind held now that were bought for coins, and what they cost. The rest
     /// held were won or given (casino winnings, rewards, airdrops): they cost nothing, so they never

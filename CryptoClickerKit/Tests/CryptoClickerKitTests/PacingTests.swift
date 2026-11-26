@@ -152,7 +152,7 @@ struct SimulatedPlayer {
     }
 
     /// An average player's arcade game: about 90 seconds of income per minute played (45 before the
-    /// arcade's pay doubled in version 2.1), paid
+    /// arcade's pay doubled in version 2), paid
     /// through the game's own reward, so quests and challenges count it.
     private mutating func playArcade(minutes: Double) {
         let games = MiniGame.allCases.filter { !$0.isCasino && game.isUnlocked($0) }

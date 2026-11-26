@@ -18,7 +18,7 @@ public struct Stats: Codable, Equatable, Sendable {
     /// Steps paid for (the day after they were walked); `lifetimeSteps` counts them as they're walked.
     public internal(set) var stepsPaid = 0
     public internal(set) var bestDaySteps = 0
-    /// The most steps counted in one week (Monday to Sunday), from version 2.1.
+    /// The most steps counted in one week (Monday to Sunday), from version 2.
     public internal(set) var bestWeekSteps = 0
 
     public internal(set) var maxOwned: [MinerID: Int] = [:]
@@ -156,7 +156,7 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var invadersClassicBestWave = 0
     /// Invaders shot down, in every game.
     public internal(set) var invadersDestroyed = 0
-    /// The most waves cleared in one game on Hard, and the most Hash Smash levels (from version 2.1).
+    /// The most waves cleared in one game on Hard, and the most Hash Smash levels (from version 2).
     public internal(set) var invadersHardWaves = 0
     public internal(set) var brickBreakerHardLevels = 0
     public internal(set) var invadersWhales = 0
@@ -177,14 +177,14 @@ public struct Stats: Codable, Equatable, Sendable {
 
     public internal(set) var tokensBought: [TokenID: Int] = [:]
     /// Coins paid for tokens on the market, by token, and the tokens they bought: purchases from
-    /// version 2.1 on, when prices began to be kept (for the average price paid).
+    /// version 2 on, when prices began to be kept (for the average price paid).
     public internal(set) var coinsSpentOnTokens: [TokenID: Double] = [:]
     public internal(set) var tokensBoughtWithPrice: [TokenID: Int] = [:]
     public internal(set) var tokensSold = 0
     /// Coins received for tokens sold on the market.
     public internal(set) var coinsFromSales: Double = 0
     /// Sales for more than their share of what was paid for the tokens (after the fee); what every
-    /// sale made or lost against that, in all; and the most one sale made (from version 2.1).
+    /// sale made or lost against that, in all; and the most one sale made (from version 2).
     public internal(set) var profitableSales = 0
     public internal(set) var tradingProfit: Double = 0
     public internal(set) var bestSaleProfit: Double = 0
@@ -197,7 +197,7 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var bestAirdrop: Double = 0
     public internal(set) var prestiges = 0
     /// The most prestige points one run has earned, and the runs finished within
-    /// `Tuning.quickRunDuration` (both from version 2.1).
+    /// `Tuning.quickRunDuration` (both from version 2).
     public internal(set) var bestRunPoints = 0
     public internal(set) var quickRuns = 0
     public internal(set) var questsCompleted = 0
@@ -217,10 +217,10 @@ public struct Stats: Codable, Equatable, Sendable {
     public init() {}
 
     public var totalTokensBought: Int { tokensBought.values.reduce(0, +) }
-    /// Coins paid for tokens on the market since version 2.1.
+    /// Coins paid for tokens on the market since version 2.
     public var totalCoinsSpentOnTokens: Double { coinsSpentOnTokens.values.reduce(0, +) }
 
-    /// The average price paid for `token` on the market since version 2.1, over every purchase, or
+    /// The average price paid for `token` on the market since version 2, over every purchase, or
     /// nil before one is bought. A lifetime figure: what the tokens held now cost is
     /// `GameState.boughtTokens`.
     public func averagePricePaid(_ token: TokenID) -> Double? {

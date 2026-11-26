@@ -109,7 +109,7 @@ struct RunHistoryView: View {
             if history.isEmpty {
                 Text(game.stats.prestiges == 0
                      ? "Each run appears here once you prestige: how long it took, what it mined and the points it earned."
-                     : "Your next prestige starts the history: runs from before version 2.1 weren't recorded.")
+                     : "Your next prestige starts the history: runs from before version 2 weren't recorded.")
                     .foregroundStyle(.subtext)
             }
             ForEach(history.reversed()) { run in
@@ -122,7 +122,7 @@ struct RunHistoryView: View {
             if let first = history.first, first.number > 1 {
                 SettingsNote(history.count >= Tuning.runHistoryLimit
                              ? "The latest \(Tuning.runHistoryLimit) runs, newest first. Records count every run, including older ones."
-                             : "Newest first. Runs from before version 2.1 weren't recorded.")
+                             : "Newest first. Runs from before version 2 weren't recorded.")
             }
         }
     }
