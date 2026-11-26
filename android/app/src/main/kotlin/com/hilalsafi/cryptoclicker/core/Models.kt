@@ -20,6 +20,8 @@ data class Response(
     val play: Play?,
     val reminders: List<Reminder>?,
     val widget: Widget?,
+    /** A file for the app to write: a save file to export, or the backup folder's copy. */
+    val data: String?,
 ) {
     companion object {
         fun parse(text: String): Response = from(Json.parseObject(text))
@@ -37,6 +39,7 @@ data class Response(
             play = o.objOrNull("play")?.let(Play::from),
             reminders = o.listOrNull("reminders", Reminder::from),
             widget = o.objOrNull("widget")?.let(Widget::from),
+            data = o.stringOrNull("data"),
         )
     }
 }
@@ -76,16 +79,21 @@ data class Live(
 data class Combo(
     /** "Combo ×1.5" */
     val title: String,
-    /** "12 taps!" */
+    /** "12 taps!", or "40 taps · new best!" past the longest combo before it */
     val taps: String,
     /** At the combo's maximum: the pill turns red. */
     val isMax: Boolean,
+    /** Longer than the longest combo before this one (once that was worth beating). */
+    val isRecord: Boolean,
+    val accessibility: String,
 ) {
     companion object {
         fun from(o: JsonObject) = Combo(
             title = o.string("title"),
             taps = o.string("taps"),
             isMax = o.bool("isMax"),
+            isRecord = o.bool("isRecord"),
+            accessibility = o.string("accessibility"),
         )
     }
 }
@@ -113,6 +121,8 @@ data class GameView(
     val purchaseNote: PurchaseNote?,
     val airdrop: Airdrop?,
     val unreadableSave: UnreadableSave?,
+    /** A save from a newer version of the app, left alone until the player chooses. */
+    val newerSave: UnreadableSave?,
     val errorMessage: String?,
     /** Whether this build has the Testing Tools (debug builds only). */
     val debugTools: Boolean,
@@ -135,8 +145,14 @@ data class GameView(
     val style: Style?,
     /** The looks equipped for each kind, as "slot=cosmetic", for the game screens. */
     val looks: List<String>?,
+    /** The arcade games' start screens. */
+    val starts: Starts?,
     val mine: Mine?,
     val income: Income?,
+    /** The Mine tab's goals pop-up. */
+    val nextGoals: NextGoals?,
+    val runHistory: RunHistory?,
+    val backup: BackupPage?,
 ) {
     companion object {
         fun from(o: JsonObject) = GameView(
@@ -144,6 +160,7 @@ data class GameView(
             purchaseNote = o.objOrNull("purchaseNote")?.let(PurchaseNote::from),
             airdrop = o.objOrNull("airdrop")?.let(Airdrop::from),
             unreadableSave = o.objOrNull("unreadableSave")?.let(UnreadableSave::from),
+            newerSave = o.objOrNull("newerSave")?.let(UnreadableSave::from),
             errorMessage = o.stringOrNull("errorMessage"),
             debugTools = o.bool("debugTools"),
             dailyBadge = o.int("dailyBadge"),
@@ -161,8 +178,12 @@ data class GameView(
             guides = o.listOrNull("guides", Guide::from),
             style = o.objOrNull("style")?.let(Style::from),
             looks = o.stringsOrNull("looks"),
+            starts = o.objOrNull("starts")?.let(Starts::from),
             mine = o.objOrNull("mine")?.let(Mine::from),
             income = o.objOrNull("income")?.let(Income::from),
+            nextGoals = o.objOrNull("nextGoals")?.let(NextGoals::from),
+            runHistory = o.objOrNull("runHistory")?.let(RunHistory::from),
+            backup = o.objOrNull("backup")?.let(BackupPage::from),
         )
     }
 }
@@ -287,6 +308,14 @@ data class PurchaseNote(
     val names: String,
     /** "+2 more" when there are more names than shown. */
     val more: String?,
+    /** A purchase worth celebrating, in place of the title: "New miner: GPU Rig!" or "Milestone: 50 Desktops!", with "newMiner" or "milestone" for its icon, and how many there have been (each one sparkles). */
+    val highlight: String?,
+    val highlightKind: String?,
+    val highlights: Int,
+    /** How many times faster the miners now mine, beside a celebration: "×1.8". */
+    val incomeMultiple: String?,
+    /** Milestones reached: the newest two. */
+    val milestones: List<String>,
     val perSecond: Gain?,
     val perTap: Gain?,
     /** What a step walked from now on pays, once steps are connected. */
@@ -304,6 +333,11 @@ data class PurchaseNote(
             title = o.string("title"),
             names = o.string("names"),
             more = o.stringOrNull("more"),
+            highlight = o.stringOrNull("highlight"),
+            highlightKind = o.stringOrNull("highlightKind"),
+            highlights = o.int("highlights"),
+            incomeMultiple = o.stringOrNull("incomeMultiple"),
+            milestones = o.strings("milestones"),
             perSecond = o.objOrNull("perSecond")?.let(Gain::from),
             perTap = o.objOrNull("perTap")?.let(Gain::from),
             perStep = o.objOrNull("perStep")?.let(Gain::from),
@@ -368,6 +402,8 @@ data class UnreadableSave(
 
 /** The Shop's Power-ups page (view "shop"). */
 data class Shop(
+    /** The shortcuts at the top of the page, once the list is long enough to scroll past: "miners", "powerUps", "upgrades" and (once prestige is in sight) "prestige". */
+    val shortcuts: List<String>,
     /** Prestige would speed the player up a lot: its card leads the page instead of closing it. */
     val prestigeFirst: Boolean,
     /** The prestige card, once prestige is worth a look (recommended, or a point earned, or a tenth of the way to the first). */
@@ -390,6 +426,7 @@ data class Shop(
 ) {
     companion object {
         fun from(o: JsonObject) = Shop(
+            shortcuts = o.strings("shortcuts"),
             prestigeFirst = o.bool("prestigeFirst"),
             prestige = o.objOrNull("prestige")?.let(Prestige::from),
             minersDetail = o.string("minersDetail"),
@@ -443,6 +480,9 @@ data class PrestigeConfirm(
     val keeps: List<SymbolLine>,
     /** The first prestige also reveals new miners. */
     val firstNote: String?,
+    /** The coin finish this prestige unlocks (a prestige milestone): its raw value and the line. */
+    val finish: String?,
+    val finishNote: String?,
     val canPrestige: Boolean,
 ) {
     companion object {
@@ -451,6 +491,8 @@ data class PrestigeConfirm(
             resets = o.list("resets", SymbolLine::from),
             keeps = o.list("keeps", SymbolLine::from),
             firstNote = o.stringOrNull("firstNote"),
+            finish = o.stringOrNull("finish"),
+            finishNote = o.stringOrNull("finishNote"),
             canPrestige = o.bool("canPrestige"),
         )
     }
@@ -608,6 +650,8 @@ data class MinerUpgrade(
 data class MinerInfo(
     val blurb: String,
     val owned: String?,
+    /** What one more adds against the income, and how soon it repays its price. */
+    val payback: String?,
     val milestone: String?,
     val legacy: String?,
     /** Legacy already lifts it (the line is in Legacy's blue), rather than the line saying how it could. */
@@ -617,6 +661,7 @@ data class MinerInfo(
         fun from(o: JsonObject) = MinerInfo(
             blurb = o.string("blurb"),
             owned = o.stringOrNull("owned"),
+            payback = o.stringOrNull("payback"),
             milestone = o.stringOrNull("milestone"),
             legacy = o.stringOrNull("legacy"),
             legacyActive = o.bool("legacyActive"),
@@ -709,6 +754,8 @@ data class Upgrade(
     val category: String,
     val price: String,
     val canAfford: Boolean,
+    /** What it adds, worked out for this game: "+12% income · pays for itself in 4m". */
+    val gain: String?,
 ) {
     companion object {
         fun from(o: JsonObject) = Upgrade(
@@ -719,6 +766,7 @@ data class Upgrade(
             category = o.string("category"),
             price = o.string("price"),
             canAfford = o.bool("canAfford"),
+            gain = o.stringOrNull("gain"),
         )
     }
 }
@@ -728,17 +776,39 @@ data class Tokens(
     /** What the wallet's tokens are worth, and what selling everything would pay. */
     val holdings: String,
     val walletLine: String,
+    /** "▲ 12K (4.5%) in the last day", when the worth has moved. */
+    val dayChange: String?,
+    val dayChangeUp: Boolean,
+    /** The tokens bought at a known price against what they cost: "Paid 1.2M · now 1.4M · ▲ 16%". */
+    val portfolio: String?,
+    val portfolioUp: Boolean,
+    /** "Trading so far: +123K against what you paid · 4 sales at a profit" */
+    val trading: String?,
+    /** How trading works (iOS: MarketGuide), open until the first token is bought. */
+    val guide: List<SymbolLine>,
+    val guideStartsOpen: Boolean,
     val news: List<News>,
     val tokens: List<Token>,
-    val footnote: String,
+    /** The trades kept (the latest 50), newest first. */
+    val trades: List<Trade>,
+    /** "The latest 50 trades are kept. …", under the full list. */
+    val tradesFooter: String,
 ) {
     companion object {
         fun from(o: JsonObject) = Tokens(
             holdings = o.string("holdings"),
             walletLine = o.string("walletLine"),
+            dayChange = o.stringOrNull("dayChange"),
+            dayChangeUp = o.bool("dayChangeUp"),
+            portfolio = o.stringOrNull("portfolio"),
+            portfolioUp = o.bool("portfolioUp"),
+            trading = o.stringOrNull("trading"),
+            guide = o.list("guide", SymbolLine::from),
+            guideStartsOpen = o.bool("guideStartsOpen"),
             news = o.list("news", News::from),
             tokens = o.list("tokens", Token::from),
-            footnote = o.string("footnote"),
+            trades = o.list("trades", Trade::from),
+            tradesFooter = o.string("tradesFooter"),
         )
     }
 }
@@ -810,6 +880,8 @@ data class TradeOption(
     /** The price, or what the sale pays ("+1.2M"), or "None owned". */
     val value: String,
     val enabled: Boolean,
+    /** For a sale: the fee, the coins and how it compares with what the tokens cost. */
+    val preview: SalePreview?,
 ) {
     companion object {
         fun from(o: JsonObject) = TradeOption(
@@ -817,6 +889,51 @@ data class TradeOption(
             label = o.string("label"),
             value = o.string("value"),
             enabled = o.bool("enabled"),
+            preview = o.objOrNull("preview")?.let(SalePreview::from),
+        )
+    }
+}
+
+/** What a Sell button would do, in full (iOS: SalePreviewLine). */
+data class SalePreview(
+    /** "Selling 10: 1.2M − 120K fee = 1.08M coins" */
+    val line: String,
+    /** "▲ 50K (4.8%) against what they cost", when some were bought. */
+    val profit: String?,
+    val profitUp: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = SalePreview(
+            line = o.string("line"),
+            profit = o.stringOrNull("profit"),
+            profitUp = o.bool("profitUp"),
+        )
+    }
+}
+
+/** A trade on the market (iOS: TradeRow). */
+data class Trade(
+    val id: String,
+    val token: String,
+    /** "Bought 10 BTC" or "Sold 10 BTC" */
+    val title: String,
+    /** When it was made, in seconds since 1970. */
+    val date: Double,
+    /** "−1.2M" paid, or "+1.1M" received. */
+    val coins: String,
+    /** For a sale of bought tokens: "▲ 50K" against what they cost. */
+    val profit: String?,
+    val profitUp: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = Trade(
+            id = o.string("id"),
+            token = o.string("token"),
+            title = o.string("title"),
+            date = o.double("date"),
+            coins = o.string("coins"),
+            profit = o.stringOrNull("profit"),
+            profitUp = o.bool("profitUp"),
         )
     }
 }
@@ -925,6 +1042,8 @@ data class Starter(
 
 data class Goal(
     val id: String,
+    /** What kind of goal it is ("miner", "milestone", "upgrade", "game", "achievement", "arcadeRank", "tokenSwap" or "prestige"): tapping it goes where it's done. */
+    val kind: String,
     val title: String,
     val detail: String,
     val progress: Double,
@@ -934,10 +1053,13 @@ data class Goal(
     val symbol: String,
     /** The goal kind's colour, by name or "#RRGGBB". */
     val color: String,
+    /** Where tapping it goes, for TalkBack: "Opens the Shop". */
+    val destination: String,
 ) {
     companion object {
         fun from(o: JsonObject) = Goal(
             id = o.string("id"),
+            kind = o.string("kind"),
             title = o.string("title"),
             detail = o.string("detail"),
             progress = o.double("progress"),
@@ -945,6 +1067,7 @@ data class Goal(
             ready = o.bool("ready"),
             symbol = o.string("symbol"),
             color = o.string("color"),
+            destination = o.string("destination"),
         )
     }
 }
@@ -1089,7 +1212,7 @@ data class Achievements(
     val fraction: Double,
     /** "3 more for the Silver coin" */
     val nextFinish: String?,
-    val cards: List<Achievement>,
+    val collections: List<AchievementCollection>,
 ) {
     companion object {
         fun from(o: JsonObject) = Achievements(
@@ -1097,6 +1220,30 @@ data class Achievements(
             bonus = o.string("bonus"),
             fraction = o.double("fraction"),
             nextFinish = o.stringOrNull("nextFinish"),
+            collections = o.list("collections", AchievementCollection::from),
+        )
+    }
+}
+
+/** A group of achievements (iOS: AchievementCollection and CollectionHeader): Mining, Fleet, Arcade, Casino, Market, Daily and Prestige, each with its share of the stars. */
+data class AchievementCollection(
+    val id: String,
+    val name: String,
+    val symbol: String,
+    /** "3 of 12 stars" */
+    val stars: String,
+    val fraction: Double,
+    val isComplete: Boolean,
+    val cards: List<Achievement>,
+) {
+    companion object {
+        fun from(o: JsonObject) = AchievementCollection(
+            id = o.string("id"),
+            name = o.string("name"),
+            symbol = o.string("symbol"),
+            stars = o.string("stars"),
+            fraction = o.double("fraction"),
+            isComplete = o.bool("isComplete"),
             cards = o.list("cards", Achievement::from),
         )
     }
@@ -1189,6 +1336,8 @@ data class MiniGameRow(
     val color: String,
     val textColorDark: String,
     val isUnlocked: Boolean,
+    /** Unlocked and never played: a New badge until it is. */
+    val isNew: Boolean,
     val canAfford: Boolean,
     val unlockPrice: String,
     val records: List<RecordFact>,
@@ -1202,6 +1351,7 @@ data class MiniGameRow(
             color = o.string("color"),
             textColorDark = o.string("textColorDark"),
             isUnlocked = o.bool("isUnlocked"),
+            isNew = o.bool("isNew"),
             canAfford = o.bool("canAfford"),
             unlockPrice = o.string("unlockPrice"),
             records = o.list("records", RecordFact::from),
@@ -1362,15 +1512,72 @@ data class Cosmetic(
     }
 }
 
+/** Every arcade game's start-screen lines: its modes' records and what's particular today. */
+data class Starts(
+    val snake: SnakeStart,
+) {
+    companion object {
+        fun from(o: JsonObject) = Starts(
+            snake = SnakeStart.from(o.obj("snake")),
+        )
+    }
+}
+
+data class SnakeStart(
+    val classic: String,
+    val rush: String,
+    val arenas: List<SnakeArena>,
+    val speeds: List<Choice>,
+) {
+    companion object {
+        fun from(o: JsonObject) = SnakeStart(
+            classic = o.string("classic"),
+            rush = o.string("rush"),
+            arenas = o.list("arenas", SnakeArena::from),
+            speeds = o.list("speeds", Choice::from),
+        )
+    }
+}
+
+data class SnakeArena(
+    val id: String,
+    val name: String,
+    /** The arena's walls, x, y, x, y… */
+    val walls: List<Int>,
+) {
+    companion object {
+        fun from(o: JsonObject) = SnakeArena(
+            id = o.string("id"),
+            name = o.string("name"),
+            walls = o.ints("walls"),
+        )
+    }
+}
+
+/** One of a few choices (a table, a machine, a rocket). */
+data class Choice(
+    val id: String,
+    val name: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = Choice(
+            id = o.string("id"),
+            name = o.string("name"),
+        )
+    }
+}
+
 /** The Mine tab under the balance and the coin (iOS: MineView). */
 data class Mine(
-    /** The coin's looks that the player's achievement stars have unlocked (`CoinFinish`, `CoinRim` and `CoinTapEffect` raw values). A look picked and locked again (after a reset) falls back to the plain one, as on iOS. */
+    /** The coin's looks that the player's achievement stars (and, for the last finishes, prestiges) have unlocked (`CoinFinish`, `CoinRim` and `CoinTapEffect` raw values). A look picked and locked again (after a reset) falls back to the plain one, as on iOS. */
     val finishes: List<String>,
     val rims: List<String>,
     val tapEffects: List<String>,
     /** The tips that apply now, in the order they're offered; the app leaves out the ones the player closed and shows the first. */
     val tips: List<Tip>,
     val inventory: Inventory,
+    /** The goals button beside the tokens: the goal closest to done (or the prestige the Shop suggests), for its ring. Nil once there's nothing left to buy or unlock. */
+    val goal: GoalRing?,
     /** Steps on this phone, once they're unlocked (2,000 taps); nil until then. */
     val steps: Steps?,
     /** The prestige points, from the first prestige on. */
@@ -1383,6 +1590,7 @@ data class Mine(
             tapEffects = o.strings("tapEffects"),
             tips = o.list("tips", Tip::from),
             inventory = Inventory.from(o.obj("inventory")),
+            goal = o.objOrNull("goal")?.let(GoalRing::from),
             steps = o.objOrNull("steps")?.let(Steps::from),
             prestige = o.objOrNull("prestige")?.let(PrestigePoints::from),
         )
@@ -1391,7 +1599,7 @@ data class Mine(
 
 /** A first-run tip (iOS: GuideTip). */
 data class Tip(
-    /** "tapCoin", "buyMiner", "combo", "offlineMining", "howToPlay", "daily" or "prestige": what closing it remembers, and where its button goes. */
+    /** "tapCoin", "buyMiner", "combo", "offlineMining", "nextTier", "howToPlay", "daily", "tokens", "firstPoint" or "prestige": what closing it remembers, and where its button goes. */
     val id: String,
     val icon: String,
     val text: String,
@@ -1467,6 +1675,22 @@ data class InventoryToken(
         fun from(o: JsonObject) = InventoryToken(
             id = o.string("id"),
             count = o.string("count"),
+        )
+    }
+}
+
+/** The goals button's ring (iOS: GoalsButton): it fills as the closest goal nears, and is green with a checkered flag once it's ready. */
+data class GoalRing(
+    val progress: Double,
+    val isReady: Boolean,
+    /** "Next: Buy a GPU Rig, 45%" */
+    val accessibility: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = GoalRing(
+            progress = o.double("progress"),
+            isReady = o.bool("isReady"),
+            accessibility = o.string("accessibility"),
         )
     }
 }
@@ -1553,6 +1777,241 @@ data class Income(
     }
 }
 
+/** The Mine tab's goals pop-up (view "nextGoals"; iOS: GoalsSheet): the goal closest to done first, then the rest of the next goals. */
+data class NextGoals(
+    /** A starter milestone is ready to claim on the Goals page. */
+    val starterToClaim: Boolean,
+    val goals: List<Goal>,
+) {
+    companion object {
+        fun from(o: JsonObject) = NextGoals(
+            starterToClaim = o.bool("starterToClaim"),
+            goals = o.list("goals", Goal::from),
+        )
+    }
+}
+
+/** The run history (view "runHistory"), opened from the Prestige card and from Statistics. */
+data class RunHistory(
+    val milestones: List<PrestigeMilestone>,
+    /** "You've prestiged 3 times. Each milestone unlocks a finish for the coin: …" */
+    val milestonesFooter: String,
+    /** "Run 4, so far" */
+    val currentTitle: String,
+    val current: List<Line>,
+    /** How this run measures up to the best finished ones. */
+    val currentFooter: String?,
+    /** The fastest run, the most points and so on, once a run has finished; empty before. */
+    val records: List<Line>,
+    /** The latest runs (up to 30), oldest first, for the chart; empty with fewer than two. */
+    val chart: List<RunBar>,
+    /** The coins chart's scale (it's logarithmic): a line at each power of ten it spans. */
+    val coinTicks: List<ChartTick>,
+    val chartFooter: String?,
+    /** Every run kept, newest first. */
+    val runs: List<RunRow>,
+    /** Shown while there are no runs. */
+    val runsEmpty: String?,
+    val runsFooter: String?,
+) {
+    companion object {
+        fun from(o: JsonObject) = RunHistory(
+            milestones = o.list("milestones", PrestigeMilestone::from),
+            milestonesFooter = o.string("milestonesFooter"),
+            currentTitle = o.string("currentTitle"),
+            current = o.list("current", Line::from),
+            currentFooter = o.stringOrNull("currentFooter"),
+            records = o.list("records", Line::from),
+            chart = o.list("chart", RunBar::from),
+            coinTicks = o.list("coinTicks", ChartTick::from),
+            chartFooter = o.stringOrNull("chartFooter"),
+            runs = o.list("runs", RunRow::from),
+            runsEmpty = o.stringOrNull("runsEmpty"),
+            runsFooter = o.stringOrNull("runsFooter"),
+        )
+    }
+}
+
+/** A prestige milestone (iOS: MilestoneRow): the coin finish it unlocks, and whether it's reached. */
+data class PrestigeMilestone(
+    /** The finish (`CoinFinish` raw value), for its picture. */
+    val finish: String,
+    /** "First prestige", "5 prestiges" */
+    val title: String,
+    /** "Forged coin finish" */
+    val detail: String,
+    val reached: Boolean,
+    /** "Unlocked", or "3 to go" */
+    val status: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = PrestigeMilestone(
+            finish = o.string("finish"),
+            title = o.string("title"),
+            detail = o.string("detail"),
+            reached = o.bool("reached"),
+            status = o.string("status"),
+        )
+    }
+}
+
+/** One run on the chart: the points it earned, how long it took (in hours) and the coins it mined. */
+data class RunBar(
+    val number: Int,
+    val points: Double,
+    val hours: Double,
+    val coins: Double,
+) {
+    companion object {
+        fun from(o: JsonObject) = RunBar(
+            number = o.int("number"),
+            points = o.double("points"),
+            hours = o.double("hours"),
+            coins = o.double("coins"),
+        )
+    }
+}
+
+data class ChartTick(
+    val value: Double,
+    val label: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = ChartTick(
+            value = o.double("value"),
+            label = o.string("label"),
+        )
+    }
+}
+
+/** One finished run (iOS: RunRow). */
+data class RunRow(
+    val number: Int,
+    /** "Run 3" */
+    val title: String,
+    /** "+12 points" */
+    val points: String,
+    /** "2d 4h · 1.2B mined · 7 tiers" */
+    val line: String,
+    /** When it ended (seconds since 1970), and its income then: "12.3K". */
+    val endedAt: Double,
+    val income: String,
+    val isFastest: Boolean,
+    val isBiggest: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = RunRow(
+            number = o.int("number"),
+            title = o.string("title"),
+            points = o.string("points"),
+            line = o.string("line"),
+            endedAt = o.double("endedAt"),
+            income = o.string("income"),
+            isFastest = o.bool("isFastest"),
+            isBiggest = o.bool("isBiggest"),
+        )
+    }
+}
+
+/** Settings › Backup and Save Files (view "backup"; iOS: BackupView). */
+data class BackupPage(
+    /** When the latest copy on this phone was made (seconds since 1970), or nil before the first. */
+    val lastBackup: Double?,
+    /** The backups to restore, newest first: the folder's copy, then this phone's. */
+    val entries: List<BackupEntry>,
+    /** The picked folder, when there is one. */
+    val folder: BackupFolder?,
+    /** A copy waiting for the player to confirm it replaces the game here. */
+    val pending: PendingCopy?,
+    /** Why a save file or a backup couldn't be opened. */
+    val problem: String?,
+) {
+    companion object {
+        fun from(o: JsonObject) = BackupPage(
+            lastBackup = o.doubleOrNull("lastBackup"),
+            entries = o.list("entries", BackupEntry::from),
+            folder = o.objOrNull("folder")?.let(BackupFolder::from),
+            pending = o.objOrNull("pending")?.let(PendingCopy::from),
+            problem = o.stringOrNull("problem"),
+        )
+    }
+}
+
+data class BackupEntry(
+    /** What restores it (`backup.restore`). */
+    val id: String,
+    /** When the game in it was last played (seconds since 1970). */
+    val savedAt: Double,
+    /** "Latest on this phone", "Daily copy", "Before a reset"… */
+    val place: String,
+    /** "12.3M coins mined · 2 prestiges" */
+    val holds: String,
+    val fromAnotherDevice: Boolean,
+) {
+    companion object {
+        fun from(o: JsonObject) = BackupEntry(
+            id = o.string("id"),
+            savedAt = o.double("savedAt"),
+            place = o.string("place"),
+            holds = o.string("holds"),
+            fromAnotherDevice = o.bool("fromAnotherDevice"),
+        )
+    }
+}
+
+data class BackupFolder(
+    val name: String,
+    /** When the app last wrote the copy there (seconds since 1970). */
+    val backedUpAt: Double?,
+    /** Why the last copy couldn't be written. */
+    val failure: String?,
+    /** Why the copy there isn't replaced by the game here by itself, when it isn't. */
+    val conflict: BackupConflict?,
+) {
+    companion object {
+        fun from(o: JsonObject) = BackupFolder(
+            name = o.string("name"),
+            backedUpAt = o.doubleOrNull("backedUpAt"),
+            failure = o.stringOrNull("failure"),
+            conflict = o.objOrNull("conflict")?.let(BackupConflict::from),
+        )
+    }
+}
+
+/** Why a backup isn't replaced (iOS: ConflictNote): "furtherOn", "otherGame" or "newerVersion", with what the copy holds and when it was made. */
+data class BackupConflict(
+    val kind: String,
+    /** "12.3M coins mined, 2 prestiges" */
+    val holds: String,
+    val savedAt: Double,
+) {
+    companion object {
+        fun from(o: JsonObject) = BackupConflict(
+            kind = o.string("kind"),
+            holds = o.string("holds"),
+            savedAt = o.double("savedAt"),
+        )
+    }
+}
+
+/** A copy waiting to replace the game here (iOS: PendingCopy). */
+data class PendingCopy(
+    /** "this backup", "this save file" */
+    val source: String,
+    /** When the game in it was last played (seconds since 1970). */
+    val savedAt: Double,
+    /** "12.3M coins mined, 2 prestiges" */
+    val holds: String,
+) {
+    companion object {
+        fun from(o: JsonObject) = PendingCopy(
+            source = o.string("source"),
+            savedAt = o.double("savedAt"),
+            holds = o.string("holds"),
+        )
+    }
+}
+
 /** A short message at the top of the screen: an achievement, a quest paid, a bet returned. */
 data class Toast(
     val id: Int,
@@ -1628,6 +2087,7 @@ data class Play(
     val poker: PokerFrame?,
     val slots: SlotsFrame?,
     val moon: MoonFrame?,
+    val snake: SnakeFrame?,
 ) {
     companion object {
         fun from(o: JsonObject) = Play(
@@ -1636,6 +2096,7 @@ data class Play(
             poker = o.objOrNull("poker")?.let(PokerFrame::from),
             slots = o.objOrNull("slots")?.let(SlotsFrame::from),
             moon = o.objOrNull("moon")?.let(MoonFrame::from),
+            snake = o.objOrNull("snake")?.let(SnakeFrame::from),
         )
     }
 }
@@ -1712,19 +2173,6 @@ data class BlackjackFrame(
             rounds = o.int("rounds"),
             feedback = o.stringOrNull("feedback"),
             celebration = o.stringOrNull("celebration"),
-        )
-    }
-}
-
-/** One of a few choices (a table, a machine, a rocket). */
-data class Choice(
-    val id: String,
-    val name: String,
-) {
-    companion object {
-        fun from(o: JsonObject) = Choice(
-            id = o.string("id"),
-            name = o.string("name"),
         )
     }
 }
@@ -2206,6 +2654,151 @@ data class MoonResult(
             title = o.string("title"),
             bonus = o.stringOrNull("bonus"),
             xp = o.objOrNull("xp")?.let(XP::from),
+        )
+    }
+}
+
+data class SnakeFrame(
+    val state: ArcadeState,
+    /** The screen's title ("Hash Chain", an arena's name, or "Coin Rush"), and the start card's ("Coin Rush", or the arena's name: "Open"). */
+    val title: String,
+    val readyTitle: String,
+    /** "Classic · Normal speed" */
+    val intro: String,
+    val isRush: Boolean,
+    val width: Int,
+    val height: Int,
+    /** Head first, x, y, x, y… */
+    val body: List<Int>,
+    val walls: List<Int>,
+    val coins: List<Int>,
+    val item: SnakeItem?,
+    val magnetReach: Int,
+    val magnet: Boolean,
+    val speedBoost: Boolean,
+    val hasShield: Boolean,
+    val grace: Int,
+    val score: Int,
+    val blocks: Int,
+    /** Seconds left in a Coin Rush. */
+    val timeLeft: Int,
+    val effects: List<SnakeEffect>,
+    /** Seconds until the next move. */
+    val tickInterval: Double,
+    val eaten: Int,
+    /** Power-ups picked up, and the last one, for the banner. */
+    val pickups: Int,
+    val pickedUp: String?,
+    val pickedUpName: String?,
+) {
+    companion object {
+        fun from(o: JsonObject) = SnakeFrame(
+            state = ArcadeState.from(o.obj("state")),
+            title = o.string("title"),
+            readyTitle = o.string("readyTitle"),
+            intro = o.string("intro"),
+            isRush = o.bool("isRush"),
+            width = o.int("width"),
+            height = o.int("height"),
+            body = o.ints("body"),
+            walls = o.ints("walls"),
+            coins = o.ints("coins"),
+            item = o.objOrNull("item")?.let(SnakeItem::from),
+            magnetReach = o.int("magnetReach"),
+            magnet = o.bool("magnet"),
+            speedBoost = o.bool("speedBoost"),
+            hasShield = o.bool("hasShield"),
+            grace = o.int("grace"),
+            score = o.int("score"),
+            blocks = o.int("blocks"),
+            timeLeft = o.int("timeLeft"),
+            effects = o.list("effects", SnakeEffect::from),
+            tickInterval = o.double("tickInterval"),
+            eaten = o.int("eaten"),
+            pickups = o.int("pickups"),
+            pickedUp = o.stringOrNull("pickedUp"),
+            pickedUpName = o.stringOrNull("pickedUpName"),
+        )
+    }
+}
+
+/** Where an arcade game is, for its screen. */
+data class ArcadeState(
+    /** ready (the start card), playing, or over (the game-over card) */
+    val phase: String,
+    /** Games started on this screen, so the app restarts its clock for each. */
+    val run: Int,
+    val best: Int,
+    val over: GameOver?,
+) {
+    companion object {
+        fun from(o: JsonObject) = ArcadeState(
+            phase = o.string("phase"),
+            run = o.int("run"),
+            best = o.int("best"),
+            over = o.objOrNull("over")?.let(GameOver::from),
+        )
+    }
+}
+
+/** What a finished arcade game earned (iOS: GameOverSummary). */
+data class GameOver(
+    /** "Game Over", "Time's Up" */
+    val title: String,
+    val score: String,
+    val isNewBest: Boolean,
+    /** "New best! +50% coins", or "Best 12,345". */
+    val bestLine: String,
+    val reward: String,
+    val details: List<String>,
+    /** "Daily challenge complete!" and what it paid. */
+    val challenge: String?,
+    val xp: XP?,
+) {
+    companion object {
+        fun from(o: JsonObject) = GameOver(
+            title = o.string("title"),
+            score = o.string("score"),
+            isNewBest = o.bool("isNewBest"),
+            bestLine = o.string("bestLine"),
+            reward = o.string("reward"),
+            details = o.strings("details"),
+            challenge = o.stringOrNull("challenge"),
+            xp = o.objOrNull("xp")?.let(XP::from),
+        )
+    }
+}
+
+data class SnakeItem(
+    val kind: String,
+    val x: Int,
+    val y: Int,
+    /** The share of its time left on the board. */
+    val share: Double,
+) {
+    companion object {
+        fun from(o: JsonObject) = SnakeItem(
+            kind = o.string("kind"),
+            x = o.int("x"),
+            y = o.int("y"),
+            share = o.double("share"),
+        )
+    }
+}
+
+data class SnakeEffect(
+    val kind: String,
+    val name: String,
+    /** The share of its time left, or nil for one without a timer (the shield, "Ready"). */
+    val share: Double?,
+    val secondsLeft: Int?,
+) {
+    companion object {
+        fun from(o: JsonObject) = SnakeEffect(
+            kind = o.string("kind"),
+            name = o.string("name"),
+            share = o.doubleOrNull("share"),
+            secondsLeft = o.intOrNull("secondsLeft"),
         )
     }
 }

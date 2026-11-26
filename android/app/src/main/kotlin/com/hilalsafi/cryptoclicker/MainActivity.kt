@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
                 onDispose {}
             }
             CryptoClickerTheme(dark = dark) {
-                AppRoot(game = app.game, prefs = app.prefs)
+                AppRoot(game = app.game, prefs = app.prefs, backups = app.backups)
             }
         }
     }

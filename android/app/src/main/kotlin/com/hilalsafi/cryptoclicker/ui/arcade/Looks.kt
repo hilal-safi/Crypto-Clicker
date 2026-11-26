@@ -101,6 +101,23 @@ object Looks {
         "moonSaucer" -> "🛸"
         else -> "🚀"
     }
+
+    /** A Hash Chain board's fill, its ledger lines and its rim. */
+    data class SnakeBoard(val fill: Color, val grid: Color, val rim: Color)
+
+    fun snakeBoard(look: String): SnakeBoard = when (look) {
+        "snakeBoardMatrix" -> SnakeBoard(rgb(0.0, 0.05, 0.015).copy(alpha = 0.93f), rgb(0.25, 1.0, 0.45).copy(alpha = 0.11f),
+            rgb(0.25, 1.0, 0.45).copy(alpha = 0.4f))
+        "snakeBoardBlueprint" -> SnakeBoard(rgb(0.05, 0.16, 0.38).copy(alpha = 0.93f), Color.White.copy(alpha = 0.13f), Color.White.copy(alpha = 0.4f))
+        else -> SnakeBoard(rgb(0.03, 0.09, 0.13).copy(alpha = 0.9f), Palette.cyan.copy(alpha = 0.07f), Palette.cyan.copy(alpha = 0.3f))
+    }
+
+    /** A Hash Chain block in a skin: bright at the head ([shade] 0), deeper toward the tail (1). */
+    fun snakeColor(look: String, shade: Float, index: Int): Color = when (look) {
+        "snakeGold" -> Color(1f - 0.25f * shade, 0.82f - 0.35f * shade, 0.25f - 0.2f * shade)
+        "snakeRainbow" -> Color.hsv((index % 14) / 14f * 360f, 0.7f, 1f - 0.3f * shade)
+        else -> Color(0.55f - 0.35f * shade, 0.95f - 0.35f * shade, 0.30f - 0.15f * shade)
+    }
 }
 
 /** The look equipped for each kind (`CosmeticSlot.rawValue` to `Cosmetic.rawValue`). */
@@ -258,6 +275,24 @@ fun CosmeticPreview(slot: String, look: String, modifier: Modifier = Modifier) {
                 Emoji("🎰", 20.sp, Modifier.align(Alignment.Center))
             }
             "moonSky" -> PreviewTile(shape) { MoonSkyBackground(look) }
+            // Five blocks of the chain, tail to head.
+            "snake" -> Row(Modifier.size(52.dp, 48.dp), horizontalArrangement = Arrangement.spacedBy(1.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically) {
+                repeat(5) { index ->
+                    Box(Modifier.size(9.dp, 12.dp).clip(RoundedCornerShape(3.dp)).background(Looks.snakeColor(look, (4 - index) / 4f, 4 - index)))
+                }
+            }
+            "snakeBoard" -> {
+                val board = Looks.snakeBoard(look)
+                Canvas(Modifier.size(48.dp).clip(shape).background(board.fill).border(1.dp, board.rim, shape)) {
+                    val grid = board.grid.copy(alpha = (board.grid.alpha * 3).coerceAtMost(1f))
+                    for (step in 1 until 4) {
+                        val at = size.width * step / 4
+                        drawLine(grid, Offset(at, 0f), Offset(at, size.height), 0.8.dp.toPx())
+                        drawLine(grid, Offset(0f, at), Offset(size.width, at), 0.8.dp.toPx())
+                    }
+                }
+            }
             else -> PreviewTile(shape) {
                 Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Palette.arcade, Palette.indigo))))
             }

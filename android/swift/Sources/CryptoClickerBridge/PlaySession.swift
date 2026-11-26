@@ -13,12 +13,15 @@ protocol PlaySession: AnyObject {
     /// The app went to the background with the game open: hold the run, or refund the bet, as the
     /// iOS game screens do.
     func background(session: GameSession)
+    /// The app came back with the game open: let go of a held run.
+    func foreground(session: GameSession)
     /// The game screen closed.
     func close(session: GameSession)
 }
 
 extension PlaySession {
     func background(session: GameSession) {}
+    func foreground(session: GameSession) {}
     func close(session: GameSession) {}
 }
 
@@ -30,12 +33,13 @@ struct PlayView: Encodable {
     let poker: PokerFrameView?
     let slots: SlotsFrameView?
     let moon: MoonFrameView?
+    let snake: SnakeFrameView?
 }
 
 extension PlayView {
     init(_ game: MiniGame, blackjack: BlackjackFrameView? = nil, poker: PokerFrameView? = nil,
-         slots: SlotsFrameView? = nil, moon: MoonFrameView? = nil) {
-        self.init(game: game.rawValue, blackjack: blackjack, poker: poker, slots: slots, moon: moon)
+         slots: SlotsFrameView? = nil, moon: MoonFrameView? = nil, snake: SnakeFrameView? = nil) {
+        self.init(game: game.rawValue, blackjack: blackjack, poker: poker, slots: slots, moon: moon, snake: snake)
     }
 }
 
@@ -69,6 +73,7 @@ extension Bridge {
         case .videoPoker: return PokerPlay(session: session)
         case .slots: return SlotsPlay(request, session: session)
         case .moon: return MoonPlay(request, session: session)
+        case .snake: return SnakePlay(request, session: session)
         default: throw BridgeError(message: "\(game.name) isn't on Android yet.")
         }
     }

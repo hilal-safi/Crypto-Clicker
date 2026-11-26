@@ -3,6 +3,7 @@ package com.hilalsafi.cryptoclicker.ui.arcade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -11,16 +12,20 @@ import androidx.compose.material.icons.rounded.Construction
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.hilalsafi.cryptoclicker.ui.LocalPrefs
 import com.hilalsafi.cryptoclicker.ui.Navigator
 import com.hilalsafi.cryptoclicker.ui.arcade.casino.BlackjackScreen
 import com.hilalsafi.cryptoclicker.ui.arcade.casino.MoonScreen
 import com.hilalsafi.cryptoclicker.ui.arcade.casino.PokerScreen
 import com.hilalsafi.cryptoclicker.ui.arcade.casino.SlotsScreen
+import com.hilalsafi.cryptoclicker.ui.arcade.games.SnakePlayScreen
+import com.hilalsafi.cryptoclicker.ui.arcade.games.SnakeStartScreen
 import com.hilalsafi.cryptoclicker.ui.design.Type
 import com.hilalsafi.cryptoclicker.ui.theme.Palette
 
@@ -29,15 +34,21 @@ import com.hilalsafi.cryptoclicker.ui.theme.Palette
  * straight into a mode (today's challenge).
  */
 @Composable
-fun GameRoute(route: String, navigator: Navigator) {
+fun GameRoute(route: String, navigator: Navigator, contentPadding: PaddingValues) {
     val parts = route.split('/')
     val id = parts.getOrNull(1) ?: return
+    val mode = if (parts.firstOrNull() == "play") parts.getOrNull(2) else null
     val back: () -> Unit = { navigator.pop() }
+    val bottom = contentPadding.calculateBottomPadding()
+    // Opening a game notes it for the Arcade's Jump back in.
+    val prefs = LocalPrefs.current
+    LaunchedEffect(id) { prefs.noteOpened(id) }
     when (id) {
         "blackjack" -> BlackjackScreen(back)
         "videoPoker" -> PokerScreen(back)
         "slots" -> SlotsScreen(back)
         "moon" -> MoonScreen(back)
+        "snake" -> if (mode != null) SnakePlayScreen(mode, back) else SnakeStartScreen(back, bottom) { navigator.push("play/snake/$it") }
         else -> UnfinishedGame(back)
     }
 }

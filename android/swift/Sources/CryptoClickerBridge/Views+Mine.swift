@@ -6,9 +6,9 @@ import CryptoClickerKit
 
 /// The Mine tab under the balance and the coin (iOS: MineView).
 struct MineView: Encodable {
-    /// The coin's looks that the player's achievement stars have unlocked (`CoinFinish`, `CoinRim`
-    /// and `CoinTapEffect` raw values). A look picked and locked again (after a reset) falls back
-    /// to the plain one, as on iOS.
+    /// The coin's looks that the player's achievement stars (and, for the last finishes, prestiges)
+    /// have unlocked (`CoinFinish`, `CoinRim` and `CoinTapEffect` raw values). A look picked and
+    /// locked again (after a reset) falls back to the plain one, as on iOS.
     let finishes: [String]
     let rims: [String]
     let tapEffects: [String]
@@ -16,16 +16,28 @@ struct MineView: Encodable {
     /// player closed and shows the first.
     let tips: [TipView]
     let inventory: InventoryView
+    /// The goals button beside the tokens: the goal closest to done (or the prestige the Shop
+    /// suggests), for its ring. Nil once there's nothing left to buy or unlock.
+    let goal: GoalRingView?
     /// Steps on this phone, once they're unlocked (2,000 taps); nil until then.
     let steps: StepsView?
     /// The prestige points, from the first prestige on.
     let prestige: PrestigePointsView?
 }
 
+/// The goals button's ring (iOS: GoalsButton): it fills as the closest goal nears, and is green
+/// with a checkered flag once it's ready.
+struct GoalRingView: Encodable {
+    let progress: Double
+    let isReady: Bool
+    /// "Next: Buy a GPU Rig, 45%"
+    let accessibility: String
+}
+
 /// A first-run tip (iOS: GuideTip).
 struct TipView: Encodable {
-    /// "tapCoin", "buyMiner", "combo", "offlineMining", "howToPlay", "daily" or "prestige": what
-    /// closing it remembers, and where its button goes.
+    /// "tapCoin", "buyMiner", "combo", "offlineMining", "nextTier", "howToPlay", "daily", "tokens",
+    /// "firstPoint" or "prestige": what closing it remembers, and where its button goes.
     let id: String
     let icon: String
     let text: String
@@ -152,7 +164,7 @@ struct LineView: Encodable {
 
 /// The first-run tips, in the order they're offered (iOS: GuideTip).
 enum GuideTip: String, CaseIterable {
-    case tapCoin, buyMiner, combo, offlineMining, howToPlay, daily, prestige
+    case tapCoin, buyMiner, combo, offlineMining, nextTier, howToPlay, daily, tokens, firstPoint, prestige
 
     var icon: String {
         switch self {
@@ -160,20 +172,38 @@ enum GuideTip: String, CaseIterable {
         case .buyMiner: "💻"
         case .combo: "🔥"
         case .offlineMining: "🌙"
+        case .nextTier: "🚀"
         case .howToPlay: "📖"
         case .daily: "🎁"
+        case .tokens: "🪙"
+        case .firstPoint: "✨"
         case .prestige: "🌟"
         }
     }
 
-    var text: String {
+    func text(in game: GameState) -> String {
         switch self {
+        case .nextTier:
+            let miner = Self.nextTier(in: game) ?? .desktop
+            return "You can afford \(miner.article) \(miner.name). Each new tier earns far more a second than the one before."
+        case .firstPoint:
+            let points = CoinFormat.grouped(game.prestigePointsToRecommend)
+            return "Your first prestige point is earned, but prestiging now would barely speed you up. Keep mining: the Shop suggests it at \(points) points."
+        default:
+            return text
+        }
+    }
+
+    private var text: String {
+        switch self {
+        case .nextTier, .firstPoint: ""
         case .tapCoin: "Tap the coin to mine your first coins."
         case .buyMiner: "You can afford a Chromebook. Miners earn coins for you every second."
         case .combo: "Tap quickly to build a combo: up to twice the coins per tap."
         case .offlineMining: "Miners keep earning for six minutes after you leave, at a share of your income that Offline Efficiency raises. Offline Mining lengthens the time."
         case .howToPlay: "How to Play is in the Settings tab, with the full rules for every game."
         case .daily: "A daily reward is waiting. Claim one every day to build a streak, and check the day's quests."
+        case .tokens: "Casino games are played with tokens from the Shop. Their prices move every five minutes, but they're the game's own, not real crypto."
         case .prestige: "Prestiging now would speed you up a lot. Your points also buy permanent perks."
         }
     }
@@ -181,12 +211,19 @@ enum GuideTip: String, CaseIterable {
     var actionTitle: String? {
         switch self {
         case .tapCoin, .combo: nil
-        case .buyMiner: "Shop"
+        case .buyMiner, .nextTier: "Shop"
         case .offlineMining: "Get It"
         case .howToPlay: "Open"
         case .daily: "Daily"
+        case .tokens: "Tokens"
+        case .firstPoint: "Details"
         case .prestige: "Prestige"
         }
+    }
+
+    /// The first of the early tiers (Desktop to Data Center) not owned yet, once it shows in the Shop.
+    static func nextTier(in game: GameState) -> MinerID? {
+        MinerID.allCases.prefix(5).dropFirst().first { game.isRevealed($0) && game.owned($0) == 0 }
     }
 
     func applies(to game: GameState, dailyRewardReady: Bool) -> Bool {
@@ -199,10 +236,17 @@ enum GuideTip: String, CaseIterable {
             game.stats.bestCombo < 10 && game.stats.taps >= 60
         case .offlineMining:
             game.offlineMiningLevel == 0 && game.totalMiners >= 3 && game.offlineMiningPrice.map { game.coins >= $0 } == true
+        case .nextTier:
+            game.stats.prestiges == 0 && Self.nextTier(in: game).map { game.coins >= game.price(of: $0, quantity: 1) } == true
         case .howToPlay:
             (2...15).contains(game.totalMiners) && game.stats.prestiges == 0
         case .daily:
             dailyRewardReady && game.stats.longestStreak == 0 && game.totalMiners > 0
+        case .tokens:
+            // Once a casino game is open, until the first token is bought.
+            game.unlockedGames.contains { $0.isCasino } && game.stats.totalTokensBought == 0
+        case .firstPoint:
+            game.stats.prestiges == 0 && game.claimablePrestigePoints > 0 && !game.isPrestigeRecommended
         case .prestige:
             game.stats.prestiges == 0 && game.isPrestigeRecommended
         }
@@ -223,14 +267,21 @@ extension GameSession {
     var mineView: MineView {
         let game = state
         let stars = game.earnedAchievementTiers
+        let featured = game.featuredGoal
         return MineView(
-            finishes: CoinFinish.allCases.filter { $0.isUnlocked(stars: stars) }.map(\.rawValue),
+            finishes: CoinFinish.allCases.filter { game.isUnlocked($0) }.map(\.rawValue),
             rims: CoinRim.allCases.filter { $0.isUnlocked(stars: stars) }.map(\.rawValue),
             tapEffects: CoinTapEffect.allCases.filter { $0.isUnlocked(stars: stars) }.map(\.rawValue),
             tips: GuideTip.allCases.filter { $0.applies(to: game, dailyRewardReady: isDailyRewardReady) }.map {
-                TipView(id: $0.rawValue, icon: $0.icon, text: $0.text, action: $0.actionTitle)
+                TipView(id: $0.rawValue, icon: $0.icon, text: $0.text(in: game), action: $0.actionTitle)
             },
             inventory: inventoryView,
+            goal: featured.map { goal -> GoalRingView in
+                let isReady = goal.progress >= 1
+                return GoalRingView(
+                    progress: clamped(goal.progress), isReady: isReady,
+                    accessibility: "Next: \(goal.title), \(isReady ? "ready" : CoinFormat.percent((goal.progress * 100).rounded(.down) / 100))")
+            },
             steps: canTrackSteps && game.areStepsUnlocked ? stepsView : nil,
             prestige: game.stats.prestiges > 0 ? prestigePointsView : nil)
     }
@@ -354,7 +405,11 @@ extension GameSession {
                                  rate: rateText(autoTaps), share: idle > 0 ? autoTaps / idle : 0, symbol: "hand.tap.fill"))
         }
 
+        // What the miners make with their milestones, Mk upgrades and Legacy, before the
+        // multipliers below.
+        let global = game.globalMultiplier
         var multipliers: [LineView] = [
+            .value("Miners before these", "\(rateText(global > 0 ? game.baseProduction / global : 0))/s"),
             .value("Upgrades", CoinFormat.multiplier(game.upgradeProductionMultiplier)),
             .value("Prestige (\(CoinFormat.grouped(game.prestigePoints)) points)", CoinFormat.multiplier(game.prestigeBonus)),
             .value("Achievements (\(game.earnedAchievementTiers) stars)", CoinFormat.multiplier(game.achievementBonus)),
@@ -362,6 +417,7 @@ extension GameSession {
         ]
         if let boost { multipliers.append(.value("Bull Run", CoinFormat.multiplier(boost.multiplier))) }
         multipliers.append(.value("All together", CoinFormat.multiplier(game.globalMultiplier * (boost?.multiplier ?? 1)), bold: true))
+        multipliers.append(.value("Production", "\(rateText(production))/s", bold: true))
 
         var tap: [LineView] = [
             .value("Flat part", amount(game.tapBase)),
@@ -396,7 +452,9 @@ extension GameSession {
                 ListSectionView(header: "Earned every second",
                                 footer: "Milestones (25, 50, 100… owned) and Mk upgrades each double a miner; late in the game Legacy lifts the oldest. Shares include any Bull Run.",
                                 lines: earned),
-                ListSectionView(header: "Production multipliers", footer: nil, lines: multipliers),
+                ListSectionView(header: "Production multipliers",
+                                footer: "The miners' own output, times every multiplier, makes production. Automatic taps come on top of it.",
+                                lines: multipliers),
                 ListSectionView(header: "What a tap earns",
                                 footer: "Tapping upgrades add a share of a second's production to every tap. Quick taps in a row build a combo, and the combo power-ups in the Shop raise how big it gets and how fast it builds.",
                                 lines: tap),

@@ -1,5 +1,6 @@
 package com.hilalsafi.cryptoclicker.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,11 +13,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -28,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.hilalsafi.cryptoclicker.BuildConfig
 import com.hilalsafi.cryptoclicker.core.GameController
+import com.hilalsafi.cryptoclicker.ui.settings.BackupPage
 import com.hilalsafi.cryptoclicker.ui.theme.Palette
 import com.hilalsafi.cryptoclicker.ui.theme.gameColors
 
@@ -57,6 +65,11 @@ fun SettingsScreen(
     game: GameController,
 ) {
     var confirmsReset by remember { mutableStateOf(false) }
+    var page by rememberSaveable { mutableStateOf<String?>(null) }
+    if (page == "backup") {
+        SettingsSubpage("Backup", contentPadding, onBack = { page = null }) { BackupPage() }
+        return
+    }
     Box(
         Modifier
             .fillMaxSize()
@@ -108,7 +121,15 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsSection("Progress", note = "Erases everything, prestige and achievements included.") {
+            SettingsSection("Progress", note = "Backups, restoring, and save files to export and import. Reset erases everything, prestige and achievements included.") {
+                TextButton(onClick = { page = "backup" }, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        "Backup and Save Files",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 TextButton(onClick = { confirmsReset = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         "Reset All Progress",
@@ -129,7 +150,7 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { confirmsReset = false },
             title = { Text("Reset all progress?") },
-            text = { Text("Your coins, miners, prestige, achievements and records will be erased. This can't be undone.") },
+            text = { Text("Your coins, miners, prestige, achievements and records will be erased. A snapshot of the game is kept in Settings › Backup and Save Files, and the copy in a backup folder isn't replaced by the new game unless you choose to.") },
             confirmButton = {
                 TextButton(onClick = {
                     confirmsReset = false
@@ -137,6 +158,23 @@ fun SettingsScreen(
                 }) { Text("Reset Everything", color = gameColors.loss) }
             },
             dismissButton = { TextButton(onClick = { confirmsReset = false }) { Text("Cancel") } },
+        )
+    }
+}
+
+/** A page pushed in Settings: a title bar with back (the system back gesture too), over its list. */
+@Composable
+private fun SettingsSubpage(title: String, contentPadding: PaddingValues, onBack: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    BackHandler(onBack = onBack)
+    Column(Modifier.fillMaxSize().background(gameColors.base)) {
+        Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Settings") }
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        }
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)
+                .padding(bottom = contentPadding.calculateBottomPadding() + 24.dp),
+            content = content,
         )
     }
 }
@@ -214,6 +252,12 @@ private fun TestingTools(game: GameController) {
 
     SettingsSection("Achievements") {
         ToolButton("Earn Every Achievement Star") { game.debug("debugEarnAllAchievements") }
+    }
+
+    SettingsSection("Prestige", note = "Points added here raise production and can be spent on perks, without starting over. Counted prestiges unlock the coin finishes and achievements that prestiges earn, but don't appear in the run history.") {
+        ToolButton("Add 10 Prestige Points") { game.debug("debugAddPrestigePoints", quantity = 10) }
+        ToolButton("Add 1,000 Prestige Points", Modifier.padding(top = 8.dp)) { game.debug("debugAddPrestigePoints", quantity = 1_000) }
+        ToolButton("Count 5 More Prestiges", Modifier.padding(top = 8.dp)) { game.debug("debugCountPrestiges", quantity = 5) }
     }
 
     SettingsSection("Events", note = "Time away is paid on the next tick: the welcome-back screen opens over this one.") {

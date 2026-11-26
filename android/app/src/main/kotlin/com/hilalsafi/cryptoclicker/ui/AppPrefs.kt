@@ -83,6 +83,35 @@ class AppPrefs(context: Context) {
     val howToPlaySeen = bool("howToPlaySeen", false)
     /** The income chart's range in Statistics: "day", "week", "month" or "all". */
     val incomeChartRange = string("incomeChartRange", "day")
+    /** What the run history's chart compares: "points", "length" or "coins". */
+    val runChartMetric = string("runChartMetric", "points")
+    /** Set once the Google Play rating prompt has been asked for (after the first prestige). */
+    val reviewRequested = bool("reviewRequested", false)
+
+    // MARK: The Arcade's lists (`MiniGame` raw values, comma-separated)
+
+    /** The favorite games, pinned to the top, in the order they were starred. */
+    val favoriteGames = string("favoriteGames", "")
+    /** The games opened most recently, newest first. */
+    val recentGames = string("recentGames", "")
+
+    /** Stars a game, or takes its star away. */
+    fun toggleFavorite(game: String) {
+        val games = favoriteGames.value.split(',').filter { it.isNotEmpty() }
+        favoriteGames.set((if (game in games) games - game else games + game).joinToString(","))
+    }
+
+    /** Notes a game opened, for the Arcade's Jump back in (the latest three). */
+    fun noteOpened(game: String) {
+        val games = listOf(game) + recentGames.value.split(',').filter { it.isNotEmpty() && it != game }
+        recentGames.set(games.take(3).joinToString(","))
+    }
+
+    // MARK: Backups
+
+    /** The folder the player picked for backups (a document tree's address), and its name. */
+    val backupFolder = string("backupFolder", "")
+    val backupFolderName = string("backupFolderName", "")
 
     /** Closes a first-run tip for good. */
     fun closeTip(id: String) {

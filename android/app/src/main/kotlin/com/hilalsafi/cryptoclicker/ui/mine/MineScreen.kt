@@ -140,6 +140,8 @@ fun MineScreen(
     openDaily: () -> Unit,
     openIncome: () -> Unit,
     openHowToPlay: () -> Unit,
+    openGoal: (String) -> Unit,
+    openGoalsPage: () -> Unit,
 ) {
     WantViews("mine")
     val game = LocalGame.current
@@ -152,6 +154,7 @@ fun MineScreen(
     var showsStepsIntro by remember { mutableStateOf(false) }
     var stepCard by remember { mutableStateOf<Rect?>(null) }
     var showsStepInfo by remember { mutableStateOf(false) }
+    var showsGoals by remember { mutableStateOf(false) }
     var screen by remember { mutableStateOf<Rect?>(null) }
 
     BoxWithConstraints(Modifier.fillMaxSize().onGloballyPositioned { screen = it.boundsInRoot() }) {
@@ -206,8 +209,9 @@ fun MineScreen(
                 Spacer(Modifier.weight(1f))
             }
             if (mine != null) {
-                GuideTipCard(mine.tips, openShop = openShop, openPowerUps = openPowerUps, openDaily = openDaily, openHowToPlay = openHowToPlay)
-                InventoryStrip(mine.inventory, openShop = openShop, openTokens = openTokens)
+                GuideTipCard(mine.tips, openShop = openShop, openPowerUps = openPowerUps, openTokens = openTokens, openDaily = openDaily,
+                    openHowToPlay = openHowToPlay, openGoal = openGoal)
+                InventoryStrip(mine.inventory, mine.goal, openShop = openShop, openTokens = openTokens, openGoals = { showsGoals = true })
                 if (steps != null) {
                     StepsCard(
                         steps, mine.prestige, inviteDismissed,
@@ -233,6 +237,9 @@ fun MineScreen(
     }
     if (showsStepsIntro) {
         StepsIntroSheet(onDismiss = { showsStepsIntro = false })
+    }
+    if (showsGoals) {
+        GoalsSheet(open = openGoal, openGoalsPage = openGoalsPage, onDismiss = { showsGoals = false })
     }
 }
 
@@ -527,7 +534,7 @@ private fun ComboPill(combo: Combo) {
             .shadow(6.dp, CircleShape)
             .background(Brush.verticalGradient(listOf(fill.copy(alpha = 0.85f), fill)), CircleShape)
             .padding(horizontal = 30.dp, vertical = 6.dp)
-            .semantics(mergeDescendants = true) { contentDescription = "${combo.title}, ${combo.taps}" },
+            .semantics(mergeDescendants = true) { contentDescription = combo.accessibility },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(1.dp),
     ) {
@@ -535,6 +542,6 @@ private fun ComboPill(combo: Combo) {
             Icon(Icons.Rounded.LocalFireDepartment, null, tint = Color.White, modifier = Modifier.size(18.dp))
             Text(combo.title, style = Type.headline.digits, color = Color.White)
         }
-        Text(combo.taps, style = Type.footnote.semibold.digits, color = Color.White.copy(alpha = 0.85f))
+        Text(combo.taps, style = Type.footnote.semibold.digits, color = Color.White.copy(alpha = if (combo.isRecord) 1f else 0.85f))
     }
 }

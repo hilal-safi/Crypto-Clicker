@@ -28,6 +28,9 @@ struct StarterView: Encodable {
 
 struct GoalView: Encodable {
     let id: String
+    /// What kind of goal it is ("miner", "milestone", "upgrade", "game", "achievement",
+    /// "arcadeRank", "tokenSwap" or "prestige"): tapping it goes where it's done.
+    let kind: String
     let title: String
     let detail: String
     let progress: Double
@@ -37,6 +40,29 @@ struct GoalView: Encodable {
     let symbol: String
     /// The goal kind's colour, by name or "#RRGGBB".
     let color: String
+    /// Where tapping it goes, for TalkBack: "Opens the Shop".
+    let destination: String
+}
+
+/// The Mine tab's goals pop-up (view "nextGoals"; iOS: GoalsSheet): the goal closest to done
+/// first, then the rest of the next goals.
+struct NextGoalsView: Encodable {
+    /// A starter milestone is ready to claim on the Goals page.
+    let starterToClaim: Bool
+    let goals: [GoalView]
+}
+
+/// A group of achievements (iOS: AchievementCollection and CollectionHeader): Mining, Fleet,
+/// Arcade, Casino, Market, Daily and Prestige, each with its share of the stars.
+struct AchievementCollectionView: Encodable {
+    let id: String
+    let name: String
+    let symbol: String
+    /// "3 of 12 stars"
+    let stars: String
+    let fraction: Double
+    let isComplete: Bool
+    let cards: [AchievementView]
 }
 
 /// The daily reward and its streak, the day's quests and the daily challenge (iOS: DailyPage).
@@ -116,7 +142,7 @@ struct AchievementsView: Encodable {
     let fraction: Double
     /// "3 more for the Silver coin"
     let nextFinish: String?
-    let cards: [AchievementView]
+    let collections: [AchievementCollectionView]
 }
 
 struct AchievementView: Encodable {
@@ -153,12 +179,43 @@ extension GameSession {
                                    isReached: game.isReached(milestone), isClaimed: game.isClaimed(milestone))
             }
         }
-        return GoalsView(starters: starters, goals: game.nextGoals.map { goal in
-            GoalView(
-                id: goal.id, title: goal.title, detail: goal.detail, progress: clamped(goal.progress),
-                progressText: goal.progress >= 1 ? "Ready" : CoinFormat.percent((goal.progress * 100).rounded(.down) / 100),
-                ready: goal.progress >= 1, symbol: goalSymbol(goal.kind), color: goalColor(goal.kind))
-        })
+        return GoalsView(starters: starters, goals: game.nextGoals.map(goalView))
+    }
+
+    var nextGoalsView: NextGoalsView {
+        let game = state
+        let featured = game.featuredGoal
+        let goals = (featured.map { [$0] } ?? []) + game.nextGoals.filter { $0.id != featured?.id }
+        return NextGoalsView(starterToClaim: !game.claimableStarterMilestones.isEmpty, goals: goals.map(goalView))
+    }
+
+    func goalView(_ goal: Goal) -> GoalView {
+        GoalView(
+            id: goal.id, kind: goalKind(goal.kind), title: goal.title, detail: goal.detail, progress: clamped(goal.progress),
+            progressText: goal.progress >= 1 ? "Ready" : CoinFormat.percent((goal.progress * 100).rounded(.down) / 100),
+            ready: goal.progress >= 1, symbol: goalSymbol(goal.kind), color: goalColor(goal.kind),
+            destination: goalDestination(goal.kind))
+    }
+
+    private func goalKind(_ kind: Goal.Kind) -> String {
+        switch kind {
+        case .miner: "miner"
+        case .milestone: "milestone"
+        case .upgrade: "upgrade"
+        case .game: "game"
+        case .achievement: "achievement"
+        case .arcadeRank: "arcadeRank"
+        case .tokenSwap: "tokenSwap"
+        case .prestige: "prestige"
+        }
+    }
+
+    private func goalDestination(_ kind: Goal.Kind) -> String {
+        switch kind {
+        case .miner, .milestone, .upgrade, .prestige: "Opens the Shop"
+        case .game, .arcadeRank, .tokenSwap: "Opens the Arcade"
+        case .achievement: "Opens the achievements"
+        }
     }
 
     private func goalSymbol(_ kind: Goal.Kind) -> String {
@@ -293,24 +350,35 @@ extension GameSession {
         let game = state
         let earned = game.earnedAchievementTiers
         let total = AchievementCatalog.tierCount
-        let next = CoinFinish.allCases.first { !$0.isUnlocked(stars: earned) }
+        // The next finish stars unlock (the last five come from prestiging).
+        let next = CoinFinish.allCases.first { $0.prestigesNeeded == nil && $0.starsNeeded > earned }
         return AchievementsView(
             title: "\(earned) of \(total) stars",
             bonus: "+\(CoinFormat.percent(game.achievementBonus - 1)) production from achievements",
             fraction: clamped(Double(earned) / Double(max(1, total))),
             nextFinish: next.map { "\($0.starsNeeded - earned) more for the \($0.name) coin" },
-            cards: AchievementCatalog.all.map { achievement in
-                let tiers = game.tiersEarned(achievement)
-                let value = game.value(of: achievement.metric)
-                let next = game.nextThreshold(achievement)
-                let needed = next ?? achievement.thresholds.last ?? value
-                return AchievementView(
-                    id: achievement.id, emoji: achievement.emoji ?? "🏆", name: achievement.name, detail: achievement.detail,
-                    tiers: tiers, fraction: next.map { clamped(min(value, $0) / max($0, 1)) } ?? 1,
-                    progressText: "\(CoinFormat.short(value)) / \(CoinFormat.short(needed))",
-                    isMythic: next == nil,
-                    tierName: tiers == 0 ? "Not earned yet" : AchievementCatalog.tierNames[min(tiers, 4) - 1])
+            collections: AchievementCatalog.collections.map { collection -> AchievementCollectionView in
+                let stars = game.tiersEarned(in: collection)
+                let all = collection.tierCount
+                return AchievementCollectionView(
+                    id: collection.id, name: collection.name, symbol: collection.symbol,
+                    stars: "\(stars) of \(all) stars", fraction: clamped(Double(stars) / Double(max(1, all))),
+                    isComplete: stars >= all, cards: collection.achievements.map(achievementView))
             })
+    }
+
+    func achievementView(_ achievement: Achievement) -> AchievementView {
+        let game = state
+        let tiers = game.tiersEarned(achievement)
+        let value = game.value(of: achievement.metric)
+        let next = game.nextThreshold(achievement)
+        let needed = next ?? achievement.thresholds.last ?? value
+        return AchievementView(
+            id: achievement.id, emoji: achievement.emoji ?? "🏆", name: achievement.name, detail: achievement.detail,
+            tiers: tiers, fraction: next.map { clamped(min(value, $0) / max($0, 1)) } ?? 1,
+            progressText: "\(CoinFormat.short(value)) / \(CoinFormat.short(needed))",
+            isMythic: next == nil,
+            tierName: tiers == 0 ? "Not earned yet" : AchievementCatalog.tierNames[min(tiers, 4) - 1])
     }
 }
 

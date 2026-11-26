@@ -1,6 +1,8 @@
 package com.hilalsafi.cryptoclicker.ui.shop
 
 import android.text.format.DateUtils
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,22 +12,34 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ListAlt
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -43,13 +57,17 @@ import androidx.compose.ui.unit.sp
 import com.hilalsafi.cryptoclicker.core.News
 import com.hilalsafi.cryptoclicker.core.Token
 import com.hilalsafi.cryptoclicker.core.Tokens
+import com.hilalsafi.cryptoclicker.core.Trade
 import com.hilalsafi.cryptoclicker.ui.LocalGame
+import com.hilalsafi.cryptoclicker.ui.design.AppSheet
 import com.hilalsafi.cryptoclicker.ui.design.CoinIcon
 import com.hilalsafi.cryptoclicker.ui.design.Emoji
 import com.hilalsafi.cryptoclicker.ui.design.InfoBubble
 import com.hilalsafi.cryptoclicker.ui.design.PriceButton
 import com.hilalsafi.cryptoclicker.ui.design.SectionHeader
 import com.hilalsafi.cryptoclicker.ui.design.SegmentedPicker
+import com.hilalsafi.cryptoclicker.ui.design.SettingsNote
+import com.hilalsafi.cryptoclicker.ui.design.Symbol
 import com.hilalsafi.cryptoclicker.ui.design.TokenImage
 import com.hilalsafi.cryptoclicker.ui.design.Type
 import com.hilalsafi.cryptoclicker.ui.design.bold
@@ -75,18 +93,22 @@ internal fun LazyListScope.tokensPage(
     onPlaced: (String, Rect) -> Unit,
 ) {
     item(key = "wallet") { Wide { WalletSummary(tokens) } }
+    item(key = "guide") { Wide { MarketGuide(tokens) } }
     item(key = "news") { Wide { MarketNewsCard(tokens.news) } }
     item(key = "tokensHeader") { Wide { SectionHeader("Tokens", "Prices move every 5 minutes") } }
     item(key = "tokenQuantity") { Wide { SegmentedPicker((0..3).toList(), quantity, { BUY_QUANTITIES[it] }, setQuantity) } }
     items(tokens.tokens, key = { "token:${it.id}" }) { token ->
         Wide { TokenMarketRow(token, quantity, onInfo = { onInfo(token.id) }, onPlaced = { onPlaced(token.id, it) }) }
     }
-    item(key = "tokensNote") {
-        Wide { Text(tokens.footnote, style = Type.subheadline, color = gameColors.subtext, modifier = Modifier.padding(horizontal = 4.dp)) }
+    if (tokens.trades.isNotEmpty()) {
+        item(key = "trades") { Wide { RecentTradesCard(tokens) } }
     }
 }
 
-/** What the wallet's tokens are worth at today's prices. */
+/**
+ * What the wallet's tokens are worth at today's prices, how they've done against what was paid for
+ * them, and what trading has made so far (iOS: WalletSummary).
+ */
 @Composable
 private fun WalletSummary(tokens: Tokens) {
     val colors = gameColors
@@ -101,7 +123,95 @@ private fun WalletSummary(tokens: Tokens) {
                 CoinIcon(24.dp)
                 Text(tokens.holdings, style = Type.title2.bold.digits, maxLines = 1)
             }
+            tokens.dayChange?.let {
+                Text(it, style = Type.subheadline.semibold.digits, color = if (tokens.dayChangeUp) colors.gain else colors.loss)
+            }
+            // The tokens bought at a known price, against what they cost.
+            tokens.portfolio?.let {
+                Text(it, style = Type.subheadline.semibold.digits, color = if (tokens.portfolioUp) colors.gain else colors.loss)
+            }
             Text(tokens.walletLine, style = Type.subheadline, color = colors.subtext)
+            tokens.trading?.let { Text(it, style = Type.subheadline, color = colors.subtext) }
+        }
+    }
+}
+
+/**
+ * How the market works, for a first look (iOS: MarketGuide): what the prices are, buying low and
+ * selling high, the fee, and what tokens are for. Open until the first token is bought.
+ */
+@Composable
+private fun MarketGuide(tokens: Tokens) {
+    val colors = gameColors
+    var picked by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    val isOpen = picked ?: tokens.guideStartsOpen
+    Column(Modifier.fillMaxWidth().rowCard(colors).animateContentSize()) {
+        Row(
+            Modifier.fillMaxWidth().clickable(onClickLabel = if (isOpen) "Hide" else "Show") { picked = !isOpen },
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(Icons.Rounded.Lightbulb, null, tint = colors.gain, modifier = Modifier.size(20.dp))
+            Text("How trading works", style = Type.headline, modifier = Modifier.weight(1f))
+            Icon(Icons.Rounded.ExpandMore, null, tint = colors.accent, modifier = Modifier.rotate(if (isOpen) 180f else 0f))
+        }
+        AnimatedVisibility(isOpen) {
+            Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                tokens.guide.forEach { point ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Symbol(point.symbol, tint = colors.gain, size = 18.dp, modifier = Modifier.padding(top = 1.dp))
+                        Text(point.text, style = Type.subheadline)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** The latest trades, newest first, with the full list a tap away (iOS: RecentTradesCard). */
+@Composable
+private fun RecentTradesCard(tokens: Tokens) {
+    val colors = gameColors
+    var showsAll by rememberSaveable { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().rowCard(colors), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(Icons.AutoMirrored.Rounded.ListAlt, null, modifier = Modifier.size(20.dp))
+            Text("Recent Trades", style = Type.headline, modifier = Modifier.weight(1f))
+            if (tokens.trades.size > 4) {
+                TextButton(onClick = { showsAll = true }) { Text("See All", style = Type.subheadline.semibold) }
+            }
+        }
+        tokens.trades.take(4).forEach { TradeRow(it) }
+    }
+    if (showsAll) {
+        AppSheet("Trades", onDismiss = { showsAll = false }) {
+            Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
+                Column(Modifier.fillMaxWidth().rowCard(colors, cornerRadius = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    tokens.trades.forEach { TradeRow(it) }
+                }
+                SettingsNote(tokens.tradesFooter)
+            }
+        }
+    }
+}
+
+/** One trade: the token, bought or sold, how many, for how much, when, and how a sale did (iOS: TradeRow). */
+@Composable
+private fun TradeRow(trade: Trade) {
+    val colors = gameColors
+    Row(
+        Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TokenImage(trade.token, 30.dp)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(trade.title, style = Type.subheadline.semibold)
+            Text(ago(trade.date), style = Type.subheadline, color = colors.subtext)
+        }
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(trade.coins, style = Type.subheadline.bold.digits)
+            trade.profit?.let {
+                Text(it, style = Type.subheadline.semibold.digits, color = if (trade.profitUp) colors.gain else colors.loss)
+            }
         }
     }
 }
@@ -204,6 +314,16 @@ private fun TokenMarketRow(token: Token, quantity: Int, onInfo: () -> Unit, onPl
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     Text(sell.label, style = Type.subheadline.bold, maxLines = 1)
                     Text(sell.value, style = Type.footnote.semibold.digits, maxLines = 1)
+                }
+            }
+        }
+        // What the Sell button would do, in full: the fee, the coins, and how the bought ones
+        // among them compare with what they cost.
+        sell.preview?.let { preview ->
+            Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(preview.line, style = Type.subheadline.digits, color = colors.subtext)
+                preview.profit?.let {
+                    Text(it, style = Type.subheadline.digits, color = if (preview.profitUp) colors.gain else colors.loss)
                 }
             }
         }

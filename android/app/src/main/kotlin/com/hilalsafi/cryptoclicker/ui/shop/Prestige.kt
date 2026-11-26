@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.MilitaryTech
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +48,7 @@ import com.hilalsafi.cryptoclicker.core.Prestige
 import com.hilalsafi.cryptoclicker.core.PrestigeConfirm
 import com.hilalsafi.cryptoclicker.ui.LocalGame
 import com.hilalsafi.cryptoclicker.ui.WantViews
+import com.hilalsafi.cryptoclicker.ui.design.CoinArt
 import com.hilalsafi.cryptoclicker.ui.design.ListHeader
 import com.hilalsafi.cryptoclicker.ui.design.ListSectionCard
 import com.hilalsafi.cryptoclicker.ui.design.PriceButton
@@ -66,12 +68,16 @@ import com.hilalsafi.cryptoclicker.ui.theme.glassCard
 import com.hilalsafi.cryptoclicker.ui.theme.rowCard
 import kotlinx.coroutines.launch
 
-/** Prestige (iOS: PrestigeCard): points earned so far, what prestiging now would bring, and the way into the perks. */
+/**
+ * Prestige (iOS: PrestigeCard): points earned so far, what prestiging now would bring, and the
+ * ways into the perks and the run history.
+ */
 @Composable
 fun PrestigeCard(prestige: Prestige) {
     val colors = gameColors
     var confirming by rememberSaveable { mutableStateOf(false) }
     var showsPerks by rememberSaveable { mutableStateOf(false) }
+    var showsHistory by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().glassCard(colors, tint = Palette.arcade), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(Icons.Rounded.AutoAwesome, null, modifier = Modifier.size(20.dp))
@@ -85,8 +91,16 @@ fun PrestigeCard(prestige: Prestige) {
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val claim = prestige.claim
-            // Side by side when both fit, one above the other when not.
-            val stacked = claim != null && (claim.length + prestige.perksTitle.length) * 9.5f + 80 > maxWidth.value
+            val history = "History"
+            // Prestige, Perks and History side by side when they fit; Prestige above the other two
+            // when they don't, and all three stacked when even two are too wide.
+            fun width(vararg titles: String) = titles.sumOf { it.length } * 9.5f + titles.size * 52f
+            val all = listOfNotNull(claim, prestige.perksTitle, history).toTypedArray()
+            val layout = when {
+                width(*all) <= maxWidth.value -> 0
+                width(prestige.perksTitle, history) <= maxWidth.value -> 1
+                else -> 2
+            }
             val claimButton: @Composable (Modifier) -> Unit = { modifier ->
                 if (claim != null) {
                     ProminentButton(claim, onClick = { confirming = true }, modifier,
@@ -97,21 +111,34 @@ fun PrestigeCard(prestige: Prestige) {
                 SoftButton(prestige.perksTitle, onClick = { showsPerks = true }, modifier, tint = Palette.arcadeButton,
                     icon = Icons.Rounded.MilitaryTech, style = Type.headline, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp))
             }
-            if (stacked) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    claimButton(Modifier.fillMaxWidth())
-                    perksButton(Modifier.fillMaxWidth())
-                }
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            val historyButton: @Composable (Modifier) -> Unit = { modifier ->
+                SoftButton(history, onClick = { showsHistory = true }, modifier, tint = Palette.arcadeButton,
+                    icon = Icons.Rounded.History, style = Type.headline, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp))
+            }
+            when (layout) {
+                0 -> Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (claim != null) claimButton(Modifier.weight(1f))
                     perksButton(Modifier.weight(1f))
+                    historyButton(Modifier.weight(1f))
+                }
+                1 -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (claim != null) claimButton(Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        perksButton(Modifier.weight(1f))
+                        historyButton(Modifier.weight(1f))
+                    }
+                }
+                else -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (claim != null) claimButton(Modifier.fillMaxWidth())
+                    perksButton(Modifier.fillMaxWidth())
+                    historyButton(Modifier.fillMaxWidth())
                 }
             }
         }
     }
     if (confirming) PrestigeSheet(prestige.confirm) { confirming = false }
     if (showsPerks) PerksSheet { showsPerks = false }
+    if (showsHistory) RunHistorySheet { showsHistory = false }
 }
 
 /** Confirms a prestige: what it gains, what resets and what stays (iOS: PrestigeSheet). */
@@ -142,6 +169,18 @@ private fun PrestigeSheet(confirm: PrestigeConfirm, onDismiss: () -> Unit) {
                 SymbolSection("Resets", confirm.resets.map { it.symbol to it.text })
                 SymbolSection("Keeps", confirm.keeps.map { it.symbol to it.text })
                 confirm.firstNote?.let { note -> SymbolSection(null, listOf("sparkles" to note)) }
+                // A prestige milestone: the coin finish this prestige unlocks.
+                val finish = confirm.finish
+                val finishNote = confirm.finishNote
+                if (finish != null && finishNote != null) {
+                    Row(
+                        Modifier.padding(top = 8.dp).fillMaxWidth().rowCard(colors, cornerRadius = 18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CoinArt(finish, Modifier.size(26.dp))
+                        Text(finishNote, style = Type.body)
+                    }
+                }
             }
             ProminentButton(
                 "Prestige and Start Over",

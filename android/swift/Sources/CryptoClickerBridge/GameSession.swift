@@ -35,6 +35,22 @@ struct PurchaseNote: Equatable, Sendable {
     /// The same while purchases add to the popup, so it updates in place.
     let id: Int
     private(set) var items: [Item] = []
+    /// Milestones the purchases reached, and Mk upgrades they made available, newest last:
+    /// "Desktop milestone: 50 owned, output ×2".
+    private(set) var milestones: [String] = []
+
+    /// A purchase worth celebrating: the first miner of a tier ever bought, or a milestone.
+    enum Highlight: Equatable, Sendable {
+        /// The miner's name.
+        case newMiner(String)
+        /// What was reached: "50 Desktops".
+        case milestone(String)
+    }
+
+    /// The latest purchase worth celebrating, if one was made while the popup was up...
+    private(set) var highlight: Highlight?
+    /// ...and how many have been, so the app celebrates each one.
+    private(set) var highlights = 0
     /// Idle income, a tap's worth and a step's worth before the first of these purchases...
     let incomeBefore: Double
     let tapBefore: Double
@@ -64,13 +80,27 @@ struct PurchaseNote: Equatable, Sendable {
         updatedAt = date
     }
 
-    mutating func add(_ name: String, count: Int, effect: String?) {
+    mutating func add(_ name: String, count: Int, effect: String?, milestones reached: [String] = [],
+                      highlight: Highlight? = nil) {
         if let index = items.firstIndex(where: { $0.name == name }) {
             items[index].count += count
             if let effect { items[index].effect = effect }
         } else {
             items.append(Item(name: name, count: count, effect: effect))
         }
+        milestones.append(contentsOf: reached)
+        if let highlight {
+            self.highlight = highlight
+            highlights += 1
+        }
+    }
+
+    /// How many times the income was multiplied since the first of these purchases, when it was
+    /// worth showing (×1.05 or more).
+    var incomeMultiple: Double? {
+        guard incomeBefore > 0, incomeNow.isFinite else { return nil }
+        let multiple = incomeNow / incomeBefore
+        return multiple >= 1.05 ? multiple : nil
     }
 
     var itemCount: Int { items.reduce(0) { $0 + $1.count } }
@@ -137,6 +167,13 @@ struct MarketBoard: Equatable, Sendable {
     }
 }
 
+/// A save made by a newer version of the app (`version`, its save version), left where it is.
+struct NewerSave: Equatable, Sendable {
+    let version: Int
+    /// Times "Check Again" has found it still too new.
+    var checks = 0
+}
+
 /// A save that couldn't be read, kept aside under `backup`.
 struct UnreadableSave: Equatable, Sendable {
     let backup: URL
@@ -180,6 +217,14 @@ final class GameSession {
     /// A save exists but couldn't be read yet. Until it loads, nothing is saved.
     var isSaveLocked = false
     var unreadableSave: UnreadableSave?
+    /// Set when the save was made by a newer version of the app: it's left alone and nothing is
+    /// saved until the app is updated or the player sets it aside.
+    var newerSave: NewerSave?
+    /// Backups as files beside the save, and the copy on the Backup page waiting to be confirmed.
+    let backups: SessionBackups
+    var pendingCopy: PendingCopy?
+    /// Why the last save file or backup couldn't be opened, for the Backup page.
+    var backupProblem: String?
     var errorMessage: String?
     var welcomeBack: WelcomeBack?
     var purchaseNote: PurchaseNote?
@@ -190,6 +235,8 @@ final class GameSession {
     var market: MarketBoard
     /// Quick taps in a row (0 once the combo has lapsed).
     var comboStreak = 0
+    /// The longest combo before the one going now, so beating it can be shown as it happens.
+    var comboRecordBefore = 0
     var lastTapAt = Date.distantPast
     /// Today's daily reward hasn't been claimed yet.
     var isDailyRewardReady = false
@@ -212,11 +259,25 @@ final class GameSession {
     var prefs: SessionPrefs
 
     /// Opens the game saved in `directory` (`game.json`, the same file and format as on iOS).
-    init(directory: URL, clock: @escaping () -> Date = { Date() }) {
+    /// `device` tells this phone's backups from another's (Android's id for the app on it).
+    init(directory: URL, device: String? = nil, clock: @escaping () -> Date = { Date() }) {
         self.clock = clock
         saves = SaveStore(url: directory.appendingPathComponent("game.json", isDirectory: false))
         prefsURL = directory.appendingPathComponent("session.json", isDirectory: false)
-        prefs = SessionPrefs.load(from: prefsURL)
+        var loaded = SessionPrefs.load(from: prefsURL)
+        // Without an id from the app (tests), one made for this install stands in, as on iOS.
+        let deviceID: String
+        if let device, !device.isEmpty {
+            deviceID = device
+        } else if let stored = loaded.backupDevice {
+            deviceID = stored
+        } else {
+            deviceID = UUID().uuidString
+            loaded.backupDevice = deviceID
+            loaded.save(to: prefsURL)
+        }
+        prefs = loaded
+        backups = SessionBackups(folder: directory.appendingPathComponent("Backups", isDirectory: true), deviceID: deviceID)
         let now = clock()
         lastSave = now
         market = MarketBoard(at: now)
@@ -233,6 +294,11 @@ final class GameSession {
             state = GameState(now: now)
             isSaveLocked = true
             unreadableSave = UnreadableSave(backup: backup)
+        case .newerVersion(let version):
+            // This version would drop what it doesn't know if it saved: it waits for an update.
+            state = GameState(now: now)
+            isSaveLocked = true
+            newerSave = NewerSave(version: version)
         }
         finishLoading()
     }
@@ -277,17 +343,24 @@ final class GameSession {
         isInForeground = false
         clearAirdrop()
         comboStreak = 0
+        // Backed up as the app leaves, before the save (which backs up at most every ten minutes,
+        // so it doesn't again now).
+        if !isSaveLocked { backups.backUp(state, force: true, at: now) }
         save()
     }
 
     /// Loads the save that couldn't be read at launch, if it reads now.
     func loadIfLocked() {
-        guard isSaveLocked, unreadableSave == nil else { return }
+        guard isSaveLocked, unreadableSave == nil, newerSave == nil else { return }
         switch saves.load(now: now) {
         case .loaded(let saved): replaceGame(with: saved)
         case .missing: replaceGame(with: GameState(now: now))
         case .unreadable(let backup):
             unreadableSave = UnreadableSave(backup: backup)
+            publish()
+            return
+        case .newerVersion(let version):
+            newerSave = NewerSave(version: version)
             publish()
             return
         case .unavailable:
@@ -455,13 +528,13 @@ final class GameSession {
 
     /// Adds a purchase to the popup: to the one on screen if the last purchase was under nine
     /// seconds ago, else to a new one measured from `before` (`purchaseBaseline` before buying).
-    func notePurchase(_ name: String, count: Int = 1, effect: String? = nil,
-                      before: (income: Double, tap: Double, step: Double)) {
+    func notePurchase(_ name: String, count: Int = 1, effect: String? = nil, milestones: [String] = [],
+                      highlight: PurchaseNote.Highlight? = nil, before: (income: Double, tap: Double, step: Double)) {
         let now = self.now
         var note = purchaseNote.flatMap { now.timeIntervalSince($0.updatedAt) < PurchaseNote.lifetime ? $0 : nil }
             ?? PurchaseNote(id: makeID(), incomeBefore: before.income, tapBefore: before.tap, stepBefore: before.step,
                             showsSteps: state.steps.isConnected, at: now)
-        note.add(name, count: count, effect: effect)
+        note.add(name, count: count, effect: effect, milestones: milestones, highlight: highlight)
         note.incomeNow = state.baseIdleIncome
         note.tapNow = state.baseTapValue
         note.stepNow = state.stepValue
@@ -489,10 +562,13 @@ final class GameSession {
     @discardableResult
     func save() -> Bool {
         guard !isSaveLocked else { return false }
+        // Counted before it's written, so every copy says how far on the game is.
+        state.countSave()
         do {
             try saves.save(state)
             lastSave = now
             hasUnsavedChanges = false
+            backups.backUp(state, at: now)
             return true
         } catch {
             lastSave = now // Retry on the normal schedule rather than every tick.
@@ -525,6 +601,52 @@ final class GameSession {
         }
     }
 
+    /// Looks at a save from a newer version again (after an update, or the file was put back).
+    func checkNewerSaveAgain() {
+        guard let waiting = newerSave else { return }
+        newerSave = nil
+        loadIfLocked()
+        // Still too new: counted, so the player sees it was looked at again.
+        if let still = newerSave { newerSave = NewerSave(version: still.version, checks: waiting.checks + 1) }
+        publish()
+    }
+
+    /// Starts a new game in place of a save from a newer version, which is moved aside (never
+    /// deleted) so a newer version can still open it.
+    func startOverAfterNewerSave() {
+        guard newerSave != nil else { return }
+        guard saves.setAsideNewerSave(now: now) != nil else {
+            // It's gone or moved meanwhile: look again rather than save over anything.
+            checkNewerSaveAgain()
+            return
+        }
+        newerSave = nil
+        replaceGame(with: GameState(now: now))
+        isSaveLocked = false
+        finishLoading()
+        save()
+    }
+
+    /// Carries on from `copy` (a save file, or a backup) in place of the game here. This phone
+    /// keeps its Health Connect ledger, so no day's steps are paid twice. The game here is kept
+    /// first as a snapshot in the backups. Not while the save is locked (one that couldn't be read
+    /// yet, or from a newer version): the player chooses about that first.
+    func importGame(_ copy: GameState) {
+        guard !isSaveLocked else { return }
+        backups.snapshot(state, before: .restore, at: now)
+        replaceGame(with: state.continuing(with: copy, at: now))
+        pendingToasts = []
+        clearAirdrop()
+        welcomeBack = nil
+        purchaseNote = nil
+        play = nil
+        comboStreak = 0
+        scheduleAirdrop(from: now)
+        refreshDaily(at: now, force: true)
+        backups.backUp(state, force: true, at: now)
+        save()
+    }
+
     /// Starts a new game after an unreadable save. The old file stays where it was set aside.
     func startOverAfterUnreadableSave() {
         guard unreadableSave != nil else { return }
@@ -535,8 +657,10 @@ final class GameSession {
         save()
     }
 
-    /// Starts again from nothing (Settings).
+    /// Starts again from nothing (Settings). The game here is kept first as a snapshot in the
+    /// backups; a backup folder keeps its copy until the player replaces it.
     func resetGame() {
+        if !isSaveLocked { backups.snapshot(state, before: .reset, at: now) }
         replaceGame(with: GameState(now: now))
         pendingToasts = []
         clearAirdrop()
@@ -554,6 +678,8 @@ final class GameSession {
 struct SessionPrefs: Codable, Equatable {
     /// The day the short welcome-back screen last showed (see `ReturnGreeting`).
     var lastShortWelcomeDay: String?
+    /// An id for this install, should the app send none (iOS: `BackupDevice`).
+    var backupDevice: String?
 
     static func load(from url: URL) -> SessionPrefs {
         guard let data = try? Data(contentsOf: url),

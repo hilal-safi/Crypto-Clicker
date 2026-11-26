@@ -59,6 +59,12 @@ extension GameSession {
         debugChange { game, _ in game.debugAddPrestigePoints(points) }
     }
 
+    /// Counts more prestiges without starting over, for the coin finishes and achievements
+    /// prestiges unlock (not in the run history).
+    func debugCountPrestiges(_ count: Int) {
+        debugChange { game, _ in game.debugCountPrestiges(count) }
+    }
+
     func debugCompleteQuests() {
         debugChange { game, _ in game.debugCompleteQuests() }
     }

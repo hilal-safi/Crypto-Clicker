@@ -38,9 +38,13 @@ struct Request: Decodable {
     var y: Double?
     var values: [Double]?
     var options: [String: String]?
+    /// A file's contents: a save file to import, or the backup folder's copy.
+    var text: String?
 
-    /// For `start`: the folder the save lives in.
+    /// For `start`: the folder the save lives in, and this phone's id for the app (backups tell
+    /// copies made on other devices by it).
     var dir: String?
+    var device: String?
     /// The device's time zone (sent with `start` and `foreground`), for the game's days.
     var timeZone: String?
     /// Whether Health Connect is on this phone (sent with `start` and `foreground`).
@@ -73,6 +77,8 @@ struct Response: Encodable {
     let play: PlayView?
     let reminders: [ReminderView]?
     let widget: WidgetView?
+    /// A file for the app to write: a save file to export, or the backup folder's copy.
+    let data: String?
 }
 
 /// Facts about the native side, for diagnostics and tests.
@@ -116,6 +122,7 @@ struct Outcome {
     var info: InfoView?
     var reminders: [ReminderView]?
     var widget: WidgetView?
+    var data: String?
 
     static var done: Outcome { Outcome() }
 }
@@ -168,7 +175,7 @@ public enum Bridge {
     private static func respond(to request: Request) throws -> Response {
         useTimeZone(request.timeZone)
         if request.cmd == "start" {
-            try start(directory: request.dir)
+            try start(directory: request.dir, device: request.device)
         }
         guard let session = Self.session else { throw BridgeError(message: "The game hasn't started yet.") }
         if let canTrackSteps = request.canTrackSteps, canTrackSteps != session.canTrackSteps {
@@ -183,7 +190,7 @@ public enum Bridge {
         if request.lite == true {
             return Response(ok: true, error: nil, revision: session.revision, live: nil, game: nil,
                             toasts: session.drainToasts(), tap: outcome.tap, bought: outcome.bought, info: nil,
-                            play: session.play?.view(session: session), reminders: nil, widget: nil)
+                            play: session.play?.view(session: session), reminders: nil, widget: nil, data: nil)
         }
         let sendsGame = request.noGame != true && request.known != session.revision
         let views = Set(request.views ?? [])
@@ -191,7 +198,7 @@ public enum Bridge {
                         game: sendsGame ? session.gameView(views: views, debugTools: hasDebugTools) : nil,
                         toasts: session.drainToasts(), tap: outcome.tap, bought: outcome.bought, info: outcome.info,
                         play: session.play?.view(session: session), reminders: outcome.reminders,
-                        widget: outcome.widget)
+                        widget: outcome.widget, data: outcome.data)
     }
 
     /// Runs one command: each area's commands in turn, until one knows it.
@@ -200,6 +207,7 @@ public enum Bridge {
         if let outcome = try shopCommands(request, session) { return outcome }
         if let outcome = try progressCommands(request, session) { return outcome }
         if let outcome = try serviceCommands(request, session) { return outcome }
+        if let outcome = try backupCommands(request, session) { return outcome }
         if let outcome = try playCommands(request, session) { return outcome }
         #if DEBUG
         if let outcome = try debugCommands(request, session) { return outcome }
@@ -209,10 +217,11 @@ public enum Bridge {
 
     /// Opens the game. Starting again with the same folder (the activity being recreated) keeps
     /// the game that is already running.
-    private static func start(directory: String?) throws {
+    private static func start(directory: String?, device: String?) throws {
         guard let directory, !directory.isEmpty else { throw BridgeError(message: "start needs the save folder.") }
         if session != nil && sessionDirectory == directory { return }
-        session = GameSession(directory: URL(fileURLWithPath: directory, isDirectory: true), clock: { Bridge.clock() })
+        session = GameSession(directory: URL(fileURLWithPath: directory, isDirectory: true), device: device,
+                              clock: { Bridge.clock() })
         sessionDirectory = directory
     }
 
@@ -228,7 +237,7 @@ public enum Bridge {
 
     private static func failure(_ message: String) -> Response {
         Response(ok: false, error: message, revision: session?.revision, live: nil, game: nil, toasts: [],
-                 tap: nil, bought: nil, info: nil, play: nil, reminders: nil, widget: nil)
+                 tap: nil, bought: nil, info: nil, play: nil, reminders: nil, widget: nil, data: nil)
     }
 
     private static func encode(_ response: Response) -> Data {
@@ -266,6 +275,7 @@ extension Bridge {
             break
         case "foreground":
             session.enterForeground()
+            session.play?.foreground(session: session)
         case "background":
             session.play?.background(session: session)
             session.enterBackground()
@@ -286,6 +296,10 @@ extension Bridge {
             session.retryUnreadableSave()
         case "startOver":
             session.startOverAfterUnreadableSave()
+        case "checkNewerSave":
+            session.checkNewerSaveAgain()
+        case "startOverNewerSave":
+            session.startOverAfterNewerSave()
         case "resetGame":
             session.resetGame()
         case "setInGame":
@@ -380,6 +394,36 @@ extension Bridge {
         return .done
     }
 
+    /// Settings › Backup and Save Files: backing up, restoring, save files and the backup folder,
+    /// whose file the app reads and writes (it holds the permission to the folder).
+    static func backupCommands(_ request: Request, _ session: GameSession) throws -> Outcome? {
+        switch request.cmd {
+        case "backup.now":
+            session.backUpNow()
+        case "backup.export":
+            return Outcome(data: session.saveFileData())
+        case "backup.readFile":
+            session.readSaveFile(request.text ?? "")
+        case "backup.restore":
+            session.restoreBackup(request.id ?? "")
+        case "backup.confirm":
+            session.confirmPendingCopy()
+        case "backup.dismiss":
+            session.dismissPendingCopy()
+        case "backup.inspectFolder":
+            // `id` is the folder's name (none: no folder is picked), `text` the copy in it.
+            session.inspectBackupFolder(name: request.id, copy: request.text)
+        case "backup.folderData":
+            return Outcome(data: session.backupFolderData(name: request.id ?? "Backup folder", existing: request.text,
+                                                          replacing: request.flag ?? false))
+        case "backup.folderWritten":
+            session.backupFolderWritten(request.flag ?? false, problem: request.text)
+        default:
+            return nil
+        }
+        return .done
+    }
+
     /// The widget's numbers at `now`, from a snapshot.
     static func widgetView(_ snapshot: BalanceSnapshot, at now: Date) -> WidgetView {
         let coins = snapshot.coins(at: now)
@@ -423,6 +467,8 @@ extension Bridge {
             session.debugUnlockSteps()
         case "debugAddPrestigePoints":
             session.debugAddPrestigePoints(request.quantity ?? 1)
+        case "debugCountPrestiges":
+            session.debugCountPrestiges(request.quantity ?? 5)
         case "debugCompleteQuests":
             session.debugCompleteQuests()
         case "debugResetDaily":

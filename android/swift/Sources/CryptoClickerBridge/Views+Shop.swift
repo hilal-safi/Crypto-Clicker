@@ -7,6 +7,9 @@ import CryptoClickerKit
 
 /// The Shop's Power-ups page (view "shop").
 struct ShopView: Encodable {
+    /// The shortcuts at the top of the page, once the list is long enough to scroll past:
+    /// "miners", "powerUps", "upgrades" and (once prestige is in sight) "prestige".
+    let shortcuts: [String]
     /// Prestige would speed the player up a lot: its card leads the page instead of closing it.
     let prestigeFirst: Bool
     /// The prestige card, once prestige is worth a look (recommended, or a point earned, or a
@@ -60,6 +63,8 @@ struct MinerView: Encodable {
 struct MinerInfoView: Encodable {
     let blurb: String
     let owned: String?
+    /// What one more adds against the income, and how soon it repays its price.
+    let payback: String?
     let milestone: String?
     let legacy: String?
     /// Legacy already lifts it (the line is in Legacy's blue), rather than the line saying how it could.
@@ -138,6 +143,8 @@ struct UpgradeView: Encodable {
     let category: String
     let price: String
     let canAfford: Bool
+    /// What it adds, worked out for this game: "+12% income · pays for itself in 4m".
+    let gain: String?
 }
 
 // MARK: Prestige
@@ -168,6 +175,9 @@ struct PrestigeConfirmView: Encodable {
     let keeps: [SymbolLineView]
     /// The first prestige also reveals new miners.
     let firstNote: String?
+    /// The coin finish this prestige unlocks (a prestige milestone): its raw value and the line.
+    let finish: String?
+    let finishNote: String?
     let canPrestige: Bool
 }
 
@@ -214,9 +224,47 @@ struct TokensView: Encodable {
     /// What the wallet's tokens are worth, and what selling everything would pay.
     let holdings: String
     let walletLine: String
+    /// "▲ 12K (4.5%) in the last day", when the worth has moved.
+    let dayChange: String?
+    let dayChangeUp: Bool
+    /// The tokens bought at a known price against what they cost: "Paid 1.2M · now 1.4M · ▲ 16%".
+    let portfolio: String?
+    let portfolioUp: Bool
+    /// "Trading so far: +123K against what you paid · 4 sales at a profit"
+    let trading: String?
+    /// How trading works (iOS: MarketGuide), open until the first token is bought.
+    let guide: [SymbolLineView]
+    let guideStartsOpen: Bool
     let news: [NewsView]
     let tokens: [TokenView]
-    let footnote: String
+    /// The trades kept (the latest 50), newest first.
+    let trades: [TradeView]
+    /// "The latest 50 trades are kept. …", under the full list.
+    let tradesFooter: String
+}
+
+/// A trade on the market (iOS: TradeRow).
+struct TradeView: Encodable {
+    let id: String
+    let token: String
+    /// "Bought 10 BTC" or "Sold 10 BTC"
+    let title: String
+    /// When it was made, in seconds since 1970.
+    let date: Double
+    /// "−1.2M" paid, or "+1.1M" received.
+    let coins: String
+    /// For a sale of bought tokens: "▲ 50K" against what they cost.
+    let profit: String?
+    let profitUp: Bool
+}
+
+/// What a Sell button would do, in full (iOS: SalePreviewLine).
+struct SalePreviewView: Encodable {
+    /// "Selling 10: 1.2M − 120K fee = 1.08M coins"
+    let line: String
+    /// "▲ 50K (4.8%) against what they cost", when some were bought.
+    let profit: String?
+    let profitUp: Bool
 }
 
 struct NewsView: Encodable {
@@ -258,6 +306,8 @@ struct TradeOption: Encodable {
     /// The price, or what the sale pays ("+1.2M"), or "None owned".
     let value: String
     let enabled: Bool
+    /// For a sale: the fee, the coins and how it compares with what the tokens cost.
+    let preview: SalePreviewView?
 }
 
 // MARK: - Building
@@ -277,7 +327,10 @@ extension GameSession {
         let purchased = UpgradeID.allCases.filter(game.upgrades.contains)
         let recommended = game.isPrestigeRecommended
         let showsPrestige = recommended || game.prestigePoints > 0 || game.stats.lifetimeCoins >= Tuning.prestigeScale / 10
+        // Shortcuts once the list is long enough to scroll past.
+        let shortcuts = revealed.count >= 4 ? ["miners", "powerUps", "upgrades"] + (showsPrestige ? ["prestige"] : []) : []
         return ShopView(
+            shortcuts: shortcuts,
             prestigeFirst: recommended,
             prestige: showsPrestige ? prestigeView : nil,
             minersDetail: "\(CoinFormat.rate(game.baseProduction)) per second",
@@ -345,9 +398,17 @@ extension GameSession {
             let first = MinerID.allCases[miner.tier + Tuning.legacyTierGap]
             legacy = "Legacy: earns \(CoinFormat.multiplier(Tuning.legacyMultiplier)) more for each tier from \(first.name) up with \(CoinFormat.grouped(Tuning.legacyUnits)) owned."
         }
+        // What one more adds against the income, and how soon it repays its price.
+        let gain = game.nextUnitGain(miner)
+        let income = game.baseIdleIncome
+        var payback: String?
+        if gain > 0, income > 0, let seconds = GameState.payback(price: game.price(of: miner, quantity: 1), gain: gain) {
+            payback = "One more adds \(CoinFormat.rate(gain)) a second, \(shareText(gain / income)) of your income, and pays for itself in \(CoinFormat.duration(seconds))."
+        }
         return MinerInfoView(
             blurb: miner.blurb,
             owned: owned > 0 ? "Owned \(CoinFormat.grouped(owned)) · \(CoinFormat.rate(game.rate(of: miner))) coins per second" : nil,
+            payback: payback,
             milestone: game.nextMilestone(for: miner).map {
                 "At \(CoinFormat.grouped($0)) owned, they all earn \(CoinFormat.multiplier(Tuning.milestoneMultiplier)) more."
             },
@@ -408,7 +469,30 @@ extension GameSession {
     func upgradeView(_ upgrade: UpgradeID, owned: Bool) -> UpgradeView {
         UpgradeView(id: upgrade.rawValue, name: upgrade.name, summary: upgrade.summary, symbol: upgrade.symbol,
                     category: categoryKey(upgrade.category), price: CoinFormat.cost(upgrade.cost),
-                    canAfford: !owned && upgrade.cost <= state.coins)
+                    canAfford: !owned && upgrade.cost <= state.coins, gain: owned ? nil : gainText(of: upgrade))
+    }
+
+    /// What an upgrade adds in this game: a share of income and how soon it repays its price, or a
+    /// share of each tap for tapping upgrades without automatic taps. Nil for upgrades that add
+    /// neither (steps and mini-games: their summaries say what they do).
+    private func gainText(of upgrade: UpgradeID) -> String? {
+        let game = state
+        let income = game.baseIdleIncome
+        let gain = game.incomeGain(of: upgrade)
+        if income > 0, gain > 0, let payback = GameState.payback(price: upgrade.cost, gain: gain) {
+            return "\(shareText(gain / income)) income · pays for itself in \(CoinFormat.duration(payback))"
+        }
+        let tap = game.baseTapValue
+        let tapGain = game.tapGain(of: upgrade)
+        if tap > 0, tapGain > 0 {
+            return "\(shareText(tapGain / tap)) per tap"
+        }
+        return nil
+    }
+
+    /// A purchase's share of the income, as the Shop writes it: "+2.1%", or "+<0.1%" for a sliver.
+    private func shareText(_ share: Double) -> String {
+        share > 0 && share < 0.001 ? "+<0.1%" : "+\(CoinFormat.percent(share))"
     }
 
     func categoryKey(_ category: UpgradeCategory) -> String {
@@ -483,11 +567,14 @@ extension GameSession {
         if game.hasPerk(.headStart) {
             keeps.append(SymbolLineView(symbol: "flag.checkered", text: "Head Start: 10 Chromebooks, 10 Desktops and 5 GPU Rigs"))
         }
+        let finish = CoinFinish.allCases.first { $0.prestigesNeeded == game.stats.prestiges + 1 }
         return PrestigeConfirmView(
             gains: [ListSectionView(header: nil, footer: nil, lines: gains)],
             resets: resets, keeps: keeps,
             firstNote: game.stats.prestiges == 0
                 ? "Your first prestige also reveals three new miners beyond the Space Mining Colony." : nil,
+            finish: finish?.rawValue,
+            finishNote: finish.map { "This prestige unlocks the \($0.name) coin finish." },
             canPrestige: claimable > 0)
     }
 
@@ -543,14 +630,70 @@ extension GameSession {
         let fee = game.marketSellRate < 1
             ? "Selling costs a \(CoinFormat.percent(1 - game.marketSellRate)) fee"
             : "No selling fee (Market Insider)"
+        // What the same tokens were worth a day ago.
+        let dayAgo = TokenID.allCases.reduce(0.0) { total, token in
+            let quote = market.quote(token)
+            return total + quote.price / max(1 + quote.change, 1e-9) * Double(game.tokenCount(token))
+        }
+        let dayChange = holdings - dayAgo
+        let portfolio = game.portfolio(at: now)
+        let stats = game.stats
+        var portfolioLine: String?
+        if portfolio.paid > 0, let share = portfolio.changeShare {
+            portfolioLine = "Paid \(CoinFormat.short(portfolio.paid)) · now \(CoinFormat.short(portfolio.worthOfPaid)) · \(portfolio.change >= 0 ? "▲" : "▼") \(CoinFormat.percent(abs(share)))"
+        }
+        let feeShare = 1 - game.marketSellRate
         return TokensView(
             holdings: amount(holdings),
             walletLine: holdings > 0 ? "Sells for \(CoinFormat.short(sale)) · \(fee)" : "Buy tokens below to bet them or trade them.",
+            dayChange: holdings > 0 && dayAgo > 0 && abs(dayChange) >= 1
+                ? "\(dayChange >= 0 ? "▲" : "▼") \(CoinFormat.short(abs(dayChange))) (\(CoinFormat.percent(abs(dayChange) / dayAgo))) in the last day" : nil,
+            dayChangeUp: dayChange >= 0,
+            portfolio: portfolioLine, portfolioUp: portfolio.change >= 0,
+            trading: stats.tokensSold > 0 && (stats.tradingProfit != 0 || stats.profitableSales > 0)
+                ? "Trading so far: \(stats.tradingProfit >= 0 ? "+" : "−")\(CoinFormat.short(abs(stats.tradingProfit))) against what you paid · \(stats.profitableSales) sales at a profit" : nil,
+            guide: [
+                SymbolLineView(symbol: "gamecontroller.fill", text: "These are the game's own tokens. Their prices are simulated, not real cryptocurrency prices, and no real money is involved."),
+                SymbolLineView(symbol: "clock.arrow.2.circlepath", text: "Prices move every five minutes, and news nudges them up or down. Volatile tokens move the most; Tether hardly at all. Tap a token's icon to see how it moves."),
+                SymbolLineView(symbol: "arrow.up.right", text: feeShare > 0
+                    ? "Buy low and sell high. Selling takes a \(CoinFormat.percent(feeShare)) fee, so a token has to rise by more than that before selling it pays."
+                    : "Buy low and sell high. Market Insider means selling costs no fee."),
+                SymbolLineView(symbol: "suit.spade.fill", text: "Tokens are the casino's chips too. They reset when you prestige, so sell or spend them before you do."),
+            ],
+            guideStartsOpen: stats.totalTokensBought == 0,
             news: market.news.prefix(3).map {
                 NewsView(id: $0.id, isGood: $0.isGood, headline: $0.headline, date: $0.date.timeIntervalSince1970)
             },
             tokens: TokenID.allCases.map(tokenView),
-            footnote: "Most prices drift within about a third of each token's usual price, volatile ones much further and faster, and news nudges them up or down. Tap a token's icon to see how it moves. Bet tokens at the casino games in the Arcade, or sell them back for coins. Tokens reset when you prestige.")
+            trades: game.recentTrades.reversed().map(tradeView),
+            tradesFooter: "The latest \(Tuning.tradeHistoryLimit) trades are kept. A sale's result compares it with the average price you've paid for that token.")
+    }
+
+    private func tradeView(_ trade: TokenTrade) -> TradeView {
+        TradeView(
+            id: trade.id, token: trade.token.rawValue,
+            title: trade.isSale ? "Sold \(CoinFormat.grouped(-trade.quantity)) \(trade.token.ticker)"
+                : "Bought \(CoinFormat.grouped(trade.quantity)) \(trade.token.ticker)",
+            date: trade.date.timeIntervalSince1970,
+            coins: "\(trade.isSale ? "+" : "−")\(CoinFormat.short(trade.coins))",
+            profit: trade.profit.map { "\($0 >= 0 ? "▲" : "▼") \(CoinFormat.short(abs($0)))" },
+            profitUp: (trade.profit ?? 0) >= 0)
+    }
+
+    /// What selling `count` would come to (iOS: SalePreviewLine).
+    private func salePreview(_ token: TokenID, count: Int) -> SalePreviewView {
+        let preview = state.salePreview(of: token, quantity: count, at: now)
+        let line = preview.fee > 0
+            ? "Selling \(CoinFormat.grouped(count)): \(CoinFormat.short(preview.worth)) − \(CoinFormat.short(preview.fee)) fee = \(CoinFormat.short(preview.net)) coins"
+            : "Selling \(CoinFormat.grouped(count)): \(CoinFormat.short(preview.net)) coins, no fee"
+        var profitLine: String?
+        if let profit = preview.profit, let paid = preview.paid, paid > 0 {
+            let arrow = profit >= 0 ? "▲" : "▼"
+            profitLine = preview.bought < preview.count
+                ? "\(arrow) \(CoinFormat.short(abs(profit))) (\(CoinFormat.percent(abs(profit) / paid))) on the \(CoinFormat.grouped(preview.bought)) you bought, against what they cost"
+                : "\(arrow) \(CoinFormat.short(abs(profit))) (\(CoinFormat.percent(abs(profit) / paid))) against what they cost"
+        }
+        return SalePreviewView(line: line, profit: profitLine, profitUp: (preview.profit ?? 0) >= 0)
     }
 
     private func tokenView(_ token: TokenID) -> TokenView {
@@ -564,13 +707,15 @@ extension GameSession {
         let buy = [1, 10, 100, 0].map { quantity -> TradeOption in
             let count = quantity == 0 ? max(1, affordable) : quantity
             return TradeOption(count: count, label: "Buy \(CoinFormat.grouped(count))",
-                               value: CoinFormat.cost(quote.price * Double(count)), enabled: affordable > 0 && count <= affordable)
+                               value: CoinFormat.cost(quote.price * Double(count)), enabled: affordable > 0 && count <= affordable,
+                               preview: nil)
         }
         let sell = [1, 10, 100, 0].map { quantity -> TradeOption in
             let count = quantity == 0 ? owned : min(quantity, owned)
             let sale = (quote.price * Double(count) * game.marketSellRate).rounded()
             return TradeOption(count: count, label: count > 0 ? "Sell \(CoinFormat.grouped(count))" : "Sell",
-                               value: count > 0 ? "+\(CoinFormat.short(sale))" : "None owned", enabled: count > 0)
+                               value: count > 0 ? "+\(CoinFormat.short(sale))" : "None owned", enabled: count > 0,
+                               preview: count > 0 ? salePreview(token, count: count) : nil)
         }
         return TokenView(
             id: token.rawValue, name: token.name, ticker: token.ticker,

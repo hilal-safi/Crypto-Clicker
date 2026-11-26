@@ -201,6 +201,8 @@ fun MinerInfoBubble(miner: Miner, arrowX: Dp, close: () -> Unit) {
         val info = miner.info
         Text(info.blurb, style = Type.subheadline)
         info.owned?.let { Text(it, style = Type.footnote.semibold.digits, color = colors.subtext) }
+        // What one more adds against the income, and how soon it repays its price.
+        info.payback?.let { Text(it, style = Type.footnote.semibold.digits, color = colors.accent) }
         info.milestone?.let { Text(it, style = Type.footnote, color = colors.subtext) }
         info.legacy?.let {
             Text(it, style = if (info.legacyActive) Type.footnote.semibold else Type.footnote,
@@ -238,6 +240,8 @@ fun UpgradeRow(upgrade: Upgrade) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             AutoSizeText(upgrade.name, Type.headline, minScale = 0.8f)
             Text(upgrade.summary, style = Type.subheadline, color = colors.subtext)
+            // What it adds, worked out for this game: "+12% income · pays for itself in 4m".
+            upgrade.gain?.let { Text(it, style = Type.subheadline.semibold.digits, color = colors.accent) }
         }
         PriceButton(upgrade.canAfford, colors.accent, onClick = { game.buyUpgrade(upgrade.id) },
             modifier = Modifier.widthIn(min = 84.dp).semantics { contentDescription = "Buy ${upgrade.name} for ${upgrade.price} coins" }) {

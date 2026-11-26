@@ -35,6 +35,8 @@ class GameController(
     private val canTrackSteps: () -> Boolean = { false },
     /** The Numbers setting: the game writes coin amounts with every digit when it's on. */
     private val exactNumbers: () -> Boolean = { false },
+    /** This phone's id for the app, so backups made on another device can be told apart. */
+    private val device: () -> String? = { null },
 ) {
     private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "CryptoClickerGame").apply { isDaemon = true }
@@ -84,7 +86,7 @@ class GameController(
 
     /** Opens the saved game. Call once, before anything else. */
     fun start() = command("start", mapOf("dir" to saveDirectory.absolutePath, "timeZone" to timeZone(),
-        "canTrackSteps" to canTrackSteps()))
+        "canTrackSteps" to canTrackSteps(), "device" to device()))
 
     /**
      * The app came on screen: pay the time away and start the dailies. The time zone goes along in

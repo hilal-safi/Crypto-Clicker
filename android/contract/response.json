@@ -1,20 +1,31 @@
 {
   "bought": true,
+  "data": "text",
   "error": "text",
   "game": {
     "achievements": {
       "bonus": "text",
-      "cards": [
+      "collections": [
         {
-          "detail": "text",
-          "emoji": "text",
+          "cards": [
+            {
+              "detail": "text",
+              "emoji": "text",
+              "fraction": 1.5,
+              "id": "text",
+              "isMythic": true,
+              "name": "text",
+              "progressText": "text",
+              "tierName": "text",
+              "tiers": 1
+            }
+          ],
           "fraction": 1.5,
           "id": "text",
-          "isMythic": true,
+          "isComplete": true,
           "name": "text",
-          "progressText": "text",
-          "tierName": "text",
-          "tiers": 1
+          "stars": "text",
+          "symbol": "text"
         }
       ],
       "fraction": 1.5,
@@ -37,6 +48,7 @@
           "color": "text",
           "icon": "text",
           "id": "text",
+          "isNew": true,
           "isUnlocked": true,
           "name": "text",
           "pitch": "text",
@@ -56,6 +68,7 @@
           "color": "text",
           "icon": "text",
           "id": "text",
+          "isNew": true,
           "isUnlocked": true,
           "name": "text",
           "pitch": "text",
@@ -93,6 +106,34 @@
         "weekly": "text",
         "weeklyPaid": true
       }
+    },
+    "backup": {
+      "entries": [
+        {
+          "fromAnotherDevice": true,
+          "holds": "text",
+          "id": "text",
+          "place": "text",
+          "savedAt": 1.5
+        }
+      ],
+      "folder": {
+        "backedUpAt": 1.5,
+        "conflict": {
+          "holds": "text",
+          "kind": "text",
+          "savedAt": 1.5
+        },
+        "failure": "text",
+        "name": "text"
+      },
+      "lastBackup": 1.5,
+      "pending": {
+        "holds": "text",
+        "savedAt": 1.5,
+        "source": "text"
+      },
+      "problem": "text"
     },
     "daily": {
       "challenge": {
@@ -169,8 +210,10 @@
       "goals": [
         {
           "color": "text",
+          "destination": "text",
           "detail": "text",
           "id": "text",
+          "kind": "text",
           "progress": 1.5,
           "progressText": "text",
           "ready": true,
@@ -249,6 +292,11 @@
       "finishes": [
         "text"
       ],
+      "goal": {
+        "accessibility": "text",
+        "isReady": true,
+        "progress": 1.5
+      },
       "inventory": {
         "combo": "text",
         "efficiency": "text",
@@ -307,6 +355,27 @@
         }
       ]
     },
+    "newerSave": {
+      "message": "text",
+      "title": "text"
+    },
+    "nextGoals": {
+      "goals": [
+        {
+          "color": "text",
+          "destination": "text",
+          "detail": "text",
+          "id": "text",
+          "kind": "text",
+          "progress": 1.5,
+          "progressText": "text",
+          "ready": true,
+          "symbol": "text",
+          "title": "text"
+        }
+      ],
+      "starterToClaim": true
+    },
     "perks": {
       "available": "text",
       "branches": [
@@ -334,8 +403,15 @@
     },
     "purchaseNote": {
       "effects": "text",
+      "highlight": "text",
+      "highlightKind": "text",
+      "highlights": 1,
       "id": 1,
+      "incomeMultiple": "text",
       "lifetime": 1.5,
+      "milestones": [
+        "text"
+      ],
       "more": "text",
       "names": "text",
       "perSecond": {
@@ -353,6 +429,73 @@
       "remaining": 1.5,
       "stamp": 1,
       "title": "text"
+    },
+    "runHistory": {
+      "chart": [
+        {
+          "coins": 1.5,
+          "hours": 1.5,
+          "number": 1,
+          "points": 1.5
+        }
+      ],
+      "chartFooter": "text",
+      "coinTicks": [
+        {
+          "label": "text",
+          "value": 1.5
+        }
+      ],
+      "current": [
+        {
+          "bold": true,
+          "detail": "text",
+          "emoji": "text",
+          "kind": "text",
+          "share": 1.5,
+          "symbol": "text",
+          "title": "text",
+          "value": "text"
+        }
+      ],
+      "currentFooter": "text",
+      "currentTitle": "text",
+      "milestones": [
+        {
+          "detail": "text",
+          "finish": "text",
+          "reached": true,
+          "status": "text",
+          "title": "text"
+        }
+      ],
+      "milestonesFooter": "text",
+      "records": [
+        {
+          "bold": true,
+          "detail": "text",
+          "emoji": "text",
+          "kind": "text",
+          "share": 1.5,
+          "symbol": "text",
+          "title": "text",
+          "value": "text"
+        }
+      ],
+      "runs": [
+        {
+          "endedAt": 1.5,
+          "income": "text",
+          "isBiggest": true,
+          "isFastest": true,
+          "line": "text",
+          "number": 1,
+          "points": "text",
+          "title": "text"
+        }
+      ],
+      "runsEmpty": "text",
+      "runsFooter": "text"
     },
     "shop": {
       "lockedMiner": {
@@ -376,7 +519,8 @@
             "legacy": "text",
             "legacyActive": true,
             "milestone": "text",
-            "owned": "text"
+            "owned": "text",
+            "payback": "text"
           },
           "isBestValue": true,
           "legacy": "text",
@@ -432,6 +576,8 @@
         "claim": "text",
         "confirm": {
           "canPrestige": true,
+          "finish": "text",
+          "finishNote": "text",
           "firstNote": "text",
           "gains": [
             {
@@ -476,6 +622,7 @@
         {
           "canAfford": true,
           "category": "text",
+          "gain": "text",
           "id": "text",
           "name": "text",
           "price": "text",
@@ -483,10 +630,14 @@
           "symbol": "text"
         }
       ],
+      "shortcuts": [
+        "text"
+      ],
       "upgrades": [
         {
           "canAfford": true,
           "category": "text",
+          "gain": "text",
           "id": "text",
           "name": "text",
           "price": "text",
@@ -498,6 +649,27 @@
       "upgradesEmpty": "text"
     },
     "starterClaims": 1,
+    "starts": {
+      "snake": {
+        "arenas": [
+          {
+            "id": "text",
+            "name": "text",
+            "walls": [
+              1
+            ]
+          }
+        ],
+        "classic": "text",
+        "rush": "text",
+        "speeds": [
+          {
+            "id": "text",
+            "name": "text"
+          }
+        ]
+      }
+    },
     "stepWindowDays": 1,
     "stepsConnected": true,
     "style": {
@@ -520,7 +692,15 @@
       ]
     },
     "tokens": {
-      "footnote": "text",
+      "dayChange": "text",
+      "dayChangeUp": true,
+      "guide": [
+        {
+          "symbol": "text",
+          "text": "text"
+        }
+      ],
+      "guideStartsOpen": true,
       "holdings": "text",
       "news": [
         {
@@ -530,6 +710,8 @@
           "isGood": true
         }
       ],
+      "portfolio": "text",
+      "portfolioUp": true,
       "tokens": [
         {
           "buy": [
@@ -537,6 +719,11 @@
               "count": 1,
               "enabled": true,
               "label": "text",
+              "preview": {
+                "line": "text",
+                "profit": "text",
+                "profitUp": true
+              },
               "value": "text"
             }
           ],
@@ -555,6 +742,11 @@
               "count": 1,
               "enabled": true,
               "label": "text",
+              "preview": {
+                "line": "text",
+                "profit": "text",
+                "profitUp": true
+              },
               "value": "text"
             }
           ],
@@ -564,6 +756,19 @@
           "volatilityName": "text"
         }
       ],
+      "trades": [
+        {
+          "coins": "text",
+          "date": 1.5,
+          "id": "text",
+          "profit": "text",
+          "profitUp": true,
+          "title": "text",
+          "token": "text"
+        }
+      ],
+      "tradesFooter": "text",
+      "trading": "text",
       "walletLine": "text"
     },
     "unreadableSave": {
@@ -633,7 +838,9 @@
     },
     "coins": 1.5,
     "combo": {
+      "accessibility": "text",
       "isMax": true,
+      "isRecord": true,
       "taps": "text",
       "title": "text"
     },
@@ -1026,6 +1233,71 @@
           }
         ]
       }
+    },
+    "snake": {
+      "blocks": 1,
+      "body": [
+        1
+      ],
+      "coins": [
+        1
+      ],
+      "eaten": 1,
+      "effects": [
+        {
+          "kind": "text",
+          "name": "text",
+          "secondsLeft": 1,
+          "share": 1.5
+        }
+      ],
+      "grace": 1,
+      "hasShield": true,
+      "height": 1,
+      "intro": "text",
+      "isRush": true,
+      "item": {
+        "kind": "text",
+        "share": 1.5,
+        "x": 1,
+        "y": 1
+      },
+      "magnet": true,
+      "magnetReach": 1,
+      "pickedUp": "text",
+      "pickedUpName": "text",
+      "pickups": 1,
+      "readyTitle": "text",
+      "score": 1,
+      "speedBoost": true,
+      "state": {
+        "best": 1,
+        "over": {
+          "bestLine": "text",
+          "challenge": "text",
+          "details": [
+            "text"
+          ],
+          "isNewBest": true,
+          "reward": "text",
+          "score": "text",
+          "title": "text",
+          "xp": {
+            "capReached": true,
+            "parts": "text",
+            "text": "text"
+          }
+        },
+        "phase": "text",
+        "run": 1
+      },
+      "tickInterval": 1.5,
+      "timeLeft": 1,
+      "title": "text",
+      "walls": [
+        1
+      ],
+      "width": 1
     }
   },
   "reminders": [

@@ -40,6 +40,8 @@ struct MiniGameRowView: Encodable {
     let color: String
     let textColorDark: String
     let isUnlocked: Bool
+    /// Unlocked and never played: a New badge until it is.
+    let isNew: Bool
     let canAfford: Bool
     let unlockPrice: String
     let records: [RecordFactView]
@@ -157,7 +159,8 @@ extension GameSession {
         return MiniGameRowView(
             id: miniGame.rawValue, icon: miniGame.info.icon, name: miniGame.name, pitch: miniGame.info.pitch,
             color: hex(miniGame.info.color), textColorDark: hex(miniGame.info.color, mixedWithWhite: 0.45),
-            isUnlocked: game.isUnlocked(miniGame), canAfford: miniGame.unlockCost <= game.coins,
+            isUnlocked: game.isUnlocked(miniGame), isNew: game.isUnlocked(miniGame) && !game.hasPlayed(miniGame),
+            canAfford: miniGame.unlockCost <= game.coins,
             unlockPrice: CoinFormat.cost(miniGame.unlockCost),
             records: game.record(for: miniGame).map { RecordFactView(label: $0.label, value: $0.value) })
     }

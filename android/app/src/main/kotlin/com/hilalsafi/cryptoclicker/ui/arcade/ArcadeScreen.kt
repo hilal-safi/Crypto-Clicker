@@ -1,6 +1,8 @@
 package com.hilalsafi.cryptoclicker.ui.arcade
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,12 +17,16 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -34,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
@@ -46,6 +53,7 @@ import com.hilalsafi.cryptoclicker.core.MiniGameRow
 import com.hilalsafi.cryptoclicker.core.Rank
 import com.hilalsafi.cryptoclicker.core.RecordFact
 import com.hilalsafi.cryptoclicker.ui.LocalGame
+import com.hilalsafi.cryptoclicker.ui.LocalPrefs
 import com.hilalsafi.cryptoclicker.ui.NavHost
 import com.hilalsafi.cryptoclicker.ui.Requests
 import com.hilalsafi.cryptoclicker.ui.WantViews
@@ -89,10 +97,21 @@ fun ArcadeScreen(contentPadding: PaddingValues, requests: Requests) {
         delay(if (wasInGame) 450 else 50)
         if (challenge.isNotEmpty()) navigator.push(challengeRoute(challenge))
     }
+    // Opens the game a goal asked for (once it's unlocked). A game screen that's already open
+    // stays as it is, so a game in progress is never closed from another tab.
+    LaunchedEffect(requests.arcadeGame) {
+        val asked = requests.arcadeGame ?: return@LaunchedEffect
+        requests.arcadeGame = null
+        val arcade = game.game.value?.arcade
+        val unlocked = arcade?.let { it.casino + it.arcade }?.any { it.id == asked && it.isUnlocked } == true
+        if (asked.isEmpty() || !navigator.isAtRoot || !unlocked) return@LaunchedEffect
+        delay(50)
+        navigator.push("game/$asked")
+    }
     NavHost(navigator, root = {
         ArcadeList(contentPadding, openGame = { navigator.push("game/$it") }, openChallenge = { navigator.push(challengeRoute(it)) })
     }) { route ->
-        GameRoute(route, navigator)
+        GameRoute(route, navigator, contentPadding)
     }
 }
 
@@ -113,8 +132,11 @@ private fun challengeRoute(game: String): String = when (game) {
 private fun ArcadeList(contentPadding: PaddingValues, openGame: (String) -> Unit, openChallenge: (String) -> Unit) {
     WantViews("arcade")
     val game = LocalGame.current
+    val prefs = LocalPrefs.current
     val view by game.game.collectAsState()
     val arcade = view?.arcade
+    val favoriteList by prefs.favoriteGames.state()
+    val recentList by prefs.recentGames.state()
     var statsGame by rememberSaveable { mutableStateOf<String?>(null) }
     var showsStyle by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
@@ -133,13 +155,35 @@ private fun ArcadeList(contentPadding: PaddingValues, openGame: (String) -> Unit
                         Wide { ChallengeCard(challenge, play = arcade.challengeGame?.let { id -> { openChallenge(id) } }) }
                     }
                 }
-                item(key = "casinoHeader") { Wide { SectionHeader("Casino", "Bet tokens from the Shop") } }
-                items(arcade.casino, key = { "casino:${it.id}" }) { row ->
-                    Wide { MiniGameRowCard(row, play = { openGame(row.id) }, showStats = { statsGame = row.id }) }
+                // The games opened lately, the favorites, then the rest: the casino's and the arcade's.
+                val all = arcade.casino + arcade.arcade
+                val byID = all.associateBy { it.id }
+                val favoriteIDs = favoriteList.split(',').filter { it.isNotEmpty() }
+                val favorites = favoriteIDs.mapNotNull { byID[it] }.filter { it.isUnlocked }
+                val recent = recentList.split(',').mapNotNull { byID[it] }.filter { it.isUnlocked }
+                val casino = arcade.casino.filter { it !in favorites }
+                val games = arcade.arcade.filter { it !in favorites }
+                // Quick ways back once there are enough games to scroll past.
+                if (recent.isNotEmpty() && all.count { it.isUnlocked } >= 4) {
+                    item(key = "recent") { Wide { RecentGamesStrip(recent, openGame) } }
                 }
-                item(key = "arcadeHeader") { Wide { SectionHeader("Arcade", "Every point pays coins") } }
-                items(arcade.arcade, key = { "arcade:${it.id}" }) { row ->
-                    Wide { MiniGameRowCard(row, play = { openGame(row.id) }, showStats = { statsGame = row.id }) }
+                val row: @Composable (MiniGameRow) -> Unit = { entry ->
+                    Wide {
+                        MiniGameRowCard(entry, isFavorite = entry.id in favoriteIDs, toggleFavorite = { prefs.toggleFavorite(entry.id) },
+                            play = { openGame(entry.id) }, showStats = { statsGame = entry.id })
+                    }
+                }
+                if (favorites.isNotEmpty()) {
+                    item(key = "favoritesHeader") { Wide { SectionHeader("Favorites", "Starred games") } }
+                    items(favorites, key = { "favorite:${it.id}" }) { row(it) }
+                }
+                if (casino.isNotEmpty()) {
+                    item(key = "casinoHeader") { Wide { SectionHeader("Casino", "Bet tokens from the Shop") } }
+                    items(casino, key = { "casino:${it.id}" }) { row(it) }
+                }
+                if (games.isNotEmpty()) {
+                    item(key = "arcadeHeader") { Wide { SectionHeader("Arcade", "Every point pays coins") } }
+                    items(games, key = { "arcade:${it.id}" }) { row(it) }
                 }
             }
         }
@@ -188,44 +232,88 @@ private fun RankCard(rank: Rank, openStyle: () -> Unit) {
     }
 }
 
-/** One mini-game: what it is, its record, and Play with Stats, or Unlock (iOS: MiniGameRow). */
+/** The games opened most recently, a tap away from the top of the Arcade (iOS: RecentGamesStrip). */
 @Composable
-private fun MiniGameRowCard(row: MiniGameRow, play: () -> Unit, showStats: () -> Unit) {
+private fun RecentGamesStrip(games: List<MiniGameRow>, openGame: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Jump back in", style = Type.headline)
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            games.forEach { game ->
+                Row(
+                    Modifier
+                        .clip(CircleShape)
+                        .background(Palette.named(game.color).copy(alpha = 0.18f))
+                        .clickable(onClickLabel = "Play ${game.name}") { openGame(game.id) }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Emoji(game.icon, 16.sp)
+                    Text(game.name, style = Type.subheadline.semibold, maxLines = 1)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One mini-game (iOS: MiniGameRow): its name with a New badge until it's first played and the
+ * favorite star, what it is beside Play and Stats (or Unlock), and its records under them.
+ */
+@Composable
+private fun MiniGameRowCard(row: MiniGameRow, isFavorite: Boolean, toggleFavorite: () -> Unit, play: () -> Unit, showStats: () -> Unit) {
     val game = LocalGame.current
     val colors = gameColors
     val feedback = rememberFeedback()
     val tint = Palette.named(row.color)
     val textTint = if (colors.isDark) Palette.named(row.textColorDark) else tint
-    Column(Modifier.fillMaxWidth().rowCard(colors), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(58.dp).background(tint.copy(alpha = 0.18f), RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-                Emoji(row.icon, 30.sp)
-            }
-            Column(Modifier.weight(1f).padding(end = 0.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(row.name, style = Type.headline)
-                Text(row.pitch, style = Type.subheadline, color = colors.subtext)
-            }
-            if (row.isUnlocked) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ProminentButton("Play", onClick = play, Modifier.widthIn(min = 76.dp).semantics { contentDescription = "Play ${row.name}" },
-                        tint = tint, style = Type.subheadline.bold, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp))
-                    SoftButton("Stats", onClick = showStats, Modifier.widthIn(min = 76.dp).semantics { contentDescription = "${row.name} stats" },
-                        tint = textTint, icon = Icons.Rounded.BarChart, style = Type.footnote.semibold,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp))
+    Row(Modifier.fillMaxWidth().rowCard(colors), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(58.dp).background(tint.copy(alpha = 0.18f), RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
+            Emoji(row.icon, 30.sp)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            // The name runs over the buttons, so a two-word name with its badge and star keeps to one line.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(row.name, style = Type.headline, maxLines = 1)
+                if (row.isNew) {
+                    Text("New", style = Type.footnote.bold, color = Color.White, maxLines = 1,
+                        modifier = Modifier.clip(CircleShape).background(tint).padding(horizontal = 7.dp, vertical = 2.dp))
                 }
-            } else {
-                PriceButton(row.canAfford, Palette.arcadeButton, onClick = {
-                    if (row.canAfford) game.purchase("unlockGame", mapOf("id" to row.id)) else feedback.warning()
-                }, modifier = Modifier.widthIn(min = 84.dp).semantics { contentDescription = "Unlock ${row.name} for ${row.unlockPrice} coins" }) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Icon(if (row.canAfford) Icons.Rounded.LockOpen else Icons.Rounded.Lock, null, modifier = Modifier.size(14.dp))
-                        Text(row.unlockPrice, style = Type.subheadline.bold.digits, maxLines = 1)
+                if (row.isUnlocked) {
+                    Icon(
+                        if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                        if (isFavorite) "Remove ${row.name} from Favorites" else "Add ${row.name} to Favorites",
+                        tint = if (isFavorite) Palette.gold else colors.subtext,
+                        modifier = Modifier.clip(CircleShape).clickable {
+                            feedback.selection()
+                            toggleFavorite()
+                        }.padding(4.dp).size(18.dp),
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(row.pitch, style = Type.subheadline, color = colors.subtext, modifier = Modifier.weight(1f))
+                if (row.isUnlocked) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ProminentButton("Play", onClick = play, Modifier.widthIn(min = 76.dp).semantics { contentDescription = "Play ${row.name}" },
+                            tint = tint, style = Type.subheadline.bold, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp))
+                        SoftButton("Stats", onClick = showStats, Modifier.widthIn(min = 76.dp).semantics { contentDescription = "${row.name} stats" },
+                            tint = textTint, icon = Icons.Rounded.BarChart, style = Type.footnote.semibold,
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp))
+                    }
+                } else {
+                    PriceButton(row.canAfford, Palette.arcadeButton, onClick = {
+                        if (row.canAfford) game.purchase("unlockGame", mapOf("id" to row.id)) else feedback.warning()
+                    }, modifier = Modifier.widthIn(min = 84.dp).semantics { contentDescription = "Unlock ${row.name} for ${row.unlockPrice} coins" }) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Icon(if (row.canAfford) Icons.Rounded.LockOpen else Icons.Rounded.Lock, null, modifier = Modifier.size(14.dp))
+                            Text(row.unlockPrice, style = Type.subheadline.bold.digits, maxLines = 1)
+                        }
                     }
                 }
             }
-        }
-        if (row.isUnlocked && row.records.isNotEmpty()) {
-            RecordLine(row.records, textTint, Modifier.padding(start = 72.dp))
+            if (row.isUnlocked && row.records.isNotEmpty()) {
+                RecordLine(row.records, textTint)
+            }
         }
     }
 }

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.ArrowCircleUp
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Bolt
@@ -41,12 +42,12 @@ import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Flare
+import androidx.compose.material.icons.rounded.FlashOff
 import androidx.compose.material.icons.rounded.FlightTakeoff
 import androidx.compose.material.icons.rounded.Gavel
-import androidx.compose.material.icons.rounded.FlashOff
 import androidx.compose.material.icons.rounded.Gesture
 import androidx.compose.material.icons.rounded.GpsFixed
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -204,6 +205,7 @@ object Symbols {
         "timer" to Icons.Rounded.Timer,
         "clock" to Icons.Rounded.Schedule,
         "clock.arrow.circlepath" to Icons.Rounded.History,
+        "clock.arrow.2.circlepath" to Icons.Rounded.Autorenew,
         "square.grid.2x2" to Icons.Rounded.GridView,
         "square.grid.3x3" to Icons.Rounded.Apps,
         "square.grid.3x3.middle.filled" to Icons.Rounded.ViewModule,

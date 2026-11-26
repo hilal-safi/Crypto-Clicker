@@ -1,10 +1,12 @@
 package com.hilalsafi.cryptoclicker.ui.mine
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -34,9 +37,11 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.MilitaryTech
 import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.SportsScore
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -52,8 +57,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -62,9 +71,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hilalsafi.cryptoclicker.core.GoalRing
 import com.hilalsafi.cryptoclicker.core.Inventory
 import com.hilalsafi.cryptoclicker.core.PrestigePoints
 import com.hilalsafi.cryptoclicker.core.Steps
@@ -91,7 +102,15 @@ import kotlinx.coroutines.launch
  * button that goes there, and a close button.
  */
 @Composable
-fun GuideTipCard(tips: List<Tip>, openShop: () -> Unit, openPowerUps: () -> Unit, openDaily: () -> Unit, openHowToPlay: () -> Unit) {
+fun GuideTipCard(
+    tips: List<Tip>,
+    openShop: () -> Unit,
+    openPowerUps: () -> Unit,
+    openTokens: () -> Unit,
+    openDaily: () -> Unit,
+    openHowToPlay: () -> Unit,
+    openGoal: (String) -> Unit,
+) {
     val prefs = LocalPrefs.current
     val colors = gameColors
     val dismissed by prefs.dismissedTips.state()
@@ -113,8 +132,10 @@ fun GuideTipCard(tips: List<Tip>, openShop: () -> Unit, openPowerUps: () -> Unit
             shown.action?.let { title ->
                 ProminentButton(title, onClick = {
                     when (shown.id) {
-                        "buyMiner", "prestige" -> openShop()
+                        "buyMiner", "nextTier" -> openShop()
+                        "prestige", "firstPoint" -> openGoal("prestige")
                         "offlineMining" -> openPowerUps()
+                        "tokens" -> openTokens()
                         "daily" -> openDaily()
                         "howToPlay" -> openHowToPlay()
                     }
@@ -137,10 +158,11 @@ private const val MINER_GROWTH = 1.08f
 
 /**
  * What the player owns, under the coin (iOS: InventoryStrip): a card of miners and power-ups that
- * opens the Shop, and a smaller card of crypto that opens the tokens. Each scrolls sideways.
+ * opens the Shop, and a smaller card of crypto that opens the tokens, which shares its row with the
+ * goals button (a fifth of it). Each card scrolls sideways.
  */
 @Composable
-fun InventoryStrip(inventory: Inventory, openShop: () -> Unit, openTokens: () -> Unit) {
+fun InventoryStrip(inventory: Inventory, goal: GoalRing?, openShop: () -> Unit, openTokens: () -> Unit, openGoals: () -> Unit) {
     val colors = gameColors
     val hasPowerUps = inventory.offline != null || inventory.efficiency != null || inventory.combo != null ||
         inventory.upgrades != null || inventory.perks != null
@@ -160,29 +182,89 @@ fun InventoryStrip(inventory: Inventory, openShop: () -> Unit, openTokens: () ->
                 inventory.perks?.let { InventoryChip(it, 1f) { PowerUpSymbol(Icons.Rounded.MilitaryTech, Palette.arcadeButton) } }
             }
         }
-        if (inventory.tokens.isNotEmpty()) {
-            HoldingCard(inventory.tokensLabel, size = TOKENS_SIZE, onClick = openTokens) {
-                inventory.tokens.forEach { token ->
-                    InventoryChip(token.count, TOKENS_SIZE * TOKEN_CHIP_GROWTH) {
-                        TokenImage(token.id, (29 * SCALE * TOKENS_SIZE * TOKEN_CHIP_GROWTH).dp)
+        // The tokens (or the invitation to buy some) take four fifths of their row, and the goals
+        // button the rest, so the goals add nothing to the screen's height.
+        if (inventory.tokens.isNotEmpty() || inventory.miners.isNotEmpty()) {
+            val hasTokens = inventory.tokens.isNotEmpty()
+            SplitRow(share = 0.8f, spacing = (10 * SCALE).dp) {
+                if (hasTokens) {
+                    HoldingCard(inventory.tokensLabel, size = TOKENS_SIZE, onClick = openTokens) {
+                        inventory.tokens.forEach { token ->
+                            InventoryChip(token.count, TOKENS_SIZE * TOKEN_CHIP_GROWTH) {
+                                TokenImage(token.id, (29 * SCALE * TOKENS_SIZE * TOKEN_CHIP_GROWTH).dp)
+                            }
+                        }
+                    }
+                } else {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .glass(colors, RoundedCornerShape((18 * SCALE).dp))
+                            .clickable(onClickLabel = "Opens the Shop's tokens", onClick = openTokens)
+                            .padding(horizontal = (14 * SCALE).dp, vertical = (9 * SCALE).dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy((10 * SCALE).dp),
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.TrendingUp, null, tint = colors.gain, modifier = Modifier.size(20.dp))
+                        Text("Buy crypto tokens to bet or trade", style = Type.subheadline.semibold, modifier = Modifier.weight(1f))
+                        Icon(Icons.Rounded.ChevronRight, null, tint = colors.gain, modifier = Modifier.size(18.dp))
                     }
                 }
-            }
-        } else if (inventory.miners.isNotEmpty()) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .glass(colors, RoundedCornerShape((18 * SCALE).dp))
-                    .clickable(onClick = openTokens)
-                    .padding(horizontal = (14 * SCALE).dp, vertical = (9 * SCALE).dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy((10 * SCALE).dp),
-            ) {
-                Icon(Icons.AutoMirrored.Rounded.TrendingUp, null, tint = colors.gain, modifier = Modifier.size(20.dp))
-                Text("Buy crypto tokens in the Shop to bet or trade", style = Type.subheadline.semibold, modifier = Modifier.weight(1f))
-                Icon(Icons.Rounded.ChevronRight, null, tint = colors.subtext, modifier = Modifier.size(18.dp))
+                GoalsButton(goal, cornerRadius = ((if (hasTokens) 24 * TOKENS_SIZE else 18f) * SCALE).dp, onClick = openGoals)
             }
         }
+    }
+}
+
+/**
+ * Two views side by side: the first takes [share] of the width (less the gap between them), the
+ * second the rest, as tall as the first (iOS: SplitRow).
+ */
+@Composable
+private fun SplitRow(share: Float, spacing: Dp, content: @Composable () -> Unit) {
+    Layout(content) { measurables, constraints ->
+        val gap = spacing.roundToPx()
+        val width = constraints.maxWidth
+        val room = (width - gap).coerceAtLeast(0)
+        val firstWidth = (room * share).toInt()
+        val first = measurables[0].measure(Constraints.fixedWidth(firstWidth))
+        val height = maxOf(first.height, 44.dp.roundToPx())
+        val second = measurables.getOrNull(1)?.measure(Constraints.fixed((room - firstWidth).coerceAtLeast(0), height))
+        layout(width, height) {
+            first.place(0, (height - first.height) / 2)
+            second?.place(firstWidth + gap, 0)
+        }
+    }
+}
+
+/**
+ * The goals button beside the tokens (iOS: GoalsButton): a flag in a ring that fills as the
+ * closest goal nears, green once it's ready. Opens the goals pop-up.
+ */
+@Composable
+private fun GoalsButton(goal: GoalRing?, cornerRadius: Dp, onClick: () -> Unit) {
+    val colors = gameColors
+    val progress by animateFloatAsState((goal?.progress ?: 0.0).toFloat().coerceIn(0f, 1f), label = "goal")
+    val isReady = goal?.isReady == true
+    val tint = if (isReady) colors.gain else colors.accent
+    Box(
+        Modifier
+            .fillMaxSize()
+            .glass(colors, RoundedCornerShape(cornerRadius))
+            .clip(RoundedCornerShape(cornerRadius))
+            .clickable(onClickLabel = "Shows your next goals", onClick = onClick)
+            .semantics { contentDescription = "Goals" + (goal?.let { ", ${it.accessibility}" } ?: "") },
+        contentAlignment = Alignment.Center,
+    ) {
+        val track = colors.text.copy(alpha = 0.15f)
+        Canvas(Modifier.size(38.dp)) {
+            val stroke = 3.5.dp.toPx()
+            val inset = stroke / 2
+            val arcSize = androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke)
+            drawCircle(track, radius = size.minDimension / 2 - inset, style = Stroke(stroke))
+            drawArc(tint, -90f, 360f * progress, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+        }
+        Icon(if (isReady) Icons.Rounded.SportsScore else Icons.Rounded.Flag, null, tint = tint, modifier = Modifier.size(17.dp))
     }
 }
 

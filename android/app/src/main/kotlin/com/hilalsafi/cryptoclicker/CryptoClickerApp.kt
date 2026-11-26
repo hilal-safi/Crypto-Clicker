@@ -1,6 +1,7 @@
 package com.hilalsafi.cryptoclicker
 
 import android.app.Application
+import android.provider.Settings
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -8,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.hilalsafi.cryptoclicker.core.GameController
 import com.hilalsafi.cryptoclicker.core.NativeEngine
+import com.hilalsafi.cryptoclicker.services.Backups
 import com.hilalsafi.cryptoclicker.services.StepCounter
 import com.hilalsafi.cryptoclicker.ui.AppPrefs
 import java.io.File
@@ -25,11 +27,15 @@ class CryptoClickerApp : Application() {
     private companion object {
         /** How often steps are read while the app is open. */
         const val STEP_SYNC_MILLIS = 5 * 60_000L
+        /** How often the backup folder gets a fresh copy while the app is open (iOS: every ten minutes or so). */
+        const val FOLDER_BACKUP_MILLIS = 10 * 60_000L
     }
 
     lateinit var game: GameController
         private set
     lateinit var prefs: AppPrefs
+        private set
+    lateinit var backups: Backups
         private set
 
     override fun onCreate() {
@@ -41,8 +47,10 @@ class CryptoClickerApp : Application() {
             timeZone = { TimeZone.getDefault().id },
             canTrackSteps = { StepCounter.isAvailable(this) },
             exactNumbers = { prefs.exactNumbers.value },
+            device = { Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) },
         )
         game.start()
+        backups = Backups(this, game, prefs)
         // The game writes amounts in the form the Numbers setting picks: ask again when it changes.
         prefs.onChange { key -> if (key == prefs.exactNumbers.key) game.refresh() }
 
@@ -50,10 +58,22 @@ class CryptoClickerApp : Application() {
         process.lifecycle.addObserver(LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_START -> game.enterForeground()
-                Lifecycle.Event.ON_STOP -> game.enterBackground()
+                Lifecycle.Event.ON_STOP -> {
+                    game.enterBackground()
+                    // The backup folder gets a copy as the app leaves, after the game's own backup.
+                    process.lifecycleScope.launch { backups.syncFolder() }
+                }
                 else -> Unit
             }
         })
+        process.lifecycleScope.launch {
+            process.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    delay(FOLDER_BACKUP_MILLIS)
+                    backups.syncFolder()
+                }
+            }
+        }
         process.lifecycleScope.launch {
             process.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (true) {

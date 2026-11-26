@@ -58,14 +58,20 @@ fun finishGlow(finish: String): Color = when (finish) {
     "amethyst" -> Color(0.65f, 0.35f, 0.95f)
     "obsidian" -> Color(0.45f, 0.30f, 0.60f)
     "holographic" -> Color(0.40f, 0.85f, 1.00f)
+    "forged" -> Color(0.80f, 0.45f, 0.22f)
+    "platinum" -> Color(0.75f, 0.88f, 1.00f)
+    "ruby" -> Color(0.95f, 0.12f, 0.18f)
+    "nebula" -> Color(0.55f, 0.30f, 1.00f)
+    "aurora" -> Color(0.25f, 0.95f, 0.75f)
     else -> Color(0.97f, 0.58f, 0.10f)
 }
 
 /**
  * The colour filter that turns the gold coin into a finish, as the iOS app's hue, saturation,
- * brightness and contrast adjustments (in the same order).
+ * brightness and contrast adjustments (in the same order). [holographicDegrees] is the shimmer's
+ * point on the colour wheel; for Aurora, its drift from green (115) to violet (235).
  */
-fun finishFilter(finish: String, holographicDegrees: Float = 150f): ColorFilter? = when (finish) {
+fun finishFilter(finish: String, holographicDegrees: Float = 150f, auroraDegrees: Float = 135f): ColorFilter? = when (finish) {
     "silver" -> chain(saturation(0f), brightness(0.06f), contrast(1.15f))
     "roseGold" -> chain(hue(-30f), saturation(0.75f), brightness(0.03f))
     "emerald" -> chain(hue(95f), saturation(1.1f))
@@ -73,20 +79,36 @@ fun finishFilter(finish: String, holographicDegrees: Float = 150f): ColorFilter?
     "amethyst" -> chain(hue(235f), saturation(0.95f))
     "obsidian" -> chain(saturation(0.15f), brightness(-0.32f), contrast(1.45f))
     "holographic" -> chain(hue(holographicDegrees))
+    // The prestige milestones' finishes: dark bronze, icy platinum, deep red, violet, and a green
+    // that drifts to violet.
+    "forged" -> chain(hue(-10f), saturation(0.7f), brightness(-0.14f), contrast(1.4f))
+    "platinum" -> chain(hue(170f), saturation(0.3f), brightness(0.12f), contrast(1.2f))
+    "ruby" -> chain(hue(-40f), saturation(1.7f), brightness(-0.12f), contrast(1.3f))
+    "nebula" -> chain(hue(225f), saturation(1.6f), brightness(-0.12f), contrast(1.4f))
+    "aurora" -> chain(hue(auroraDegrees), saturation(1.45f), brightness(0.02f), contrast(1.15f))
     else -> null
 }
 
-/** The coin in a finish. Holographic shimmers through every hue unless [still]. */
+/**
+ * The coin in a finish. Holographic shimmers through every hue, and Aurora drifts from green
+ * through teal to violet and back, unless [still].
+ */
 @Composable
 fun CoinArt(finish: String, modifier: Modifier = Modifier, still: Boolean = false) {
-    if (finish == "holographic" && !still) {
+    if ((finish == "holographic" || finish == "aurora") && !still) {
         var nanos by remember { mutableLongStateOf(0L) }
         LaunchedEffect(Unit) {
             while (true) withFrameNanos { nanos = it }
         }
-        // One turn of the colour wheel every six seconds, as on iOS.
-        val degrees = ((nanos / 1_000_000_000.0) % 6.0 * 60.0).toFloat()
-        Image(painterResource(R.drawable.coin), null, modifier, contentScale = ContentScale.Fit, colorFilter = finishFilter(finish, degrees))
+        val seconds = nanos / 1_000_000_000.0
+        val filter = if (finish == "holographic") {
+            // One turn of the colour wheel every six seconds, as on iOS.
+            finishFilter(finish, holographicDegrees = (seconds % 6.0 * 60.0).toFloat())
+        } else {
+            // Twelve seconds from green through teal to violet and back.
+            finishFilter(finish, auroraDegrees = (175.0 + 60.0 * sin(seconds * PI / 6.0)).toFloat())
+        }
+        Image(painterResource(R.drawable.coin), null, modifier, contentScale = ContentScale.Fit, colorFilter = filter)
     } else {
         Image(painterResource(R.drawable.coin), null, modifier, contentScale = ContentScale.Fit, colorFilter = finishFilter(finish))
     }

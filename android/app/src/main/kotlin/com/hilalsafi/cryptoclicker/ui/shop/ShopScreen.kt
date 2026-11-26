@@ -3,6 +3,7 @@ package com.hilalsafi.cryptoclicker.ui.shop
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,9 +20,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Verified
+import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,10 +39,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInRoot
@@ -51,11 +60,14 @@ import com.hilalsafi.cryptoclicker.ui.design.SegmentedPicker
 import com.hilalsafi.cryptoclicker.ui.design.TabTitle
 import com.hilalsafi.cryptoclicker.ui.design.Type
 import com.hilalsafi.cryptoclicker.ui.design.rememberFeedback
+import com.hilalsafi.cryptoclicker.ui.design.semibold
 import com.hilalsafi.cryptoclicker.ui.theme.AppBackground
 import com.hilalsafi.cryptoclicker.ui.theme.Palette
 import com.hilalsafi.cryptoclicker.ui.theme.gameColors
+import com.hilalsafi.cryptoclicker.ui.theme.glass
 import com.hilalsafi.cryptoclicker.ui.theme.rowCard
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** How many each Buy button buys: ×1, ×10, ×100 or as many as the balance allows (iOS: BuyQuantity). */
 val BUY_QUANTITIES = listOf("×1", "×10", "×100", "Max")
@@ -74,6 +86,7 @@ fun ShopScreen(contentPadding: PaddingValues, requests: Requests) {
     var quantity by rememberSaveable { mutableIntStateOf(0) }
     var showsPurchased by rememberSaveable { mutableStateOf(false) }
     val list = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     // The pop-ups float over the list, pointing at the tapped icon.
     var infoMiner by remember { mutableStateOf<String?>(null) }
     var infoToken by remember { mutableStateOf<String?>(null) }
@@ -84,23 +97,21 @@ fun ShopScreen(contentPadding: PaddingValues, requests: Requests) {
 
     // A purchase that went through plays a success tap; one the balance couldn't cover, a warning.
     LaunchedEffect(game) { game.purchases.collect { feedback.purchase(it) } }
-    LaunchedEffect(requests.tokens) {
-        if (requests.tokens) {
-            requests.tokens = false
+    // The part of the Shop another screen asked for: the tokens page from the top, or the
+    // power-ups page scrolled to a section.
+    LaunchedEffect(requests.shop) {
+        val section = requests.shop ?: return@LaunchedEffect
+        requests.shop = null
+        if (section == "tokens") {
             page = ShopPage.Tokens
             list.scrollToItem(0)
+            return@LaunchedEffect
         }
-    }
-    LaunchedEffect(requests.powerUps) {
-        if (requests.powerUps) {
-            requests.powerUps = false
-            page = ShopPage.PowerUps
-            // Let the tab switch settle so the list is on screen.
-            delay(350)
-            val shop = view?.shop
-            val index = shop?.let { powerUpsIndex(it) } ?: 0
-            list.animateScrollToItem(index)
-        }
+        page = ShopPage.PowerUps
+        // Let the tab switch settle so the list is on screen.
+        delay(350)
+        val shop = game.game.value?.shop ?: return@LaunchedEffect
+        list.animateScrollToItem(sectionIndex(shop, section))
     }
     LaunchedEffect(page) {
         infoMiner = null
@@ -129,6 +140,15 @@ fun ShopScreen(contentPadding: PaddingValues, requests: Requests) {
                 }
             } else {
                 current?.shop?.let { shop ->
+                    if (shop.shortcuts.isNotEmpty()) {
+                        item(key = "shortcuts") {
+                            Wide {
+                                SectionShortcuts(shop.shortcuts) { section ->
+                                    scope.launch { list.animateScrollToItem(sectionIndex(shop, section)) }
+                                }
+                            }
+                        }
+                    }
                     powerUpsPage(shop, quantity, { quantity = it }, showsPurchased, { showsPurchased = it },
                         onInfo = { id -> infoMiner = if (infoMiner == id) null else id },
                         onPlaced = { id, rect -> anchors["miner:$id"] = rect })
@@ -153,9 +173,54 @@ fun ShopScreen(contentPadding: PaddingValues, requests: Requests) {
     }
 }
 
-/** Where the power-ups start in the list: after the title, the page picker, any leading prestige card, the miners and the locked one. */
-private fun powerUpsIndex(shop: Shop): Int =
-    2 + (if (shop.prestigeFirst && shop.prestige != null) 1 else 0) + 2 + shop.miners.size + (if (shop.lockedMiner != null) 1 else 0)
+/**
+ * Where a section starts in the Power-ups page's list ("miners", "powerUps", "upgrades" or
+ * "prestige"), counting its items in the order [powerUpsPage] adds them.
+ */
+private fun sectionIndex(shop: Shop, section: String): Int {
+    var index = 2 // The title and the page picker.
+    if (shop.shortcuts.isNotEmpty()) index += 1
+    val prestigeFirst = shop.prestigeFirst && shop.prestige != null
+    if (section == "prestige" && prestigeFirst) return index
+    if (prestigeFirst) index += 1
+    if (section == "miners") return index
+    index += 2 + shop.miners.size + (if (shop.lockedMiner != null) 1 else 0)
+    if (section == "powerUps") return index
+    index += 2 + shop.powerUps.size
+    if (section == "upgrades") return index
+    index += 1 + (if (shop.upgradesEmpty != null) 1 else 0) + shop.upgrades.size + (if (shop.purchased.isNotEmpty()) 1 else 0)
+    return index // The prestige card at the end.
+}
+
+/** Buttons that jump down the Power-ups page to its sections (iOS: SectionShortcuts). */
+@Composable
+private fun SectionShortcuts(sections: List<String>, jump: (String) -> Unit) {
+    val colors = gameColors
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        sections.forEach { section ->
+            val (title, icon) = when (section) {
+                "miners" -> "Miners" to Icons.Rounded.Memory
+                "powerUps" -> "Power-ups" to Icons.Rounded.Bolt
+                "upgrades" -> "Upgrades" to Icons.Rounded.AutoAwesome
+                else -> "Prestige" to Icons.Rounded.WorkspacePremium
+            }
+            Row(
+                Modifier
+                    .clip(CircleShape)
+                    .glass(colors, CircleShape)
+                    .clickable(onClickLabel = "Scroll to $title") { jump(section) }
+                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(icon, null, tint = colors.text, modifier = Modifier.size(16.dp))
+                Text(title, style = Type.subheadline.semibold, maxLines = 1)
+            }
+        }
+    }
+}
 
 /** Miners, power-ups, upgrades and prestige. */
 private fun LazyListScope.powerUpsPage(

@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hilalsafi.cryptoclicker.R
 import com.hilalsafi.cryptoclicker.core.GameController
+import com.hilalsafi.cryptoclicker.services.Backups
 import com.hilalsafi.cryptoclicker.ui.arcade.ArcadeScreen
 import com.hilalsafi.cryptoclicker.ui.design.CornerBadge
 import com.hilalsafi.cryptoclicker.ui.design.Type
@@ -82,21 +83,24 @@ enum class AppTab(val label: String) {
 }
 
 /**
- * Requests from one tab to open part of another (iOS: RootView's request counters): each screen
- * handles a count it hasn't seen yet once, so asking twice opens it twice.
+ * Requests from one tab to open part of another (iOS: RootView's TabRequests): each is waiting
+ * until the tab it's for takes it, so asking twice opens it twice.
  */
 @Stable
 class Requests {
-    /** The Shop's power-ups (the welcome-back screen's Offline Mining button). */
-    var powerUps by mutableStateOf(false)
-    /** The Shop's tokens (the home screen's crypto card). */
-    var tokens by mutableStateOf(false)
+    /**
+     * A part of the Shop: "powerUps" (the welcome-back screen's Offline Mining button), "tokens"
+     * (the Mine tab's crypto card), or where a goal is bought ("miners", "upgrades", "prestige").
+     */
+    var shop by mutableStateOf<String?>(null)
     /** How to Play in Settings (the home screen's tip). */
     var howToPlay by mutableStateOf(false)
     /** Today's challenge in the Arcade (from the Daily page): its game, or "" for the Arcade itself. */
     var challenge by mutableStateOf<String?>(null)
-    /** The Daily page (from the home screen's tips). */
-    var daily by mutableStateOf(false)
+    /** A game the Arcade opens for a goal ("tokenSwap" for its levels), or "" for the list. */
+    var arcadeGame by mutableStateOf<String?>(null)
+    /** A Trophies page: "daily" (the Mine tab's tips), "goals" or "achievements" (a goal). */
+    var trophies by mutableStateOf<String?>(null)
 }
 
 /**
@@ -105,8 +109,8 @@ class Requests {
  * the save alerts.
  */
 @Composable
-fun AppRoot(game: GameController, prefs: AppPrefs) {
-    CompositionLocalProvider(LocalGame provides game, LocalPrefs provides prefs) {
+fun AppRoot(game: GameController, prefs: AppPrefs, backups: Backups? = null) {
+    CompositionLocalProvider(LocalGame provides game, LocalPrefs provides prefs, LocalBackups provides backups) {
         Root()
     }
 }
@@ -132,9 +136,28 @@ private fun Root() {
         Loading(failure)
         return
     }
-    fun openPowerUps() {
-        requests.powerUps = true
+    fun openShop(section: String) {
+        requests.shop = section
         tab = AppTab.Shop
+    }
+    fun openPowerUps() = openShop("powerUps")
+    fun openTrophies(page: String) {
+        requests.trophies = page
+        tab = AppTab.Trophies
+    }
+    // Opens where a goal is worked toward: the Shop's miners, upgrades or prestige, the Arcade (at
+    // Token Swap's levels for its goal), or the Trophies tab's achievements.
+    fun showGoal(kind: String) {
+        when (kind) {
+            "miner", "milestone" -> openShop("miners")
+            "upgrade" -> openShop("upgrades")
+            "prestige" -> openShop("prestige")
+            "game", "arcadeRank", "tokenSwap" -> {
+                requests.arcadeGame = if (kind == "tokenSwap") "tokenSwap" else ""
+                tab = AppTab.Arcade
+            }
+            "achievement" -> openTrophies("achievements")
+        }
     }
 
     Box(Modifier.fillMaxSize().background(gameColors.base)) {
@@ -157,28 +180,24 @@ private fun Root() {
                     AppTab.Mine -> MineScreen(
                         live = live,
                         contentPadding = padding,
-                        openShop = { tab = AppTab.Shop },
+                        openShop = { openShop("miners") },
                         openPowerUps = ::openPowerUps,
-                        openTokens = {
-                            requests.tokens = true
-                            tab = AppTab.Shop
-                        },
-                        openDaily = {
-                            requests.daily = true
-                            tab = AppTab.Trophies
-                        },
+                        openTokens = { openShop("tokens") },
+                        openDaily = { openTrophies("daily") },
                         openIncome = { showsIncome = true },
                         openHowToPlay = {
                             requests.howToPlay = true
                             tab = AppTab.Settings
                         },
+                        openGoal = ::showGoal,
+                        openGoalsPage = { openTrophies("goals") },
                     )
                     AppTab.Shop -> ShopScreen(padding, requests)
                     AppTab.Arcade -> ArcadeScreen(padding, requests)
                     AppTab.Trophies -> TrophiesScreen(padding, requests, openChallenge = { game ->
                         requests.challenge = game ?: ""
                         tab = AppTab.Arcade
-                    })
+                    }, openGoal = ::showGoal)
                     AppTab.Settings -> {
                         val appearance by prefs.appearance.state()
                         val haptics by prefs.haptics.state()
@@ -209,6 +228,20 @@ private fun Root() {
             title = { Text("Something went wrong") },
             text = { Text(message) },
             confirmButton = { TextButton(onClick = game::dismissError) { Text("OK") } },
+        )
+    }
+    // A save from a newer version: never opened here, so nothing it holds can be lost.
+    current.newerSave?.let { save ->
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(save.title) },
+            text = { Text(save.message) },
+            confirmButton = { TextButton(onClick = { game.command("checkNewerSave") }) { Text("Check Again") } },
+            dismissButton = {
+                TextButton(onClick = { game.command("startOverNewerSave") }) {
+                    Text("Set It Aside and Start Over", color = gameColors.loss)
+                }
+            },
         )
     }
     // A damaged save: say so plainly, keep the file, and only start over when the player says.

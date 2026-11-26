@@ -9,6 +9,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -30,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Redeem
@@ -57,10 +59,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hilalsafi.cryptoclicker.core.Achievement
+import com.hilalsafi.cryptoclicker.core.AchievementCollection
 import com.hilalsafi.cryptoclicker.core.Achievements
 import com.hilalsafi.cryptoclicker.core.Daily
 import com.hilalsafi.cryptoclicker.core.DailyReward
@@ -101,14 +105,14 @@ private enum class TrophiesPage(val title: String, val view: String) {
 
 /** What to work toward next, daily rewards and quests, and the achievements that add production (iOS: TrophiesView). */
 @Composable
-fun TrophiesScreen(contentPadding: PaddingValues, requests: Requests, openChallenge: (String?) -> Unit) {
+fun TrophiesScreen(contentPadding: PaddingValues, requests: Requests, openChallenge: (String?) -> Unit, openGoal: (String) -> Unit) {
     val game = LocalGame.current
     var page by rememberSaveable { mutableStateOf(TrophiesPage.Daily) }
-    LaunchedEffect(requests.daily) {
-        if (requests.daily) {
-            requests.daily = false
-            page = TrophiesPage.Daily
-        }
+    // The page another tab asked for: Daily (the Mine tab's tip), Goals or Achievements (a goal).
+    LaunchedEffect(requests.trophies) {
+        val asked = requests.trophies ?: return@LaunchedEffect
+        requests.trophies = null
+        page = TrophiesPage.entries.firstOrNull { it.view == asked } ?: TrophiesPage.Daily
     }
     when (page) {
         TrophiesPage.Goals -> WantViews("goals")
@@ -141,7 +145,7 @@ fun TrophiesScreen(contentPadding: PaddingValues, requests: Requests, openChalle
                     }, { page = it }, Modifier.widthIn(max = 900.dp))
                 }
                 when (page) {
-                    TrophiesPage.Goals -> view?.goals?.let { goalsPage(it) }
+                    TrophiesPage.Goals -> view?.goals?.let { goalsPage(it, openGoal) }
                     TrophiesPage.Daily -> view?.daily?.let { dailyPage(it, openChallenge) }
                     TrophiesPage.Achievements -> view?.achievements?.let { achievementsPage(it, columns) }
                 }
@@ -158,13 +162,13 @@ private fun Wide(content: @Composable () -> Unit) {
 // MARK: - Goals
 
 /** The opening's starter milestones (until every one is claimed), then the next few things worth working toward. */
-private fun LazyListScope.goalsPage(goals: Goals) {
+private fun LazyListScope.goalsPage(goals: Goals, openGoal: (String) -> Unit) {
     if (goals.starters.isNotEmpty()) {
         item(key = "startersTitle") { Wide { Text("Starter milestones", style = Type.title3.bold, modifier = Modifier.padding(horizontal = 4.dp)) } }
         items(goals.starters, key = { "starter:${it.id}" }) { starter -> Wide { StarterCard(starter) } }
     }
     item(key = "goalsTitle") { Wide { Text("Your next goals", style = Type.title3.bold, modifier = Modifier.padding(horizontal = 4.dp)) } }
-    items(goals.goals, key = { "goal:${it.id}" }) { goal -> Wide { GoalCard(goal) } }
+    items(goals.goals, key = { "goal:${it.id}" }) { goal -> Wide { GoalCard(goal) { openGoal(goal.kind) } } }
 }
 
 /** One starter milestone: what to do, what it pays, and Claim once it's done (iOS: StarterMilestoneCard). */
@@ -202,11 +206,19 @@ private fun StarterCard(starter: Starter) {
     }
 }
 
+/**
+ * A goal: what to do, what it brings, and how close it is; tapping it goes where it's done (iOS:
+ * GoalCard). On the Goals page and in the Mine tab's goals pop-up.
+ */
 @Composable
-private fun GoalCard(goal: Goal) {
+fun GoalCard(goal: Goal, open: () -> Unit) {
     val colors = gameColors
     val tint = Palette.named(goal.color)
-    Row(Modifier.fillMaxWidth().rowCard(colors).semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).clickable(onClickLabel = goal.destination, onClick = open)
+            .rowCard(colors).semantics(mergeDescendants = true) {},
+        horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically,
+    ) {
         Box(Modifier.size(46.dp).clip(CircleShape).background(Brush.verticalGradient(listOf(tint.copy(alpha = 0.85f), tint))), contentAlignment = Alignment.Center) {
             Symbol(goal.symbol, tint = Color.White, size = 22.dp)
         }
@@ -218,6 +230,7 @@ private fun GoalCard(goal: Goal) {
             Text(goal.detail, style = Type.subheadline, color = colors.subtext)
             ProgressBar(goal.progress.toFloat(), tint)
         }
+        Icon(Icons.Rounded.ChevronRight, null, tint = colors.subtext, modifier = Modifier.size(22.dp))
     }
 }
 
@@ -357,16 +370,38 @@ private fun QuestRow(quest: Quest) {
 
 // MARK: - Achievements
 
+/** The stars in all, then the achievements in collections, each with its share of the stars. */
 private fun LazyListScope.achievementsPage(achievements: Achievements, columns: Int) {
     item(key = "summary") { Wide { TrophySummary(achievements) } }
-    val rows = achievements.cards.chunked(columns)
-    items(rows, key = { row -> "achievements:${row.first().id}" }) { row ->
-        Wide {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                row.forEach { AchievementCard(it, Modifier.weight(1f)) }
-                repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+    achievements.collections.forEach { collection ->
+        item(key = "collection:${collection.id}") { Wide { CollectionHeader(collection) } }
+        val rows = collection.cards.chunked(columns)
+        items(rows, key = { row -> "achievements:${row.first().id}" }) { row ->
+            Wide {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { AchievementCard(it, Modifier.weight(1f)) }
+                    repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+                }
             }
         }
+    }
+}
+
+/** A collection's name over its achievements, with the stars it has of all it holds (iOS: CollectionHeader). */
+@Composable
+private fun CollectionHeader(collection: AchievementCollection) {
+    val colors = gameColors
+    val tint = if (collection.isComplete) colors.gain else Palette.gold
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 4.dp).padding(top = 8.dp).semantics(mergeDescendants = true) { heading() },
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Symbol(collection.symbol, size = 20.dp)
+            Text(collection.name, style = Type.title3.bold, modifier = Modifier.weight(1f))
+            Text(collection.stars, style = Type.subheadline.semibold.digits, color = if (collection.isComplete) colors.gain else colors.subtext)
+        }
+        ProgressBar(collection.fraction.toFloat(), tint)
     }
 }
 

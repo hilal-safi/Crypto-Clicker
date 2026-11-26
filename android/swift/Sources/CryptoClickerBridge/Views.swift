@@ -26,10 +26,13 @@ struct LiveView: Encodable, Equatable {
 struct ComboView: Encodable, Equatable {
     /// "Combo ×1.5"
     let title: String
-    /// "12 taps!"
+    /// "12 taps!", or "40 taps · new best!" past the longest combo before it
     let taps: String
     /// At the combo's maximum: the pill turns red.
     let isMax: Bool
+    /// Longer than the longest combo before this one (once that was worth beating).
+    let isRecord: Bool
+    let accessibility: String
 }
 
 struct BullRunView: Encodable, Equatable {
@@ -56,6 +59,8 @@ struct GameView: Encodable {
     let purchaseNote: PurchaseNoteView?
     let airdrop: AirdropView?
     let unreadableSave: UnreadableSaveView?
+    /// A save from a newer version of the app, left alone until the player chooses.
+    let newerSave: UnreadableSaveView?
     let errorMessage: String?
     /// Whether this build has the Testing Tools (debug builds only).
     let debugTools: Bool
@@ -81,8 +86,14 @@ struct GameView: Encodable {
     let style: StyleView?
     /// The looks equipped for each kind, as "slot=cosmetic", for the game screens.
     let looks: [String]?
+    /// The arcade games' start screens.
+    let starts: StartsView?
     let mine: MineView?
     let income: IncomeView?
+    /// The Mine tab's goals pop-up.
+    let nextGoals: NextGoalsView?
+    let runHistory: RunHistoryView?
+    let backup: BackupPageView?
 }
 
 /// A falling airdrop: catch it before it goes for coins or a Bull Run. A rare whale is bigger,
@@ -114,6 +125,16 @@ struct PurchaseNoteView: Encodable {
     let names: String
     /// "+2 more" when there are more names than shown.
     let more: String?
+    /// A purchase worth celebrating, in place of the title: "New miner: GPU Rig!" or "Milestone:
+    /// 50 Desktops!", with "newMiner" or "milestone" for its icon, and how many there have been
+    /// (each one sparkles).
+    let highlight: String?
+    let highlightKind: String?
+    let highlights: Int
+    /// How many times faster the miners now mine, beside a celebration: "×1.8".
+    let incomeMultiple: String?
+    /// Milestones reached: the newest two.
+    let milestones: [String]
     let perSecond: GainView?
     let perTap: GainView?
     /// What a step walked from now on pays, once steps are connected.
@@ -198,10 +219,13 @@ extension GameSession {
         let income = game.idleIncome(at: now)
         let tapValue = game.tapValue(at: now)
         let multiplier = comboMultiplier
+        // A record from this many quick taps is worth celebrating when it's beaten (iOS: ComboPill).
+        let isRecord = comboRecordBefore >= 25 && comboStreak > comboRecordBefore
         let combo = multiplier > 1
             ? ComboView(title: "Combo ×\(String(format: "%.1f", multiplier))",
-                        taps: "\(CoinFormat.grouped(comboStreak)) taps!",
-                        isMax: multiplier >= game.comboMaxMultiplier)
+                        taps: isRecord ? "\(CoinFormat.grouped(comboStreak)) taps · new best!" : "\(CoinFormat.grouped(comboStreak)) taps!",
+                        isMax: multiplier >= game.comboMaxMultiplier, isRecord: isRecord,
+                        accessibility: "Combo of \(comboStreak) quick taps\(isRecord ? ", a new best" : ""), taps earn \(CoinFormat.multiplier(multiplier))")
             : nil
         let bullRun = game.activeBoost(at: now).map { boost in
             BullRunView(title: "BULL RUN \(CoinFormat.multiplier(boost.multiplier))",
@@ -217,7 +241,7 @@ extension GameSession {
 
     func gameView(views: Set<String>, debugTools: Bool) -> GameView {
         GameView(welcomeBack: welcomeBackView, purchaseNote: purchaseNoteView, airdrop: airdropView,
-                 unreadableSave: unreadableSaveView, errorMessage: errorMessage, debugTools: debugTools,
+                 unreadableSave: unreadableSaveView, newerSave: newerSaveView, errorMessage: errorMessage, debugTools: debugTools,
                  dailyBadge: dailyBadgeCount, starterClaims: game.claimableStarterMilestones.count, stepsConnected: game.steps.isConnected,
                  stepWindowDays: Tuning.stepWindowDays,
                  shop: views.contains("shop") ? shopView : nil,
@@ -231,8 +255,12 @@ extension GameSession {
                  guides: views.contains("guides") ? guidesView : nil,
                  style: views.contains("style") ? styleView : nil,
                  looks: views.contains("looks") ? equippedLooks : nil,
+                 starts: views.contains("starts") ? startsView : nil,
                  mine: views.contains("mine") ? mineView : nil,
-                 income: views.contains("income") ? incomeView : nil)
+                 income: views.contains("income") ? incomeView : nil,
+                 nextGoals: views.contains("nextGoals") ? nextGoalsView : nil,
+                 runHistory: views.contains("runHistory") ? runHistoryView : nil,
+                 backup: views.contains("backup") ? backupPageView : nil)
     }
 
     var airdropView: AirdropView? {
@@ -258,11 +286,24 @@ extension GameSession {
         let names = latest.prefix(namesShown).map { $0.count > 1 ? "\($0.name) ×\(CoinFormat.grouped($0.count))" : $0.name }
         let effects = latest.compactMap(\.effect)
         let remaining = max(0, PurchaseNote.lifetime - now.timeIntervalSince(note.updatedAt))
+        let highlight: String? = switch note.highlight {
+        case .newMiner(let name): "New miner: \(name)!"
+        case .milestone(let reached): "Milestone: \(reached)!"
+        case nil: nil
+        }
+        let highlightKind: String? = switch note.highlight {
+        case .newMiner: "newMiner"
+        case .milestone: "milestone"
+        case nil: nil
+        }
         return PurchaseNoteView(
             id: note.id, stamp: note.stamp,
             title: note.itemCount == 1 ? "Item purchased!" : "\(CoinFormat.grouped(note.itemCount)) items purchased!",
             names: names.joined(separator: ", "),
             more: note.items.count > namesShown ? "+\(note.items.count - namesShown) more" : nil,
+            highlight: highlight, highlightKind: highlightKind, highlights: note.highlights,
+            incomeMultiple: note.highlight != nil ? note.incomeMultiple.map(CoinFormat.multiplier) : nil,
+            milestones: Array(note.milestones.suffix(2)),
             perSecond: note.addedIncome > 0
                 ? GainView(added: "+\(CoinFormat.rate(note.addedIncome))", total: "now \(CoinFormat.rate(note.incomeNow))") : nil,
             perTap: note.addedTap > 0
@@ -349,6 +390,14 @@ extension GameSession {
                           TitledValue(title: "Achievements", value: CoinFormat.multiplier(multipliers.achievements)),
                           TitledValue(title: "Difficulty", value: CoinFormat.multiplier(multipliers.difficulty))],
             multiplierTotal: CoinFormat.multiplier(multipliers.total))
+    }
+
+    /// A save from a newer version (iOS: SaveAlerts): never opened here, so nothing it holds can be lost.
+    var newerSaveView: UnreadableSaveView? {
+        guard let waiting = newerSave else { return nil }
+        return UnreadableSaveView(
+            title: waiting.checks > 0 ? "Still saved by a newer version" : "Update Crypto Clicker",
+            message: "Your game was saved by a newer version of Crypto Clicker, so this version can't open it without losing what's new. Install the latest version to carry on. Until then nothing is saved over it. Starting over keeps the save on this phone for the newer version to open.")
     }
 
     var unreadableSaveView: UnreadableSaveView? {

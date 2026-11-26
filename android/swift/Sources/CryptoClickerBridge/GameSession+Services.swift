@@ -107,6 +107,6 @@ extension GameSession {
     /// (which stays put in the background), so it projects what the game will credit.
     func balanceSnapshot(finish: CoinFinish) -> BalanceSnapshot {
         if isInForeground { catchUp(to: now) }
-        return game.balanceSnapshot(finish: finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold)
+        return game.balanceSnapshot(finish: game.isUnlocked(finish) ? finish : .gold)
     }
 }
