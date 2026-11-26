@@ -121,6 +121,9 @@ struct TokenMarketRow: View {
                 .disabled(sellCount == 0)
                 .accessibilityLabel(sellCount > 0 ? "Sell \(sellCount) \(token.name) for \(CoinFormat.short(sale(sellCount))) coins" : "Sell")
             }
+            if sellCount > 0 {
+                SalePreviewLine(count: sellCount, preview: store.game.salePreview(of: token, quantity: sellCount, at: .now))
+            }
         }
         .rowCard()
         .sensoryFeedback(.success, trigger: purchases) { _, _ in haptics }
@@ -136,6 +139,32 @@ struct TokenMarketRow: View {
     /// Coins selling `quantity` pays, after the fee.
     private func sale(_ quantity: Int) -> Double {
         (quote.price * Double(quantity) * saleRate).rounded()
+    }
+}
+
+/// What the Sell button would do, in full: the tokens' worth, the fee, the coins left, and how
+/// the bought ones among them (sold first) compare with what they cost.
+private struct SalePreviewLine: View {
+    let count: Int
+    let preview: SalePreview
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(preview.fee > 0
+                 ? "Selling \(CoinFormat.grouped(count)): \(CoinFormat.short(preview.worth)) − \(CoinFormat.short(preview.fee)) fee = \(CoinFormat.short(preview.net)) coins"
+                 : "Selling \(CoinFormat.grouped(count)): \(CoinFormat.short(preview.net)) coins, no fee")
+                .foregroundStyle(.subtext)
+            if let profit = preview.profit, let paid = preview.paid, paid > 0 {
+                Text(preview.bought < preview.count
+                     ? "\(profit >= 0 ? "▲" : "▼") \(CoinFormat.short(abs(profit))) (\(CoinFormat.percent(abs(profit) / paid))) on the \(CoinFormat.grouped(preview.bought)) you bought, against what they cost"
+                     : "\(profit >= 0 ? "▲" : "▼") \(CoinFormat.short(abs(profit))) (\(CoinFormat.percent(abs(profit) / paid))) against what they cost")
+                    .foregroundStyle(profit >= 0 ? Theme.gain : Theme.loss)
+            }
+        }
+        .font(.subheadline.monospacedDigit())
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
     }
 }
 

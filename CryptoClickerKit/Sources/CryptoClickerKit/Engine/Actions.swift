@@ -425,6 +425,11 @@ extension GameState {
             stats.bestDaySteps = max(stats.bestDaySteps, day.steps)
         }
         stats.lifetimeSteps = stats.lifetimeSteps.addingCount(counted)
+        // The best week: the sync window (a week) holds every day of this week so far, and of last
+        // week whatever is still in it, so late-arriving steps count too.
+        var weeks: [String: Int] = [:]
+        for (key, count) in steps.counted { weeks[StepDay.weekKey(of: key), default: 0] += count }
+        stats.bestWeekSteps = max(stats.bestWeekSteps, weeks.values.max() ?? 0)
         // Pay for the days that are over, and today's steps too after the first day, at today's
         // step value; the first day's steps (paid the day after) at a coin each.
         let paysToday = !stepsPaidNextDay(today: today)
@@ -450,6 +455,12 @@ extension GameState {
         stats.stepsPaid = stats.stepsPaid.addingCount(paid)
         credit(coins, source: .steps)
         return StepCredit(steps: paid, coins: coins, counted: counted, days: paidDays)
+    }
+
+    /// Steps counted so far in the week (Monday to Sunday) that holds `today`.
+    public func stepsInWeek(of today: String) -> Int {
+        let week = StepDay.weekKey(of: today)
+        return steps.counted.reduce(0) { $0 + (StepDay.weekKey(of: $1.key) == week ? $1.value : 0) }
     }
 
     /// Whether today's steps wait for tomorrow: only on the game's first day.
@@ -492,9 +503,29 @@ extension GameState {
     }
 
     /// Adds tokens to the wallet, stopping at `Int.max` rather than trapping (a 32-bit count on
-    /// Apple Watch).
+    /// Apple Watch). They count as won, not bought (`boughtTokens`), except a stake coming back.
     mutating func giveTokens(_ token: TokenID, amount: Int) {
         guard amount > 0 else { return }
         tokens[token] = tokenCount(token).addingCount(amount)
+    }
+
+    /// Takes tokens out of the wallet for a bet. The bought ones among them stay bought, with their
+    /// cost, while the round is open: a stake that comes back is the same tokens.
+    mutating func takeTokens(_ token: TokenID, amount: Int) {
+        tokens[token] = max(0, tokenCount(token) - max(0, amount))
+    }
+
+    /// Once a round settles: the tokens it lost come out of the won ones first, and only once
+    /// those are gone out of the bought ones, which take their share of the cost with them. While
+    /// another round still holds some of the kind, it waits for that one.
+    mutating func settleBoughtTokens(_ token: TokenID) {
+        guard let lot = boughtTokens[token], blackjackStake?.token != token, moonRound?.token != token,
+              pokerRound?.token != token else { return }
+        boughtTokens[token] = lot.removing(lot.count - min(lot.count, tokenCount(token)))
+    }
+
+    /// How many of a kind held were bought for coins (`boughtTokens`); the rest were won or given.
+    public func boughtCount(_ token: TokenID) -> Int {
+        min(boughtTokens[token]?.count ?? 0, tokenCount(token))
     }
 }

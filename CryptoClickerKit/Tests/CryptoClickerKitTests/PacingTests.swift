@@ -151,12 +151,13 @@ struct SimulatedPlayer {
         }
     }
 
-    /// An average player's arcade game: about 45 seconds of income per minute played, paid
+    /// An average player's arcade game: about 90 seconds of income per minute played (45 before the
+    /// arcade's pay doubled in version 2), paid
     /// through the game's own reward, so quests and challenges count it.
     private mutating func playArcade(minutes: Double) {
         let games = MiniGame.allCases.filter { !$0.isCasino && game.isUnlocked($0) }
         guard let pick = games.randomElement(using: &rng) else { return }
-        let points = max(1, Int(45 * minutes / pick.secondsPerPoint / game.miniGameMultiplier))
+        let points = max(1, Int(45 * Tuning.arcadePayBoost * minutes / pick.secondsPerPoint / game.miniGameMultiplier))
         switch pick {
         case .tetris: game.finishTetris(score: points, lines: points / 150, rewardPoints: points)
         case .snake: game.finishSnake(score: points, length: points / SnakeGame.pointsPerCoin + 3)
@@ -324,8 +325,9 @@ struct PacingTests {
         player.play(seconds: 60 * 60)
         let first = MinerID.allCases.prefix(6).map { "\($0.name) \(Int(player.firstBought[$0] ?? -60) / 60)m" }
         print("Opening:", first.joined(separator: ", "))
-        // A Chromebook in the first minute and a Desktop a minute or two later, but the GPU Rig takes
-        // about ten minutes, a Server about half an hour, and the Data Center more than the first hour.
+        // A Chromebook in the first minute and a Desktop a minute or two later; the first GPU Rigs and
+        // Servers cost less (`MinerID.openingPriceShares`), so the GPU Rig comes in about ten minutes
+        // and a Server in about half an hour, but the Data Center takes more than the first hour.
         #expect(player.firstBought[.chromebook].map { $0 < 60 } == true)
         #expect(player.firstBought[.desktop].map { (60...5 * 60).contains($0) } == true)
         #expect(player.firstBought[.gpuRig].map { $0 > 8 * 60 } == true)
@@ -403,14 +405,15 @@ struct PacingTests {
               "| efficiency", player.game.powerUpLevel(.offlineEfficiency), "of", PowerUpID.offlineEfficiency.maxLevel,
               "| Immersion Cooling", days(player.firstUpgrade[.immersionCooling]),
               "| starter", starter.joined(separator: ", "))
-        // Without steps: the Data Center takes about two days (the Server and the Data Center cost
-        // more, and the first production upgrades give less). Time away pays a share of the income
+        // Without steps: the Data Center takes about a day and a half (the Server and the Data Center
+        // cost more, and the first production upgrades give less, though the first few Servers cost
+        // less, and the arcade pays twice what it did). Time away pays a share of the income
         // now (a tenth to begin with, 5% more a level), so the later tiers come about 40% later
         // than they did when it paid all of it: the first prestige point (15 billion mined) in
         // about five days, the tenth tier in about eight, and the Shop suggests the first prestige
         // at about eight and a half, with two more by the end of the second week (a walker gets
         // there sooner: see the walking test).
-        #expect(player.firstBought[.dataCenter].map { (1.6 * 86_400...3 * 86_400).contains($0) } == true)
+        #expect(player.firstBought[.dataCenter].map { (1.2 * 86_400...3 * 86_400).contains($0) } == true)
         #expect(player.firstUpgrade[.immersionCooling].map { (2.5 * 86_400...5.5 * 86_400).contains($0) } == true)
         #expect(player.firstPointAt.map { (4.5 * 86_400...7.5 * 86_400).contains($0) } == true)
         let tenthTier = player.firstBought[.spaceColony]
@@ -450,11 +453,11 @@ struct PacingTests {
         print("Casual 21 days: prestiges", player.prestigeTimes.map(days), "| points", player.game.prestigePoints,
               "| Lunar Base", days(player.firstBought[.lunarBase]), "| Galactic Hashnet", days(player.firstBought[.galacticHashnet]),
               "| perks", perks.joined(separator: ", "))
-        // Without steps, about six or seven prestiges and a few thousand points in three weeks
-        // (time away pays a share of the income now, so it is fewer than it was): later prestiges
+        // Without steps, about nine prestiges and four or five thousand points in three weeks (the
+        // arcade pays twice what it did, and this player plays some every visit): later prestiges
         // wait until they would nearly double production, so each is a bigger jump than the first.
-        #expect((5...9).contains(player.prestigeTimes.count))
-        #expect((800...5_000).contains(player.game.prestigePoints))
+        #expect((6...11).contains(player.prestigeTimes.count))
+        #expect((2_000...8_000).contains(player.game.prestigePoints))
         // The cheap perks come with the first prestige, the dearest ones after two weeks or more,
         // and the last miner tier within the three weeks.
         #expect(player.perksBoughtAt[.headStart].map { $0 < 11 * 86_400 } == true)
@@ -465,14 +468,44 @@ struct PacingTests {
         #expect(player.perksBoughtAt.count >= 8)
     }
 
+    /// A light player for three weeks: two five-minute looks a day (away 10 and 14 hours between),
+    /// a tap a second (too slow for combos), half the airdrops caught and no arcade, but the daily
+    /// reward and quests claimed: ten minutes a day. The game should still move for them: the
+    /// first four tiers in two days, the Data Center in about a week, a new tier every few days
+    /// after that, most of the arcade unlocked, and a first prestige point (in about 19 days)
+    /// before the three weeks are out. Runs with the balance tests.
+    @Test func aLightPlayerKeepsProgressingForThreeWeeks() {
+        guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
+        let gaps: [Double] = [10, 14]
+        var player = SimulatedPlayer(tapsPerSecond: 1, awayHours: gaps, seed: 3)
+        player.catchRate = 0.5
+        player.arcadeSecondsPerTen = 0
+        while player.elapsed < 21 * 86_400 {
+            for gap in gaps where player.elapsed < 21 * 86_400 {
+                player.play(seconds: 300)
+                player.leave(for: gap * 3_600 - 300)
+            }
+        }
+        let tiers = MinerID.allCases.map { "\($0.name) \(days(player.firstBought[$0]))" }
+        print("Light 21 days:", tiers.joined(separator: ", "), "| first point", days(player.firstPointAt),
+              "| prestiges", player.prestigeTimes.map(days), "| games", player.gamesUnlockedAt.count,
+              "| offline", CoinFormat.duration(player.game.timeAwayLimit), "| efficiency", player.game.powerUpLevel(.offlineEfficiency),
+              "| income", CoinFormat.short(player.game.baseIdleIncome))
+        #expect(player.firstBought[.server].map { $0 < 2.5 * 86_400 } == true)
+        #expect(player.firstBought[.dataCenter].map { $0 < 9 * 86_400 } == true)
+        #expect(player.firstBought.count >= 7)
+        #expect(player.firstPointAt.map { $0 < 21 * 86_400 } == true)
+        #expect(player.gamesUnlockedAt.count >= 6)
+    }
+
     /// The casual player again, walking 2,500, 5,000 or 10,000 steps a day. A step pays a twentieth
     /// of a second's income, the first three boosters only make that 3.75 times as much, and the
     /// first day's steps pay a coin each, so the first days' walks pay little and can't race the
-    /// opening. The Giga and Mega Step Boosters (×3 each, from about the sixth day) are where walking
-    /// starts to pay, and Proof of Stride (×6, in the second run) makes it pay a lot: the first
-    /// prestige comes at about seven and a half days either way, and steps pay about a fifth of
-    /// three weeks' coins at 2,500 steps, a third at 5,000 and half at 10,000. Runs with the
-    /// balance tests.
+    /// opening. The Giga and Mega Step Boosters (×3 each, from about the sixth or seventh day) are
+    /// where walking starts to pay, and Proof of Stride (×5, in the second run) makes it pay a lot:
+    /// the first prestige comes at about eight days either way, and steps pay about a quarter of
+    /// three weeks' coins at 2,500 or 5,000 steps and half at 10,000, with about 10, 12 and 14
+    /// prestiges. Runs with the balance tests.
     @Test(arguments: [2_500, 5_000, 10_000]) func walkingPaysLittleEarlyAndMoreLateInARun(steps: Int) {
         guard ProcessInfo.processInfo.environment["RUN_BALANCE_TESTS"] != nil else { return }
         // The first three days: steps are a few percent of the coins at most.
@@ -486,20 +519,20 @@ struct PacingTests {
               "| points", walker.game.prestigePoints, "| steps paid", String(format: "%.1f%%", share * 100),
               "| first three days", String(format: "%.1f%%", opening.earnedFromSteps / opening.lifetimeCoins * 100),
               "| boosters", UpgradeID.allCases.filter { $0.category == .steps }.map { days(walker.firstUpgrade[$0]) })
-        // A night falls between seven and a half days and the morning after: close enough.
-        let firstPrestige: ClosedRange<Double> = 7.2...7.8
+        // About eight days, walking or not (see the casual player): close enough.
+        let firstPrestige: ClosedRange<Double> = 7.8...8.8
         #expect(walker.firstPrestigeAt.map { firstPrestige.contains($0 / 86_400) } == true)
-        #expect((8...10).contains(walker.prestigeTimes.count))
+        #expect((9...15).contains(walker.prestigeTimes.count))
         // Steps pay a real share over three weeks, and never much more than half, even at 10,000.
         #expect(share > Double(steps) / 50_000)
         #expect(share < 0.6)
         // The first two boosters in the first four days and the third in about five;
-        // the Giga Step Booster about the sixth day; the Mega Step Booster, in the trillions, about
+        // the Giga Step Booster about the seventh day; the Mega Step Booster, in the trillions, about
         // the end of the first run or early in the second, and Proof of Stride, the biggest, at 100 trillion, in the second.
         #expect([UpgradeID.stepBooster, .upgradedStepBooster].allSatisfy { walker.firstUpgrade[$0].map { $0 < 4 * 86_400 } == true })
-        #expect(walker.firstUpgrade[.ultimateStepBooster].map { (4 * 86_400...5.5 * 86_400).contains($0) } == true)
-        #expect(walker.firstUpgrade[.gigaStepBooster].map { (5.5 * 86_400...7.5 * 86_400).contains($0) } == true)
-        #expect(walker.firstUpgrade[.megaStepBooster].map { (7 * 86_400...10.5 * 86_400).contains($0) } == true)
+        #expect(walker.firstUpgrade[.ultimateStepBooster].map { (4.5 * 86_400...6 * 86_400).contains($0) } == true)
+        #expect(walker.firstUpgrade[.gigaStepBooster].map { (6 * 86_400...8 * 86_400).contains($0) } == true)
+        #expect(walker.firstUpgrade[.megaStepBooster].map { (7 * 86_400...10.75 * 86_400).contains($0) } == true)
         #expect(walker.firstUpgrade[.proofOfStride].map { (10 * 86_400...13.5 * 86_400).contains($0) } == true)
     }
 

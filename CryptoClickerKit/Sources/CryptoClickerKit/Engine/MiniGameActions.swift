@@ -21,7 +21,7 @@ extension GameState {
     public mutating func placeBlackjackBet(_ token: TokenID, amount: Int) -> Bool {
         guard amount > 0, tokenCount(token) >= amount else { return false }
         if let open = blackjackStake, open.token != token { return false }
-        tokens[token] = tokenCount(token) - amount
+        takeTokens(token, amount: amount)
         blackjackStake = BlackjackStake(token: token, amount: (blackjackStake?.amount ?? 0) + amount)
         return true
     }
@@ -32,6 +32,7 @@ extension GameState {
         guard let stake = blackjackStake else { return nil }
         blackjackStake = nil
         giveTokens(stake.token, amount: stake.amount)
+        settleBoughtTokens(stake.token)
         return stake
     }
 
@@ -60,6 +61,7 @@ extension GameState {
         guard blackjackStake != nil else { return 0 }
         blackjackStake = nil
         giveTokens(token, amount: results.reduce(max(0, insurance?.payout ?? 0)) { $0.addingCount($1.payout) })
+        settleBoughtTokens(token)
         stats.blackjackHands += 1
         var bonus = 0.0
         var wins = 0
@@ -153,8 +155,9 @@ extension GameState {
         var spin = SlotsSpin(stops: stops, token: token, bet: bet, multiple: multiple, bonus: 0, machine: machine)
         spin.lineWins = lineWins
         let paid = spin.payout
-        if free == nil { tokens[token] = tokenCount(token) - stake }
+        if free == nil { takeTokens(token, amount: stake) }
         giveTokens(token, amount: paid)
+        settleBoughtTokens(token)
         let bonus = slotsBonus(bet: bet, token: token, multiple: multiple, machine: machine)
         credit(bonus, source: .games)
 
@@ -217,7 +220,7 @@ extension GameState {
                                                                 using rng: inout R) -> Bool {
         guard moonRound == nil, bet > 0, tokenCount(token) >= bet else { return false }
         let target = autoCashOut.flatMap { $0.isFinite ? max(MoonFlight.hundredths($0), 1.01) : nil }
-        tokens[token] = tokenCount(token) - bet
+        takeTokens(token, amount: bet)
         let crash = MoonFlight.crashPoint(roll: Double.random(in: 0..<1, using: &rng), rocket: rocket)
         moonRound = MoonRound(token: token, bet: bet, crashPoint: crash, autoCashOut: target, rocket: rocket)
         stats.moonFlights += 1
@@ -240,11 +243,13 @@ extension GameState {
         moonRound = nil // Taken first: the flight can only be paid once.
         var result = round.outcome(after: seconds)
         guard let multiplier = result.cashedOutAt else {
+            settleBoughtTokens(round.token)
             recordChallenge(.moon, value: 0, scored: false)
             return result
         }
         let won = result.tokensWon
         giveTokens(round.token, amount: won)
+        settleBoughtTokens(round.token)
         let bonus = moonBonus(bet: round.bet, token: round.token, multiplier: multiplier, rocket: round.rocket)
         credit(bonus, source: .games)
         stats.moonCashOuts += 1
@@ -263,6 +268,7 @@ extension GameState {
         guard let round = moonRound else { return nil }
         moonRound = nil
         giveTokens(round.token, amount: round.bet)
+        settleBoughtTokens(round.token)
         return round
     }
 
@@ -289,7 +295,7 @@ extension GameState {
     @discardableResult
     public mutating func dealPoker<R: RandomNumberGenerator>(_ token: TokenID, bet: Int, using rng: inout R) -> PokerRound? {
         guard pokerRound == nil, bet > 0, tokenCount(token) >= bet else { return nil }
-        tokens[token] = tokenCount(token) - bet
+        takeTokens(token, amount: bet)
         let dealt = VideoPoker.deal(using: &rng)
         let round = PokerRound(token: token, bet: bet, cards: dealt.cards, drawPile: dealt.drawPile)
         pokerRound = round
@@ -308,6 +314,7 @@ extension GameState {
         let hand = result.hand
         let won = result.tokensWon
         giveTokens(round.token, amount: won)
+        settleBoughtTokens(round.token)
         let bonus = pokerBonus(bet: round.bet, token: round.token, hand: hand)
         credit(bonus, source: .games)
         result.bonus = bonus
@@ -450,6 +457,7 @@ extension GameState {
         stats.brickBreakerBosses = stats.brickBreakerBosses.addingCount(bosses)
         stats.brickBreakerPowerUps = stats.brickBreakerPowerUps.addingCount(powerUps)
         stats.brickBreakerBestStreak = max(stats.brickBreakerBestStreak, bestStreak)
+        if difficulty == .hard { stats.brickBreakerHardLevels = max(stats.brickBreakerHardLevels, level - start) }
         let share = Tuning.startPayShare(level: start, slope: Tuning.brickBreakerStartPaySlope) * difficulty.payMultiplier
         return payArcade(.brickBreaker, score: score, paidPoints: Int((Double(max(0, score)) * share).rounded()),
                          isNewBest: isNewBest, challengeValue: bricks)
@@ -476,6 +484,7 @@ extension GameState {
         stats.invadersBestStreak = max(stats.invadersBestStreak, bestStreak)
         stats.invadersVolleys = stats.invadersVolleys.addingCount(volleys)
         stats.invadersVolleysHit = stats.invadersVolleysHit.addingCount(min(max(0, volleysHit), max(0, volleys)))
+        if difficulty == .hard { stats.invadersHardWaves = max(stats.invadersHardWaves, wave - max(1, min(startWave, wave))) }
         let share = Tuning.startPayShare(level: max(1, min(startWave, wave)), slope: Tuning.invadersStartPaySlope)
             * difficulty.payMultiplier
         return payArcade(.invaders, score: score, paidPoints: Int((Double(max(0, score)) * share).rounded()),

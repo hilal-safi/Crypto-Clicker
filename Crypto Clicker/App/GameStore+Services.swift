@@ -139,7 +139,7 @@ extension GameStore {
     /// The coin's finish picked in Settings, or gold while it's locked.
     private var coinFinish: CoinFinish {
         let picked = UserDefaults.standard.string(forKey: Preferences.coinFinishKey).flatMap(CoinFinish.init(rawValue:)) ?? .gold
-        return picked.isUnlocked(stars: game.earnedAchievementTiers) ? picked : .gold
+        return game.isUnlocked(picked) ? picked : .gold
     }
 
     /// Starts or ends the Live Activity when its setting changes.

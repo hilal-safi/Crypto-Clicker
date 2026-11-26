@@ -261,29 +261,29 @@ struct Merge2048RewardTests {
     @Test func scoresPayLikeTheOtherArcadeGames() {
         var game = GameState.make(miners: minersEarning(10)) // 10 coins per second.
         let first = game.finishMerge2048(score: 2_000, bestTile: 256)
-        #expect(first == ArcadePayout(coins: 1_650, isNewBest: true)) // 2,000 × 0.055 × 10 × 1.5
+        #expect(first == ArcadePayout(coins: 3_300, isNewBest: true)) // 2,000 × 0.11 × 10 × 1.5
         #expect(game.stats.merge2048Games == 1)
         #expect(game.stats.merge2048BestScore == 2_000)
         #expect(game.stats.merge2048BestTile == 256)
         #expect(game.stats.merge2048Points == 2_000)
-        #expect(game.merge2048Reward(score: 1_000, bestTile: 128) == 550) // Not a new best.
+        #expect(game.merge2048Reward(score: 1_000, bestTile: 128) == 1_100) // Not a new best.
         let second = game.finishMerge2048(score: 1_000, bestTile: 128)
-        #expect(second.coins == 550)
+        #expect(second.coins == 1_100)
         #expect(game.stats.merge2048BestTile == 256)
         #expect(game.stats.merge2048Points == 3_000)
-        #expect(game.coins == 2_200)
-        #expect(game.stats.earnedFromGames == 2_200)
+        #expect(game.coins == 4_400)
+        #expect(game.stats.earnedFromGames == 4_400)
     }
 
-    @Test func makingA2048TilePaysTenMinutesMore() {
+    @Test func makingA2048TilePaysTwentyMinutesMore() {
         var game = GameState.make(miners: minersEarning(10)) // 10 coins per second.
-        #expect(game.merge2048TileBonus == 6_000)
-        #expect(game.merge2048Reward(score: 20_000, bestTile: 1_024) == 16_500)
-        #expect(game.merge2048Reward(score: 20_000, bestTile: 2_048) == 22_500)
+        #expect(game.merge2048TileBonus == 12_000)
+        #expect(game.merge2048Reward(score: 20_000, bestTile: 1_024) == 33_000)
+        #expect(game.merge2048Reward(score: 20_000, bestTile: 2_048) == 45_000)
         let payout = game.finishMerge2048(score: 20_000, bestTile: 2_048)
-        #expect(payout.tileBonus == 6_000)
-        #expect(payout.coins == 16_500 + 6_000)
-        #expect(game.coins == 22_500)
+        #expect(payout.tileBonus == 12_000)
+        #expect(payout.coins == 33_000 + 12_000)
+        #expect(game.coins == 45_000)
         #expect(game.stats.merge2048BestTile == 2_048)
     }
 
@@ -291,7 +291,7 @@ struct Merge2048RewardTests {
         var game = GameState.make(miners: minersEarning(10))
         game.holdArcadeRun(ArcadeRun(game: .merge2048, score: 400, detail: 64))
         let paid = game.payUnfinishedRun()
-        #expect(paid?.payout.coins == 330) // 400 × 0.055 × 10 × 1.5
+        #expect(paid?.payout.coins == 660) // 400 × 0.11 × 10 × 1.5
         #expect(game.stats.merge2048BestTile == 64)
         #expect(game.unfinishedRun == nil)
     }
@@ -308,7 +308,7 @@ struct Merge2048RewardTests {
     @Test func dailyStarsPayOnceADay() {
         var game = GameState.make(miners: minersEarning(10)) // 10 coins per second.
         let star = game.merge2048DailyStarReward
-        #expect(star == 2_000) // 200 seconds.
+        #expect(star == 4_000) // 400 seconds.
         let scores = Merge2048Game.dailyStarScores
         // Two stars: the points (no new-best bonus) and two stars.
         let first = game.finishMerge2048Daily(day: "2026-10-28", score: scores[1], bestTile: 128)

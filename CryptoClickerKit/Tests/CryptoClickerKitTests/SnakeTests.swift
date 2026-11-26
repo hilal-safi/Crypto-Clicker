@@ -308,14 +308,14 @@ struct SnakeTests {
     @Test func coinRushPointsPayLessBecauseTheyComeFaster() {
         var classic = GameState.make(miners: minersEarning(10)) // 10 coins per second.
         var rush = GameState.make(miners: minersEarning(10))
-        #expect(classic.finishSnake(score: 200, length: 23).coins == 900) // 200 × 0.3 × 10 × 1.5
-        #expect(rush.finishSnake(score: 200, length: 23, mode: .coinRush).coins == 540) // 60% of that.
+        #expect(classic.finishSnake(score: 200, length: 23).coins == 1_800) // 200 × 0.6 × 10 × 1.5
+        #expect(rush.finishSnake(score: 200, length: 23, mode: .coinRush).coins == 1_080) // 60% of that.
     }
 
     @Test func aCoinRushLeftOpenIsPaidAsOne() {
         var state = GameState.make(miners: minersEarning(10))
         state.holdArcadeRun(ArcadeRun(game: .snake, score: 200, detail: 23, stage: ArcadeRun.coinRushStage))
-        #expect(state.payUnfinishedRun()?.payout.coins == 540)
+        #expect(state.payUnfinishedRun()?.payout.coins == 1_080)
         #expect(state.stats.snakeRushes == 1)
         #expect(state.stats.snakeRushBestScore == 200)
         #expect(state.stats.snakeBestScore == 0)

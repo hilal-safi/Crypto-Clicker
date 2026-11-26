@@ -70,6 +70,30 @@ struct GoalsTests {
         #expect(later.prestigePointsToRecommend == 25)
     }
 
+    @Test func theMineTabShowsTheRunsClosestGoalOrTheSuggestedPrestige() throws {
+        // A new game: the Chromebook it's saving for.
+        let fresh = try #require(GameState.make(coins: 5).featuredGoal)
+        #expect(fresh.kind == .miner && fresh.title == "Buy a Chromebook")
+        // 24 Chromebooks: the milestone one away beats a Desktop the balance is far from.
+        let close = try #require(GameState.make(coins: 1, miners: [.chromebook: 24]).featuredGoal)
+        #expect(close.kind == .milestone && close.title == "Own 25 Chromebooks")
+        // Something affordable comes first, in the order the Goals page lists them.
+        let rich = GameState.make(coins: 1e9, miners: [.chromebook: 24])
+        let ready = try #require(rich.featuredGoal)
+        #expect(ready.progress == 1 && ready.kind == .miner)
+        // When the Shop suggests a prestige, that's the goal.
+        var game = GameState.make(coins: 1e9, miners: [.chromebook: 24])
+        game.stats.lifetimeCoins = 12 * 12 * 12 * Tuning.prestigeScale
+        game.stats.runCoins = game.stats.lifetimeCoins
+        #expect(game.isPrestigeRecommended)
+        #expect(game.featuredGoal?.kind == .prestige)
+        // Achievements, Arcade Rank and Token Swap stay on the Goals page.
+        let kinds: Set<Goal.Kind> = [.miner, .milestone, .upgrade, .game, .prestige]
+        for state in [GameState.make(), rich, game] {
+            #expect(state.featuredGoal.map { kinds.contains($0.kind) } ?? true)
+        }
+    }
+
     @Test func goalsAreOneOfEachKindWithProgressInRange() {
         var late = GameState.make(coins: 1e15, miners: [.chromebook: 120, .desktop: 80, .gpuRig: 60, .server: 30])
         late.unlockedGames = [.blackjack, .tetris]

@@ -80,7 +80,11 @@ struct IncomeBreakdownView: View {
                     SettingsNote("Milestones (25, 50, 100… owned) and Mk upgrades each double a miner; late in the game Legacy lifts the oldest. Shares include any Bull Run.")
                 }
 
-                Section("Production multipliers") {
+                Section {
+                    // What the miners make with their milestones, Mk upgrades and Legacy, before the
+                    // multipliers below.
+                    let global = game.globalMultiplier
+                    row("Miners before these", "\(rate(global > 0 ? game.baseProduction / global : 0))/s")
                     row("Upgrades", CoinFormat.multiplier(game.upgradeProductionMultiplier))
                     row("Prestige (\(CoinFormat.grouped(game.prestigePoints)) points)", CoinFormat.multiplier(game.prestigeBonus))
                     row("Achievements (\(game.earnedAchievementTiers) stars)", CoinFormat.multiplier(game.achievementBonus))
@@ -89,6 +93,11 @@ struct IncomeBreakdownView: View {
                         row("Bull Run", CoinFormat.multiplier(boost.multiplier))
                     }
                     row("All together", CoinFormat.multiplier(game.globalMultiplier * (boost?.multiplier ?? 1)), bold: true)
+                    row("Production", "\(rate(production))/s", bold: true)
+                } header: {
+                    Text("Production multipliers")
+                } footer: {
+                    SettingsNote("The miners' own output, times every multiplier, makes production. Automatic taps come on top of it.")
                 }
 
                 Section {

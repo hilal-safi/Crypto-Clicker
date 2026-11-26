@@ -18,6 +18,8 @@ public struct Stats: Codable, Equatable, Sendable {
     /// Steps paid for (the day after they were walked); `lifetimeSteps` counts them as they're walked.
     public internal(set) var stepsPaid = 0
     public internal(set) var bestDaySteps = 0
+    /// The most steps counted in one week (Monday to Sunday), from version 2.
+    public internal(set) var bestWeekSteps = 0
 
     public internal(set) var maxOwned: [MinerID: Int] = [:]
     public internal(set) var maxTotalMiners = 0
@@ -154,6 +156,9 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var invadersClassicBestWave = 0
     /// Invaders shot down, in every game.
     public internal(set) var invadersDestroyed = 0
+    /// The most waves cleared in one game on Hard, and the most Hash Smash levels (from version 2).
+    public internal(set) var invadersHardWaves = 0
+    public internal(set) var brickBreakerHardLevels = 0
     public internal(set) var invadersWhales = 0
     public internal(set) var invadersBosses = 0
     public internal(set) var invadersPowerUps = 0
@@ -171,9 +176,18 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var tokenSwapBlasts = 0
 
     public internal(set) var tokensBought: [TokenID: Int] = [:]
+    /// Coins paid for tokens on the market, by token, and the tokens they bought: purchases from
+    /// version 2 on, when prices began to be kept (for the average price paid).
+    public internal(set) var coinsSpentOnTokens: [TokenID: Double] = [:]
+    public internal(set) var tokensBoughtWithPrice: [TokenID: Int] = [:]
     public internal(set) var tokensSold = 0
     /// Coins received for tokens sold on the market.
     public internal(set) var coinsFromSales: Double = 0
+    /// Sales for more than their share of what was paid for the tokens (after the fee); what every
+    /// sale made or lost against that, in all; and the most one sale made (from version 2).
+    public internal(set) var profitableSales = 0
+    public internal(set) var tradingProfit: Double = 0
+    public internal(set) var bestSaleProfit: Double = 0
     public internal(set) var airdrops = 0
     public internal(set) var whaleAirdrops = 0
     /// Airdrops that went away before they were caught (counted from version 33 on).
@@ -182,6 +196,10 @@ public struct Stats: Codable, Equatable, Sendable {
     /// The most coins one airdrop has paid.
     public internal(set) var bestAirdrop: Double = 0
     public internal(set) var prestiges = 0
+    /// The most prestige points one run has earned, and the runs finished within
+    /// `Tuning.quickRunDuration` (both from version 2).
+    public internal(set) var bestRunPoints = 0
+    public internal(set) var quickRuns = 0
     public internal(set) var questsCompleted = 0
     public internal(set) var longestStreak = 0
     /// Daily challenges completed.
@@ -199,6 +217,16 @@ public struct Stats: Codable, Equatable, Sendable {
     public init() {}
 
     public var totalTokensBought: Int { tokensBought.values.reduce(0, +) }
+    /// Coins paid for tokens on the market since version 2.
+    public var totalCoinsSpentOnTokens: Double { coinsSpentOnTokens.values.reduce(0, +) }
+
+    /// The average price paid for `token` on the market since version 2, over every purchase, or
+    /// nil before one is bought. A lifetime figure: what the tokens held now cost is
+    /// `GameState.boughtTokens`.
+    public func averagePricePaid(_ token: TokenID) -> Double? {
+        let count = tokensBoughtWithPrice[token, default: 0]
+        return count > 0 ? coinsSpentOnTokens[token, default: 0] / Double(count) : nil
+    }
 
     private enum CodingKeys: String, CodingKey {
         case lifetimeCoins, runCoins, spent, peakIncome, taps, bestTap, bestCombo, lifetimeSteps, bestDaySteps
@@ -224,12 +252,14 @@ public struct Stats: Codable, Equatable, Sendable {
         case tokenSwapRandomPlayed, tokenSwapRandomWins
         case pokerHands, pokerWins, pokerWagered, pokerPaidOut, pokerBestHand, pokerRoyals, pokerBiggestWin
         case tokenSwapGames, tokenSwapBestScore, tokenSwapTokens, tokenSwapBestChain, tokenSwapBlasts
-        case tokensBought, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
+        case tokensBought, coinsSpentOnTokens, tokensBoughtWithPrice, tokensSold, coinsFromSales, airdrops, whaleAirdrops, questsCompleted, longestStreak
+        case profitableSales, tradingProfit, bestSaleProfit, bestWeekSteps, invadersHardWaves, brickBreakerHardLevels
         case airdropsMissed, bullRuns, bestAirdrop
         case invadersGames, invadersBestScore, invadersBestWave, invadersDestroyed, invadersWhales, invadersBosses
         case invadersPowerUps, invadersBestStreak, invadersVolleys, invadersVolleysHit
         case invadersClassicBestWave, brickBreakerClassicBestLevel
         case prestiges = "forksPerformed" // Saved under its old Hard Fork name.
+        case bestRunPoints, quickRuns
         case earnedFromTaps, earnedFromIdle, earnedOffline, earnedFromSteps, earnedFromGames, earnedFromAirdrops
         case earnedFromDaily, challengesCompleted
     }
@@ -283,8 +313,16 @@ public struct Stats: Codable, Equatable, Sendable {
         merge2048Points = c.value(.merge2048Points, default: 0)
         merge2048Goals = c.value(.merge2048Goals, default: 0)
         tokensBought = c.enumKeyed(.tokensBought, as: TokenID.self)
+        coinsSpentOnTokens = c.enumKeyed(.coinsSpentOnTokens, as: TokenID.self)
+        tokensBoughtWithPrice = c.enumKeyed(.tokensBoughtWithPrice, as: TokenID.self)
         tokensSold = c.value(.tokensSold, default: 0)
         coinsFromSales = c.value(.coinsFromSales, default: 0)
+        profitableSales = max(0, c.value(.profitableSales, default: 0))
+        tradingProfit = c.value(.tradingProfit, default: 0)
+        bestSaleProfit = max(0, c.value(.bestSaleProfit, default: 0))
+        bestWeekSteps = max(0, c.value(.bestWeekSteps, default: 0))
+        invadersHardWaves = max(0, c.value(.invadersHardWaves, default: 0))
+        brickBreakerHardLevels = max(0, c.value(.brickBreakerHardLevels, default: 0))
         airdrops = c.value(.airdrops, default: 0)
         whaleAirdrops = c.value(.whaleAirdrops, default: 0)
         airdropsMissed = c.value(.airdropsMissed, default: 0)
@@ -304,6 +342,8 @@ public struct Stats: Codable, Equatable, Sendable {
         bullRuns = c.value(.bullRuns, default: 0)
         bestAirdrop = c.value(.bestAirdrop, default: 0)
         prestiges = c.value(.prestiges, default: 0)
+        bestRunPoints = max(0, c.value(.bestRunPoints, default: 0))
+        quickRuns = max(0, c.value(.quickRuns, default: 0))
         questsCompleted = c.value(.questsCompleted, default: 0)
         longestStreak = c.value(.longestStreak, default: 0)
         earnedFromTaps = c.value(.earnedFromTaps, default: 0)
@@ -422,8 +462,16 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(merge2048Points, forKey: .merge2048Points)
         try c.encode(merge2048Goals, forKey: .merge2048Goals)
         try c.encode(tokensBought.stringKeyed, forKey: .tokensBought)
+        if !coinsSpentOnTokens.isEmpty { try c.encode(coinsSpentOnTokens.stringKeyed, forKey: .coinsSpentOnTokens) }
+        if !tokensBoughtWithPrice.isEmpty { try c.encode(tokensBoughtWithPrice.stringKeyed, forKey: .tokensBoughtWithPrice) }
         try c.encode(tokensSold, forKey: .tokensSold)
         try c.encode(coinsFromSales, forKey: .coinsFromSales)
+        if profitableSales > 0 { try c.encode(profitableSales, forKey: .profitableSales) }
+        if tradingProfit != 0 { try c.encode(tradingProfit, forKey: .tradingProfit) }
+        if bestSaleProfit > 0 { try c.encode(bestSaleProfit, forKey: .bestSaleProfit) }
+        if bestWeekSteps > 0 { try c.encode(bestWeekSteps, forKey: .bestWeekSteps) }
+        if invadersHardWaves > 0 { try c.encode(invadersHardWaves, forKey: .invadersHardWaves) }
+        if brickBreakerHardLevels > 0 { try c.encode(brickBreakerHardLevels, forKey: .brickBreakerHardLevels) }
         try c.encode(airdrops, forKey: .airdrops)
         try c.encode(whaleAirdrops, forKey: .whaleAirdrops)
         try c.encode(airdropsMissed, forKey: .airdropsMissed)
@@ -441,6 +489,8 @@ public struct Stats: Codable, Equatable, Sendable {
         try c.encode(bullRuns, forKey: .bullRuns)
         try c.encode(bestAirdrop, forKey: .bestAirdrop)
         try c.encode(prestiges, forKey: .prestiges)
+        if bestRunPoints > 0 { try c.encode(bestRunPoints, forKey: .bestRunPoints) }
+        if quickRuns > 0 { try c.encode(quickRuns, forKey: .quickRuns) }
         try c.encode(questsCompleted, forKey: .questsCompleted)
         try c.encode(longestStreak, forKey: .longestStreak)
         try c.encode(earnedFromTaps, forKey: .earnedFromTaps)

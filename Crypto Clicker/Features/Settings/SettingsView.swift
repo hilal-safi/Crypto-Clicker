@@ -50,7 +50,7 @@ struct SettingsView: View {
                     }
                     NumberFormatPicker()
                     // A finish that's locked again (after a reset) shows as the gold it falls back to.
-                    let shownFinish = finish.isUnlocked(stars: game.earnedAchievementTiers) ? finish : .gold
+                    let shownFinish = game.isUnlocked(finish) ? finish : .gold
                     NavigationLink {
                         CoinFinishPicker()
                     } label: {
@@ -99,7 +99,7 @@ struct SettingsView: View {
                     Toggle("Live Activity", isOn: $liveActivity)
                         .onChange(of: liveActivity) { _, _ in store.liveActivitySettingChanged() }
                 } header: {
-                    SettingsHeader("Lock Screen and Widgets", info: "The Live Activity shows your coin and balance on the Lock Screen and in the Dynamic Island while the game is closed: what your miners earn a second, how long they keep going, and what you'll have when they stop. It updates each time you leave the game.\n\nThe Balance widget does the same on the Home Screen or the Lock Screen, its number growing as your miners earn. To add it, touch and hold an empty spot, tap Edit, then Add Widget, and pick Crypto Clicker.")
+                    SettingsHeader("Lock Screen and Widgets", info: "The Live Activity shows your coin and balance on the Lock Screen, in the Dynamic Island and in CarPlay while the game is closed: what your miners earn a second, how long they keep going, and what you'll have when they stop. It updates each time you leave the game.\n\nThe Balance widget does the same on the Home Screen or the Lock Screen, its number growing as your miners earn. To add it, touch and hold an empty spot, tap Edit, then Add Widget, and pick Crypto Clicker.")
                 } footer: {
                     SettingsNote("Add the Balance widget from the Home Screen or Lock Screen editor.")
                 }
@@ -126,11 +126,16 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        BackupView()
+                    } label: {
+                        Label("Backup and Save Files", systemImage: "clock.arrow.circlepath")
+                    }
                     Button("Reset All Progress", role: .destructive) { confirmingReset = true }
                 } header: {
                     Text("Progress")
                 } footer: {
-                    SettingsNote("Erases everything, prestige and achievements included.")
+                    SettingsNote("Backups, restoring, and save files to export and import. Reset erases everything, prestige and achievements included.")
                 }
             }
             // The same gap between every pair of sections, footer or not, and room above the
@@ -148,7 +153,7 @@ struct SettingsView: View {
                 Button("Reset Everything", role: .destructive) { store.resetGame() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Your coins, miners, prestige, achievements and records will be erased. This can't be undone.")
+                Text("Your coins, miners, prestige, achievements and records will be erased. A snapshot of the game is kept in Settings › Backup and Save Files, and the backups in iCloud or a folder aren't replaced by the new game unless you choose to.")
             }
             .alert("Notifications are off", isPresented: $notificationsDenied) {
                 Button("Open Settings") {

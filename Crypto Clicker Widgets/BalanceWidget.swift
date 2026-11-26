@@ -78,7 +78,8 @@ struct BalanceWidgetView: View {
     }
 }
 
-/// The coin, the balance and its rate, stacked.
+/// The coin with how long the miners keep going, then the balance, its rate, and a bar that fills
+/// as their time away runs out (on the Home Screen, and in CarPlay).
 private struct SmallBalance: View {
     let snapshot: BalanceSnapshot
     let date: Date
@@ -88,25 +89,47 @@ private struct SmallBalance: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .top) {
                 WidgetCoin(finish: snapshot.finish)
-                    .frame(width: 46, height: 46)
-                Spacer(minLength: 0)
-                Image(systemName: mining ? "bolt.fill" : "moon.zzz.fill")
-                    .font(.footnote.weight(.bold))
-                    .foregroundStyle(mining ? WidgetStyle.orange : WidgetStyle.subtext)
-                    .accessibilityHidden(true)
+                    .frame(width: 44, height: 44)
+                Spacer(minLength: 4)
+                if mining {
+                    // Counts down on its own between the timeline's moments.
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text(timerInterval: snapshot.anchor...snapshot.miningEndsAt, countsDown: true)
+                            .font(.system(.footnote, design: .rounded).weight(.bold))
+                            .monospacedDigit()
+                            .multilineTextAlignment(.trailing)
+                            .foregroundStyle(WidgetStyle.orange)
+                        Text("left")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(WidgetStyle.subtext)
+                    }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                } else {
+                    Image(systemName: "moon.zzz.fill")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(WidgetStyle.subtext)
+                        .accessibilityHidden(true)
+                }
             }
             Spacer(minLength: 0)
-            Text("Coins")
-                .font(.caption2.weight(.heavy))
-                .textCase(.uppercase)
-                .foregroundStyle(WidgetStyle.subtext)
-            WidgetStyle.balance(snapshot.coins(at: date), size: 32)
+            WidgetStyle.balance(snapshot.coins(at: date), size: 30)
                 .foregroundStyle(.white)
             Text(mining ? WidgetStyle.rate(snapshot.income(at: date)) : "Miners resting")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(mining ? WidgetStyle.orange : WidgetStyle.subtext)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+            if mining {
+                ProgressView(timerInterval: snapshot.anchor...snapshot.miningEndsAt, countsDown: false) {
+                    EmptyView()
+                } currentValueLabel: {
+                    EmptyView()
+                }
+                .progressViewStyle(.linear)
+                .tint(WidgetStyle.orange)
+                .padding(.top, 3)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)

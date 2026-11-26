@@ -52,6 +52,21 @@ struct InvadersTests {
         #expect(state.invadersStartWaves == 1...6)
     }
 
+    /// The Hard-mode badge counts the waves cleared in one game on Hard, held games included.
+    @Test func hardGamesCountWavesClearedTowardTheirBadge() {
+        var state = GameState.make()
+        state.finishInvaders(score: 1_000, destroyed: 60, wave: 7, difficulty: .easy)
+        #expect(state.stats.invadersHardWaves == 0)
+        state.finishInvaders(score: 1_000, destroyed: 60, wave: 7, startWave: 3, difficulty: .hard)
+        #expect(state.stats.invadersHardWaves == 4)
+        state.holdArcadeRun(ArcadeRun(game: .invaders, score: 500, detail: 30, extra: 6,
+                                      records: .init(start: 1, difficulty: .hard)))
+        state.payUnfinishedRun()
+        #expect(state.stats.invadersHardWaves == 5)
+        state.refreshAchievements()
+        #expect(state.tiersEarned(AchievementCatalog.all.first { $0.id == "hard-invaders" }!) == 2)
+    }
+
     @Test func randomWavesDontUnlockClassicWaves() throws {
         var state = GameState.make()
         state.finishInvaders(score: 1_000, destroyed: 60, wave: 9, waves: .generated)

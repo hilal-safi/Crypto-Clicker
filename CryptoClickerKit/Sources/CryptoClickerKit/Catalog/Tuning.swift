@@ -1,15 +1,27 @@
 import Foundation
 
-/// Every balance number in one place. Tuned with simulated players who catch airdrops, claim the
-/// dailies, play some arcade and earn achievements (see `PacingTests`): someone who keeps playing
-/// buys a Data Center after a little over an hour; casual play (four ten-minute visits a day)
-/// reaches the Data Center in about two days, the first prestige point in about four, every
-/// mini-game and the tenth miner in about seven and the first suggested prestige at about seven
-/// and a half, then eight or nine prestiges and a few thousand points in three weeks, with perks
-/// arriving all the way. Steps pay little in the first days and a lot late in a run: walking 5,000
-/// steps a day pays about a third of three weeks' coins (twice the prestige points of not
-/// walking), 10,000 steps about half. Prices in the catalogs are list prices:
-/// `scaledPrice` sets the pace. Coin amounts here are whole numbers; only rates may be fractional.
+/// Every balance number in one place. Tuned with simulated players (see `PacingTests`, whose
+/// expectations these numbers come from):
+///
+/// - Someone who keeps playing (three taps a second) buys the first GPU Rig in about ten minutes,
+///   the first Server in about half an hour and a Data Center in under two hours.
+/// - Casual play (four ten-minute visits a day, catching most airdrops, claiming the dailies and
+///   playing some arcade) reaches the Data Center in about a day and a half, the first prestige
+///   point in about five days, every mini-game in about seven and a half and the tenth miner in
+///   about eight; the Shop suggests the first prestige at about eight and a half days, with two
+///   more by the end of the second week and about nine (four or five thousand points) in three
+///   weeks, and perks keep arriving all the way.
+/// - A light player (two five-minute looks a day, no arcade) still moves: the first four tiers in
+///   two days, the Data Center in about a week, a first prestige point before three weeks are out.
+/// - Steps pay little in the first days and a lot late in a run: walking 2,500 or 5,000 steps a
+///   day pays about a quarter of three weeks' coins, 10,000 steps about half, and the first
+///   prestige still comes at about eight days.
+/// - A minute of skilled arcade play pays about four minutes of income, level with what 21 Million
+///   pays at its cap, and the other casino games pay a little less (`ArcadeBalanceTests`,
+///   `CasinoReturnTests`).
+///
+/// Prices in the catalogs are list prices: `scaledPrice` sets the pace. Coin amounts here are whole
+/// numbers; only rates may be fractional.
 public enum Tuning {
     // MARK: Miners
     /// Each additional unit of a miner costs this much more than the previous one.
@@ -282,6 +294,10 @@ public enum Tuning {
     /// Prestige points stop counting here. Far beyond reach in play, and small enough for `Int`
     /// on Apple Watch, where `Int` is 32 bits.
     public static let maxPrestigePoints = 1_000_000_000
+    /// Finished runs the run history keeps: the latest, about 30 KB of save at most.
+    public static let runHistoryLimit = 200
+    /// A run finished within this counts towards the Speedrunner achievement.
+    public static let quickRunDuration: TimeInterval = 2 * 86_400
     /// The first prestige is suggested once its points would make production at least this much
     /// faster...
     public static let firstPrestigeSpeedUp = 1.5
@@ -379,10 +395,14 @@ public enum Tuning {
     public static let marketNewsTicks = 72
     /// Share of a sale the market keeps (Market Insider waives it).
     public static let marketSellFee = 0.1
+    /// The Tokens page's trade history keeps this many of the latest trades.
+    public static let tradeHistoryLimit = 50
 
     // MARK: Mini-games
-    // Casino bonuses: 21 Million's are a little smaller than they were (it paid by far the most),
-    // and the other three games' 60% bigger, so every table is worth a visit (see CasinoReturnTests).
+    // Every game pays about what 21 Million does, which used to pay twice as much as the rest: the
+    // arcade's points pay twice what they did, and the other casino games' bonuses are bigger and
+    // reach their caps on smaller bets, so their house edge costs less (see CasinoReturnTests and
+    // ArcadeBalanceTests). With every reward upgrade none earns more than 21 Million.
     /// A winning Blackjack hand pays this share of its stake's coin value in coins...
     public static let blackjackStakeShare = 0.42
     /// ...up to this many seconds of idle income, so bigger bets matter but can't run away.
@@ -392,35 +412,38 @@ public enum Tuning {
     /// The tough table (the dealer hits soft 17) pays this much more coin bonus for a win.
     public static let blackjackToughTableBonus = 1.1
     /// A winning slots spin pays this share of its stake's coin value for each multiple of the bet...
-    public static let slotsStakeShare = 0.08
+    public static let slotsStakeShare = 0.28
     /// ...up to this many seconds of idle income for each multiple.
-    public static let slotsWinSeconds = 5.0
+    public static let slotsWinSeconds = 8.5
     /// Every `SlotMachine.bitcoinsPerPrize` Bitcoins collected on the line pay this many seconds of income.
-    public static let slotsCollectionSeconds = 90.0
+    public static let slotsCollectionSeconds = 150.0
     /// A To the Moon cash-out pays this share of its stake's coin value for each multiple above 1×...
-    public static let moonStakeShare = 0.08
+    public static let moonStakeShare = 0.48
     /// ...up to this many seconds of idle income in all for each second the flight took, so quick
     /// flights to high targets (on the 5× rocket above all) can't earn faster than the time played.
-    public static let moonWinSecondsPerFlightSecond = 6.0
+    public static let moonWinSecondsPerFlightSecond = 7.8
     /// The 5× rocket's cash-outs pay this many times the coin bonus (it crashes a little more often).
     public static let moonFivefoldBonus = 1.25
     /// A Video Poker hand of two pair or better pays this share of its stake's coin value for each
     /// multiple of the bet...
-    public static let pokerStakeShare = 0.08
+    public static let pokerStakeShare = 0.30
     /// ...up to this many seconds of idle income for each multiple.
-    public static let pokerWinSeconds = 24.0
+    public static let pokerWinSeconds = 26.0
+    /// Arcade games pay twice what they first did, to match 21 Million: every arcade reward below
+    /// is multiplied by this.
+    public static let arcadePayBoost = 2.0
     /// Arcade games pay this many seconds of idle income per point when they end. Simulated skilled
-    /// players (see ArcadeBalanceTests) earn about two minutes of income for each minute they play
-    /// in any of them, on top of the mining that carries on meanwhile; an average player about one.
+    /// players (see ArcadeBalanceTests) earn about four minutes of income for each minute they play
+    /// in any of them, on top of the mining that carries on meanwhile; an average player about two.
     /// Tetris pays on its points before the level multiplier (`TetrisGame.rewardPoints`)...
-    public static let tetrisSecondsPerPoint = 0.025
-    public static let snakeSecondsPerPoint = 0.3
+    public static let tetrisSecondsPerPoint = 0.025 * arcadePayBoost
+    public static let snakeSecondsPerPoint = 0.3 * arcadePayBoost
     /// Coin Rush scores faster than Classic (three coins out at once), so its points pay this share.
     public static let snakeCoinRushPay = 0.6
     /// Flash Market's rows come on the clock, so it scores faster than Bubble Market's waves; its
     /// points pay this share.
     public static let bubbleFlashPay = 0.65
-    public static let brickBreakerSecondsPerPoint = 0.36
+    public static let brickBreakerSecondsPerPoint = 0.36 * arcadePayBoost
     /// Starting Hash Smash or Scam Invaders further in skips the easy levels, and later levels score
     /// more a minute (bigger clear bonuses and bosses), so a game started at level `n` pays
     /// `1 / (1 + slope × (n − 1))` of its points (balance tested). From level 1 it pays them all.
@@ -431,25 +454,25 @@ public enum Tuning {
     public static func startPayShare(level: Int, slope: Double) -> Double {
         1 / (1 + slope * Double(max(0, level - 1)))
     }
-    public static let invadersSecondsPerPoint = 0.09
-    public static let bubbleSecondsPerPoint = 0.11
-    public static let merge2048SecondsPerPoint = 0.055
+    public static let invadersSecondsPerPoint = 0.09 * arcadePayBoost
+    public static let bubbleSecondsPerPoint = 0.11 * arcadePayBoost
+    public static let merge2048SecondsPerPoint = 0.055 * arcadePayBoost
     /// Each Token Swap level star pays this many seconds of income, once, the first time it's
     /// earned (times the level's difficulty multiplier): the first star for winning, then the
     /// second and third for higher scores.
-    public static let tokenSwapStarSeconds: [Double] = [120, 60, 60]
+    public static let tokenSwapStarSeconds: [Double] = [120, 60, 60].map { $0 * arcadePayBoost }
     /// Winning a random Token Swap level pays this many seconds of income on top of its points
     /// (times the level's difficulty multiplier).
-    public static let tokenSwapRandomWinSeconds = 60.0
+    public static let tokenSwapRandomWinSeconds = 60 * arcadePayBoost
     /// Winning the day's Token Swap puzzle pays this many seconds of income, once a day.
-    public static let tokenSwapDailySeconds = 600.0
+    public static let tokenSwapDailySeconds = 600 * arcadePayBoost
     /// Pump and Dump runs go on round after round, and later rounds score faster.
-    public static let pumpDumpSecondsPerPoint = 0.043
-    public static let tokenSwapSecondsPerPoint = 0.023
+    public static let pumpDumpSecondsPerPoint = 0.043 * arcadePayBoost
+    public static let tokenSwapSecondsPerPoint = 0.023 * arcadePayBoost
     /// Making a 2048 tile also pays this many seconds of income.
-    public static let merge2048WinSeconds = 600.0
+    public static let merge2048WinSeconds = 600 * arcadePayBoost
     /// Each star of the daily 2048 puzzle pays this many seconds of income, once a day.
-    public static let merge2048DailyStarSeconds = 200.0
+    public static let merge2048DailyStarSeconds = 200 * arcadePayBoost
     /// ...and this much more for a new best score.
     public static let newBestBonus = 0.5
 

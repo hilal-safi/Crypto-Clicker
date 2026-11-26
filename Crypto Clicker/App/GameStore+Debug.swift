@@ -59,6 +59,10 @@ extension GameStore {
         debugChange { game, _ in game.debugAddPrestigePoints(points) }
     }
 
+    func debugCountPrestiges(_ count: Int) {
+        debugChange { game, _ in game.debugCountPrestiges(count) }
+    }
+
     func debugCompleteQuests() {
         debugChange { game, _ in game.debugCompleteQuests() }
     }

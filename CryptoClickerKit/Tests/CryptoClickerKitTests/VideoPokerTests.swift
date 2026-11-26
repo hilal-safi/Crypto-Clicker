@@ -154,16 +154,17 @@ struct VideoPokerTests {
         let result = game.drawPoker(holding: [0, 1, 2, 3, 4])
         #expect(result?.hand == .fullHouse)
         #expect(result?.tokensWon == 80)
-        // 10 Shiba stake 10,000 coins: 8% is 800, capped at 24 seconds of income (240) per multiple.
-        #expect(result?.bonus == 1_920)
-        #expect(game.coins == 1_920)
+        // 10 Shiba stake 10,000 coins: 30% is 3,000, capped at 26 seconds of income (260) per multiple.
+        #expect(result?.bonus == 2_080)
+        #expect(game.coins == 2_080)
         #expect(game.stats.pokerWins == 1)
         #expect(game.stats.pokerBestHand == PokerHand.fullHouse.rawValue)
-        #expect(game.stats.pokerBiggestWin == 70 * 1_000 + 1_920)
+        #expect(game.stats.pokerBiggestWin == 70 * 1_000 + 2_080)
         // Jacks or better returns the bet, with no bonus.
         #expect(game.pokerBonus(bet: 10, token: .shibaInu, hand: .jacksOrBetter) == 0)
-        #expect(game.pokerBonus(bet: 1, token: .shibaInu, hand: .twoPair) == 160) // 8% of 1,000, twice.
-        #expect(game.pokerBetForFullBonus(.shibaInu) == 3)
+        #expect(game.pokerBonus(bet: 1, token: .shibaInu, hand: .twoPair) == 520) // 30% of 1,000, capped at 260, twice.
+        #expect(game.pokerBetForFullBonus(.shibaInu) == 1)
+        #expect(game.pokerBetForFullBonus(.safeMoon) > 1) // A cheap token needs a bigger bet.
     }
 
     @Test func aHandLeftWaitingGoesWithAPrestige() {

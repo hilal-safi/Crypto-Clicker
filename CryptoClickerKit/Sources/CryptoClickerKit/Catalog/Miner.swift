@@ -93,6 +93,22 @@ public enum MinerID: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 
+    /// The first few GPU Rigs and Servers cost these shares of their price, so the opening reaches
+    /// each tier sooner (the first GPU Rig in about ten minutes of play, the first Server in about
+    /// half an hour) while every later unit, and so the days after, cost the same.
+    public var openingPriceShares: [Double] {
+        switch self {
+        case .gpuRig: [0.6, 0.75, 0.9]
+        case .server: [0.48, 0.65, 0.85]
+        default: []
+        }
+    }
+
+    /// The share of its price unit `index` (from 0) costs: below 1 for the first GPU Rigs and Servers.
+    public func openingPriceShare(index: Int) -> Double {
+        openingPriceShares.indices.contains(index) ? openingPriceShares[index] : 1
+    }
+
     /// Price of the first unit before the pace adjustment.
     public var listCost: Double {
         switch self {

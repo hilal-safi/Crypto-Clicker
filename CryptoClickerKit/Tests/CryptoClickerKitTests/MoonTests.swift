@@ -92,17 +92,17 @@ struct MoonTests {
         #expect(result.isWin)
         #expect(result.cashedOutAt == 2.5)
         #expect(result.tokensWon == 25)
-        // 10 Shiba stake 10,000 coins: 8% is 800 per multiple above 1× (1,200 at 2.5×), capped for
-        // the flight at 6 seconds of income for each second it took (6.6 seconds to 2.5×): 397.
-        #expect(result.bonus == GameState.wholeCoins(6 * MoonFlight.time(toReach: 2.5) * 10))
-        #expect(result.bonus == 397)
+        // 10 Shiba stake 10,000 coins: 48% is 4,800 per multiple above 1× (7,200 at 2.5×), capped
+        // for the flight at 7.8 seconds of income for each second it took (6.6 seconds to 2.5×): 516.
+        #expect(result.bonus == GameState.wholeCoins(Tuning.moonWinSecondsPerFlightSecond * MoonFlight.time(toReach: 2.5) * 10))
+        #expect(result.bonus == 516)
         #expect(game.tokenCount(.shibaInu) == 115)
-        #expect(game.coins == 397)
+        #expect(game.coins == 516)
         #expect(game.moonRound == nil)
         #expect(game.stats.moonCashOuts == 1)
         #expect(game.stats.moonBestMultiplier == 2.5)
         #expect(game.stats.moonPaidOut == 25_000)
-        #expect(game.stats.moonBiggestWin == 15_397)
+        #expect(game.stats.moonBiggestWin == 15_516)
         #expect(game.settleMoon(after: 1) == nil) // Settled once.
     }
 
@@ -164,7 +164,8 @@ struct MoonTests {
         // It reaches 2× in 2.2 seconds, not 5, so its cap is smaller, but it pays a quarter more.
         let flight = MoonFlight.time(toReach: 2, rocket: .fivefold)
         #expect(game.moonBonus(bet: 10, token: .shibaInu, multiplier: 2, rocket: .fivefold)
-                == GameState.wholeCoins(min(10_000 * Tuning.moonStakeShare, 6 * flight * game.rewardIncome) * Tuning.moonFivefoldBonus))
+                == GameState.wholeCoins(min(10_000 * Tuning.moonStakeShare, Tuning.moonWinSecondsPerFlightSecond * flight * game.rewardIncome)
+                                        * Tuning.moonFivefoldBonus))
         guard round.crashPoint > 1.01 else { return }
         let settled = game.settleMoon(after: round.time(toReach: 1.01))
         let result = try #require(settled)

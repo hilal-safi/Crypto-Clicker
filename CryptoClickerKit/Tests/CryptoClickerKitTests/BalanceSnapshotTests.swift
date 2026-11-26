@@ -78,7 +78,8 @@ struct BalanceSnapshotTests {
         // A Bull Run's extra is paid the same way.
         let boosted = BalanceSnapshot(coins: 100, income: 10, boostIncome: 60, boostEndsAt: at(120),
                                       offlineCap: 3_600, offlineEfficiency: 0.5, anchor: t0)
-        #expect(approx(boosted.coins(at: at(120)), 100 + (10 * 120 + 60 * 120) * 0.5))
+        let boostedCoins: Double = 100 + (10 * 120 + 60 * 120) * 0.5
+        #expect(approx(boosted.coins(at: at(120)), boostedCoins))
     }
 
     @Test func aWidgetTimelineRunsUntilTheMinersStop() {

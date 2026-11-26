@@ -1,48 +1,42 @@
 import SwiftUI
+import StoreKit
 import CryptoClickerKit
 
 struct RootView: View {
     @Environment(GameStore.self) private var store
+    @Environment(\.requestReview) private var requestReview
     @State private var tab = AppTab.mine
     @State private var showingIncome = false
     /// Set when a tap on the greyed-out tab bar is turned away because a card round is on.
     @State private var showingRoundAlert = false
-    /// Counts requests (the welcome-back screen's Offline Mining button) to show the Shop's power-ups.
-    @State private var powerUpRequests = 0
-    /// Counts requests (the home screen's crypto card) to show the Shop's tokens.
-    @State private var tokenRequests = 0
+    /// The part of the Shop other screens last asked for: its power-ups (the welcome-back screen's
+    /// Offline Mining button), its tokens (the Mine tab's crypto card), or where a goal is bought.
+    @State private var shopRequest = TabRequest(ShopSection.miners)
     /// Counts requests (the home screen's tip) to open How to Play in Settings.
     @State private var howToPlayRequests = 0
     /// Counts requests (from the Daily page) to open today's challenge in the Arcade.
     @State private var challengeRequests = 0
-    /// Counts requests (from the Mine tab's tips) to show the Daily page.
-    @State private var dailyRequests = 0
+    /// The Arcade's list, or a game in it, asked for by a goal.
+    @State private var arcadeRequest = TabRequest<MiniGame?>(nil)
+    /// The Trophies page asked for: Daily (the Mine tab's tips), or Achievements (a goal).
+    @State private var trophiesRequest = TabRequest(TrophiesView.Page.daily)
 
     var body: some View {
         @Bindable var store = store
         TabView(selection: $tab) {
             Tab("Mine", systemImage: "bitcoinsign.circle.fill", value: AppTab.mine) {
-                MineView(openShop: { tab = .shop }, openPowerUps: openPowerUps, openTokens: openTokens, openDaily: {
-                    dailyRequests += 1
-                    tab = .trophies
-                }, openIncome: { showingIncome = true }, openHowToPlay: {
-                    howToPlayRequests += 1
-                    tab = .settings
-                })
+                mineTab
             }
             .disabled(store.isTableRoundOpen)
             Tab("Shop", systemImage: "cart.fill", value: AppTab.shop) {
-                ShopView(powerUpRequests: powerUpRequests, tokenRequests: tokenRequests)
+                ShopView(request: shopRequest)
             }
             .disabled(store.isTableRoundOpen)
             Tab("Arcade", systemImage: "gamecontroller.fill", value: AppTab.arcade) {
-                ArcadeView(challengeRequests: challengeRequests)
+                ArcadeView(challengeRequests: challengeRequests, gameRequest: arcadeRequest)
             }
             Tab("Trophies", systemImage: "trophy.fill", value: AppTab.trophies) {
-                TrophiesView(dailyRequests: dailyRequests, openChallenge: {
-                    challengeRequests += 1
-                    tab = .arcade
-                })
+                trophiesTab
             }
             .badge(store.dailyBadgeCount)
             .disabled(store.isTableRoundOpen)
@@ -86,32 +80,72 @@ struct RootView: View {
         .sheet(item: $store.welcomeBack) { welcome in
             WelcomeBackView(welcome: welcome, openPowerUps: openPowerUps)
         }
-        .alert("Something went wrong", isPresented: Binding(
-            get: { store.errorMessage != nil },
-            set: { if !$0 { store.errorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(store.errorMessage ?? "")
+        .onChange(of: store.game.stats.prestiges) { before, after in
+            askForReviewAfterFirstPrestige(before: before, after: after)
         }
-        // A damaged save: say so plainly, keep the file, and only start over when the player says.
-        .alert(store.unreadableSave?.attempts ?? 0 > 0 ? "Still couldn't read your save" : "Your saved game couldn't be read",
-               isPresented: Binding(get: { store.unreadableSave != nil }, set: { _ in })) {
-            Button("Try Again") { store.retryUnreadableSave() }
-            Button("Start a New Game", role: .destructive) { store.startOverAfterUnreadableSave() }
-        } message: {
-            Text("Part of the save file is damaged, so your progress can't be opened right now. Nothing has been deleted: the file is kept on this iPhone as \(store.unreadableSave?.fileName ?? "a backup"), so it can still be recovered. Until you choose, nothing new is saved.")
-        }
+        .modifier(SaveAlerts())
+    }
+
+    /// The Mine tab, with the ways it opens the other tabs.
+    private var mineTab: some View {
+        MineView(openShop: { openShop(.miners) }, openPowerUps: openPowerUps, openTokens: openTokens, openDaily: {
+            trophiesRequest.ask(for: .daily)
+            tab = .trophies
+        }, openIncome: { showingIncome = true }, openHowToPlay: {
+            howToPlayRequests += 1
+            tab = .settings
+        }, openGoal: showGoal, openGoalsPage: {
+            trophiesRequest.ask(for: .goals)
+            tab = .trophies
+        })
+    }
+
+    /// The Trophies tab, with the ways it opens the Arcade and where goals are done.
+    private var trophiesTab: some View {
+        TrophiesView(request: trophiesRequest, openChallenge: {
+            challengeRequests += 1
+            tab = .arcade
+        }, openGoal: showGoal)
     }
 
     private func openPowerUps() {
-        powerUpRequests += 1
-        tab = .shop
+        openShop(.powerUps)
     }
 
     private func openTokens() {
-        tokenRequests += 1
+        openShop(.tokens)
+    }
+
+    private func openShop(_ section: ShopSection) {
+        shopRequest.ask(for: section)
         tab = .shop
+    }
+
+    /// Opens where a goal is worked toward: the Shop's miners, upgrades or prestige, the Arcade (at
+    /// Token Swap's levels for its goal), or the Trophies tab's achievements.
+    private func showGoal(_ goal: Goal.Kind) {
+        switch goal {
+        case .miner, .milestone: openShop(.miners)
+        case .upgrade: openShop(.upgrades)
+        case .prestige: openShop(.prestige)
+        case .game, .arcadeRank, .tokenSwap:
+            arcadeRequest.ask(for: goal == .tokenSwap ? .tokenSwap : nil)
+            tab = .arcade
+        case .achievement:
+            trophiesRequest.ask(for: .achievements)
+            tab = .trophies
+        }
+    }
+
+    /// Asks for an App Store rating once, a few seconds after the first prestige: a moment the
+    /// player has seen what the game is about. The system decides whether the prompt shows.
+    private func askForReviewAfterFirstPrestige(before: Int, after: Int) {
+        guard before == 0, after >= 1, !UserDefaults.standard.bool(forKey: Preferences.reviewRequestedKey) else { return }
+        UserDefaults.standard.set(true, forKey: Preferences.reviewRequestedKey)
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            requestReview()
+        }
     }
 }
 
@@ -187,5 +221,55 @@ struct BalanceAccessory: View {
         var text = "\(amount(balance)) coins, \(rate) a second"
         if let boost { text += ", Bull Run \(CoinFormat.multiplier(boost.multiplier))" }
         return text
+    }
+}
+
+/// A request from one screen to show a place on another tab: a Shop section, a Trophies page, a
+/// game. It's counted, so asking again for the same place goes there again.
+struct TabRequest<Place: Equatable>: Equatable {
+    private(set) var number = 0
+    private(set) var place: Place
+
+    init(_ place: Place) {
+        self.place = place
+    }
+
+    mutating func ask(for place: Place) {
+        number += 1
+        self.place = place
+    }
+}
+
+/// What the player must hear about the save: an error, a save that couldn't be read, or one from
+/// a newer version of the app. The last two stay up until the player chooses.
+private struct SaveAlerts: ViewModifier {
+    @Environment(GameStore.self) private var store
+
+    func body(content: Content) -> some View {
+        content
+            .alert("Something went wrong", isPresented: Binding(
+                get: { store.errorMessage != nil },
+                set: { if !$0 { store.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(store.errorMessage ?? "")
+            }
+            // A damaged save: say so plainly, keep the file, and only start over when the player says.
+            .alert(store.unreadableSave?.attempts ?? 0 > 0 ? "Still couldn't read your save" : "Your saved game couldn't be read",
+                   isPresented: Binding(get: { store.unreadableSave != nil }, set: { _ in })) {
+                Button("Try Again") { store.retryUnreadableSave() }
+                Button("Start a New Game", role: .destructive) { store.startOverAfterUnreadableSave() }
+            } message: {
+                Text("Part of the save file is damaged, so your progress can't be opened right now. Nothing has been deleted: the file is kept on this iPhone as \(store.unreadableSave?.fileName ?? "a backup"), so it can still be recovered. Until you choose, nothing new is saved.")
+            }
+            // A save from a newer version: never opened here, so nothing it holds can be lost.
+            .alert(store.newerSave?.checks ?? 0 > 0 ? "Still saved by a newer version" : "Update Crypto Clicker",
+                   isPresented: Binding(get: { store.newerSave != nil }, set: { _ in })) {
+                Button("Check Again") { store.checkNewerSaveAgain() }
+                Button("Set It Aside and Start Over", role: .destructive) { store.startOverAfterNewerSave() }
+            } message: {
+                Text("Your game was saved by a newer version of Crypto Clicker, so this version can't open it without losing what's new. Install the latest version to carry on. Until then nothing is saved over it. Starting over keeps the save on this iPhone for the newer version to open.")
+            }
     }
 }

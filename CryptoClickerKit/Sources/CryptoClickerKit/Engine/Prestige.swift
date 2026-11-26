@@ -75,13 +75,16 @@ extension GameState {
         let gained = claimablePrestigePoints
         guard gained > 0 else { return 0 }
         let previousIncome = rewardIncome
+        let run = endingRun(points: gained, at: now)
         prestigePoints = Self.addingPoints(prestigePoints, gained)
         prestigePotentialClaimed = prestigePotential
         if journey.firstPrestige == nil { journey.firstPrestige = now }
         stats.prestiges += 1
+        record(run)
         stats.runCoins = 0
         coins = 0
         tokens = [:]
+        boughtTokens = [:]
         // Anything still riding on this run's tokens goes with them: a Blackjack bet, a poker hand,
         // a flight, and free spins (which would otherwise pay tokens into the new run).
         blackjackStake = nil
@@ -108,6 +111,26 @@ extension GameState {
         }
         rescaleQuestsForNewRun(previousIncome: previousIncome)
         return gained
+    }
+
+    /// The run a prestige of `points` ends, as the run history keeps it: measured before the points
+    /// add to production.
+    private func endingRun(points: Int, at now: Date) -> RunRecord {
+        RunRecord(number: stats.prestiges + 1, startedAt: min(runStart, now), endedAt: now, coins: stats.runCoins,
+                  points: points, totalPoints: Self.addingPoints(prestigePoints, points), income: baseIdleIncome,
+                  tiers: MinerID.allCases.filter { owned($0) > 0 }.count)
+    }
+
+    /// Adds a finished run to the run history (the latest `Tuning.runHistoryLimit`), and to the
+    /// records it may set.
+    private mutating func record(_ run: RunRecord) {
+        runHistory.append(run)
+        runRecords.count(run)
+        if runHistory.count > Tuning.runHistoryLimit {
+            runHistory.removeFirst(runHistory.count - Tuning.runHistoryLimit)
+        }
+        stats.bestRunPoints = max(stats.bestRunPoints, run.points)
+        if run.duration <= Tuning.quickRunDuration { stats.quickRuns = stats.quickRuns.addingCount(1) }
     }
 
     /// Adds miners without charging for them (Head Start).

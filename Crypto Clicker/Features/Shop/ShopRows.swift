@@ -3,7 +3,9 @@ import CryptoClickerKit
 
 /// One miner tier, with its next Mk upgrade once enough are owned. Takes plain values, so SwiftUI
 /// skips redrawing rows whose numbers did not change. Shows what one more unit adds, and marks the
-/// miner whose next unit adds the most for its price ("Best value").
+/// miner whose next unit adds the most for its price ("Best value"); its share of the income and
+/// how soon it pays for itself are in the pop-up from the icon, so late-game numbers don't crowd
+/// the row.
 struct MinerRow: View {
     let miner: MinerID
     let owned: Int
@@ -153,6 +155,14 @@ struct MinerRow: View {
     }
 }
 
+/// A purchase's share of the income, as the Shop writes it.
+enum PaybackLine {
+    /// "+2.1%", or "+<0.1%" for a sliver.
+    static func shareText(_ share: Double) -> String {
+        share > 0 && share < 0.001 ? "+<0.1%" : "+\(CoinFormat.percent(share))"
+    }
+}
+
 /// Where each miner's icon is in the Shop, for the info pop-up to point at.
 struct MinerIconAnchors: PreferenceKey {
     static let defaultValue: [MinerID: Anchor<CGRect>] = [:]
@@ -230,6 +240,15 @@ private struct MinerInfoBubble: View {
                 Text("Owned \(CoinFormat.grouped(owned)) · \(CoinFormat.rate(game.rate(of: miner))) coins per second")
                     .font(.footnote.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // What one more adds against the income, and how soon it repays its price.
+            let gain = game.nextUnitGain(miner)
+            let income = game.baseIdleIncome
+            if gain > 0, income > 0, let payback = GameState.payback(price: game.price(of: miner, quantity: 1), gain: gain) {
+                Text("One more adds \(CoinFormat.rate(gain)) a second, \(PaybackLine.shareText(gain / income)) of your income, and pays for itself in \(CoinFormat.duration(payback)).")
+                    .font(.footnote.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(Theme.accent)
                     .fixedSize(horizontal: false, vertical: true)
             }
             // What lifts it: the next milestone, and Legacy from the newer tiers.
@@ -422,6 +441,8 @@ struct LockedMinerRow: View {
 struct UpgradeRow: View {
     let upgrade: UpgradeID
     let canAfford: Bool
+    /// What it adds, worked out for this game: "+12% income · pays for itself in 4m".
+    var gain: String? = nil
     @Environment(GameStore.self) private var store
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var purchases = 0
@@ -444,6 +465,12 @@ struct UpgradeRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.subtext)
                     .fixedSize(horizontal: false, vertical: true)
+                if let gain {
+                    Text(gain)
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(Theme.accent)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Button {

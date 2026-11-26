@@ -4,13 +4,18 @@ import CryptoClickerKit
 struct ArcadeView: View {
     /// Goes up by one each time the Daily page asks to open today's challenge.
     var challengeRequests = 0
+    /// The list (nil), or a game to open, asked for by a goal.
+    var gameRequest = TabRequest<MiniGame?>(nil)
     @Environment(GameStore.self) private var store
     @State private var path = NavigationPath()
     @State private var handledChallengeRequests = 0
+    @State private var handledGameRequest = 0
     /// The game whose records are showing in a sheet.
     @State private var statsGame: MiniGame?
     /// A game to open once the records sheet has closed (its Play button).
     @State private var gameAfterStats: MiniGame?
+    @AppStorage(Preferences.favoriteGamesKey) private var favoriteList = ""
+    @AppStorage(Preferences.recentGamesKey) private var recentList = ""
 
     var body: some View {
         let game = store.game
@@ -26,14 +31,7 @@ struct ArcadeView: View {
                                       reward: game.challengeReward, weeklyBonus: game.weeklyChallengeBonus,
                                       play: canOpen(challenge) ? { open(challenge) } : nil)
                     }
-                    SectionHeader(title: "Casino", detail: "Bet tokens from the Shop")
-                    ForEach(MiniGame.byPrice.filter(\.isCasino)) { miniGame in
-                        row(miniGame, in: game)
-                    }
-                    SectionHeader(title: "Arcade", detail: "Every point pays coins")
-                    ForEach(MiniGame.byPrice.filter { !$0.isCasino }) { miniGame in
-                        row(miniGame, in: game)
-                    }
+                    gameSections(game)
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
@@ -43,6 +41,8 @@ struct ArcadeView: View {
             }
             .onAppear(perform: showChallengeIfAsked)
             .onChange(of: challengeRequests) { _, _ in showChallengeIfAsked() }
+            .onAppear(perform: showGameIfAsked)
+            .onChange(of: gameRequest) { _, _ in showGameIfAsked() }
             .background { AppBackground(tint: Theme.arcade) }
             .navigationTitle("Arcade")
             .balanceToolbar()
@@ -56,10 +56,51 @@ struct ArcadeView: View {
         }
     }
 
+    /// The games opened lately, the favorites, then the rest: the casino's and the arcade's.
+    @ViewBuilder
+    private func gameSections(_ game: GameState) -> some View {
+        let favorites = ArcadeLists.games(in: favoriteList).filter(game.isUnlocked)
+        let recent = ArcadeLists.games(in: recentList).filter(game.isUnlocked)
+        let others = MiniGame.byPrice.filter { !favorites.contains($0) }
+        let casino = others.filter(\.isCasino)
+        let arcade = others.filter { !$0.isCasino }
+        // Quick ways back once there are enough games to scroll past.
+        if !recent.isEmpty && game.unlockedGames.count >= 4 {
+            RecentGamesStrip(games: recent)
+        }
+        if !favorites.isEmpty {
+            SectionHeader(title: "Favorites", detail: "Starred games")
+            ForEach(favorites) { miniGame in
+                row(miniGame, in: game)
+            }
+        }
+        if !casino.isEmpty {
+            SectionHeader(title: "Casino", detail: "Bet tokens from the Shop")
+            ForEach(casino) { miniGame in
+                row(miniGame, in: game)
+            }
+        }
+        if !arcade.isEmpty {
+            SectionHeader(title: "Arcade", detail: "Every point pays coins")
+            ForEach(arcade) { miniGame in
+                row(miniGame, in: game)
+            }
+        }
+    }
+
     private func row(_ miniGame: MiniGame, in game: GameState) -> some View {
-        MiniGameRow(miniGame: miniGame, isUnlocked: game.isUnlocked(miniGame),
-                    canAfford: miniGame.unlockCost <= game.coins, record: game.record(for: miniGame),
-                    showStats: { statsGame = miniGame })
+        let isUnlocked = game.isUnlocked(miniGame)
+        let isFavorite = ArcadeLists.games(in: favoriteList).contains(miniGame)
+        return MiniGameRow(miniGame: miniGame, isUnlocked: isUnlocked,
+                           canAfford: miniGame.unlockCost <= game.coins, record: game.record(for: miniGame),
+                           isNew: isUnlocked && !game.hasPlayed(miniGame), isFavorite: isFavorite,
+                           toggleFavorite: { toggleFavorite(miniGame) }, showStats: { statsGame = miniGame })
+    }
+
+    private func toggleFavorite(_ miniGame: MiniGame) {
+        withAnimation(.snappy) {
+            favoriteList = ArcadeLists.toggling(miniGame, in: favoriteList)
+        }
     }
 
     /// Opens the game picked on the records sheet, once the sheet is out of the way.
@@ -102,6 +143,18 @@ struct ArcadeView: View {
         }
     }
 
+    /// Opens the game asked for (once it's unlocked), once for each request. A game screen that's
+    /// already open stays as it is, so a game in progress is never closed from another tab.
+    private func showGameIfAsked() {
+        guard handledGameRequest != gameRequest.number else { return }
+        handledGameRequest = gameRequest.number
+        guard path.isEmpty, let miniGame = gameRequest.place, store.game.isUnlocked(miniGame) else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(50))
+            path.append(miniGame)
+        }
+    }
+
     /// Opens today's challenge once for each request, closing an open game screen first.
     private func showChallengeIfAsked() {
         guard handledChallengeRequests != challengeRequests else { return }
@@ -116,61 +169,150 @@ struct ArcadeView: View {
     }
 }
 
-/// Every screen the Arcade opens: the games, and the screens inside them.
+/// Every screen the Arcade opens: the games, and the screens inside them. Opening one notes the
+/// game for the Arcade's recent list.
 private struct ArcadeDestinations: ViewModifier {
+    @AppStorage(Preferences.recentGamesKey) private var recentList = ""
+
     func body(content: Content) -> some View {
         content
             .navigationDestination(for: MiniGame.self) { miniGame in
-                switch miniGame {
-                case .blackjack: BlackjackView()
-                case .slots: SlotsView()
-                case .moon: MoonView()
-                case .videoPoker: VideoPokerView()
-                case .tetris: TetrisView()
-                case .merge2048: Merge2048View()
-                case .snake: SnakeView()
-                case .brickBreaker: BrickBreakerView()
-                case .bubbleBlaster: BubbleBlasterView()
-                case .pumpDump: PumpDumpView()
-                case .tokenSwap: TokenSwapView()
-                case .invaders: InvadersView()
-                }
+                screen(for: miniGame)
+                    .onAppear { opened(miniGame) }
             }
             .navigationDestination(for: TetrisRoute.self) { route in
                 TetrisPlayView(route: route)
+                    .onAppear { opened(.tetris) }
             }
             .navigationDestination(for: SnakeRoute.self) { route in
                 switch route {
-                case .play(let mode): SnakePlayView(mode: mode)
+                case .play(let mode): SnakePlayView(mode: mode).onAppear { opened(.snake) }
                 }
             }
             .navigationDestination(for: Merge2048Route.self) { route in
                 Merge2048PlayView(route: route)
+                    .onAppear { opened(.merge2048) }
             }
             .navigationDestination(for: TokenSwapRoute.self) { route in
-                switch route {
-                case .levels: TokenSwapLevelsView()
-                case .level, .daily, .classic, .random: TokenSwapPlayView(route: route)
+                Group {
+                    switch route {
+                    case .levels: TokenSwapLevelsView()
+                    case .level, .daily, .classic, .random: TokenSwapPlayView(route: route)
+                    }
                 }
+                .onAppear { opened(.tokenSwap) }
             }
             .navigationDestination(for: BrickBreakerRoute.self) { route in
                 switch route {
-                case .play(let levels, let start): BrickBreakerPlayView(levels: levels, startLevel: start)
+                case .play(let levels, let start):
+                    BrickBreakerPlayView(levels: levels, startLevel: start).onAppear { opened(.brickBreaker) }
                 }
             }
             .navigationDestination(for: InvadersRoute.self) { route in
                 switch route {
-                case .play(let waves, let start): InvadersPlayView(waves: waves, startWave: start)
+                case .play(let waves, let start):
+                    InvadersPlayView(waves: waves, startWave: start).onAppear { opened(.invaders) }
                 }
             }
             .navigationDestination(for: BubbleRoute.self) { route in
                 BubblePlayView(route: route)
+                    .onAppear { opened(.bubbleBlaster) }
             }
             .navigationDestination(for: PumpDumpRoute.self) { route in
                 switch route {
-                case .play(let board): PumpDumpPlayView(board: board)
+                case .play(let board): PumpDumpPlayView(board: board).onAppear { opened(.pumpDump) }
                 }
             }
+    }
+
+    @ViewBuilder
+    private func screen(for miniGame: MiniGame) -> some View {
+        switch miniGame {
+        case .blackjack: BlackjackView()
+        case .slots: SlotsView()
+        case .moon: MoonView()
+        case .videoPoker: VideoPokerView()
+        case .tetris: TetrisView()
+        case .merge2048: Merge2048View()
+        case .snake: SnakeView()
+        case .brickBreaker: BrickBreakerView()
+        case .bubbleBlaster: BubbleBlasterView()
+        case .pumpDump: PumpDumpView()
+        case .tokenSwap: TokenSwapView()
+        case .invaders: InvadersView()
+        }
+    }
+
+    private func opened(_ miniGame: MiniGame) {
+        let noted = ArcadeLists.noting(miniGame, in: recentList)
+        if noted != recentList { recentList = noted }
+    }
+}
+
+/// The Arcade's lists kept on the device, as comma-separated raw values: the favorite games and
+/// the ones opened most recently.
+enum ArcadeLists {
+    /// How many recent games the Arcade offers.
+    static let recentCount = 3
+
+    static func games(in list: String) -> [MiniGame] {
+        list.split(separator: ",").compactMap { MiniGame(rawValue: String($0)) }
+    }
+
+    static func list(of games: [MiniGame]) -> String {
+        games.map(\.rawValue).joined(separator: ",")
+    }
+
+    /// `list` with `game` added, or taken out if it's there.
+    static func toggling(_ game: MiniGame, in list: String) -> String {
+        let games = games(in: list)
+        return self.list(of: games.contains(game) ? games.filter { $0 != game } : games + [game])
+    }
+
+    /// The recent `list` with `game` first.
+    static func noting(_ game: MiniGame, in list: String) -> String {
+        self.list(of: Array(([game] + games(in: list).filter { $0 != game }).prefix(recentCount)))
+    }
+}
+
+/// The games opened most recently, a tap away from the top of the Arcade.
+private struct RecentGamesStrip: View {
+    let games: [MiniGame]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Jump back in")
+                .font(.headline)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { chips }
+                ScrollView(.horizontal) {
+                    HStack(spacing: 8) { chips }
+                }
+                .scrollIndicators(.hidden)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
+    }
+
+    private var chips: some View {
+        ForEach(games) { miniGame in
+            NavigationLink(value: miniGame) {
+                HStack(spacing: 6) {
+                    Text(miniGame.icon)
+                        .accessibilityHidden(true)
+                    Text(miniGame.name)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(miniGame.color.opacity(0.18), in: .capsule)
+                .fixedSize()
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Play \(miniGame.name)")
+        }
     }
 }
 
@@ -194,48 +336,87 @@ struct MiniGameRow: View {
     let isUnlocked: Bool
     let canAfford: Bool
     let record: [RecordFact]
+    /// Unlocked and never played.
+    var isNew = false
+    var isFavorite = false
+    var toggleFavorite: (() -> Void)? = nil
     let showStats: () -> Void
     @Environment(GameStore.self) private var store
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(Preferences.hapticsKey) private var haptics = true
     @State private var refusals = 0
 
-    /// The icon's width and the gap after it, which the records line up under the name with.
+    /// The icon's width and the gap after it.
     private static let iconWidth: CGFloat = 58
     private static let gap: CGFloat = 14
 
     var body: some View {
-        // The records run under the buttons too, to the card's edge, so a long one ("BEST HAND
-        // Jacks or Better") keeps to one line.
-        VStack(alignment: .leading, spacing: 6) {
-            mainRow
-            if isUnlocked && !record.isEmpty {
-                RecordLine(facts: record, tint: miniGame.textColor(in: colorScheme))
-                    .padding(.leading, Self.iconWidth + Self.gap)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .rowCard()
-    }
-
-    private var mainRow: some View {
+        // The name runs over the buttons and the records under them, both to the card's edge, so
+        // a two-word name with its New badge and star, or a long record ("BEST HAND Jacks or
+        // Better"), keeps to one line; only the description shares its width with the buttons.
         HStack(spacing: Self.gap) {
             Text(miniGame.icon)
                 .font(.system(size: 32))
                 .frame(width: Self.iconWidth, height: Self.iconWidth)
                 .background(miniGame.color.opacity(0.18), in: .rect(cornerRadius: 16))
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(miniGame.name)
-                    .font(.headline)
-                Text(miniGame.pitch)
-                    .font(.subheadline)
-                    .foregroundStyle(.subtext)
-                    .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                title
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                mainRow
+                if isUnlocked && !record.isEmpty {
+                    RecordLine(facts: record, tint: miniGame.textColor(in: colorScheme))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // 10 points between the text and the buttons (the row's gap of 14 less 4).
-            .padding(.trailing, -4)
+        }
+        .rowCard()
+        .contextMenu {
+            if isUnlocked, let toggleFavorite {
+                Button(isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                       systemImage: isFavorite ? "star.slash" : "star", action: toggleFavorite)
+            }
+        }
+    }
+
+    /// The name, with a New badge until the game is first played and the favorite star.
+    private var title: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(miniGame.name)
+                .font(.headline)
+            if isNew {
+                Text("New")
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(miniGame.color, in: .capsule)
+            }
+            if isUnlocked, let toggleFavorite {
+                Button(action: toggleFavorite) {
+                    Image(systemName: isFavorite ? "star.fill" : "star")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(isFavorite ? AnyShapeStyle(Theme.gold) : AnyShapeStyle(.subtext))
+                        .padding(.horizontal, 4)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.borderless)
+                .sensoryFeedback(.selection, trigger: isFavorite) { _, _ in haptics }
+                .accessibilityLabel(isFavorite ? "Remove \(miniGame.name) from Favorites" : "Add \(miniGame.name) to Favorites")
+            }
+        }
+    }
+
+    /// The description beside Play and Stats (or Unlock).
+    private var mainRow: some View {
+        HStack(spacing: Self.gap) {
+            Text(miniGame.pitch)
+                .font(.subheadline)
+                .foregroundStyle(.subtext)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // 10 points between the text and the buttons (the row's gap of 14 less 4).
+                .padding(.trailing, -4)
             if isUnlocked {
                 VStack(spacing: 8) {
                     NavigationLink(value: miniGame) {

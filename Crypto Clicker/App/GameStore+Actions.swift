@@ -10,6 +10,7 @@ extension GameStore {
     func tap() -> Double {
         let now = Date.now
         comboStreak = now.timeIntervalSince(lastTapAt) <= state.comboWindow ? comboStreak + 1 : 1
+        if comboStreak == 1 { comboRecordBefore = state.stats.bestCombo }
         lastTapAt = now
         let streak = comboStreak
         return perform { game, now in game.tap(at: now, combo: streak) }
@@ -20,9 +21,37 @@ extension GameStore {
     @discardableResult
     func buy(_ miner: MinerID, quantity: Int) -> Bool {
         let before = purchaseBaseline
+        let ownedBefore = state.owned(miner)
+        let isFirstEver = state.stats.maxOwned[miner, default: 0] == 0
+        let offerBefore = state.availableMinerUpgrade(miner)?.level
         let bought = perform { game, _ in game.buy(miner, quantity: quantity) }
-        if bought { notePurchase(miner.name, count: quantity, before: before) }
+        if bought {
+            // The first of a tier ever, or a milestone, gets a celebration.
+            let crossed = Tuning.milestones.last { $0 > ownedBefore && $0 <= state.owned(miner) }
+            let highlight: PurchaseNote.Highlight? = isFirstEver
+                ? .newMiner(miner.name)
+                : crossed.map { .milestone("\(CoinFormat.grouped($0)) \(miner.pluralName)") }
+            notePurchase(miner.name, count: quantity,
+                         milestones: milestones(of: miner, from: ownedBefore, offerBefore: offerBefore),
+                         highlight: highlight, before: before)
+        }
         return bought
+    }
+
+    /// What buying `miner` up from `ownedBefore` reached, for the purchase popup: a milestone (or
+    /// several at once), and an Mk upgrade it made available.
+    private func milestones(of miner: MinerID, from ownedBefore: Int, offerBefore: Int?) -> [String] {
+        let owned = state.owned(miner)
+        let crossed = Tuning.milestones.filter { $0 > ownedBefore && $0 <= owned }
+        var lines: [String] = []
+        if let last = crossed.last {
+            let boost = CoinFormat.multiplier(pow(Tuning.milestoneMultiplier, Double(crossed.count)))
+            lines.append("\(miner.name) milestone: \(CoinFormat.grouped(last)) owned, output \(boost)")
+        }
+        if offerBefore == nil, let offer = state.availableMinerUpgrade(miner) {
+            lines.append("Mk \(MinerID.markName(level: offer.level)) upgrade for \(miner.name) is in the Shop")
+        }
+        return lines
     }
 
     @discardableResult
@@ -127,8 +156,11 @@ extension GameStore {
     func sellTokens(_ token: TokenID, quantity: Int) -> Double? {
         let paid = perform { game, now in game.sellTokens(token, quantity: quantity, at: now) }
         if let paid {
-            show(Toast(icon: "📈", title: "Sold \(CoinFormat.grouped(quantity)) \(token.ticker)",
-                       message: "+\(CoinFormat.short(paid)) coins"))
+            // Says how the sale did against its share of what the tokens cost, when they cost anything.
+            let profit = state.recentTrades.last?.profit
+            let result = profit.map { " · \($0 >= 0 ? "▲" : "▼") \(CoinFormat.short(abs($0))) vs what you paid" } ?? ""
+            show(Toast(icon: profit.map { $0 >= 0 ? "📈" : "📉" } ?? "📈", title: "Sold \(CoinFormat.grouped(quantity)) \(token.ticker)",
+                       message: "+\(CoinFormat.short(paid)) coins\(result)"))
         }
         return paid
     }

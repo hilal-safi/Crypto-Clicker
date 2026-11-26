@@ -10,9 +10,10 @@ public enum AchievementMetric: Hashable, Sendable {
     case moonBestMultiplier, pumpDumpCoinsHit, pokerWins, tokenSwapTokens, challengesCompleted
     case tokensExchanged, token(TokenID), tokensSold
     case questsCompleted, longestStreak
-    case airdrops, whaleAirdrops, prestiges, perks
+    case airdrops, whaleAirdrops, prestiges, perks, bestRunPoints, quickRuns
     case arcadeRank, tetrisSprints, brickBreakerBosses, bubbleBestWave, tokenSwapStars, merge2048DailyStars
     case weeklyVarietyGoals, invadersDestroyed, invadersBestWave
+    case profitableSales, brickBreakerHardLevels, invadersHardWaves
 }
 
 public struct Achievement: Identifiable, Hashable, Sendable {
@@ -43,10 +44,30 @@ public struct Achievement: Identifiable, Hashable, Sendable {
 public enum AchievementCatalog {
     public static let tierNames = [localized("Bronze"), localized("Silver"), localized("Gold"), localized("Mythic")]
 
-    public static let all: [Achievement] = general + miners + games + arcade + tokens + daily + prestige
+    public static let all: [Achievement] = general + miners + games + arcade + market + tokens + daily + prestige
 
     /// The achievements for playing the mini-games, whose tiers also give Arcade XP.
-    public static let arcadeIDs: Set<String> = Set((games + arcade).map(\.id)).subtracting(["exchanger", "trader"])
+    public static let arcadeIDs: Set<String> = Set((games + arcade).map(\.id))
+
+    /// The achievements in groups, as the Trophies tab shows them, each with its share of the stars.
+    public static let collections: [AchievementCollection] = {
+        let casinoIDs: Set<String> = ["card-shark", "natural", "high-roller", "moonshot", "poker-face"]
+        let airdropIDs: Set<String> = ["airdrop-hunter", "whale-spotter"]
+        return [
+            AchievementCollection(id: "mining", name: localized("Mining"), symbol: "hammer.fill",
+                                  achievements: general + prestige.filter { airdropIDs.contains($0.id) }),
+            AchievementCollection(id: "fleet", name: localized("Fleet"), symbol: "cpu.fill", achievements: miners),
+            AchievementCollection(id: "arcade", name: localized("Arcade"), symbol: "gamecontroller.fill",
+                                  achievements: games.filter { !casinoIDs.contains($0.id) } + arcade),
+            AchievementCollection(id: "casino", name: localized("Casino"), symbol: "suit.spade.fill",
+                                  achievements: games.filter { casinoIDs.contains($0.id) }),
+            AchievementCollection(id: "market", name: localized("Market"), symbol: "chart.line.uptrend.xyaxis",
+                                  achievements: market + tokens),
+            AchievementCollection(id: "daily", name: localized("Daily"), symbol: "calendar", achievements: daily),
+            AchievementCollection(id: "prestige", name: localized("Prestige"), symbol: "rosette",
+                                  achievements: prestige.filter { !airdropIDs.contains($0.id) }),
+        ]
+    }()
 
     public static var tierCount: Int { all.reduce(0) { $0 + $1.thresholds.count } }
 
@@ -109,10 +130,17 @@ public enum AchievementCatalog {
                     imageName: nil, metric: .tokenSwapTokens, thresholds: [250, 2_500, 25_000, 250_000]),
         Achievement(id: "invader-hunter", name: localized("Invader Hunter"), detail: localized("Shoot down invaders in Scam Invaders"), emoji: "🛸",
                     imageName: nil, metric: .invadersDestroyed, thresholds: [100, 1_000, 10_000, 100_000]),
+    ]
+
+    /// Buying and selling tokens.
+    private static let market: [Achievement] = [
         Achievement(id: "exchanger", name: localized("Exchanger"), detail: localized("Buy tokens in the Shop"), emoji: "🔁", imageName: nil,
                     metric: .tokensExchanged, thresholds: [10, 100, 1_000, 100_000]),
         Achievement(id: "trader", name: localized("Trader"), detail: localized("Sell tokens in the Shop"), emoji: "📈", imageName: nil,
                     metric: .tokensSold, thresholds: [10, 250, 5_000, 100_000]),
+        Achievement(id: "buy-low", name: localized("Buy Low, Sell High"),
+                    detail: localized("Sell tokens you bought for more than they cost"), emoji: "💹", imageName: nil,
+                    metric: .profitableSales, thresholds: [1, 10, 50, 250]),
     ]
 
     /// Records from the mini-game overhaul and Arcade Rank.
@@ -133,6 +161,11 @@ public enum AchievementCatalog {
                     emoji: "🧩", imageName: nil, metric: .merge2048DailyStars, thresholds: [3, 15, 60, 200]),
         Achievement(id: "last-line", name: localized("Last Line of Defense"), detail: localized("Wave reached in Scam Invaders"), emoji: "🛡️",
                     imageName: nil, metric: .invadersBestWave, thresholds: [3, 6, 10, 15]),
+        // Badges for the hard way: levels or waves cleared in one game on Hard, wherever it started.
+        Achievement(id: "hard-smash", name: localized("Hard Hat"), detail: localized("Levels cleared in one Hash Smash game on Hard"),
+                    emoji: "🧨", imageName: nil, metric: .brickBreakerHardLevels, thresholds: [2, 5, 8, 12]),
+        Achievement(id: "hard-invaders", name: localized("Scam Buster"), detail: localized("Waves cleared in one Scam Invaders game on Hard"),
+                    emoji: "⚔️", imageName: nil, metric: .invadersHardWaves, thresholds: [2, 5, 8, 12]),
     ]
 
     private static let tokens: [Achievement] = TokenID.allCases.map { token in
@@ -159,7 +192,24 @@ public enum AchievementCatalog {
                     metric: .prestiges, thresholds: [1, 5, 25, 50]),
         Achievement(id: "perk-collector", name: localized("Perk Collector"), detail: localized("Own prestige perks"), emoji: "🎖️", imageName: nil,
                     metric: .perks, thresholds: [1, 5, 10, Double(PerkID.allCases.count)]),
+        Achievement(id: "big-run", name: localized("Big Run"), detail: localized("Prestige points earned in one run"), emoji: "🏔️",
+                    imageName: nil, metric: .bestRunPoints, thresholds: [10, 100, 1_000, 10_000]),
+        Achievement(id: "speedrunner", name: localized("Speedrunner"), detail: localized("Runs finished within two days"), emoji: "⚡",
+                    imageName: nil, metric: .quickRuns, thresholds: [1, 5, 20, 50]),
     ]
+}
+
+/// A group of achievements on the Trophies tab: Mining, Fleet, Arcade, Casino, Market, Daily and
+/// Prestige.
+public struct AchievementCollection: Identifiable, Sendable {
+    public let id: String
+    public let name: String
+    /// SF Symbol for the group's header.
+    public let symbol: String
+    public let achievements: [Achievement]
+
+    /// Every star the group's achievements have.
+    public var tierCount: Int { achievements.reduce(0) { $0 + $1.thresholds.count } }
 }
 
 /// A newly earned achievement tier, used for the unlock banner.

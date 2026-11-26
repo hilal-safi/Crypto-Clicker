@@ -64,6 +64,15 @@ struct StatsPage: View {
             row("Started", "\(game.runStart.formatted(date: .abbreviated, time: .shortened))")
             row("Running for", CoinFormat.duration(now.timeIntervalSince(game.runStart)))
             row("Coins this run", amount(stats.runCoins))
+            // This run against the best finished one, and against all time.
+            if let richest = game.richestRun {
+                row("Best run's coins", "\(amount(richest.coins)) · run \(richest.number)")
+            }
+            if stats.lifetimeCoins > 0 {
+                row("Share of all coins mined", CoinFormat.percent(stats.runCoins / stats.lifetimeCoins))
+            }
+            row("Income vs best ever", stats.peakIncome > 0
+                ? "\(CoinFormat.percent(min(1, game.baseIdleIncome / stats.peakIncome))) of \(rate(stats.peakIncome))/s" : "–")
             row("Miners owned", CoinFormat.grouped(game.totalMiners))
             row("Upgrades owned", "\(game.upgrades.count) of \(UpgradeID.allCases.count)")
             row("Mk upgrades", CoinFormat.grouped(game.minerUpgrades.values.reduce(0, +)))
@@ -93,6 +102,11 @@ struct StatsPage: View {
         let stats = game.stats
         let today = store.today
         Section("Prestige") {
+            NavigationLink {
+                RunHistoryView()
+            } label: {
+                Label("Run History", systemImage: "clock.arrow.circlepath")
+            }
             row("Prestiges", CoinFormat.grouped(stats.prestiges))
             row("Points earned", "\(CoinFormat.grouped(game.prestigePoints)) · +\(CoinFormat.percent(game.prestigeGain(game.prestigePoints)))")
             row("Points to spend", CoinFormat.grouped(game.availablePrestigePoints))
@@ -154,6 +168,10 @@ struct StatsPage: View {
             row("Steps walked", CoinFormat.grouped(stats.lifetimeSteps))
             row("Steps paid for", CoinFormat.grouped(stats.stepsPaid))
             row("Best day", "\(CoinFormat.grouped(stats.bestDaySteps)) steps")
+            if game.steps.isConnected {
+                row("This week", "\(CoinFormat.grouped(game.stepsInWeek(of: today))) steps")
+            }
+            row("Best week", "\(CoinFormat.grouped(stats.bestWeekSteps)) steps")
         }
     }
 
@@ -178,25 +196,49 @@ struct StatsPage: View {
         }
     }
 
-    @ViewBuilder
     private func marketSection(_ game: GameState) -> some View {
         let stats = game.stats
         let market = store.market
         let tokens = TokenID.allCases.filter { game.tokenCount($0) > 0 || stats.tokensBought[$0, default: 0] > 0 }
         let walletValue = TokenID.allCases.reduce(0.0) { $0 + market.quote($1).price * Double(game.tokenCount($1)) }
         let held = TokenID.allCases.reduce(0) { $0 + game.tokenCount($1) }
-        Section("Market") {
+        let paid = stats.totalCoinsSpentOnTokens
+        // Today's price against what the tokens held cost, for each kind bought for coins.
+        let moves = TokenID.allCases.compactMap { token in
+            game.averageCost(of: token).map { (token: token, change: market.quote(token).price / max($0, 1e-9) - 1) }
+        }
+        var items = [StatItem("Bought", CoinFormat.grouped(stats.totalTokensBought)),
+                     StatItem("Sold", CoinFormat.grouped(stats.tokensSold))]
+        if paid > 0 { items.append(StatItem("Paid in all", amount(paid))) }
+        items.append(StatItem("From sales", amount(stats.coinsFromSales)))
+        if stats.tokensSold > 0 {
+            items.append(StatItem("Trading", "\(stats.tradingProfit >= 0 ? "+" : "−")\(amount(abs(stats.tradingProfit)))"))
+            items.append(StatItem("Sales at a profit", CoinFormat.grouped(stats.profitableSales)))
+            if stats.bestSaleProfit > 0 { items.append(StatItem("Best sale", "+\(amount(stats.bestSaleProfit))")) }
+        }
+        return Section {
             WalletCard(value: amount(walletValue),
                        detail: stats.totalTokensBought > 0
                            ? "\(counted(held, "token")) held, at today's prices"
                            : "Buy tokens in the Shop's Tokens page",
-                       items: [StatItem("Bought", CoinFormat.grouped(stats.totalTokensBought)),
-                               StatItem("Sold", CoinFormat.grouped(stats.tokensSold)),
-                               StatItem("From sales", amount(stats.coinsFromSales))])
+                       items: items)
+            if moves.count >= 2, let best = moves.max(by: { $0.change < $1.change }),
+               let worst = moves.min(by: { $0.change < $1.change }) {
+                PortfolioMoversRow(best: best, worst: worst)
+            }
             ForEach(tokens) { token in
                 let price = market.quote(token).price
+                let average = game.averageCost(of: token)
                 TokenStatRow(token: token, held: game.tokenCount(token), bought: stats.tokensBought[token, default: 0],
-                             worth: amount(price * Double(game.tokenCount(token))), price: amount(price))
+                             worth: amount(price * Double(game.tokenCount(token))), price: amount(price),
+                             heldBought: game.boughtCount(token),
+                             averagePaid: average.map(amount), change: average.map { price / max($0, 1e-9) - 1 })
+            }
+        } header: {
+            Text("Market")
+        } footer: {
+            if !tokens.isEmpty {
+                SettingsNote("A token's cost is what the ones you hold that you bought cost. Those are sold first, tokens lost in the casino come out of the ones you won first, and won tokens cost nothing, so they never count as a profit or a loss. A prestige clears it with the tokens. Paid in all and Trading count every purchase and sale since version 2.")
             }
         }
     }
@@ -243,9 +285,7 @@ struct StatsPage: View {
 
     /// Whether a game has anything to show yet: a game played, a record or a daily win.
     private func hasRecords(_ miniGame: MiniGame, in game: GameState) -> Bool {
-        game.timesPlayed(miniGame) > 0 || game.bestScore(miniGame) > 0
-            || (miniGame == .merge2048 && game.merge2048Daily.wins > 0)
-            || (miniGame == .tokenSwap && (game.tokenSwap.levelsWon > 0 || game.tokenSwap.dailyWins > 0))
+        game.hasPlayed(miniGame)
     }
 
     private func card(for miniGame: MiniGame, in game: GameState) -> GameStatsCard {

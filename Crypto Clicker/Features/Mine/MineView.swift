@@ -2,8 +2,8 @@ import SwiftUI
 import CryptoClickerKit
 
 /// The home screen, in order of importance: the balance with coins per second and per tap, the coin
-/// to tap, a tip for new players, what the player owns (miners and power-ups, and crypto), and steps
-/// once they are unlocked. No title and no buttons along the top, so the coin gets the room;
+/// to tap, a tip for new players, what the player owns (miners and power-ups, and crypto beside
+/// the goals button), and steps once they are unlocked. No title and no buttons along the top, so the coin gets the room;
 /// Statistics and How to Play are in the Settings tab.
 struct MineView: View {
     let openShop: () -> Void
@@ -15,8 +15,13 @@ struct MineView: View {
     let openIncome: () -> Void
     /// Opens How to Play in the Settings tab.
     let openHowToPlay: () -> Void
+    /// Opens where the next goal is worked toward.
+    let openGoal: (Goal.Kind) -> Void
+    /// Opens Trophies › Goals.
+    let openGoalsPage: () -> Void
     @Environment(GameStore.self) private var store
     @State private var showingStepsIntro = false
+    @State private var showingGoals = false
     @State private var effects = Effects()
     /// Every digit or the short form, for the balance and tap values. Tapping the balance switches.
     @AppStorage(Preferences.exactNumbersKey) private var exactNumbers = false
@@ -55,6 +60,7 @@ struct MineView: View {
             .navigationTitle("Crypto Clicker") // Kept for VoiceOver and the app switcher, but not shown.
             .toolbarVisibility(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingStepsIntro) { StepsIntroView() }
+            .sheet(isPresented: $showingGoals) { GoalsSheet(open: openGoal, openGoalsPage: openGoalsPage) }
         }
     }
 
@@ -81,7 +87,7 @@ struct MineView: View {
                     // Looks locked again (after a reset) fall back to the plain coin.
                     let stars = game.earnedAchievementTiers
                     CoinButton(tapValue: game.tapValue(at: now), exactNumbers: exactNumbers,
-                               finish: finish.isUnlocked(stars: stars) ? finish : .gold,
+                               finish: game.isUnlocked(finish) ? finish : .gold,
                                rim: rim.isUnlocked(stars: stars) ? rim : .plain,
                                tapEffect: tapEffect.isUnlocked(stars: stars) ? tapEffect : .none,
                                maxSize: CoinButton.size(in: proxy.size, cap: cap)) {
@@ -98,7 +104,9 @@ struct MineView: View {
                     // Shown from the combo's first +0.1, so a few casual taps don't flicker it.
                     if store.comboMultiplier > 1 {
                         ComboPill(multiplier: store.comboMultiplier, taps: store.comboStreak,
-                                  isMax: store.comboMultiplier >= game.comboMaxMultiplier)
+                                  isMax: store.comboMultiplier >= game.comboMaxMultiplier,
+                                  isRecord: store.comboRecordBefore >= ComboPill.recordWorthShowing
+                                    && store.comboStreak > store.comboRecordBefore)
                             .transition(.scale.combined(with: .opacity))
                     }
                 }
@@ -108,8 +116,10 @@ struct MineView: View {
                 // Cards gather at the bottom, so the coin above stays where it is as they change.
                 Spacer(minLength: 0)
             }
-            GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openDaily: openDaily, openHowToPlay: openHowToPlay)
-            InventoryStrip(game: game, market: store.market, openShop: openShop, openTokens: openTokens)
+            GuideTipCard(openShop: openShop, openPowerUps: openPowerUps, openTokens: openTokens, openDaily: openDaily,
+                         openHowToPlay: openHowToPlay, openGoal: openGoal)
+            InventoryStrip(game: game, market: store.market, openShop: openShop, openTokens: openTokens,
+                           openGoals: { showingGoals = true })
             StepsCard(learnMore: { showingStepsIntro = true })
             // Without today's steps to sit beside, the prestige points get a row of their own.
             if game.stats.prestiges > 0 && !StepsCard.showsCounter(game, canTrackSteps: store.canTrackSteps) {
@@ -414,10 +424,15 @@ private struct FloatingText: View {
 
 /// The combo under the coin while quick taps keep it going.
 struct ComboPill: View {
+    /// A record from this many quick taps is worth celebrating when it's beaten.
+    static let recordWorthShowing = 25
+
     let multiplier: Double
     /// Quick taps in a row so far.
     let taps: Int
     let isMax: Bool
+    /// Longer than the longest combo before this one.
+    var isRecord = false
 
     var body: some View {
         // The multiplier, with the run of quick taps on a line under it.
@@ -425,9 +440,9 @@ struct ComboPill: View {
             Label("Combo ×\(String(format: "%.1f", multiplier))", systemImage: "flame.fill")
                 .font(.headline.monospacedDigit())
                 .contentTransition(.numericText(value: multiplier))
-            Text("\(CoinFormat.grouped(taps)) taps!")
+            Text(isRecord ? "\(CoinFormat.grouped(taps)) taps · new best!" : "\(CoinFormat.grouped(taps)) taps!")
                 .font(.footnote.weight(.semibold).monospacedDigit())
-                .opacity(0.85)
+                .opacity(isRecord ? 1 : 0.85)
                 .contentTransition(.numericText(value: Double(taps)))
         }
         .foregroundStyle(.white)
@@ -437,7 +452,7 @@ struct ComboPill: View {
         .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
         .allowsHitTesting(false)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Combo of \(taps) quick taps, taps earn \(CoinFormat.multiplier(multiplier))")
+        .accessibilityLabel("Combo of \(taps) quick taps\(isRecord ? ", a new best" : ""), taps earn \(CoinFormat.multiplier(multiplier))")
     }
 }
 
@@ -472,10 +487,12 @@ private struct BullRunBadge: View {
                         in: .capsule)
             .shadow(color: FireEdges.red.opacity(0.6), radius: beat ? 14 : 6)
             .scaleEffect(beat ? 1.05 : 1)
+            // The beat animates the badge alone, not the screen around it.
+            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: beat)
         }
         .onAppear {
             guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) { beat = true }
+            beat = true
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Bull Run, production \(CoinFormat.multiplier(boost.multiplier))")

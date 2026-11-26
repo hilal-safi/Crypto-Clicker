@@ -3,11 +3,21 @@ import CryptoClickerKit
 
 /// Three vertical pages: mine, steps, and the numbers behind them.
 struct WatchRootView: View {
+    enum Page: Hashable {
+        case mine, steps, stats
+    }
+
+    /// The page on screen: the steps page only reads Apple Health while it's the one showing.
+    @State private var page = Page.mine
+
     var body: some View {
-        TabView {
+        TabView(selection: $page) {
             MinePage()
-            StepsPage()
+                .tag(Page.mine)
+            StepsPage(isShowing: page == .steps)
+                .tag(Page.steps)
             StatsPage()
+                .tag(Page.stats)
         }
         .tabViewStyle(.verticalPage)
     }
@@ -66,8 +76,11 @@ struct MinePage: View {
 }
 
 struct StepsPage: View {
+    /// Whether this page is the one on screen (a vertical page view keeps its neighbours loaded).
+    var isShowing = true
     @Environment(WatchStore.self) private var store
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ScrollView {
@@ -107,15 +120,23 @@ struct StepsPage: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .containerBackground(Color.green.gradient.opacity(0.35), for: .tabView)
-        // A Health read when the page shows, then once a minute while the screen is lit; none on the
-        // dimmed Always On screen.
-        .task(id: isLuminanceReduced) {
-            guard !isLuminanceReduced else { return }
+        // A Health read when the page comes on screen, then once a minute while it stays there with
+        // the screen lit; none while another page shows, on the dimmed Always On screen, or with
+        // the app in the background.
+        .task(id: isPolling) {
+            guard isPolling else { return }
             while !Task.isCancelled {
                 await store.refreshLiveSteps()
                 try? await Task.sleep(for: .seconds(60))
             }
         }
+    }
+}
+
+extension StepsPage {
+    /// Whether Apple Health should be read now.
+    private var isPolling: Bool {
+        isShowing && scenePhase == .active && !isLuminanceReduced
     }
 }
 

@@ -6,8 +6,42 @@ import Testing
 struct PriceTests {
     @Test func firstUnitCostsTheBasePrice() {
         let state = GameState.make()
-        for miner in MinerID.allCases {
+        for miner in MinerID.allCases where miner.openingPriceShares.isEmpty {
             #expect(state.price(of: miner, quantity: 1) == miner.baseCost)
+        }
+    }
+
+    /// The first three GPU Rigs and Servers cost a share of their price, so the opening reaches
+    /// them sooner; from the fourth on, and so for the rest of the run, nothing changes.
+    @Test func theFirstGPURigsAndServersCostLess() {
+        #expect(MinerID.gpuRig.openingPriceShares == [0.6, 0.75, 0.9])
+        #expect(MinerID.server.openingPriceShares == [0.48, 0.65, 0.85])
+        #expect(MinerID.allCases.filter { !$0.openingPriceShares.isEmpty } == [.gpuRig, .server])
+        for miner in [MinerID.gpuRig, .server] {
+            var state = GameState.make()
+            let full = { (index: Int) in miner.baseCost * pow(Tuning.costGrowth, Double(index)) }
+            for index in 0..<3 {
+                #expect(state.unitPrice(miner, index: index) == GameState.wholePrice(full(index) * miner.openingPriceShares[index]))
+                #expect(state.unitPrice(miner, index: index) < full(index))
+            }
+            #expect(state.unitPrice(miner, index: 3) == GameState.wholePrice(full(3)))
+            // Buying several at once costs what buying them one by one does, to the coin or so.
+            let together = state.price(of: miner, quantity: 5)
+            var oneByOne = 0.0
+            for count in 0..<5 {
+                state.miners[miner] = count
+                oneByOne += state.price(of: miner, quantity: 1)
+            }
+            #expect(abs(together - oneByOne) <= 5)
+            // From the third on, a batch is the plain geometric sum.
+            state.miners[miner] = 3
+            #expect(state.price(of: miner, quantity: 2) == GameState.wholePrice(full(3) * (1 + Tuning.costGrowth)))
+            // And as many as the balance allows really can be bought.
+            // (The tier before it is owned, so it's in the Shop.)
+            var buyer = GameState.make(coins: GameState.make().price(of: miner, quantity: 4), miners: [miner.previous ?? .chromebook: 1])
+            let affordable = buyer.maxAffordable(miner)
+            #expect(affordable == 4)
+            #expect(buyer.buy(miner, quantity: affordable) == true)
         }
     }
 
@@ -449,7 +483,7 @@ struct ProductionTests {
     @Test func multipliersStackMultiplicatively() {
         let state = GameState.make(upgrades: [.stepBooster, .upgradedStepBooster, .ultimateStepBooster, .proofOfStride, .megaStepBooster,
                                               .gigaStepBooster, .bonusReward1, .bonusReward2, .bonusReward3])
-        #expect(state.stepMultiplier == 202.5) // 1.25 × 1.5 × 2 × 3 × 3 × 6
+        #expect(state.stepMultiplier == 168.75) // 1.25 × 1.5 × 2 × 3 × 3 × 5
         #expect(state.miniGameMultiplier == 3.75)
     }
 }

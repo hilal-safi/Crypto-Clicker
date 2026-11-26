@@ -259,7 +259,10 @@ struct ArcadeProgressionTests {
         #expect(game.earnedAchievementTiers == AchievementCatalog.tierCount)
         #expect(Cosmetic.allCases.allSatisfy(game.isUnlocked))
         let stars = game.earnedAchievementTiers
-        #expect(CoinFinish.allCases.allSatisfy { $0.isUnlocked(stars: stars) })
+        // The finishes prestiges unlock need prestiges too (Unlock Every Look counts them).
+        #expect(!CoinFinish.allCases.allSatisfy(game.isUnlocked))
+        game.debugCountPrestiges(CoinFinish.prestigeMilestones.max() ?? 0)
+        #expect(CoinFinish.allCases.allSatisfy(game.isUnlocked))
         #expect(CoinRim.allCases.allSatisfy { $0.isUnlocked(stars: stars) })
         #expect(CoinTapEffect.allCases.allSatisfy { $0.isUnlocked(stars: stars) })
         // Earned tiers stay earned when the metrics are checked again.

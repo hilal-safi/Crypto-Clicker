@@ -55,6 +55,21 @@ enum Preferences {
     static let howToPlaySeenKey = "howToPlaySeen"
     /// The income chart's range in Statistics (an `IncomeRange` raw value).
     static let incomeChartRangeKey = "incomeChartRange"
+    /// The Arcade's favorite games, pinned to the top (`MiniGame` raw values, comma-separated).
+    static let favoriteGamesKey = "favoriteGames"
+    /// The games opened most recently in the Arcade, newest first (`MiniGame` raw values,
+    /// comma-separated).
+    static let recentGamesKey = "recentGames"
+    /// What the run history's chart compares (a `RunMetric` raw value).
+    static let runChartMetricKey = "runChartMetric"
+    /// Set once the App Store rating prompt has been asked for (after the first prestige).
+    static let reviewRequestedKey = "reviewRequested"
+    /// Whether the game is backed up to iCloud (on unless turned off, and only where the app has
+    /// the iCloud capability), an id for this install that stands in should iOS give no vendor id
+    /// (`BackupDevice`), and the bookmark to the folder the player picked for backups.
+    static let iCloudBackupKey = "iCloudBackup"
+    static let backupDeviceKey = "backupDevice"
+    static let backupFolderKey = "backupFolder"
     /// The balance shows as a Live Activity on the Lock Screen and in the Dynamic Island.
     static let liveActivityKey = "showsLiveActivity"
     /// Merge Mining shows each miner's number under its picture.
