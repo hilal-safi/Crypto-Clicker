@@ -18,6 +18,36 @@ public struct BlackjackStake: Codable, Equatable, Sendable {
     public internal(set) var amount: Int
 }
 
+/// A game and how far on it is: its id (`GameState.gameID`) and how many times it had been saved
+/// (`GameState.revision`).
+public struct SaveLineage: Codable, Hashable, Sendable {
+    public let gameID: UUID
+    public let revision: Int
+
+    public init(gameID: UUID, revision: Int) {
+        self.gameID = gameID
+        self.revision = revision
+    }
+}
+
+/// The tokens of one kind held that were bought for coins, and what they cost in all: the coins
+/// paid, less the share each sale or loss took.
+public struct TokenLot: Codable, Equatable, Sendable {
+    public internal(set) var count: Int
+    public internal(set) var cost: Double
+
+    /// What one cost on average.
+    public var averageCost: Double { count > 0 ? cost / Double(count) : 0 }
+
+    /// The lot after `removed` of its tokens leave (sold, or lost at the casino), each taking its
+    /// share of the cost; nil once none is left.
+    func removing(_ removed: Int) -> TokenLot? {
+        let left = count - max(0, removed)
+        guard left > 0, count > 0 else { return nil }
+        return TokenLot(count: left, cost: cost * Double(left) / Double(count))
+    }
+}
+
 /// An arcade game in progress when the app went to the background. Saved with the game, so its
 /// points are still paid if iOS closes the app before the player comes back.
 public struct ArcadeRun: Codable, Equatable, Sendable {
@@ -194,8 +224,10 @@ public struct GameState: Codable, Equatable, Sendable {
     /// income, which Offline Efficiency raises. 10: the game starts with five minutes of time away
     /// and Offline Mining's first level pays six (161 levels). 11: six minutes to start and seven
     /// for the first level (160 levels), and Offline Efficiency in 18 levels of 5% (the 9 levels of
-    /// 10% before it count double).
-    public static let saveVersion = 11
+    /// 10% before it count double). 12: which game a save is and how far on (`gameID`,
+    /// `revision`, `copiedFrom`), and what the tokens held cost (`boughtTokens`), which a version
+    /// before it would drop if it saved over them.
+    public static let saveVersion = 12
 
     public internal(set) var coins: Double = 0
     public internal(set) var miners: [MinerID: Int] = [:]
@@ -259,9 +291,31 @@ public struct GameState: Codable, Equatable, Sendable {
     /// The latest finished runs (up to `Tuning.runHistoryLimit`), oldest first. Runs from before
     /// version 2.1, which kept no history, aren't in it.
     public internal(set) var runHistory: [RunRecord] = []
+    /// The record runs of all time, including runs that have left the history (from version 2.1).
+    public internal(set) var runRecords = RunRecords()
     /// The latest trades on the market (up to `Tuning.tradeHistoryLimit`), oldest first, from
     /// version 2.1.
     public internal(set) var recentTrades: [TokenTrade] = []
+    /// The tokens of each kind held now that were bought for coins, and what they cost. The rest
+    /// held were won or given (casino winnings, rewards, airdrops): they cost nothing, so they never
+    /// count as a profit or a loss. A sale takes the bought tokens first, each with its share of the
+    /// cost; tokens lost at the casino come out of the won ones first; buying a kind again once
+    /// none is left starts afresh; and a prestige clears it with the tokens. Lifetime figures are
+    /// in `Stats`.
+    public internal(set) var boughtTokens: [TokenID: TokenLot] = [:]
+
+    /// Which game this is, so a copy of it (a backup) can be told from a copy of another game: a
+    /// new one for every new game (a reset too) and for a game carried on from a copy, which
+    /// remembers it in `copiedFrom`. A prestige keeps it.
+    public internal(set) var gameID = UUID()
+    /// How many times this game has been saved: with `gameID`, how far on a copy of it is.
+    public internal(set) var revision = 0
+    /// The copy this game was carried on from (a backup restored, a save file imported), so the
+    /// backup it came from can be replaced by it, and no other.
+    public internal(set) var copiedFrom: SaveLineage?
+
+    /// This game and how far on it is.
+    public var lineage: SaveLineage { SaveLineage(gameID: gameID, revision: revision) }
 
     /// When income was last credited.
     public internal(set) var lastUpdate: Date
@@ -286,6 +340,7 @@ public struct GameState: Codable, Equatable, Sendable {
         case merge2048Daily, slotsFreeSpins, arcade, journey, starterMilestones, starterRewards
         case achievementTiers, daily
         case incomeHistory, stats, steps, recentWatchBatches, watchSequences, recentAirdrops, runHistory, recentTrades
+        case boughtTokens, gameID, revision, copiedFrom, runRecords
         case lastUpdate, runStart, created
     }
 
@@ -354,8 +409,26 @@ public struct GameState: Codable, Equatable, Sendable {
         recentAirdrops = c.value(.recentAirdrops, default: [])
         let history: [RunRecord] = c.value(.runHistory, default: [])
         runHistory = Array(history.suffix(Tuning.runHistoryLimit))
+        // A save from before records were kept apart takes them from its history.
+        runRecords = c.value(.runRecords, default: RunRecords(runs: history))
         let trades: [TokenTrade] = c.value(.recentTrades, default: [])
         recentTrades = Array(trades.suffix(Tuning.tradeHistoryLimit))
+        // Never more than are held (or riding on a round), nor a negative or broken cost. Tokens
+        // held in a save from before costs were kept count as won: nothing is guessed from
+        // lifetime averages.
+        let lots: [TokenID: TokenLot] = c.enumKeyed(.boughtTokens, as: TokenID.self)
+        var kept: [TokenID: TokenLot] = [:]
+        for (token, lot) in lots where lot.count > 0 && lot.cost.isFinite && lot.cost > 0 {
+            let inPlay = tokens[token, default: 0].addingCount(blackjackStake?.token == token ? blackjackStake?.amount ?? 0 : 0)
+                .addingCount(moonRound?.token == token ? moonRound?.bet ?? 0 : 0)
+                .addingCount(pokerRound?.token == token ? pokerRound?.bet ?? 0 : 0)
+            if let fitted = lot.removing(lot.count - min(lot.count, inPlay)) { kept[token] = fitted }
+        }
+        boughtTokens = kept
+        // A save from before games had ids gets one now, which it keeps from its next save on.
+        gameID = c.value(.gameID, default: UUID())
+        revision = max(0, c.value(.revision, default: 0))
+        copiedFrom = c.value(.copiedFrom, default: nil)
         lastUpdate = c.value(.lastUpdate, default: now)
         runStart = c.value(.runStart, default: now)
         created = c.value(.created, default: now)
@@ -405,7 +478,12 @@ public struct GameState: Codable, Equatable, Sendable {
         if !watchSequences.isEmpty { try c.encode(watchSequences, forKey: .watchSequences) }
         if !recentAirdrops.isEmpty { try c.encode(recentAirdrops, forKey: .recentAirdrops) }
         if !runHistory.isEmpty { try c.encode(runHistory, forKey: .runHistory) }
+        if runRecords != RunRecords() { try c.encode(runRecords, forKey: .runRecords) }
         if !recentTrades.isEmpty { try c.encode(recentTrades, forKey: .recentTrades) }
+        if !boughtTokens.isEmpty { try c.encode(boughtTokens.stringKeyed, forKey: .boughtTokens) }
+        try c.encode(gameID, forKey: .gameID)
+        try c.encode(revision, forKey: .revision)
+        try c.encodeIfPresent(copiedFrom, forKey: .copiedFrom)
         try c.encode(lastUpdate, forKey: .lastUpdate)
         try c.encode(runStart, forKey: .runStart)
         try c.encode(created, forKey: .created)

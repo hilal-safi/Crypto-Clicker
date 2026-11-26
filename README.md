@@ -25,10 +25,11 @@ No real cryptocurrency, no ads, no purchases.
   airdrops, whales and Bull Runs.
 - **Tokens.** Eleven tokens, from SafeMoon at 100 coins to Bitcoin, whose simulated prices drift with
   in-game news; each is tagged Stable, Moderate or Volatile. Buy them to bet in the casino or sell
-  later: each sale shows its fee, the coins it pays and how it compares with what you paid. The
-  wallet shows what your tokens cost against what they're worth, a guide explains trading, and the
-  latest 50 trades are kept. Statistics keeps what you paid on average and how each token has done
-  since.
+  later: each sale shows its fee, the coins it pays and how it compares with what you paid for the
+  tokens you hold. That cost follows the tokens bought: they're sold first, casino losses come out of
+  tokens won first, won tokens cost nothing, and a prestige clears it. The wallet shows what
+  your tokens cost against what they're worth, a guide explains trading, and the latest 50 trades are
+  kept. Statistics shows what each token held cost and how it has done since.
 - **Casino.** 21 Million (blackjack), Crypto Slots (a classic 3×1 machine or a 5×3 video machine with
   five lines), Diamond Hands (video poker) and To the Moon (a crash game with a 2× or a riskier 5×
   rocket), played with tokens or practice chips.
@@ -65,9 +66,12 @@ No real cryptocurrency, no ads, no purchases.
   playing and whenever the app is left, with a copy a day for the last week, in the app's folder in
   the Files app (which the iPhone's own backup includes): no account or capability needed. Pick a
   folder in Files, iCloud Drive included, to keep a copy there too and carry on from it on another
-  iPhone. Where the app has the iCloud capability, it also backs up to iCloud's key-value storage.
-  Any backup can be restored, and a save file exported or imported. Steps from Apple Health stay
-  on the device.
+  iPhone. Where the app has the iCloud capability, it also backs up to iCloud's key-value storage,
+  and the Backup page says when a backup there fails (too big, iCloud full). A backup in the folder
+  or iCloud only ever replaces an earlier copy of the same game: a copy further on, or of another
+  game, stays until the player restores it or replaces it. Before a restore or a reset, the game is
+  kept as a snapshot. Any backup can be restored, and a save file exported or imported. Steps from
+  Apple Health stay on the device.
 - **Help.** How to Play in Settings, plus a rules sheet in every game.
 
 ## Requirements
@@ -103,9 +107,12 @@ Config/                    Entitlements
   is paid twice or lost.
 - **No server.** Token prices, news, quests and daily seeds are worked out from the clock, so every
   device agrees without a network.
-- **Saves are protected.** A save that can't be read is set aside, never deleted, and unfinished bets
-  and arcade runs are settled on the next launch. Backups and save files leave Apple Health data
-  behind, and a backup never replaces one with more progress from another device.
+- **Saves are protected.** A save that can't be read is set aside, never deleted; one from a newer
+  version of the app is never opened (or saved over) until the app is updated; and unfinished bets
+  and arcade runs are settled on the next launch. Every save carries its game's id and how many
+  times it has been saved, so a backup only replaces an earlier copy of the same game, never one
+  further on or of another game without the player choosing to. Backups and save files leave Apple
+  Health data behind.
 - **The watch and widgets project the balance** from a snapshot the app shares, and watch taps are
   numbered so each is paid exactly once.
 

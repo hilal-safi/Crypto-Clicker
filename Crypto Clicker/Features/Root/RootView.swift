@@ -83,22 +83,7 @@ struct RootView: View {
         .onChange(of: store.game.stats.prestiges) { before, after in
             askForReviewAfterFirstPrestige(before: before, after: after)
         }
-        .alert("Something went wrong", isPresented: Binding(
-            get: { store.errorMessage != nil },
-            set: { if !$0 { store.errorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(store.errorMessage ?? "")
-        }
-        // A damaged save: say so plainly, keep the file, and only start over when the player says.
-        .alert(store.unreadableSave?.attempts ?? 0 > 0 ? "Still couldn't read your save" : "Your saved game couldn't be read",
-               isPresented: Binding(get: { store.unreadableSave != nil }, set: { _ in })) {
-            Button("Try Again") { store.retryUnreadableSave() }
-            Button("Start a New Game", role: .destructive) { store.startOverAfterUnreadableSave() }
-        } message: {
-            Text("Part of the save file is damaged, so your progress can't be opened right now. Nothing has been deleted: the file is kept on this iPhone as \(store.unreadableSave?.fileName ?? "a backup"), so it can still be recovered. Until you choose, nothing new is saved.")
-        }
+        .modifier(SaveAlerts())
     }
 
     /// The Mine tab, with the ways it opens the other tabs.
@@ -252,5 +237,39 @@ struct TabRequest<Place: Equatable>: Equatable {
     mutating func ask(for place: Place) {
         number += 1
         self.place = place
+    }
+}
+
+/// What the player must hear about the save: an error, a save that couldn't be read, or one from
+/// a newer version of the app. The last two stay up until the player chooses.
+private struct SaveAlerts: ViewModifier {
+    @Environment(GameStore.self) private var store
+
+    func body(content: Content) -> some View {
+        content
+            .alert("Something went wrong", isPresented: Binding(
+                get: { store.errorMessage != nil },
+                set: { if !$0 { store.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(store.errorMessage ?? "")
+            }
+            // A damaged save: say so plainly, keep the file, and only start over when the player says.
+            .alert(store.unreadableSave?.attempts ?? 0 > 0 ? "Still couldn't read your save" : "Your saved game couldn't be read",
+                   isPresented: Binding(get: { store.unreadableSave != nil }, set: { _ in })) {
+                Button("Try Again") { store.retryUnreadableSave() }
+                Button("Start a New Game", role: .destructive) { store.startOverAfterUnreadableSave() }
+            } message: {
+                Text("Part of the save file is damaged, so your progress can't be opened right now. Nothing has been deleted: the file is kept on this iPhone as \(store.unreadableSave?.fileName ?? "a backup"), so it can still be recovered. Until you choose, nothing new is saved.")
+            }
+            // A save from a newer version: never opened here, so nothing it holds can be lost.
+            .alert(store.newerSave?.checks ?? 0 > 0 ? "Still saved by a newer version" : "Update Crypto Clicker",
+                   isPresented: Binding(get: { store.newerSave != nil }, set: { _ in })) {
+                Button("Check Again") { store.checkNewerSaveAgain() }
+                Button("Set It Aside and Start Over", role: .destructive) { store.startOverAfterNewerSave() }
+            } message: {
+                Text("Your game was saved by a newer version of Crypto Clicker, so this version can't open it without losing what's new. Install the latest version to carry on. Until then nothing is saved over it. Starting over keeps the save on this iPhone for the newer version to open.")
+            }
     }
 }

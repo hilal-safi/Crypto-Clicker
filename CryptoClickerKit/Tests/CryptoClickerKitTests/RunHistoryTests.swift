@@ -62,6 +62,31 @@ struct RunHistoryTests {
         #expect(game.runHistory.first?.number == 2 && game.runHistory.last?.number == Tuning.runHistoryLimit + 1)
     }
 
+    /// Records are of all time: a record run that has left the history is still the record.
+    @Test func recordsOutlastTheHistory() throws {
+        var game = run(mining: 1e15)
+        game.prestige(at: at(3_600)) // A big, quick first run.
+        let first = try #require(game.runHistory.first)
+        var clock = 3_600.0
+        for _ in 0..<Tuning.runHistoryLimit + 3 {
+            // Each later run takes a day and mines just enough for a point.
+            clock += 86_400
+            game.stats.lifetimeCoins = game.nextPrestigePointAt
+            game.stats.runCoins = 1
+            game.prestige(at: at(clock))
+        }
+        #expect(game.runHistory.count == Tuning.runHistoryLimit)
+        #expect(!game.runHistory.contains { $0.number == first.number })
+        #expect(game.fastestRun == first && game.richestRun == first && game.biggestRun == first)
+        // They're saved, and a save from before they were kept apart takes them from its history.
+        let data = try GameCoding.encoder().encode(game)
+        #expect(try GameCoding.decoder().decode(GameState.self, from: data).runRecords == game.runRecords)
+        var json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        json["runRecords"] = nil
+        let old = try GameCoding.decoder().decode(GameState.self, from: JSONSerialization.data(withJSONObject: json))
+        #expect(old.runRecords == RunRecords(runs: game.runHistory))
+    }
+
     @Test func theHistorySurvivesASave() throws {
         var game = run()
         game.prestige(at: at(86_400))

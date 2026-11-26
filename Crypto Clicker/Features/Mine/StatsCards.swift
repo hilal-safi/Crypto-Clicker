@@ -399,7 +399,9 @@ struct TokenStatRow: View {
     let worth: String
     /// One token's price.
     let price: String
-    /// The average price paid (purchases since version 2.1), and today's price against it.
+    /// How many held were bought (the rest were won), what each of those cost on average
+    /// (`GameState.averageCost(of:)`), and today's price against it.
+    var heldBought = 0
     var averagePaid: String? = nil
     var change: Double? = nil
 
@@ -419,7 +421,9 @@ struct TokenStatRow: View {
                     .foregroundStyle(.subtext)
                 if let averagePaid, let change {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text("Paid \(averagePaid) on average ·")
+                        Text(heldBought < held
+                             ? "\(CoinFormat.grouped(heldBought)) bought at \(averagePaid) each ·"
+                             : "Cost \(averagePaid) each ·")
                             .foregroundStyle(.subtext)
                         Text(PortfolioMoversRow.changeText(change))
                             .fontWeight(.semibold)
@@ -447,7 +451,7 @@ struct TokenStatRow: View {
     }
 }
 
-/// The tokens that have done best and worst against the average price paid for them.
+/// The tokens held that have done best and worst against what they cost.
 struct PortfolioMoversRow: View {
     let best: (token: TokenID, change: Double)
     let worst: (token: TokenID, change: Double)

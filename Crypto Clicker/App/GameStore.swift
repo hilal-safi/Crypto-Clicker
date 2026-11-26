@@ -196,6 +196,9 @@ final class GameStore {
     var errorMessage: String?
     /// Set when the save couldn't be read: the player is told before a new game starts saving.
     var unreadableSave: UnreadableSave?
+    /// Set when the save was made by a newer version of the app: it's left alone and nothing is
+    /// saved until the app is updated or the player sets it aside.
+    var newerSave: NewerSave?
     private(set) var toasts: [Toast] = []
     /// The Shop's purchase popup, while it's up.
     private(set) var purchaseNote: PurchaseNote?
@@ -269,6 +272,11 @@ final class GameStore {
             state = GameState()
             isSaveLocked = true
             unreadableSave = UnreadableSave(backup: backup)
+        case .newerVersion(let version):
+            // This version would drop what it doesn't know if it saved: it waits for an update.
+            state = GameState()
+            isSaveLocked = true
+            newerSave = NewerSave(version: version)
         }
         coins = state.coins
         watch.onTapBatchesReceived = { [weak self] in self?.applyWatchInbox() }
@@ -340,12 +348,15 @@ final class GameStore {
 
     /// Loads the save that was unreadable at launch, now that the device is unlocked.
     func loadIfLocked() {
-        guard isSaveLocked, unreadableSave == nil else { return }
+        guard isSaveLocked, unreadableSave == nil, newerSave == nil else { return }
         switch saves.load() {
         case .loaded(let saved): replaceGame(with: saved)
         case .missing: replaceGame(with: GameState())
         case .unreadable(let backup):
             unreadableSave = UnreadableSave(backup: backup)
+            return
+        case .newerVersion(let version):
+            newerSave = NewerSave(version: version)
             return
         case .unavailable:
             // Unlocked and still unreadable: a real error. Keep the file safe and say so.
@@ -547,6 +558,7 @@ final class GameStore {
     @discardableResult
     func save() -> Bool {
         guard !isSaveLocked else { return false }
+        state.countSave()
         do {
             try saves.save(state)
             lastSave = .now
@@ -587,9 +599,37 @@ final class GameStore {
         save()
     }
 
+    /// Looks at a save from a newer version again (after an update, or the file was put back).
+    func checkNewerSaveAgain() {
+        guard let waiting = newerSave else { return }
+        newerSave = nil
+        loadIfLocked()
+        // Still too new: counted, so the player sees it was looked at again.
+        if let still = newerSave { newerSave = NewerSave(version: still.version, checks: waiting.checks + 1) }
+    }
+
+    /// Starts a new game in place of a save from a newer version, which is moved aside (never
+    /// deleted) so a newer version can still open it.
+    func startOverAfterNewerSave() {
+        guard newerSave != nil else { return }
+        guard saves.setAsideNewerSave() != nil else {
+            // It's gone or moved meanwhile: look again rather than save over anything.
+            checkNewerSaveAgain()
+            return
+        }
+        newerSave = nil
+        replaceGame(with: GameState())
+        isSaveLocked = false
+        finishLoading()
+        save()
+    }
+
     /// Carries on from `copy` (a save file, or a backup) in place of the game here. This
-    /// iPhone keeps its Apple Health ledger, so no day's steps are paid twice.
+    /// iPhone keeps its Apple Health ledger, so no day's steps are paid twice. The game here is
+    /// kept first as a snapshot in the backups, and the backups elsewhere are only replaced if
+    /// they're earlier copies of the game restored (`SaveTransfer.conflict`).
     func importGame(_ copy: GameState) {
+        if !isSaveLocked { backups.snapshot(state, before: .restore) }
         replaceGame(with: state.continuing(with: copy, at: .now))
         toasts = []
         clearAirdrop()
@@ -604,7 +644,10 @@ final class GameStore {
         shareBalance(force: true)
     }
 
+    /// Starts over. The game here is kept first as a snapshot in the backups; the backups in a
+    /// folder or iCloud stay until the player replaces them (a new game never does by itself).
     func resetGame() {
+        if !isSaveLocked { backups.snapshot(state, before: .reset) }
         replaceGame(with: GameState())
         toasts = []
         clearAirdrop()
@@ -615,6 +658,13 @@ final class GameStore {
         save()
         pushToWatch(force: true)
     }
+}
+
+/// A save made by a newer version of the app (`version`, its save version), left where it is.
+struct NewerSave: Equatable {
+    let version: Int
+    /// Times "Check Again" has found it still too new.
+    var checks = 0
 }
 
 /// A save that couldn't be read, kept aside under `backup`.

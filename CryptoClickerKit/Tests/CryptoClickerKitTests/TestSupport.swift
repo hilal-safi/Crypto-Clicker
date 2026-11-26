@@ -49,3 +49,15 @@ extension GameState {
         offlineMiningLevel = Self.offlineMiningLevel(reaching: hours * 3_600)
     }
 }
+
+extension GameState {
+    /// This game, made a copy of `other` as it was at `revision` (for backups of one game at
+    /// different points).
+    func withLineage(of other: GameState, revision: Int) -> GameState {
+        var game = self
+        game.gameID = other.gameID
+        game.revision = revision
+        game.stats.lifetimeCoins = max(game.stats.lifetimeCoins, 1)
+        return game
+    }
+}

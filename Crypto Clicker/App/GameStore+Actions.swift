@@ -156,7 +156,7 @@ extension GameStore {
     func sellTokens(_ token: TokenID, quantity: Int) -> Double? {
         let paid = perform { game, now in game.sellTokens(token, quantity: quantity, at: now) }
         if let paid {
-            // Says how the sale did against the average price paid, when there is one.
+            // Says how the sale did against its share of what the tokens cost, when they cost anything.
             let profit = state.recentTrades.last?.profit
             let result = profit.map { " · \($0 >= 0 ? "▲" : "▼") \(CoinFormat.short(abs($0))) vs what you paid" } ?? ""
             show(Toast(icon: profit.map { $0 >= 0 ? "📈" : "📉" } ?? "📈", title: "Sold \(CoinFormat.grouped(quantity)) \(token.ticker)",

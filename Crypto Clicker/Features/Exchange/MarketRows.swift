@@ -143,7 +143,7 @@ struct TokenMarketRow: View {
 }
 
 /// What the Sell button would do, in full: the tokens' worth, the fee, the coins left, and how
-/// that compares with the average price paid for them.
+/// the bought ones among them (sold first) compare with what they cost.
 private struct SalePreviewLine: View {
     let count: Int
     let preview: SalePreview
@@ -155,7 +155,9 @@ private struct SalePreviewLine: View {
                  : "Selling \(CoinFormat.grouped(count)): \(CoinFormat.short(preview.net)) coins, no fee")
                 .foregroundStyle(.subtext)
             if let profit = preview.profit, let paid = preview.paid, paid > 0 {
-                Text("\(profit >= 0 ? "▲" : "▼") \(CoinFormat.short(abs(profit))) (\(CoinFormat.percent(abs(profit) / paid))) against the average you paid")
+                Text(preview.bought < preview.count
+                     ? "\(profit >= 0 ? "▲" : "▼") \(CoinFormat.short(abs(profit))) (\(CoinFormat.percent(abs(profit) / paid))) on the \(CoinFormat.grouped(preview.bought)) you bought, against what they cost"
+                     : "\(profit >= 0 ? "▲" : "▼") \(CoinFormat.short(abs(profit))) (\(CoinFormat.percent(abs(profit) / paid))) against what they cost")
                     .foregroundStyle(profit >= 0 ? Theme.gain : Theme.loss)
             }
         }

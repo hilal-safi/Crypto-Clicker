@@ -233,6 +233,8 @@ extension GameState {
         guard quantity > 0, cost.isFinite, cost <= coins else { return false }
         spend(cost)
         giveTokens(token, amount: quantity)
+        let lot = boughtTokens[token] ?? TokenLot(count: 0, cost: 0)
+        boughtTokens[token] = TokenLot(count: lot.count.addingCount(quantity), cost: Self.finite(lot.cost + cost))
         stats.tokensBought[token] = stats.tokensBought[token, default: 0].addingCount(quantity)
         stats.tokensBoughtWithPrice[token] = stats.tokensBoughtWithPrice[token, default: 0].addingCount(quantity)
         stats.coinsSpentOnTokens[token] = Self.finite(stats.coinsSpentOnTokens[token, default: 0] + cost)
@@ -241,13 +243,17 @@ extension GameState {
     }
 
     /// Sells tokens at the market price, less the fee. The coins go back into the balance without
-    /// counting as mined, so trading can't inflate prestige. Returns the coins received.
+    /// counting as mined, so trading can't inflate prestige. Bought tokens are sold first, each
+    /// with its share of what they cost (`boughtTokens`), which is what the sale is measured
+    /// against. Returns the coins received.
     @discardableResult
     public mutating func sellTokens(_ token: TokenID, quantity: Int, at date: Date) -> Double? {
         guard quantity > 0, tokenCount(token) >= quantity else { return nil }
         let preview = salePreview(of: token, quantity: quantity, at: date)
         let value = preview.net
+        if let lot = boughtTokens[token] { boughtTokens[token] = lot.removing(preview.bought) }
         tokens[token] = tokenCount(token) - quantity
+        settleBoughtTokens(token)
         coins += value
         stats.tokensSold += quantity
         stats.coinsFromSales += value
@@ -263,26 +269,36 @@ extension GameState {
     }
 
     /// What selling `quantity` tokens at `date` comes to, before it's done: their worth at the
-    /// market price, the fee, what's left, and how that compares with the average price paid.
+    /// market price, the fee, what's left, and how many of them were bought (sold first) and what
+    /// those cost.
     public func salePreview(of token: TokenID, quantity: Int, at date: Date) -> SalePreview {
-        let count = max(0, quantity)
+        let count = max(0, min(quantity, tokenCount(token)))
         let worth = Self.wholeCoins(price(of: token, quantity: count, at: date))
         let net = saleValue(of: token, quantity: count, at: date)
-        let paid = stats.averagePricePaid(token).map { $0 * Double(count) }
-        return SalePreview(worth: worth, fee: max(0, worth - net), net: net, paid: paid)
+        let bought = min(count, boughtCount(token))
+        let paid = averageCost(of: token).map { $0 * Double(bought) }
+        return SalePreview(worth: worth, fee: max(0, worth - net), net: net, count: count, bought: bought, paid: paid)
     }
 
-    /// The wallet against what was paid for it, at `date`.
+    /// What each bought token of a kind held cost on average (`boughtTokens`). Nil when none held
+    /// was bought.
+    public func averageCost(of token: TokenID) -> Double? {
+        guard boughtCount(token) > 0, let lot = boughtTokens[token], lot.cost > 0, lot.cost.isFinite else { return nil }
+        return lot.averageCost
+    }
+
+    /// The wallet against what was paid for it, at `date`: every token held at the market price,
+    /// and the bought ones against what they cost.
     public func portfolio(at date: Date) -> Portfolio {
         var worth = 0.0, paid = 0.0, worthOfPaid = 0.0
         for token in TokenID.allCases {
             let count = tokenCount(token)
             guard count > 0 else { continue }
-            let value = price(of: token, quantity: count, at: date)
-            worth += value
-            if let average = stats.averagePricePaid(token) {
-                paid += average * Double(count)
-                worthOfPaid += value
+            worth += price(of: token, quantity: count, at: date)
+            if let average = averageCost(of: token) {
+                let bought = boughtCount(token)
+                paid += average * Double(bought)
+                worthOfPaid += price(of: token, quantity: bought, at: date)
             }
         }
         return Portfolio(worth: Self.finite(worth), paid: Self.finite(paid), worthOfPaid: Self.finite(worthOfPaid))
@@ -305,8 +321,8 @@ public struct TokenTrade: Codable, Hashable, Sendable, Identifiable {
     public let quantity: Int
     /// Coins paid for a purchase, or received for a sale after the fee.
     public let coins: Double
-    /// For a sale: what it made (or lost) against the average price paid for the token, when one
-    /// was ever paid.
+    /// For a sale: what the bought tokens in it made (or lost) against what they cost, when any
+    /// was bought.
     public let profit: Double?
 
     public var isSale: Bool { quantity < 0 }
@@ -322,24 +338,33 @@ public struct TokenTrade: Codable, Hashable, Sendable, Identifiable {
 }
 
 /// What a sale comes to before it's made: the tokens' worth at the market price, the fee taken
-/// from it, the coins left, and what the same tokens cost at the average price paid (nil when none
-/// were ever bought, only won).
+/// from it, the coins left, and how the bought ones among them (sold first) compare with what
+/// they cost.
 public struct SalePreview: Equatable, Sendable {
     public let worth: Double
     public let fee: Double
     public let net: Double
+    /// The tokens sold, and how many of them were bought for coins (the rest were won or given).
+    public let count: Int
+    public let bought: Int
+    /// What the bought ones cost: nil when none was bought.
     public let paid: Double?
 
-    /// The coins received against what was paid: nil without a price paid.
-    public var profit: Double? { paid.map { net - $0 } }
+    /// The coins the bought ones bring in (their share of the sale) against what they cost; nil
+    /// when none was bought. Won tokens cost nothing, so they make no profit or loss.
+    public var profit: Double? {
+        guard let paid, bought > 0, count > 0 else { return nil }
+        let share = bought >= count ? net : net * Double(bought) / Double(count)
+        return share - paid
+    }
 }
 
-/// What the wallet's tokens are worth, and how the ones bought at a known price have done: what
-/// they cost at the average price paid for each token, and what they're worth now.
+/// What the wallet's tokens are worth, and how the ones bought for coins have done: what they
+/// cost, and what they're worth now.
 public struct Portfolio: Equatable, Sendable {
     /// Every token held, at the market price.
     public let worth: Double
-    /// The tokens held that were bought at a known price, at the average price paid...
+    /// What the tokens held that were bought for coins cost (`GameState.boughtTokens`)...
     public let paid: Double
     /// ...and at the market price.
     public let worthOfPaid: Double

@@ -121,7 +121,7 @@ struct RunHistoryView: View {
         } footer: {
             if let first = history.first, first.number > 1 {
                 SettingsNote(history.count >= Tuning.runHistoryLimit
-                             ? "The latest \(Tuning.runHistoryLimit) runs, newest first."
+                             ? "The latest \(Tuning.runHistoryLimit) runs, newest first. Records count every run, including older ones."
                              : "Newest first. Runs from before version 2.1 weren't recorded.")
             }
         }

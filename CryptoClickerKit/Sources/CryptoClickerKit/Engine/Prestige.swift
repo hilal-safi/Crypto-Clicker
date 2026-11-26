@@ -84,6 +84,7 @@ extension GameState {
         stats.runCoins = 0
         coins = 0
         tokens = [:]
+        boughtTokens = [:]
         // Anything still riding on this run's tokens goes with them: a Blackjack bet, a poker hand,
         // a flight, and free spins (which would otherwise pay tokens into the new run).
         blackjackStake = nil
@@ -124,6 +125,7 @@ extension GameState {
     /// records it may set.
     private mutating func record(_ run: RunRecord) {
         runHistory.append(run)
+        runRecords.count(run)
         if runHistory.count > Tuning.runHistoryLimit {
             runHistory.removeFirst(runHistory.count - Tuning.runHistoryLimit)
         }

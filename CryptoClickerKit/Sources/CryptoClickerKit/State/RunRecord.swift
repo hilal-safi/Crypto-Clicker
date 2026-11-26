@@ -35,24 +35,45 @@ public struct RunRecord: Codable, Hashable, Sendable, Identifiable {
     }
 }
 
+/// The record runs of all time. They're kept apart from the run history, which holds only the
+/// latest `Tuning.runHistoryLimit` runs, so a record stays one after its run has left the history.
+/// The first of any ties keeps a record.
+public struct RunRecords: Codable, Equatable, Sendable {
+    /// The run that took the least time.
+    public internal(set) var fastest: RunRecord?
+    /// The run that earned the most prestige points.
+    public internal(set) var mostPoints: RunRecord?
+    /// The run that mined the most coins.
+    public internal(set) var mostCoins: RunRecord?
+    /// The run whose miners earned the most a second by its end.
+    public internal(set) var highestIncome: RunRecord?
+
+    public init() {}
+
+    /// The records of `runs`, oldest first.
+    init(runs: [RunRecord]) {
+        for run in runs { count(run) }
+    }
+
+    /// Counts a finished run: it takes every record it beats.
+    mutating func count(_ run: RunRecord) {
+        if fastest.map({ run.duration < $0.duration }) ?? true { fastest = run }
+        if mostPoints.map({ run.points > $0.points }) ?? true { mostPoints = run }
+        if mostCoins.map({ run.coins > $0.coins }) ?? true { mostCoins = run }
+        if highestIncome.map({ run.income > $0.income }) ?? true { highestIncome = run }
+    }
+}
+
 extension GameState {
-    /// The finished run that took the least time, the first of any ties.
-    public var fastestRun: RunRecord? {
-        runHistory.min { $0.duration < $1.duration }
-    }
+    /// The finished run that took the least time, of all time (`runRecords`).
+    public var fastestRun: RunRecord? { runRecords.fastest }
 
-    /// The finished run that earned the most prestige points, the first of any ties.
-    public var biggestRun: RunRecord? {
-        runHistory.max { $0.points < $1.points }
-    }
+    /// The finished run that earned the most prestige points, of all time.
+    public var biggestRun: RunRecord? { runRecords.mostPoints }
 
-    /// The finished run that mined the most coins, the first of any ties.
-    public var richestRun: RunRecord? {
-        runHistory.max { $0.coins < $1.coins }
-    }
+    /// The finished run that mined the most coins, of all time.
+    public var richestRun: RunRecord? { runRecords.mostCoins }
 
-    /// The finished run whose miners earned the most a second by its end, the first of any ties.
-    public var mostProductiveRun: RunRecord? {
-        runHistory.max { $0.income < $1.income }
-    }
+    /// The finished run whose miners earned the most a second by its end, of all time.
+    public var mostProductiveRun: RunRecord? { runRecords.highestIncome }
 }

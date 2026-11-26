@@ -55,6 +55,40 @@ struct SaveStoreTests {
         #expect(!exists(backup) && store.load() == .loaded(mended))
     }
 
+    /// A save from a newer version of the game is never loaded, so this version can't save over
+    /// what it doesn't know: it's left as it is, and set aside only when the player says so.
+    @Test func aSaveFromANewerVersionIsLeftAloneAndNeverLoaded() throws {
+        let store = try freshStore()
+        try store.save(GameState.make(coins: 5))
+        var json = try JSONSerialization.jsonObject(with: Data(contentsOf: store.url)) as! [String: Any]
+        let version = GameState.saveVersion + 1
+        json["version"] = version
+        json["somethingNew"] = ["kept": true]
+        let newer = try JSONSerialization.data(withJSONObject: json)
+        try newer.write(to: store.url)
+        #expect(store.load(now: t0) == .newerVersion(version))
+        #expect(store.load(setsAsideUnreadable: false) == .newerVersion(version))
+        #expect(try Data(contentsOf: store.url) == newer) // Untouched, still in place.
+        // Not even one this version couldn't read at all is set aside as damaged.
+        let odd = Data(#"{"version": 99, "coins": "lots"}"#.utf8)
+        try odd.write(to: store.url)
+        #expect(store.load(now: t0) == .newerVersion(99))
+        #expect(try Data(contentsOf: store.url) == odd)
+        // A set-aside copy of one doesn't go back into place either.
+        let aside = store.url.deletingLastPathComponent().appending(path: "aside.json", directoryHint: .notDirectory)
+        try newer.write(to: aside)
+        #expect(store.restore(from: aside) == nil)
+        #expect(try Data(contentsOf: store.url) == odd && exists(aside))
+        // Set aside on purpose, to start a new game: kept, under a name that says why.
+        try newer.write(to: store.url)
+        let moved = try #require(store.setAsideNewerSave(now: t0))
+        #expect(moved.lastPathComponent == "game.version-\(version)-\(Int(t0.timeIntervalSince1970)).json")
+        #expect(!exists(store.url))
+        #expect(try Data(contentsOf: moved) == newer)
+        #expect(store.load() == .missing)
+        #expect(store.setAsideNewerSave() == nil) // Nothing newer left to move.
+    }
+
     @Test func restoringReplacesANewGameStartedMeanwhile() throws {
         let store = try freshStore()
         let backup = store.url.deletingLastPathComponent().appending(path: "old.json", directoryHint: .notDirectory)

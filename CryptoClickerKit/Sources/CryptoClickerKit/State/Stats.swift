@@ -183,8 +183,8 @@ public struct Stats: Codable, Equatable, Sendable {
     public internal(set) var tokensSold = 0
     /// Coins received for tokens sold on the market.
     public internal(set) var coinsFromSales: Double = 0
-    /// Sales for more than the average price paid for the tokens (after the fee); what every sale
-    /// made or lost against that price, in all; and the most one sale made (from version 2.1).
+    /// Sales for more than their share of what was paid for the tokens (after the fee); what every
+    /// sale made or lost against that, in all; and the most one sale made (from version 2.1).
     public internal(set) var profitableSales = 0
     public internal(set) var tradingProfit: Double = 0
     public internal(set) var bestSaleProfit: Double = 0
@@ -220,8 +220,9 @@ public struct Stats: Codable, Equatable, Sendable {
     /// Coins paid for tokens on the market since version 2.1.
     public var totalCoinsSpentOnTokens: Double { coinsSpentOnTokens.values.reduce(0, +) }
 
-    /// The average price paid for `token` on the market since version 2.1, or nil before one is
-    /// bought.
+    /// The average price paid for `token` on the market since version 2.1, over every purchase, or
+    /// nil before one is bought. A lifetime figure: what the tokens held now cost is
+    /// `GameState.boughtTokens`.
     public func averagePricePaid(_ token: TokenID) -> Double? {
         let count = tokensBoughtWithPrice[token, default: 0]
         return count > 0 ? coinsSpentOnTokens[token, default: 0] / Double(count) : nil

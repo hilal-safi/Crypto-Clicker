@@ -23,6 +23,8 @@ struct CheckCoinsIntent: AppIntent {
             return .result(dialog: "Unlock your iPhone first, then ask again.")
         case .unreadable:
             return .result(dialog: "Your saved game needs a look. Open Crypto Clicker.")
+        case .newerVersion:
+            return .result(dialog: "Your game was saved by a newer version of Crypto Clicker. Update the app, then ask again.")
         }
     }
 }

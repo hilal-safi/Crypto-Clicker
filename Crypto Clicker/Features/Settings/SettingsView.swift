@@ -153,7 +153,7 @@ struct SettingsView: View {
                 Button("Reset Everything", role: .destructive) { store.resetGame() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Your coins, miners, prestige, achievements and records will be erased. This can't be undone.")
+                Text("Your coins, miners, prestige, achievements and records will be erased. A snapshot of the game is kept in Settings › Backup and Save Files, and the backups in iCloud or a folder aren't replaced by the new game unless you choose to.")
             }
             .alert("Notifications are off", isPresented: $notificationsDenied) {
                 Button("Open Settings") {

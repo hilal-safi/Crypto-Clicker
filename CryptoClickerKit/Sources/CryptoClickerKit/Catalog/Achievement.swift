@@ -139,7 +139,7 @@ public enum AchievementCatalog {
         Achievement(id: "trader", name: localized("Trader"), detail: localized("Sell tokens in the Shop"), emoji: "📈", imageName: nil,
                     metric: .tokensSold, thresholds: [10, 250, 5_000, 100_000]),
         Achievement(id: "buy-low", name: localized("Buy Low, Sell High"),
-                    detail: localized("Sell tokens for more than you paid on average"), emoji: "💹", imageName: nil,
+                    detail: localized("Sell tokens you bought for more than they cost"), emoji: "💹", imageName: nil,
                     metric: .profitableSales, thresholds: [1, 10, 50, 250]),
     ]
 

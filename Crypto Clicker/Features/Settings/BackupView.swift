@@ -17,13 +17,33 @@ struct BackupView: View {
     @State private var problem: String?
     @State private var restored = 0
     @State private var entries: [GameBackups.Entry] = []
+    /// A backup elsewhere waiting for the player to confirm the game here replaces it.
+    @State private var replacing: Destination?
+    /// The picked folder's copy, when the game here doesn't replace it by itself (read with the
+    /// list, not on every redraw).
+    @State private var folderConflict: GameBackups.FolderConflict?
+    /// Goes up when the backups' status may have changed, to show it.
+    @State private var redraws = 0
 
     private enum Picking {
         case saveFile, folder
     }
 
+    /// Where a backup goes besides this iPhone.
+    private enum Destination {
+        case folder, iCloud
+
+        var name: String {
+            switch self {
+            case .folder: String(localized: "the backup folder")
+            case .iCloud: String(localized: "iCloud")
+            }
+        }
+    }
+
     var body: some View {
         let backups = store.backups
+        let _ = redraws
         List {
             automaticSection(backups)
             cloudSection(store.cloudBackup)
@@ -62,6 +82,13 @@ struct BackupView: View {
         } message: { copy in
             Text(copy.message)
         }
+        .alert("Replace the backup?", isPresented: Binding(get: { replacing != nil }, set: { if !$0 { replacing = nil } }),
+               presenting: replacing) { destination in
+            Button("Replace It", role: .destructive) { replace(destination) }
+            Button("Cancel", role: .cancel) {}
+        } message: { destination in
+            Text("The backup in \(destination.name) is replaced by the game on this iPhone. It's kept first as a snapshot on this iPhone, where you can still restore it.")
+        }
         .alert("Couldn't open that save", isPresented: Binding(get: { problem != nil }, set: { if !$0 { problem = nil } })) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -84,7 +111,7 @@ struct BackupView: View {
         } header: {
             Text("On This iPhone")
         } footer: {
-            SettingsNote("Your game is copied every ten minutes or so while you play and whenever you leave the app, with a copy a day for the last week. They're in the Files app, under On My iPhone › Crypto Clicker, and your iPhone's own backup includes them.")
+            SettingsNote("Your game is copied every ten minutes or so while you play and whenever you leave the app, with a copy a day for the last week, and kept as a snapshot before a restore or a reset replaces it. They're in the Files app, under On My iPhone › Crypto Clicker, and your iPhone's own backup includes them.")
         }
     }
 
@@ -101,42 +128,50 @@ struct BackupView: View {
                 }
             if backup.isAvailable, let latest = backup.latest {
                 LabeledContent("Last backup", value: Self.relative(latest.savedAt))
+                if backsUpToICloud, let conflict = backup.conflict(with: store.game) {
+                    ConflictNote(conflict: conflict, place: Destination.iCloud.name, copy: latest)
+                    Button("Replace with This Game…", systemImage: "arrow.triangle.2.circlepath") { replacing = .iCloud }
+                }
                 Button("Restore from iCloud…", systemImage: "icloud.and.arrow.down") { restoreFromICloud() }
+            }
+            if backup.isAvailable && backsUpToICloud {
+                switch backup.status {
+                case .tooLarge(let size):
+                    Problem("Your game is too big for iCloud's backup (\(size.formatted(.byteCount(style: .file)))), so it isn't backed up there. The backups on this iPhone and in a folder have no limit.")
+                case .full:
+                    Problem("iCloud's storage for Crypto Clicker is full, so the latest backup wasn't kept. The backups on this iPhone and in a folder still are.")
+                case .failed(let reason):
+                    Problem("The last backup to iCloud didn't go through: \(reason)")
+                case .none, .backedUp, .conflict:
+                    EmptyView()
+                }
             }
         } header: {
             Text("iCloud")
         } footer: {
-            SettingsNote(Self.iCloudNote(available: backup.isAvailable,
-                                         newerElsewhere: backup.isAvailable && backup.hasMoreProgressElsewhere(than: store.game)))
+            SettingsNote(backup.isAvailable
+                ? "A copy of your game goes to iCloud every ten minutes or so while you play, and when you leave the app. A new iPhone can carry on from it. It only ever replaces an earlier copy of this game: a copy further on, or of another game, stays until you choose."
+                : "iCloud backup needs iCloud turned on for this app and an iPhone signed in to iCloud. The backups on this iPhone and in a folder work without it.")
         }
-    }
-
-    private static func iCloudNote(available: Bool, newerElsewhere: Bool) -> String {
-        guard available else {
-            return "iCloud backup needs iCloud turned on for this app and an iPhone signed in to iCloud. The backups on this iPhone and in a folder work without it."
-        }
-        if newerElsewhere {
-            return "The backup in iCloud is from another device and further on than this game, so it isn't replaced. Restore it to carry on from there."
-        }
-        return "A copy of your game goes to iCloud every ten minutes or so while you play, and when you leave the app. A new iPhone can carry on from it."
     }
 
     private func folderSection(_ backups: GameBackups) -> some View {
         Section {
             if let name = backups.pickedFolderName {
                 LabeledContent("Folder", value: name)
-                switch backups.folderStatus {
-                case .none:
-                    EmptyView()
-                case .backedUp(let date):
-                    LabeledContent("Last backup", value: Self.relative(date))
-                case .newerElsewhere:
-                    Label("This folder has a game from another device that's further on, so it isn't replaced. Restore it below to carry on from there.",
-                          systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                case .failed(let reason):
-                    Label("The last backup couldn't be written: \(reason)", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
+                if let found = folderConflict {
+                    ConflictNote(conflict: found.conflict, place: Destination.folder.name, copy: found.entry.header)
+                    Button("Restore It…", systemImage: "arrow.down.doc") { restore(found.entry) }
+                    Button("Replace with This Game…", systemImage: "arrow.triangle.2.circlepath") { replacing = .folder }
+                } else {
+                    switch backups.folderStatus {
+                    case .none, .conflict:
+                        EmptyView()
+                    case .backedUp(let date):
+                        LabeledContent("Last backup", value: Self.relative(date))
+                    case .failed(let reason):
+                        Problem("The last backup couldn't be written: \(reason)")
+                    }
                 }
                 Button("Choose Another Folder…", systemImage: "folder.badge.gearshape") { picking = .folder }
                 Button("Stop Backing Up There", systemImage: "folder.badge.minus", role: .destructive) {
@@ -149,7 +184,7 @@ struct BackupView: View {
         } header: {
             Text("Backup Folder")
         } footer: {
-            SettingsNote("Pick a folder in Files, such as one in iCloud Drive, and your game is backed up there too, so a new iPhone can carry on from it: install Crypto Clicker, pick the same folder here and restore. A backup never replaces one from another device that's further on.")
+            SettingsNote("Pick a folder in Files, such as one in iCloud Drive, and your game is backed up there too, so a new iPhone can carry on from it: install Crypto Clicker, pick the same folder here and restore. A backup only ever replaces an earlier copy of this game: a copy further on, or of another game, stays until you choose.")
         }
     }
 
@@ -177,11 +212,29 @@ struct BackupView: View {
 
     private func reload() {
         entries = store.backups.entries()
+        folderConflict = store.backups.folderConflict(with: store.game)
+        redraws += 1
     }
 
     private func place(of entry: GameBackups.Entry) -> String {
-        if entry.url.lastPathComponent == GameBackups.folderFileName { return "Backup folder" }
-        return entry.url.lastPathComponent == "Latest.json" ? "Latest on this iPhone" : "Daily copy"
+        switch entry.place {
+        case .folder: String(localized: "Backup folder")
+        case .latest: String(localized: "Latest on this iPhone")
+        case .daily: String(localized: "Daily copy")
+        case .snapshot(.restore): String(localized: "Before a restore")
+        case .snapshot(.reset): String(localized: "Before a reset")
+        case .snapshot(.folderCopy): String(localized: "Folder copy, replaced")
+        case .snapshot(.iCloudCopy): String(localized: "iCloud copy, replaced")
+        }
+    }
+
+    /// Replaces the backup in `destination` with the game here, keeping it as a snapshot first.
+    private func replace(_ destination: Destination) {
+        switch destination {
+        case .folder: store.backups.replaceFolderCopy(with: store.game)
+        case .iCloud: store.cloudBackup.replace(with: store.game, keepingCopyIn: store.backups)
+        }
+        reload()
     }
 
     private func restoreFromICloud() {
@@ -269,6 +322,48 @@ private struct BackupRow: View {
     }
 }
 
+/// Why a backup elsewhere isn't replaced by the game here, and what it holds.
+private struct ConflictNote: View {
+    let conflict: SaveTransfer.Conflict
+    /// "iCloud", "the backup folder".
+    let place: String
+    let copy: SaveTransfer.Header
+
+    var body: some View {
+        let prestiges = copy.prestiges == 1 ? "1 prestige" : "\(CoinFormat.grouped(copy.prestiges)) prestiges"
+        let holds = "\(CoinFormat.short(copy.lifetimeCoins)) coins mined, \(prestiges), last backed up \(copy.savedAt.formatted(date: .abbreviated, time: .shortened))"
+        Label {
+            switch conflict {
+            case .furtherOn:
+                Text("The backup in \(place) is of this game but further on (\(holds)): it was played on another device, or after the copy this game was restored from. It isn't replaced, so nothing is lost: restore it to carry on from there, or replace it with the game here.")
+            case .otherGame:
+                Text("The backup in \(place) is of another game (\(holds)): one from another device, or the game here before a reset or a restore. It isn't replaced by this one unless you choose to.")
+            case .newerVersion:
+                Text("The backup in \(place) was made by a newer version of Crypto Clicker (\(holds)). Update the app to restore it. It isn't replaced unless you choose to.")
+            }
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill")
+        }
+        .font(.subheadline)
+        .foregroundStyle(.orange)
+    }
+}
+
+/// Something that stopped a backup, in red.
+private struct Problem: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        Label(text, systemImage: "exclamationmark.triangle.fill")
+            .font(.subheadline)
+            .foregroundStyle(.red)
+    }
+}
+
 /// A copy of a game waiting to replace the one here, with what it holds.
 private struct PendingCopy {
     let game: GameState
@@ -278,7 +373,7 @@ private struct PendingCopy {
     var message: String {
         let summary = SaveTransfer.Summary(of: game)
         let prestiges = summary.prestiges == 1 ? "1 prestige" : "\(CoinFormat.grouped(summary.prestiges)) prestiges"
-        return "The game in \(source) was last played \(summary.savedAt.formatted(date: .abbreviated, time: .shortened)): \(CoinFormat.short(summary.lifetimeCoins)) coins mined, \(prestiges). It replaces the game on this iPhone, which can't be undone."
+        return "The game in \(source) was last played \(summary.savedAt.formatted(date: .abbreviated, time: .shortened)): \(CoinFormat.short(summary.lifetimeCoins)) coins mined, \(prestiges). It replaces the game on this iPhone, which is kept first as a snapshot in the backups on this iPhone."
     }
 }
 

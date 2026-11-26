@@ -65,8 +65,8 @@ enum Preferences {
     /// Set once the App Store rating prompt has been asked for (after the first prestige).
     static let reviewRequestedKey = "reviewRequested"
     /// Whether the game is backed up to iCloud (on unless turned off, and only where the app has
-    /// the iCloud capability), this install's id for telling its backups from another device's,
-    /// and the bookmark to the folder the player picked for backups.
+    /// the iCloud capability), an id for this install that stands in should iOS give no vendor id
+    /// (`BackupDevice`), and the bookmark to the folder the player picked for backups.
     static let iCloudBackupKey = "iCloudBackup"
     static let backupDeviceKey = "backupDevice"
     static let backupFolderKey = "backupFolder"

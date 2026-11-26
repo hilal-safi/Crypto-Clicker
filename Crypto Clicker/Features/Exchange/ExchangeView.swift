@@ -188,7 +188,7 @@ private struct TradeHistoryView: View {
 }
 
 /// One trade: the token, bought or sold, how many, for how much, when, and for a sale how it
-/// compares with the average price paid.
+/// compares with its share of what the tokens cost.
 private struct TradeRow: View {
     let trade: TokenTrade
 
